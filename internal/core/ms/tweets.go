@@ -13,7 +13,7 @@ const (
 	AttachmentTypeVideo = dbr.AttachmentTypeVideo
 	AttachmentTypeOther = dbr.AttachmentTypeOther
 
-	// 类型，1标题，2文字段落，3图片地址，4视频地址，5语音地址，6链接地址，7附件资源
+	// 类型，1标题，2文字段落，3图片地址，4视频地址，5语音地址，6链接地址，7附件资源，8收费资源，9 Markdown长文
 	ContentTypeTitle            = dbr.ContentTypeTitle
 	ContentTypeText             = dbr.ContentTypeText
 	ContentTypeImage            = dbr.ContentTypeImage
@@ -22,6 +22,7 @@ const (
 	ContentTypeLink             = dbr.ContentTypeLink
 	ContentTypeAttachment       = dbr.ContentTypeAttachment
 	ContentTypeChargeAttachment = dbr.ContentTypeChargeAttachment
+	ContentTypeMarkdown         = dbr.ContentTypeMarkdown
 )
 
 const (

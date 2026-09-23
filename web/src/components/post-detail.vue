@@ -134,9 +134,66 @@
                     negative-text="取消"
                     @positive-click="execVisibilityAction"
                 />
+                  <!-- 审核拒绝原因 -->
+                <n-modal
+                    v-model:show="showAuditReject"
+                    :mask-closable="false"
+                    preset="dialog"
+                    title="拒绝原因"
+                    positive-text="确定拒绝"
+                    negative-text="取消"
+                    @positive-click="execAuditReject"
+                >
+                    <n-space vertical>
+                        <div class="audit-reject-tip">
+                            拒绝后该帖子将转为私密并标记「未通过」（作者可见），作者可将可见性重新设为非私密后再次提交审核。
+                        </div>
+                        <n-input
+                            v-model:value="auditRejectReason"
+                            type="textarea"
+                            placeholder="请填写拒绝原因（必填）"
+                            :autosize="{ minRows: 2, maxRows: 4 }"
+                            maxlength="255"
+                            show-count
+                        />
+                    </n-space>
+                </n-modal>
                   <!-- 私信组件 -->
                 <whisper :show="showWhisper" :user="whisperReceiver" @success="whisperSuccess" />
             </template>
+            <div v-if="showAuditBar" class="audit-bar" @click.stop>
+                <n-tag
+                    :type="post.audit_status === 2 ? 'error' : 'warning'"
+                    size="small"
+                    round
+                >
+                    {{ post.audit_status === 2 ? '审核未通过' : '待审核' }}
+                </n-tag>
+                <span class="audit-bar-tip">
+                    该内容尚未公开，仅作者与审核人员可见
+                </span>
+                <n-space size="small">
+                    <n-button
+                        size="small"
+                        type="success"
+                        secondary
+                        :loading="auditActing"
+                        @click.stop="handleAuditApprove"
+                    >
+                        通过
+                    </n-button>
+                    <n-button
+                        size="small"
+                        type="warning"
+                        secondary
+                        :disabled="auditActing"
+                        @click.stop="showAuditReject = true"
+                    >
+                        拒绝
+                    </n-button>
+                </n-space>
+            </div>
+
             <div v-if="post.texts.length > 0">
                 <span
                     v-for="content in post.texts"
@@ -146,6 +203,21 @@
                     v-html="parsePostTag(content.content).content"
                 >
                 </span>
+            </div>
+
+            <div
+                v-if="post.markdowns.length > 0"
+                class="post-markdown-wrap"
+                @click.stop="handleMdClick($event, post.id)"
+            >
+                <md-preview
+                    v-for="md in post.markdowns"
+                    :key="md.id"
+                    :model-value="prepareMdRender(md.content)"
+                    :theme="editorTheme"
+                    no-mermaid
+                    no-katex
+                />
             </div>
 
             <template #footer>
@@ -222,6 +294,8 @@ import { useStoreMain } from '@/store/main';
 import { useRouter } from 'vue-router';
 import { formatPrettyTime } from '@/utils/formatTime';
 import { parsePostTag } from '@/utils/content';
+import { MdPreview } from 'md-editor-v3';
+import { mdTheme, prepareMdRender } from '@/utils/markdown';
 import {
   PaperPlaneOutline,
   Heart,
@@ -267,8 +341,9 @@ const useFriendship =
 
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
-const { collapsedLeft } = storeToRefs(storeMain);
+const { collapsedLeft, theme } = storeToRefs(storeMain);
 const { userInfo } = storeToRefs(storeUser);
+const editorTheme = computed(() => mdTheme(theme.value));
 
 const router = useRouter();
 const dialog = useDialog();
@@ -288,6 +363,21 @@ const showVisibilityModal = ref(false);
 const loading = ref(false);
 const tempVisibility = ref<VisibilityEnum>(VisibilityEnum.PUBLIC);
 const showWhisper = ref(false);
+// 审核操作(审核员/管理员在详情页直接审核)
+const showAuditReject = ref(false);
+const auditRejectReason = ref('');
+const auditActing = ref(false);
+const isAuditor = computed(
+  () =>
+    userInfo.value.id > 0 &&
+    (userInfo.value.is_admin || (userInfo.value.roles || []).includes('auditor')),
+);
+const showAuditBar = computed(
+  () =>
+    isAuditor.value &&
+    post.value.audit_status !== undefined &&
+    post.value.audit_status !== 1,
+);
 const whisperReceiver = ref<Item.UserInfo>({
   id: 0,
   avatar: '',
@@ -492,6 +582,68 @@ const doClickText = (e: MouseEvent, id: number) => {
     }
   }
   goPostDetail(id);
+};
+// Markdown渲染区点击委托: 话题/站外链接拦截
+const handleMdClick = (e: MouseEvent, _id: number) => {
+  const anchor = (e.target as HTMLElement).closest('a');
+  if (!anchor) {
+    return;
+  }
+  const href = anchor.getAttribute('href') || '';
+  const text = anchor.textContent || '';
+  if (href === '#' && (text.startsWith('#') || text.startsWith('＃'))) {
+    e.preventDefault();
+    const tag = text.replace(/^[#＃]/, '').replace(/[#＃]$/, '');
+    if (tag) {
+      storeMain.doRefresh();
+      router.push({
+        name: 'home',
+        query: {
+          q: tag,
+          t: 'tag',
+        },
+      });
+    }
+    return;
+  }
+  if (href.startsWith('http://') || href.startsWith('https://')) {
+    e.preventDefault();
+    window.open(href, '_blank', 'noopener,noreferrer');
+  }
+};
+const handleAuditApprove = () => {
+  dialog.success({
+    title: '通过审核',
+    content: '确定通过该帖子？通过后将公开出现在广场与搜索中。',
+    positiveText: '通过',
+    negativeText: '取消',
+    onPositiveClick: () => doAuditAction('approve'),
+  });
+};
+const execAuditReject = () => {
+  const reason = auditRejectReason.value.trim();
+  if (!reason) {
+    window.$message.warning('请填写拒绝原因');
+    return false;
+  }
+  doAuditAction('reject', reason);
+  return true;
+};
+const doAuditAction = async (action: 'approve' | 'reject', reason?: string) => {
+  auditActing.value = true;
+  try {
+    await Api.v1.admin.post.audit.post({
+      post_id: post.value.id,
+      action,
+      reason,
+    });
+    window.$message.success(action === 'approve' ? '已通过审核' : '已拒绝该帖子');
+    emit('reload', post.value.id);
+  } catch (_err) {
+    // 错误提示由请求拦截器统一处理
+  } finally {
+    auditActing.value = false;
+  }
 };
 const handlePostAction = (
   item:
@@ -735,6 +887,33 @@ onMounted(() => {
         overflow: hidden;
         white-space: pre-wrap;
         word-break: break-all;
+    }
+    .post-markdown-wrap {
+        .md-editor-preview-wrapper {
+            padding: 0;
+        }
+        .md-editor-preview {
+            font-size: 15px;
+        }
+    }
+    .audit-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        margin-bottom: 10px;
+        border-radius: 4px;
+        background: rgba(240, 160, 32, 0.08);
+
+        .audit-bar-tip {
+            flex: 1;
+            font-size: 13px;
+            opacity: 0.75;
+        }
+    }
+    .audit-reject-tip {
+        font-size: 12px;
+        opacity: 0.65;
     }
     .opts-wrap {
         margin-top: 20px;

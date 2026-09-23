@@ -12,7 +12,7 @@
                 </div>
 
                 <n-list-item class="list-item" v-for="contact in list" :key="contact.user_id">
-                     <user-card type="contact" :contact="contact" @send-whisper="onSendWhisper" />
+                     <user-card type="contact" :contact="contact" @send-whisper="onSendWhisper" @delete-success="onDeleteFriend" />
                 </n-list-item>
             </div>
             <!-- 私信组件 -->
@@ -60,6 +60,11 @@ page.value = +(route.query.p as string) || 1;
 const onSendWhisper = (user: Item.UserInfo) => {
   whisperReceiver.value = user;
   showWhisper.value = true;
+};
+
+// 删除好友后从列表移除
+const onDeleteFriend = (userId: number) => {
+  list.value = list.value.filter((c) => c.user_id !== userId);
 };
 
 const whisperSuccess = () => {

@@ -142,8 +142,11 @@ func auditPostSummary(ds core.DataService, post *ms.Post) string {
 	contents, err := ds.GetPostContentsByIDs([]int64{post.ID})
 	if err == nil {
 		for _, c := range contents {
-			if c.Type == ms.ContentTypeTitle || c.Type == ms.ContentTypeText {
+			if c.Type == ms.ContentTypeTitle || c.Type == ms.ContentTypeText || c.Type == ms.ContentTypeMarkdown {
 				s := strings.TrimSpace(c.Content)
+				if c.Type == ms.ContentTypeMarkdown {
+					s = markdownSummaryText(s)
+				}
 				if s != "" {
 					if len([]rune(s)) > 30 {
 						return string([]rune(s)[:30]) + "…"
@@ -154,6 +157,24 @@ func auditPostSummary(ds core.DataService, post *ms.Post) string {
 		}
 	}
 	return fmt.Sprintf("#%d", post.ID)
+}
+
+// markdownSummaryText 去除Markdown语法标记提取摘要文本(通知等纯文本场景)
+func markdownSummaryText(s string) string {
+	s = strings.ReplaceAll(s, "```", "")
+	lines := strings.Split(s, "\n")
+	kept := make([]string, 0, len(lines))
+	for _, ln := range lines {
+		ln = strings.TrimLeft(ln, "#> ")
+		ln = strings.TrimLeft(ln, "-*+ ")
+		if strings.TrimSpace(ln) == "" {
+			continue
+		}
+		kept = append(kept, ln)
+	}
+	s = strings.Join(kept, " ")
+	replacer := strings.NewReplacer("**", "", "*", "", "__", "", "_", "", "`", "")
+	return strings.TrimSpace(replacer.Replace(s))
 }
 
 // ListAuditLogs 审核日志

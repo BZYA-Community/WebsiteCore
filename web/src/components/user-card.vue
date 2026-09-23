@@ -61,8 +61,14 @@ import type { Component } from 'vue';
 import { NIcon, useDialog, DropdownOption } from 'naive-ui';
 import { formatDate } from '@/utils/formatTime';
 import { MoreHorizFilled } from '@vicons/material';
-import { PaperPlaneOutline, BodyOutline, WalkOutline } from '@vicons/ionicons5';
+import {
+  PaperPlaneOutline,
+  BodyOutline,
+  WalkOutline,
+  PersonRemoveOutline,
+} from '@vicons/ionicons5';
 import UserAction from '@/composables/useUserAction';
+import { Api } from '@/utils/request';
 
 const dialog = useDialog();
 
@@ -82,6 +88,7 @@ const enableFollowAction = computed(() => props.type === 'follow');
 const emit = defineEmits<{
   (e: 'send-whisper', user: Item.UserInfo): void;
   (e: 'unfollow-success'): void;
+  (e: 'delete-success', userId: number): void;
 }>();
 
 const renderIcon = (icon: Component) => {
@@ -131,14 +138,48 @@ const actionOpts = computed(() => {
     }
   }
 
+  // 好友卡片提供删除好友入口
+  if (props.type === 'contact') {
+    options.push({
+      label: '删除好友 @' + props.contact.username,
+      key: 'delete',
+      icon: renderIcon(PersonRemoveOutline),
+    });
+  }
+
   return options;
 });
 
-const handleAction = (item: 'follow' | 'unfollow' | 'whisper') => {
+const handleDeleteFriend = () => {
+  dialog.warning({
+    title: '删除好友',
+    content:
+      '确定删除好友 ' + props.contact.nickname + '（@' + props.contact.username + '）吗？删除后对方也将不再是您的好友。',
+    positiveText: '删除',
+    negativeText: '取消',
+    onPositiveClick: () => {
+      Api.v1.friend.post.delete({
+        user_id: props.contact.user_id,
+      })
+        .then((_res) => {
+          window.$message.success('已删除好友');
+          emit('delete-success', props.contact.user_id);
+        })
+        .catch((err) => {
+          console.log(err);
+        });
+    },
+  });
+};
+
+const handleAction = (item: 'follow' | 'unfollow' | 'whisper' | 'delete') => {
   switch (item) {
     case 'follow':
     case 'unfollow':
       handleFollowUser();
+      break;
+    case 'delete':
+      handleDeleteFriend();
       break;
     case 'whisper':
       const user: Item.UserInfo = {

@@ -92,23 +92,46 @@
                     </n-dropdown>
                 </div>
             </template>
-            <template #description v-if="post.texts.length > 0">
-                <div v-if="isMobile" @click="goPostDetail(post.id)">
-                    <span v-for="content in post.texts"
-                        :key="content.id"
-                        class="post-text"
-                        @click.stop="doClickText($event, post.id)"
-                        v-html="preparePost(content.content, '展开', '收起', profile.tweetMobileEllipsisSize, inFoldStyle)"
-                    ></span>
+            <template #description v-if="post.texts.length > 0 || post.markdowns.length > 0">
+                <template v-if="post.texts.length > 0">
+                    <div v-if="isMobile" @click="goPostDetail(post.id)">
+                        <span v-for="content in post.texts"
+                            :key="content.id"
+                            class="post-text"
+                            @click.stop="doClickText($event, post.id)"
+                            v-html="preparePost(content.content, '展开', '收起', profile.tweetMobileEllipsisSize, inFoldStyle)"
+                        ></span>
+                    </div>
+                    <template v-else>
+                        <span
+                            v-for="content in post.texts"
+                            :key="content.id"
+                            class="post-text hover"
+                            @click.stop="doClickText($event, post.id)"
+                            v-html="preparePost(content.content, '展开', '收起', profile.tweetWebEllipsisSize, inFoldStyle)"
+                        ></span>
+                    </template>
+                </template>
+                <div
+                    v-for="md in post.markdowns"
+                    :key="md.id"
+                    class="post-markdown"
+                    @click.stop="handleMdClick($event, post.id)"
+                >
+                    <md-preview
+                        :model-value="mdExcerptText(md.content)"
+                        :theme="editorTheme"
+                        no-mermaid
+                        no-katex
+                    />
+                    <span
+                        v-if="mdExcerptMore(md.content)"
+                        class="hash-link read-full-link"
+                        @click.stop="goPostDetail(post.id)"
+                    >
+                        阅读全文
+                    </span>
                 </div>
-                <span
-                    v-else
-                    v-for="content in post.texts"
-                    :key="content.id"
-                    class="post-text hover"
-                    @click.stop="doClickText($event, post.id)"
-                    v-html="preparePost(content.content, '展开', '收起', profile.tweetWebEllipsisSize, inFoldStyle)"
-                ></span>
             </template>
 
             <template #footer>
@@ -165,6 +188,8 @@ import type { Component } from 'vue';
 import type { DropdownOption } from 'naive-ui';
 import { formatPrettyDate } from '@/utils/formatTime';
 import { preparePost } from '@/utils/content';
+import { MdPreview } from 'md-editor-v3';
+import { mdTheme, mdExcerpt, prepareMdRender } from '@/utils/markdown';
 import { postStar, postCollection } from '@/api/post';
 import {
   PaperPlaneOutline,
@@ -189,7 +214,9 @@ const router = useRouter();
 
 const storeMain = useStoreMain();
 const storeProfile = useStoreProfile();
+const { theme } = storeToRefs(storeMain);
 const { profile } = storeToRefs(storeProfile);
+const editorTheme = computed(() => mdTheme(theme.value));
 
 const dialog = useDialog();
 
@@ -389,6 +416,44 @@ const doClickText = (e: MouseEvent, id: number) => {
     goPostDetail(id);
   }
 };
+
+// Markdown节选文本(前5行 话题链接化)
+const mdExcerptText = (mdc: string) => prepareMdRender(mdExcerpt(mdc).text);
+// 是否超出节选行数(需要展示阅读全文)
+const mdExcerptMore = (mdc: string) => mdExcerpt(mdc).truncated;
+// Markdown渲染区点击委托: 话题/站外链接拦截 其余跳详情
+const handleMdClick = (e: MouseEvent, id: number) => {
+  const anchor = (e.target as HTMLElement).closest('a');
+  if (!anchor) {
+    goPostDetail(id);
+    return;
+  }
+  const href = anchor.getAttribute('href') || '';
+  const text = anchor.textContent || '';
+  if (href === '#' && (text.startsWith('#') || text.startsWith('＃'))) {
+    e.preventDefault();
+    const tag = text.replace(/^[#＃]/, '').replace(/[#＃]$/, '');
+    if (tag) {
+      storeMain.doRefresh();
+      router.push({
+        name: 'home',
+        query: {
+          q: tag,
+          t: 'tag',
+        },
+      });
+    }
+    return;
+  }
+  if (href.startsWith('http://') || href.startsWith('https://')) {
+    e.preventDefault();
+    window.open(href, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  if (href === '#') {
+    e.preventDefault();
+  }
+};
 </script>
 
 <style lang="less">
@@ -426,6 +491,25 @@ const doClickText = (e: MouseEvent, id: number) => {
         overflow: hidden;
         white-space: pre-wrap;
         word-break: break-all;
+    }
+
+    .post-markdown {
+        width: 100%;
+        cursor: pointer;
+
+        .read-full-link {
+            display: inline-block;
+            margin-top: 4px;
+            cursor: pointer;
+        }
+
+        .md-editor-preview-wrapper {
+            padding: 0 4px 0 12px;
+        }
+
+        .md-editor-preview {
+            font-size: 15px;
+        }
     }
 
     .opt-item {
