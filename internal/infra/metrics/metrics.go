@@ -9,7 +9,7 @@ import (
 
 	"github.com/alimy/tryst/event"
 	"github.com/alimy/tryst/pool"
-	"github.com/rocboss/paopao-ce/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/sirupsen/logrus"
 )
 

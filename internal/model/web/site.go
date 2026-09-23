@@ -7,7 +7,7 @@ package web
 import (
 	"encoding/json"
 
-	"github.com/rocboss/paopao-ce/pkg/version"
+	"github.com/BZYA-Community/WebsiteCore/pkg/version"
 )
 
 type VersionResp struct {

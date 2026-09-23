@@ -5,7 +5,7 @@
 package web
 
 import (
-	"github.com/rocboss/paopao-ce/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 )
 
 type RequestingFriendReq struct {

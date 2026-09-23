@@ -7,14 +7,14 @@ package servants
 import (
 	"github.com/alimy/tryst/cfg"
 	"github.com/gin-gonic/gin"
-	"github.com/rocboss/paopao-ce/internal/servants/admin"
-	"github.com/rocboss/paopao-ce/internal/servants/bot"
-	"github.com/rocboss/paopao-ce/internal/servants/docs"
-	"github.com/rocboss/paopao-ce/internal/servants/localoss"
-	"github.com/rocboss/paopao-ce/internal/servants/mobile"
-	"github.com/rocboss/paopao-ce/internal/servants/space"
-	"github.com/rocboss/paopao-ce/internal/servants/statick"
-	"github.com/rocboss/paopao-ce/internal/servants/web"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/admin"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/bot"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/docs"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/localoss"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/mobile"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/space"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/statick"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/web"
 	"google.golang.org/grpc"
 )
 

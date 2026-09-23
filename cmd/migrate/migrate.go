@@ -7,7 +7,7 @@ package migrate
 import (
 	"fmt"
 
-	"github.com/rocboss/paopao-ce/cmd"
+	"github.com/BZYA-Community/WebsiteCore/cmd"
 	"github.com/spf13/cobra"
 )
 

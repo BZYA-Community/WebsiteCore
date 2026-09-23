@@ -7,8 +7,8 @@ package search
 import (
 	"time"
 
-	"github.com/rocboss/paopao-ce/internal/core"
-	"github.com/rocboss/paopao-ce/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/sirupsen/logrus"
 )
 

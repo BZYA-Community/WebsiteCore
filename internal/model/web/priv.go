@@ -11,13 +11,13 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rocboss/paopao-ce/internal/core"
-	"github.com/rocboss/paopao-ce/internal/core/cs"
-	"github.com/rocboss/paopao-ce/internal/core/ms"
-	"github.com/rocboss/paopao-ce/internal/model/joint"
-	"github.com/rocboss/paopao-ce/internal/servants/base"
-	"github.com/rocboss/paopao-ce/pkg/convert"
-	"github.com/rocboss/paopao-ce/pkg/xerror"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/pkg/convert"
+	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 )
 
 const (

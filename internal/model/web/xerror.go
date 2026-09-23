@@ -5,7 +5,7 @@
 package web
 
 import (
-	"github.com/rocboss/paopao-ce/pkg/xerror"
+	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 )
 
 // nolint

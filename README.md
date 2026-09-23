@@ -36,16 +36,16 @@
 
 ## Overview
 
-PaoPao is a full-stack, open-source micro-community system. It combines a Go backend, a Vue 3 web client, and an optional Tauri desktop application, with a modular feature system for storage, search, logging, observability, and deployment strategy.
+PaoPao is a full-stack, open-source micro-community system. It combines a Go backend and a Vue 3 web client, with a modular feature system for storage, search, logging, observability, and deployment strategy.
 
 The repository is suitable for teams or individuals who want to run a community product, evaluate an extensible social platform, or build on top of an existing codebase instead of starting from scratch.
 
 ## Why PaoPao
 
-- **Full-stack delivery**: backend, web frontend, and desktop packaging live in one repository.
+- **Full-stack delivery**: backend and web frontend live in one repository.
 - **Modular runtime features**: enable different capability sets through `Features` suites such as `Default`, `Develop`, `Demo`, and `Slim`.
 - **Flexible infrastructure**: supports MySQL, PostgreSQL, SQLite, Redis, Meilisearch, and multiple object storage providers.
-- **Multiple deployment paths**: run from source, Docker, Docker Compose, or all-in-one container images.
+- **Binary-friendly deployment**: build a single self-contained release binary and deploy it directly to your server.
 - **Self-hosting friendly**: configuration is file-based and operational docs are already included in the repo.
 
 ## Preview
@@ -56,10 +56,6 @@ The repository is suitable for teams or individuals who want to run a community 
 
 [![Dark theme preview](./.assets/readme/preview-dark.jpeg)](https://paopao-demo.vercel.app)
 
-### Desktop
-
-![](docs/proposal/.assets/000-00.jpg)
-
 More screenshots and live behavior are available at [PaoPao](https://paopao-demo.vercel.app/).
 
 ## Architecture at a Glance
@@ -68,7 +64,6 @@ More screenshots and live behavior are available at [PaoPao](https://paopao-demo
 | --- | --- |
 | Backend | Go, Gin, Cobra, GORM, Mir |
 | Web frontend | Vue 3, Vite, Naive UI |
-| Desktop client | Tauri |
 | Search | Meilisearch |
 | Cache | Redis |
 | Object storage | Local OSS, MinIO, AliOSS, COS, Huawei OBS, S3-compatible |
@@ -79,30 +74,14 @@ More screenshots and live behavior are available at [PaoPao](https://paopao-demo
 | Path | Purpose |
 | --- | --- |
 | `cmd/`, `internal/`, `pkg/` | Backend application and shared packages |
-| `web/` | Vue 3 web application and Tauri desktop frontend |
+| `web/` | Vue 3 web application |
 | `docs/` | Deployment, OpenAPI, design proposals, and related documentation |
 | `scripts/` | SQL bootstrap and helper assets |
 | `config.yaml.sample` | Complete runtime configuration template |
 
 ## Quick Start
 
-### Option A: Evaluate locally with Docker Compose
-
-This is the fastest way to bring up a local environment for evaluation.
-
-```sh
-git clone https://github.com/rocboss/paopao-ce.git
-cd paopao-ce
-docker compose up -d
-```
-
-Then open:
-
-- `http://localhost:8008` - PaoPao
-- `http://localhost:7700` - Meilisearch
-- `http://localhost:8001` - RedisInsight
-
-### Option B: Develop from source
+### Develop from source
 
 #### Requirements
 
@@ -111,7 +90,6 @@ Then open:
 - MySQL `5.7+`
 - Redis
 - Meilisearch
-- Rust + Tauri prerequisites if you plan to build the desktop app
 
 #### Backend
 
@@ -152,14 +130,7 @@ To produce static assets:
 yarn build
 ```
 
-#### Desktop app
-
-```sh
-cd web
-yarn tauri build
-```
-
-For the full installation guide, Docker build variants, desktop prerequisites, and migration notes, see [INSTALL.md](INSTALL.md).
+For the full installation guide and migration notes, see [INSTALL.md](INSTALL.md).
 
 ## Configuration and Feature Suites
 
@@ -204,7 +175,7 @@ For the current implementation status of each feature, see [features-status.md](
 
 ## Documentation Map
 
-- [INSTALL.md](INSTALL.md) - installation, Docker usage, and desktop build instructions
+- [INSTALL.md](INSTALL.md) - installation and binary deployment instructions
 - [INSTALL_ZH.md](INSTALL_ZH.md) - Chinese installation guide
 - [docs/README.md](docs/README.md) - documentation index
 - [docs/README_ZH.md](docs/README_ZH.md) - Chinese documentation index

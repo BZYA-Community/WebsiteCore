@@ -3,7 +3,7 @@ package v1
 import (
 	. "github.com/alimy/mir/v5"
 
-	"github.com/rocboss/paopao-ce/internal/model/web"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 )
 
 // Followship 关注者模式 服务

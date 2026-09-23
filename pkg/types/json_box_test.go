@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/rocboss/paopao-ce/pkg/types"
+	"github.com/BZYA-Community/WebsiteCore/pkg/types"
 )
 
 var _ = Describe("JsonBox", Ordered, func() {

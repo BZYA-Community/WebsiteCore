@@ -236,7 +236,7 @@ const file_core_v1_auth_proto_rawDesc = "" +
 	"\bpreLogin\x12\r.core.v1.User\x1a\x14.core.v1.ActionReply\x12+\n" +
 	"\x05login\x12\r.core.v1.User\x1a\x13.core.v1.LoginReply\x12-\n" +
 	"\x06logout\x12\r.core.v1.User\x1a\x14.core.v1.ActionReplyB\x8b\x01\n" +
-	"\vcom.core.v1B\tAuthProtoP\x01Z4github.com/rocboss/paopao-ce/auto/rpc/core/v1;corev1\xa2\x02\x03CXX\xaa\x02\aCore.V1\xca\x02\aCore\\V1\xe2\x02\x13Core\\V1\\GPBMetadata\xea\x02\bCore::V1b\x06proto3"
+	"\vcom.core.v1B\tAuthProtoP\x01Z4github.com/BZYA-Community/WebsiteCore/auto/rpc/core/v1;corev1\xa2\x02\x03CXX\xaa\x02\aCore.V1\xca\x02\aCore\\V1\xe2\x02\x13Core\\V1\\GPBMetadata\xea\x02\bCore::V1b\x06proto3"
 
 var (
 	file_core_v1_auth_proto_rawDescOnce sync.Once

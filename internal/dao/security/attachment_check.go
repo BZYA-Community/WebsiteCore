@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/rocboss/paopao-ce/internal/conf"
-	"github.com/rocboss/paopao-ce/internal/core"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
 )
 
 type attachmentCheckServant struct {

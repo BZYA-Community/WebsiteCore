@@ -7,11 +7,11 @@ package web
 import (
 	"context"
 
-	api "github.com/rocboss/paopao-ce/auto/api/v1"
-	"github.com/rocboss/paopao-ce/internal/model/web"
-	"github.com/rocboss/paopao-ce/internal/servants/base"
-	"github.com/rocboss/paopao-ce/internal/sitesetting"
-	"github.com/rocboss/paopao-ce/pkg/version"
+	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/internal/sitesetting"
+	"github.com/BZYA-Community/WebsiteCore/pkg/version"
 )
 
 type siteSrv struct {

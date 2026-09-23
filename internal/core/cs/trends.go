@@ -4,7 +4,7 @@
 
 package cs
 
-import "github.com/rocboss/paopao-ce/pkg/types"
+import "github.com/BZYA-Community/WebsiteCore/pkg/types"
 
 type TrendsItem struct {
 	Username string `json:"username"`

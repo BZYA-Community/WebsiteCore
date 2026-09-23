@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"time"
 
-	hx "github.com/rocboss/paopao-ce/pkg/http"
-	"github.com/rocboss/paopao-ce/pkg/json"
-	"github.com/rocboss/paopao-ce/pkg/obx"
+	hx "github.com/BZYA-Community/WebsiteCore/pkg/http"
+	"github.com/BZYA-Community/WebsiteCore/pkg/json"
+	"github.com/BZYA-Community/WebsiteCore/pkg/obx"
 	"github.com/sirupsen/logrus"
 )
 

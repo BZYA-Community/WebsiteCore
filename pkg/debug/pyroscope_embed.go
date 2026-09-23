@@ -12,7 +12,7 @@ import (
 
 	"github.com/alimy/tryst/cfg"
 	pyroscope "github.com/grafana/pyroscope-go"
-	"github.com/rocboss/paopao-ce/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/sirupsen/logrus"
 )
 

@@ -7,7 +7,7 @@ package core
 import (
 	"time"
 
-	"github.com/rocboss/paopao-ce/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 )
 
 // SecurityService 安全相关服务

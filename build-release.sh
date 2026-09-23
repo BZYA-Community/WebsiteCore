@@ -1,6 +1,6 @@
 #!/bin/sh
-# eg.1 : sh build-image.sh
-# eg.2, set tags: sh build-image.sh 'go_json'
+# eg.1 : sh build-release.sh
+# eg.2, set tags: sh build-release.sh 'go_json'
 
 TAGS='go_json'
 

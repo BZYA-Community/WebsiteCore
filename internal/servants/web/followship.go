@@ -6,12 +6,12 @@ package web
 
 import (
 	"github.com/gin-gonic/gin"
-	api "github.com/rocboss/paopao-ce/auto/api/v1"
-	"github.com/rocboss/paopao-ce/internal/dao/cache"
-	"github.com/rocboss/paopao-ce/internal/model/web"
-	"github.com/rocboss/paopao-ce/internal/servants/base"
-	"github.com/rocboss/paopao-ce/internal/servants/chain"
-	"github.com/rocboss/paopao-ce/pkg/xerror"
+	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
+	"github.com/BZYA-Community/WebsiteCore/internal/dao/cache"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
+	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/sirupsen/logrus"
 )
 

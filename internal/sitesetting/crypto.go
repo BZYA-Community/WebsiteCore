@@ -14,8 +14,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/rocboss/paopao-ce/internal/conf"
-	"github.com/rocboss/paopao-ce/pkg/xerror"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 )
 
 const encryptedValuePrefix = "enc:v1:"

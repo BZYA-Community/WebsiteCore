@@ -24,7 +24,7 @@ Database:
 MySQL:
   Username: paopao
   Password: paopao
-  Host: db:3306
+  Host: 127.0.0.1:3306
   DBName: paopao
   Charset: utf8mb4
   ParseTime: true
@@ -33,7 +33,7 @@ MySQL:
 
 Redis:
   InitAddress:
-    - redis:6379
+    - 127.0.0.1:6379
 
 JWT:
   Secret: 18a6413dc4fe394c66345ebe501b2f26
@@ -47,7 +47,7 @@ AdminSettings:
 # If the embedded defaults already match your environment, you can remove these
 # and manage later adjustments from /#/admin/settings.
 Meili:
-  Host: meili:7700
+  Host: 127.0.0.1:7700
   Index: paopao-data
   ApiKey: paopao-meilisearch
   Secure: false

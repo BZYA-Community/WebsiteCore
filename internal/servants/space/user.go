@@ -5,8 +5,8 @@
 package space
 
 import (
-	api "github.com/rocboss/paopao-ce/auto/api/x/v1"
-	"github.com/rocboss/paopao-ce/internal/servants/base"
+	api "github.com/BZYA-Community/WebsiteCore/auto/api/x/v1"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 )
 
 type userSrv struct {

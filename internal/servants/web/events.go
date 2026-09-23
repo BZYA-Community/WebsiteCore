@@ -9,14 +9,14 @@ import (
 	"fmt"
 
 	"github.com/alimy/tryst/event"
-	"github.com/rocboss/paopao-ce/internal/conf"
-	"github.com/rocboss/paopao-ce/internal/core"
-	"github.com/rocboss/paopao-ce/internal/core/cs"
-	"github.com/rocboss/paopao-ce/internal/core/ms"
-	"github.com/rocboss/paopao-ce/internal/dao/cache"
-	"github.com/rocboss/paopao-ce/internal/infra/events"
-	"github.com/rocboss/paopao-ce/internal/model/joint"
-	"github.com/rocboss/paopao-ce/internal/model/web"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/dao/cache"
+	"github.com/BZYA-Community/WebsiteCore/internal/infra/events"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/sirupsen/logrus"
 )
 

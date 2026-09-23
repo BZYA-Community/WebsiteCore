@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rocboss/paopao-ce/pkg/json"
+	"github.com/BZYA-Community/WebsiteCore/pkg/json"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/resty.v1"
 )

@@ -1,4 +1,4 @@
-module github.com/rocboss/paopao-ce
+module github.com/BZYA-Community/WebsiteCore
 
 go 1.24.0
 

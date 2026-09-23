@@ -8,11 +8,11 @@ import (
 	"context"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rocboss/paopao-ce/internal/conf"
-	"github.com/rocboss/paopao-ce/internal/servants/base"
-	"github.com/rocboss/paopao-ce/pkg/app"
-	"github.com/rocboss/paopao-ce/pkg/convert"
-	"github.com/rocboss/paopao-ce/pkg/xerror"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/pkg/app"
+	"github.com/BZYA-Community/WebsiteCore/pkg/convert"
+	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/sirupsen/logrus"
 	"github.com/smartwalle/alipay/v3"
 )

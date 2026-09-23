@@ -1,7 +1,0 @@
-data
-.vscode
-release
-custom
-*Dockerfile*
-web/node_modules
-web/src-tauri/target

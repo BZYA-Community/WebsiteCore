@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"github.com/cockroachdb/errors"
-	"github.com/rocboss/paopao-ce/pkg/json"
+	"github.com/BZYA-Community/WebsiteCore/pkg/json"
 )
 
 var (

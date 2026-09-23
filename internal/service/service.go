@@ -9,7 +9,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/alimy/tryst/cfg"
-	"github.com/rocboss/paopao-ce/pkg/types"
+	"github.com/BZYA-Community/WebsiteCore/pkg/types"
 )
 
 type Service interface {

@@ -7,7 +7,7 @@ package dbr
 import (
 	"time"
 
-	"github.com/rocboss/paopao-ce/pkg/types"
+	"github.com/BZYA-Community/WebsiteCore/pkg/types"
 	"gorm.io/gorm"
 )
 

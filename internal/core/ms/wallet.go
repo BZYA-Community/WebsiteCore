@@ -5,7 +5,7 @@
 package ms
 
 import (
-	"github.com/rocboss/paopao-ce/internal/dao/jinzhu/dbr"
+	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
 )
 
 type (

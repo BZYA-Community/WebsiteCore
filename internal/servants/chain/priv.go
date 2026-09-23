@@ -7,8 +7,8 @@ package chain
 import (
 	"github.com/alimy/tryst/cfg"
 	"github.com/gin-gonic/gin"
-	"github.com/rocboss/paopao-ce/internal/core/ms"
-	"github.com/rocboss/paopao-ce/pkg/app"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/pkg/app"
 )
 
 func Priv() gin.HandlerFunc {

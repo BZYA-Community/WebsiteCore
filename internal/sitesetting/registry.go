@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"github.com/alimy/tryst/cfg"
-	"github.com/rocboss/paopao-ce/internal/conf"
-	"github.com/rocboss/paopao-ce/pkg/xerror"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/sirupsen/logrus"
 )
 

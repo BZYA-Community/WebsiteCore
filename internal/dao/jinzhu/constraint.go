@@ -3,7 +3,7 @@
 package jinzhu
 
 import (
-	"github.com/rocboss/paopao-ce/internal/core"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
 )
 
 var (

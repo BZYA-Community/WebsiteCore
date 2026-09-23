@@ -10,11 +10,11 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
-	"github.com/rocboss/paopao-ce/internal/conf"
-	"github.com/rocboss/paopao-ce/internal/dao"
-	"github.com/rocboss/paopao-ce/internal/dao/cache"
-	"github.com/rocboss/paopao-ce/internal/infra/metrics/prometheus"
-	"github.com/rocboss/paopao-ce/internal/infra/metrics/statistics"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/dao"
+	"github.com/BZYA-Community/WebsiteCore/internal/dao/cache"
+	"github.com/BZYA-Community/WebsiteCore/internal/infra/metrics/prometheus"
+	"github.com/BZYA-Community/WebsiteCore/internal/infra/metrics/statistics"
 )
 
 type metricsService struct {

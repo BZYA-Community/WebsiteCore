@@ -7,8 +7,8 @@ package web
 import (
 	"github.com/alimy/tryst/cfg"
 	"github.com/robfig/cron/v3"
-	"github.com/rocboss/paopao-ce/internal/conf"
-	"github.com/rocboss/paopao-ce/internal/infra/events"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/infra/events"
 	"github.com/sirupsen/logrus"
 )
 

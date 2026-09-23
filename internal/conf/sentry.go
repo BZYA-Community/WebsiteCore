@@ -9,7 +9,7 @@ import (
 
 	"github.com/alimy/tryst/cfg"
 	"github.com/getsentry/sentry-go"
-	"github.com/rocboss/paopao-ce/pkg/version"
+	"github.com/BZYA-Community/WebsiteCore/pkg/version"
 )
 
 func initSentry() {

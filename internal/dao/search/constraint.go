@@ -2,7 +2,7 @@
 
 package search
 
-import "github.com/rocboss/paopao-ce/internal/core"
+import "github.com/BZYA-Community/WebsiteCore/internal/core"
 
 var (
 	_ core.TweetSearchService = (*bridgeTweetSearchServant)(nil)

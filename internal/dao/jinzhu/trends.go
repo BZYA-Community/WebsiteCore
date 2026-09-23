@@ -7,8 +7,8 @@ package jinzhu
 import (
 	"fmt"
 
-	"github.com/rocboss/paopao-ce/internal/core"
-	"github.com/rocboss/paopao-ce/internal/core/cs"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"gorm.io/gorm"
 )
 

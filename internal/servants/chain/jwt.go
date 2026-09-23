@@ -10,8 +10,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/rocboss/paopao-ce/pkg/app"
-	"github.com/rocboss/paopao-ce/pkg/xerror"
+	"github.com/BZYA-Community/WebsiteCore/pkg/app"
+	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 )
 
 func JWT() gin.HandlerFunc {

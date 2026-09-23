@@ -5,7 +5,7 @@
 package mobile
 
 import (
-	api "github.com/rocboss/paopao-ce/auto/rpc/greet/v1"
+	api "github.com/BZYA-Community/WebsiteCore/auto/rpc/greet/v1"
 )
 
 type greetServiceSrv struct {

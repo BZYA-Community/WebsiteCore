@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"net/http"
 
-	hx "github.com/rocboss/paopao-ce/pkg/http"
+	hx "github.com/BZYA-Community/WebsiteCore/pkg/http"
 )
 
 var _ OpenObserveClient = (*obxClient)(nil)

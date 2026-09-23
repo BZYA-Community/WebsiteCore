@@ -8,10 +8,8 @@
 
 | 场景 | 推荐方式 |
 | --- | --- |
-| 快速本地体验 | [Docker Compose](#docker-compose) |
-| 基于容器部署 | [Docker 镜像](#docker-images) |
 | 后端或前端开发 | [源码运行](#run-from-source) |
-| 构建桌面端 | [桌面应用](#desktop-app) |
+| 部署到服务器 | [发布二进制](#deploy-release-binary) |
 
 ## 环境要求
 
@@ -23,7 +21,6 @@
 - 若使用 MySQL 方案，需要 MySQL `5.7+`
 - Redis
 - Meilisearch
-- 如果需要构建桌面端，还需要安装 Rust 以及 Tauri 对应平台依赖
 
 ### 关键文件
 
@@ -31,127 +28,10 @@
 - `scripts/paopao-mysql.sql` - MySQL 初始化脚本
 - `scripts/paopao-postgres.sql` - PostgreSQL 初始化脚本
 - `scripts/paopao-sqlite3.sql` - SQLite 初始化脚本
-- `docker-compose.yaml` - 本地多服务启动配置
-
-<a id="docker-compose"></a>
-
-## 方案 1：Docker Compose（推荐用于快速体验）
-
-这是最快速的本地启动方式，适合先把主流程跑起来。
-
-```sh
-git clone https://github.com/rocboss/paopao-ce.git
-cd paopao-ce
-docker compose up -d
-```
-
-默认会启动以下服务：
-
-- `http://localhost:8008` - PaoPao 应用
-- `http://localhost:7700` - Meilisearch
-- `http://localhost:8001` - RedisInsight
-- `http://localhost:3306` - MySQL
-
-说明：
-
-- 后端容器默认会将 `./config.yaml.sample` 挂载为运行配置。
-- 持久化数据默认保存在 `./custom/` 目录下。
-- `docker-compose.yaml` 中还预留了 MinIO、OpenObserve、Pyroscope、phpMyAdmin 等可选服务，但默认是注释状态。
-
-如果需要使用自定义配置文件，可将 `docker-compose.yaml` 中的挂载改为：
-
-```yaml
-backend:
-  volumes:
-    - ./config.yaml:/app/paopao-ce/config.yaml
-    - ./custom:/app/paopao-ce/custom
-```
-
-<a id="docker-images"></a>
-
-## 方案 2：Docker 镜像
-
-### 后端镜像
-
-```sh
-# 默认构建：内嵌 Web UI，并使用默认 API host 逻辑
-docker build -t your/paopao-ce:tag .
-
-# 内嵌 Web UI，并指定 API host
-docker build -t your/paopao-ce:tag --build-arg API_HOST=http://api.paopao.info .
-
-# 内嵌 Web UI，并沿用本地 web/.env 中的 API host
-docker build -t your/paopao-ce:tag --build-arg USE_API_HOST=no .
-
-# 使用本地预编译的 web/dist 构建
-docker build -t your/paopao-ce:tag --build-arg USE_DIST=yes .
-
-# 仅构建后端，不内嵌 Web UI
-docker build -t your/paopao-ce:tag --build-arg EMBED_UI=no .
-```
-
-运行本地构建镜像：
-
-```sh
-mkdir -p custom
-docker run -d -p 8008:8008 \
-  -v ${PWD}/custom:/app/paopao-ce/custom \
-  -v ${PWD}/config.yaml.sample:/app/paopao-ce/config.yaml \
-  your/paopao-ce:tag
-```
-
-或者直接使用已发布镜像：
-
-```sh
-mkdir -p custom
-docker run -d -p 8008:8008 \
-  -v ${PWD}/custom:/app/paopao-ce/custom \
-  -v ${PWD}/config.yaml.sample:/app/paopao-ce/config.yaml \
-  bitbus/paopao-ce:latest
-```
-
-### Web 镜像
-
-```sh
-cd web
-
-# 默认构建
-docker build -t your/paopao-ce:web .
-
-# 自定义 API host
-docker build -t your/paopao-ce:web --build-arg API_HOST=http://api.paopao.info .
-
-# 使用本地预编译 dist 构建
-docker build -t your/paopao-ce:web --build-arg USE_DIST=yes .
-
-# 运行
-docker run -d -p 8010:80 your/paopao-ce:web
-```
-
-### All-in-one 镜像
-
-```sh
-# 构建
-docker buildx build --build-arg USE_DIST=yes -t your/paopao-ce:all-in-one-latest -f Dockerfile.allinone .
-
-# 运行本地镜像
-docker run --name paopao-ce-allinone -d -p 8000:8008 -p 7700:7700 \
-  -v ./data/custom:/app/custom \
-  -v ./data/meili_data:/app/meili_data \
-  your/paopao-ce:all-in-one-latest
-
-# 运行已发布镜像
-docker run --name paopao-ce-allinone -d -p 8000:8008 -p 7700:7700 \
-  -v ./data/custom:/app/custom \
-  -v ./data/meili_data:/app/meili_data \
-  bitbus/paopao-ce:all-in-one-latest
-```
-
-如果挂载了自定义 `config.yaml`，请确保其中的 `Meili.ApiKey` 与容器内的 `MEILI_MASTER_KEY` 保持一致。默认值为 `paopao-meilisearch`。
 
 <a id="run-from-source"></a>
 
-## 方案 3：从源码运行
+## 从源码运行
 
 ### 后端
 
@@ -197,21 +77,38 @@ make build-web
 make run TAGS='embed'
 ```
 
-<a id="desktop-app"></a>
+<a id="deploy-release-binary"></a>
 
-### 桌面应用
+## 部署发布二进制到服务器
 
-桌面端位于 `web/` 目录，使用 Tauri 构建：
+推荐使用 `embed` + `migration` 标签构建自包含的二进制：前端资源与数据库迁移都内嵌在二进制中，服务器上只需要二进制本身和 `config.yaml`。
 
 ```sh
-cd web
-cp .env .env.local
-yarn
-yarn build
-yarn tauri build
+# 1. 构建前端资源
+make build-web
+
+# 2. 构建发布二进制（本机平台）
+make build TAGS='embed migration'
+
+# 或交叉编译 Linux amd64（SQLite 使用纯 Go 驱动，无需 CGO）
+make linux-amd64 CGO_ENABLED=0 TAGS='embed migration'
 ```
 
-执行 Tauri 构建前，请先安装对应操作系统的官方前置依赖。
+产物位于 `release/` 目录。部署步骤：
+
+1. 将 `release/paopao`（Windows 下为 `paopao.exe`）与 `config.yaml` 上传到服务器同一目录。
+2. 准备好依赖服务：数据库（MySQL/PostgreSQL）、Redis、Meilisearch，地址写入 `config.yaml`。
+3. 启动服务：
+
+```sh
+./paopao serve
+```
+
+说明：
+
+- 自动迁移需要两个条件同时满足：编译时带 `migration` 标签，且 `config.yaml` 的 `Features` 中声明 `"Migration"`（例如 `Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "MySQL", "Migration"]`）。满足后服务启动时会自动执行数据库迁移，无需手工导入 SQL 初始化脚本。
+- 若不带 `migration` 标签，请先按数据库类型手工导入 `scripts/` 下对应的 SQL 脚本。
+- 附件等持久化数据默认保存在二进制所在目录的 `custom/` 下，注意备份。
 
 ## 常用构建标签
 

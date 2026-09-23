@@ -5,8 +5,8 @@
 package core
 
 import (
-	"github.com/rocboss/paopao-ce/internal/core/cs"
-	"github.com/rocboss/paopao-ce/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 )
 
 // UserManageService 用户管理服务

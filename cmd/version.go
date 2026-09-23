@@ -5,8 +5,8 @@
 package cmd
 
 import (
-	"github.com/rocboss/paopao-ce/pkg/utils"
-	"github.com/rocboss/paopao-ce/pkg/version"
+	"github.com/BZYA-Community/WebsiteCore/pkg/utils"
+	"github.com/BZYA-Community/WebsiteCore/pkg/version"
 	"github.com/spf13/cobra"
 )
 

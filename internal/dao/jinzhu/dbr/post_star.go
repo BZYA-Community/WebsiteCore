@@ -7,7 +7,7 @@ package dbr
 import (
 	"time"
 
-	"github.com/rocboss/paopao-ce/internal/core/cs"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

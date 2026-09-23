@@ -8,9 +8,9 @@ import (
 	"fmt"
 
 	"github.com/meilisearch/meilisearch-go"
-	"github.com/rocboss/paopao-ce/internal/conf"
-	"github.com/rocboss/paopao-ce/internal/core"
-	"github.com/rocboss/paopao-ce/pkg/zinc"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
+	"github.com/BZYA-Community/WebsiteCore/pkg/zinc"
 	"github.com/sirupsen/logrus"
 )
 

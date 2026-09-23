@@ -139,20 +139,20 @@ LoggerFile: # 使用File写日志
   FileName: app
   FileExt: .log
 LoggerZinc: # 使用Zinc写日志
-  Host: zinc:4080
+  Host: 127.0.0.1:4080
   Index: paopao-log
   User: admin
   Password: ""  # REQUIRED: Set Zinc password
   Secure: False
 LoggerMeili: # 使用Meili写日志
-  Host: meili:7700
+  Host: 127.0.0.1:7700
   Index: paopao-log
   ApiKey: ""  # REQUIRED: Set Meilisearch API key
   Secure: False
   MinWorker: 5               # 最小后台工作者, 设置范围[5, 100], 默认5
   MaxLogBuffer: 100          # 最大log缓存条数, 设置范围[10, 10000], 默认100
 LoggerOpenObserve: # 使用OpenObserve写日志
-  Host: openobserve:5080
+  Host: 127.0.0.1:5080
   Organization: paopao-ce
   Stream: default
   User: root@paopao.info
@@ -161,7 +161,7 @@ LoggerOpenObserve: # 使用OpenObserve写日志
   MinWorker: 5               # 最小后台工作者, 设置范围[5, 100], 默认5
   MaxLogBuffer: 100          # 最大log缓存条数, 设置范围[10, 10000], 默认100
 LoggerOtlp: # 使用OpenTelemetry写日志
-  Endpoint: openobserve:5081
+  Endpoint: 127.0.0.1:5081
   Authorization: ""  # REQUIRED: Set OTLP auth token
   Organization: paopao-ce
   TraceStream: paopao-trace
@@ -178,13 +178,13 @@ TweetSearch: # 推文关键字搜索相关配置
   MaxUpdateQPS: 100            # 最大添加/删除/更新Post的QPS，设置范围[10, 10000], 默认100
   MinWorker: 10                # 最小后台更新工作者, 设置范围[5, 1000], 默认10
 Zinc: # Zinc搜索配置
-  Host: zinc:4080
+  Host: 127.0.0.1:4080
   Index: paopao-data
   User: admin
   Password: ""  # REQUIRED: Set Zinc admin password
   Secure: False
 Meili: # Meili搜索配置
-  Host: meili:7700
+  Host: 127.0.0.1:7700
   Index: paopao-data
   ApiKey: ""  # REQUIRED: Set Meilisearch API key
   Secure: False
@@ -234,7 +234,7 @@ Database: # Database通用配置
 MySQL: # MySQL数据库
   Username: paopao
   Password: ""  # REQUIRED: Set the MySQL password
-  Host: db:3306
+  Host: 127.0.0.1:3306
   DBName: paopao
   Charset: utf8mb4
   ParseTime: True
@@ -253,7 +253,7 @@ Sqlite3: # Sqlite3数据库
   Path: custom/data/sqlite3/paopao-ce.db
 Redis:
   InitAddress:
-  - redis:6379
+  - 127.0.0.1:6379
   Username:
   Password:
   SelectDB:

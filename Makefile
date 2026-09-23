@@ -12,7 +12,7 @@ CGO_ENABLED := 1
 endif
 
 RELEASE_ROOT = release
-RELEASE_FILES = LICENSE README.md CHANGELOG.md config.yaml.sample docker-compose.yaml scripts docs
+RELEASE_FILES = LICENSE README.md CHANGELOG.md config.yaml.sample scripts docs
 RELEASE_LINUX_AMD64 = $(RELEASE_ROOT)/linux-amd64/$(PROJECT)
 RELEASE_DARWIN_AMD64 = $(RELEASE_ROOT)/darwin-amd64/$(PROJECT)
 RELEASE_DARWIN_ARM64 = $(RELEASE_ROOT)/darwin-arm64/$(PROJECT)
@@ -23,7 +23,7 @@ BUILD_DATE := $(shell date +'%Y-%m-%d %H:%M:%S %Z')
 SHA_SHORT := $(shell git rev-parse --short HEAD)
 
 GOFMT ?= gofumpt -l -w
-MOD_NAME = github.com/rocboss/paopao-ce
+MOD_NAME = github.com/BZYA-Community/WebsiteCore
 LDFLAGS = -X "${MOD_NAME}/pkg/version.version=${BUILD_VERSION}" \
           -X "${MOD_NAME}/pkg/version.buildDate=${BUILD_DATE}" \
           -X "${MOD_NAME}/pkg/version.commitID=${SHA_SHORT}" \

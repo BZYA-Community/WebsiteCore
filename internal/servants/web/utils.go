@@ -13,11 +13,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/gofrs/uuid/v5"
-	"github.com/rocboss/paopao-ce/internal/core"
-	"github.com/rocboss/paopao-ce/internal/core/ms"
-	"github.com/rocboss/paopao-ce/internal/model/web"
-	"github.com/rocboss/paopao-ce/pkg/utils"
-	"github.com/rocboss/paopao-ce/pkg/xerror"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
+	"github.com/BZYA-Community/WebsiteCore/pkg/utils"
+	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/sirupsen/logrus"
 )
 

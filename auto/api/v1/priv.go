@@ -9,7 +9,7 @@ import (
 
 	"github.com/alimy/mir/v5"
 	"github.com/gin-gonic/gin"
-	"github.com/rocboss/paopao-ce/internal/model/web"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 )
 
 type Priv interface {

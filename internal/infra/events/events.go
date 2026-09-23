@@ -10,8 +10,8 @@ import (
 	"github.com/alimy/tryst/cfg"
 	"github.com/alimy/tryst/pool"
 	"github.com/robfig/cron/v3"
-	"github.com/rocboss/paopao-ce/internal/conf"
-	"github.com/rocboss/paopao-ce/internal/infra/metrics/statistics"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/infra/metrics/statistics"
 	"github.com/sirupsen/logrus"
 )
 

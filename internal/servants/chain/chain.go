@@ -7,9 +7,9 @@ package chain
 import (
 	"sync"
 
-	"github.com/rocboss/paopao-ce/internal/core"
-	"github.com/rocboss/paopao-ce/internal/dao"
-	"github.com/rocboss/paopao-ce/internal/dao/cache"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
+	"github.com/BZYA-Community/WebsiteCore/internal/dao"
+	"github.com/BZYA-Community/WebsiteCore/internal/dao/cache"
 )
 
 var (

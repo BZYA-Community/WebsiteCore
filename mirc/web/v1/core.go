@@ -3,7 +3,7 @@ package v1
 import (
 	. "github.com/alimy/mir/v5"
 
-	"github.com/rocboss/paopao-ce/internal/model/web"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 )
 
 // Core 核心服务，需要授权访问

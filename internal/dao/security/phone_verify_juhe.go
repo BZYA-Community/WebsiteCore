@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/cockroachdb/errors"
-	"github.com/rocboss/paopao-ce/internal/conf"
-	"github.com/rocboss/paopao-ce/pkg/json"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/pkg/json"
 	"gopkg.in/resty.v1"
 )
 

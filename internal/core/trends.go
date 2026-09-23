@@ -5,7 +5,7 @@
 package core
 
 import (
-	"github.com/rocboss/paopao-ce/internal/core/cs"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 )
 
 // TrendsManageServantA 动态信息管理服务

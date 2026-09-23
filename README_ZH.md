@@ -36,16 +36,16 @@
 
 ## 项目简介
 
-PaoPao 是一个完整的开源微社区系统，包含 Go 后端、Vue 3 Web 前端，以及可选的 Tauri 桌面端。项目通过模块化的特性开关体系，将存储、搜索、日志、可观测性与部署方式组合在一起，便于按需裁剪和扩展。
+PaoPao 是一个完整的开源微社区系统，包含 Go 后端与 Vue 3 Web 前端。项目通过模块化的特性开关体系，将存储、搜索、日志、可观测性与部署方式组合在一起，便于按需裁剪和扩展。
 
 如果你希望快速搭建一个可运行的社区产品，或者基于成熟代码库继续定制开发，而不是从零开始，PaoPao 是一个很合适的起点。
 
 ## 为什么选择 PaoPao
 
-- **全栈一体化**：后端、Web 前端、桌面端构建都在同一仓库中维护。
+- **全栈一体化**：后端与 Web 前端在同一仓库中维护。
 - **模块化运行能力**：通过 `Features` 套件启用不同能力组合，例如 `Default`、`Develop`、`Demo`、`Slim`。
 - **基础设施灵活**：支持 MySQL、PostgreSQL、SQLite、Redis、Meilisearch 以及多种对象存储后端。
-- **部署方式丰富**：可通过源码、Docker、Docker Compose 或 all-in-one 镜像运行。
+- **二进制友好部署**：可构建单个自包含的发布二进制，直接部署到服务器运行。
 - **适合自部署**：配置文件清晰，仓库内已提供部署与开发文档。
 
 ## 预览
@@ -56,10 +56,6 @@ PaoPao 是一个完整的开源微社区系统，包含 Go 后端、Vue 3 Web �
 
 [![暗色主题预览](./.assets/readme/preview-dark.jpeg)](https://paopao-demo.vercel.app)
 
-### 桌面端
-
-![](docs/proposal/.assets/000-00.jpg)
-
 更多效果可前往 [PaoPao](https://paopao-demo.vercel.app/) 查看。
 
 ## 架构概览
@@ -68,7 +64,6 @@ PaoPao 是一个完整的开源微社区系统，包含 Go 后端、Vue 3 Web �
 | --- | --- |
 | 后端 | Go、Gin、Cobra、GORM、Mir |
 | Web 前端 | Vue 3、Vite、Naive UI |
-| 桌面端 | Tauri |
 | 搜索 | Meilisearch |
 | 缓存 | Redis |
 | 对象存储 | Local OSS、MinIO、AliOSS、COS、Huawei OBS、S3 兼容存储 |
@@ -79,30 +74,14 @@ PaoPao 是一个完整的开源微社区系统，包含 Go 后端、Vue 3 Web �
 | 路径 | 说明 |
 | --- | --- |
 | `cmd/`、`internal/`、`pkg/` | 后端应用与共享包 |
-| `web/` | Vue 3 Web 应用与 Tauri 桌面端前端 |
+| `web/` | Vue 3 Web 应用 |
 | `docs/` | 部署文档、OpenAPI 文档、设计提案等 |
 | `scripts/` | SQL 初始化脚本与辅助资源 |
 | `config.yaml.sample` | 完整的运行配置模板 |
 
 ## 快速开始
 
-### 方案 A：使用 Docker Compose 快速体验
-
-这是本地体验项目的最快方式。
-
-```sh
-git clone https://github.com/rocboss/paopao-ce.git
-cd paopao-ce
-docker compose up -d
-```
-
-启动后可访问：
-
-- `http://localhost:8008` - PaoPao
-- `http://localhost:7700` - Meilisearch
-- `http://localhost:8001` - RedisInsight
-
-### 方案 B：从源码开发
+### 从源码开发
 
 #### 环境要求
 
@@ -111,7 +90,6 @@ docker compose up -d
 - MySQL `5.7+`
 - Redis
 - Meilisearch
-- 如果需要构建桌面端，还需要安装 Rust 与 Tauri 依赖
 
 #### 后端
 
@@ -152,14 +130,7 @@ yarn dev
 yarn build
 ```
 
-#### 桌面端
-
-```sh
-cd web
-yarn tauri build
-```
-
-更完整的安装步骤、Docker 构建方式、桌面端依赖与 migration 说明，请参考 [INSTALL_ZH.md](INSTALL_ZH.md)。
+更完整的安装步骤与 migration 说明，请参考 [INSTALL_ZH.md](INSTALL_ZH.md)。
 
 ## 配置与 Feature 套件
 
@@ -204,7 +175,7 @@ release/paopao serve --no-default-features --features sqlite3,localoss,loggerfil
 
 ## 文档导航
 
-- [INSTALL_ZH.md](INSTALL_ZH.md) - 中文安装、Docker 使用与桌面端构建说明
+- [INSTALL_ZH.md](INSTALL_ZH.md) - 中文安装与二进制部署说明
 - [INSTALL.md](INSTALL.md) - English installation guide
 - [docs/README_ZH.md](docs/README_ZH.md) - 中文文档总索引
 - [docs/README.md](docs/README.md) - English documentation index

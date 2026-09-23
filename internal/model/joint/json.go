@@ -9,7 +9,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/rocboss/paopao-ce/pkg/json"
+	"github.com/BZYA-Community/WebsiteCore/pkg/json"
 )
 
 type CachePageResp struct {

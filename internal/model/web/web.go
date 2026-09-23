@@ -7,10 +7,10 @@ package web
 import (
 	"github.com/alimy/mir/v5"
 	"github.com/gin-gonic/gin"
-	"github.com/rocboss/paopao-ce/internal/core/ms"
-	"github.com/rocboss/paopao-ce/internal/servants/base"
-	"github.com/rocboss/paopao-ce/pkg/app"
-	"github.com/rocboss/paopao-ce/pkg/xerror"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/pkg/app"
+	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 )
 
 var bindAny = base.NewBindAnyFn()

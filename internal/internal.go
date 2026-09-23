@@ -5,9 +5,9 @@
 package internal
 
 import (
-	"github.com/rocboss/paopao-ce/internal/infra/events"
-	"github.com/rocboss/paopao-ce/internal/infra/metrics"
-	"github.com/rocboss/paopao-ce/internal/infra/migration"
+	"github.com/BZYA-Community/WebsiteCore/internal/infra/events"
+	"github.com/BZYA-Community/WebsiteCore/internal/infra/metrics"
+	"github.com/BZYA-Community/WebsiteCore/internal/infra/migration"
 )
 
 func Initial() {

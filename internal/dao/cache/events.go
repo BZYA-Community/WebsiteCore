@@ -11,10 +11,10 @@ import (
 
 	"github.com/RoaringBitmap/roaring/roaring64"
 	"github.com/alimy/tryst/event"
-	"github.com/rocboss/paopao-ce/internal/conf"
-	"github.com/rocboss/paopao-ce/internal/core"
-	"github.com/rocboss/paopao-ce/internal/core/ms"
-	"github.com/rocboss/paopao-ce/internal/infra/events"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/infra/events"
 	"github.com/sirupsen/logrus"
 )
 

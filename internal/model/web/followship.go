@@ -5,8 +5,8 @@
 package web
 
 import (
-	"github.com/rocboss/paopao-ce/internal/model/joint"
-	"github.com/rocboss/paopao-ce/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 )
 
 type FollowUserReq struct {

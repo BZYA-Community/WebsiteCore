@@ -8,10 +8,8 @@ This guide covers the recommended ways to run PaoPao in development, evaluation,
 
 | Scenario | Recommended path |
 | --- | --- |
-| Quick local evaluation | [Docker Compose](#docker-compose) |
-| Container-based deployment | [Docker images](#docker-images) |
 | Backend or frontend development | [Run from source](#run-from-source) |
-| Desktop client build | [Desktop app](#desktop-app) |
+| Deploy to a server | [Deploy the release binary](#deploy-release-binary) |
 
 ## Requirements
 
@@ -23,7 +21,6 @@ This guide covers the recommended ways to run PaoPao in development, evaluation,
 - MySQL `5.7+` if using the MySQL path
 - Redis
 - Meilisearch
-- Rust and the platform prerequisites required by Tauri if you want to build the desktop client
 
 ### Helpful repository files
 
@@ -31,127 +28,10 @@ This guide covers the recommended ways to run PaoPao in development, evaluation,
 - `scripts/paopao-mysql.sql` - MySQL bootstrap schema
 - `scripts/paopao-postgres.sql` - PostgreSQL bootstrap schema
 - `scripts/paopao-sqlite3.sql` - SQLite bootstrap schema
-- `docker-compose.yaml` - local multi-service environment
-
-<a id="docker-compose"></a>
-
-## Option 1: Docker Compose (recommended for quick evaluation)
-
-This is the fastest way to start a local environment with the main dependencies wired together.
-
-```sh
-git clone https://github.com/rocboss/paopao-ce.git
-cd paopao-ce
-docker compose up -d
-```
-
-The default compose setup starts these services:
-
-- `http://localhost:8008` - PaoPao application
-- `http://localhost:7700` - Meilisearch
-- `http://localhost:8001` - RedisInsight
-- `http://localhost:3306` - MySQL
-
-Notes:
-
-- The backend container mounts `./config.yaml.sample` as its runtime config by default.
-- Persistent data is stored under `./custom/`.
-- Optional services such as MinIO, OpenObserve, Pyroscope, and phpMyAdmin are present in `docker-compose.yaml` but commented out by default.
-
-If you want to use a custom config file, replace the mounted file in `docker-compose.yaml`:
-
-```yaml
-backend:
-  volumes:
-    - ./config.yaml:/app/paopao-ce/config.yaml
-    - ./custom:/app/paopao-ce/custom
-```
-
-<a id="docker-images"></a>
-
-## Option 2: Docker Images
-
-### Backend image
-
-```sh
-# Default build: embeds the web UI and uses the default API host behavior
-docker build -t your/paopao-ce:tag .
-
-# Embed the web UI and set a custom API host
-docker build -t your/paopao-ce:tag --build-arg API_HOST=http://api.paopao.info .
-
-# Embed the web UI and keep the API host from local web/.env
-docker build -t your/paopao-ce:tag --build-arg USE_API_HOST=no .
-
-# Build with a precompiled local web/dist
-docker build -t your/paopao-ce:tag --build-arg USE_DIST=yes .
-
-# Build backend only, without embedded web UI
-docker build -t your/paopao-ce:tag --build-arg EMBED_UI=no .
-```
-
-Run a locally built image:
-
-```sh
-mkdir -p custom
-docker run -d -p 8008:8008 \
-  -v ${PWD}/custom:/app/paopao-ce/custom \
-  -v ${PWD}/config.yaml.sample:/app/paopao-ce/config.yaml \
-  your/paopao-ce:tag
-```
-
-Or use the published image:
-
-```sh
-mkdir -p custom
-docker run -d -p 8008:8008 \
-  -v ${PWD}/custom:/app/paopao-ce/custom \
-  -v ${PWD}/config.yaml.sample:/app/paopao-ce/config.yaml \
-  bitbus/paopao-ce:latest
-```
-
-### Web image
-
-```sh
-cd web
-
-# Default build
-docker build -t your/paopao-ce:web .
-
-# Build with a custom API host
-docker build -t your/paopao-ce:web --build-arg API_HOST=http://api.paopao.info .
-
-# Build with a precompiled local dist
-docker build -t your/paopao-ce:web --build-arg USE_DIST=yes .
-
-# Run
-docker run -d -p 8010:80 your/paopao-ce:web
-```
-
-### All-in-one image
-
-```sh
-# Build
-docker buildx build --build-arg USE_DIST=yes -t your/paopao-ce:all-in-one-latest -f Dockerfile.allinone .
-
-# Run a local image
-docker run --name paopao-ce-allinone -d -p 8000:8008 -p 7700:7700 \
-  -v ./data/custom:/app/custom \
-  -v ./data/meili_data:/app/meili_data \
-  your/paopao-ce:all-in-one-latest
-
-# Run the published image
-docker run --name paopao-ce-allinone -d -p 8000:8008 -p 7700:7700 \
-  -v ./data/custom:/app/custom \
-  -v ./data/meili_data:/app/meili_data \
-  bitbus/paopao-ce:all-in-one-latest
-```
-
-If you mount a custom `config.yaml`, make sure `Meili.ApiKey` matches the container's `MEILI_MASTER_KEY`. The default key is `paopao-meilisearch`.
 
 <a id="run-from-source"></a>
 
-## Option 3: Run from Source
+## Run from Source
 
 ### Backend
 
@@ -197,21 +77,38 @@ make build-web
 make run TAGS='embed'
 ```
 
-<a id="desktop-app"></a>
+<a id="deploy-release-binary"></a>
 
-### Desktop app
+## Deploy the Release Binary to a Server
 
-The desktop client is built from `web/` using Tauri:
+The recommended build uses the `embed` + `migration` tags so the web assets and database migrations are embedded in the binary. The server only needs the binary itself and a `config.yaml`.
 
 ```sh
-cd web
-cp .env .env.local
-yarn
-yarn build
-yarn tauri build
+# 1. Build the web assets
+make build-web
+
+# 2. Build the release binary (native platform)
+make build TAGS='embed migration'
+
+# Or cross-compile for Linux amd64 (SQLite uses the pure-Go driver, no CGO needed)
+make linux-amd64 CGO_ENABLED=0 TAGS='embed migration'
 ```
 
-Before running the Tauri build, install the platform prerequisites from the official Tauri documentation for your OS.
+The artifact is written to `release/`. Deployment steps:
+
+1. Upload `release/paopao` (`paopao.exe` on Windows) together with `config.yaml` to the same directory on your server.
+2. Prepare the dependencies: database (MySQL/PostgreSQL), Redis, and Meilisearch, and point to them in `config.yaml`.
+3. Start the service:
+
+```sh
+./paopao serve
+```
+
+Notes:
+
+- Automatic migration requires both the `migration` build tag and the `"Migration"` feature declared in the `Features` section of `config.yaml` (e.g. `Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "MySQL", "Migration"]`). When both are present, the schema is migrated automatically at startup.
+- Without the `migration` tag, initialize the database manually with the matching SQL script from `scripts/`.
+- Attachments and other persistent data are stored under `custom/` next to the binary by default; back that directory up.
 
 ## Common Build Tags
 
