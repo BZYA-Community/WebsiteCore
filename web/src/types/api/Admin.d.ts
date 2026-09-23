@@ -92,7 +92,7 @@ declare namespace Api {
 
             interface AuditPostReq {
                 post_id: number;
-                action: 'approve' | 'reject' | 'delete';
+                action: 'approve' | 'reject';
                 reason?: string;
             }
 
@@ -182,7 +182,15 @@ declare namespace Api {
                     nickname: string;
                     username: string;
                 };
-                texts: { content: string }[];
+                contents: {
+                    id: number;
+                    content: string;
+                    /** 1标题 2文字 3图片 4视频 5音频 6链接 7附件 8收费附件 */
+                    type: number;
+                    sort: number;
+                }[];
+                /** 0私密 50好友可见 60关注可见 90公开 */
+                visibility: number;
                 created_on: number;
                 /** 0待审核 1已通过 2未通过 */
                 audit_status: 0 | 1 | 2;

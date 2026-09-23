@@ -19,6 +19,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/dao/cache"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
@@ -265,9 +266,10 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 		AttachmentPrice: req.AttachmentPrice,
 		Visibility:      ms.PostVisibleT(req.Visibility.ToVisibleValue()),
 	}
-	// 内容审核开启时 普通用户(无任何管理角色)的新帖进入待审核 导师/审核/管理员/运维免审
+	// 内容审核开启时 普通用户(无任何管理角色)的非私密新帖进入待审核
+	// 导师/审核/管理员/运维免审 私密帖仅自己可见不进审核队列
 	// 注意: 免审路径必须显式置为已过审 PostAuditApproved(1) 否则零值0即待审核
-	if conf.AuditSetting.Enabled && !req.User.HasAnyRole() {
+	if conf.AuditSetting.Enabled && !req.User.HasAnyRole() && post.Visibility != ms.PostVisitPrivate {
 		post.AuditStatus = ms.PostAuditPending
 	} else {
 		post.AuditStatus = ms.PostAuditApproved
@@ -663,14 +665,33 @@ func (s *privSrv) VisibleTweet(req *web.VisibleTweetReq) (*web.VisibleTweetResp,
 	if xerr := checkPermision(req.User, post.UserID); xerr != nil {
 		return nil, xerr
 	}
+	oldVisibility := post.Visibility
 	if err = s.Ds.VisiblePost(post, req.Visibility.ToVisibleValue()); err != nil {
 		logrus.Warnf("s.Ds.VisiblePost: %s", err)
 		return nil, web.ErrVisblePostFailed
 	}
-
-	// 推送Search
 	post.Visibility = ms.PostVisibleT(req.Visibility.ToVisibleValue())
-	s.PushPostToSearch(post)
+
+	// 内容审核: 普通用户将私密帖(含被审核打回的帖子)重新设为非私密可见时 重新进入审核队列
+	if conf.AuditSetting.Enabled && !req.User.HasAnyRole() &&
+		oldVisibility == ms.PostVisitPrivate && post.Visibility != ms.PostVisitPrivate {
+		post.AuditStatus = ms.PostAuditPending
+		if err = s.Ds.UpdatePost(post); err != nil {
+			logrus.Errorf("Ds.UpdatePost err: %s", err)
+			return nil, web.ErrVisblePostFailed
+		}
+		// 过期作者个人动态缓存(状态从未通过变回待审核)
+		cache.OnExpireIndexTweetEvent(post.UserID)
+	}
+
+	// 搜索索引同步: 仅已过审的非私密帖保留在索引中
+	if post.Visibility == ms.PostVisitPrivate || post.AuditStatus != ms.PostAuditApproved {
+		if err := s.DeleteSearchPost(post); err != nil {
+			logrus.Errorf("s.DeleteSearchPost err: %s", err)
+		}
+	} else {
+		s.PushPostToSearch(post)
+	}
 
 	return &web.VisibleTweetResp{
 		Visibility: req.Visibility,

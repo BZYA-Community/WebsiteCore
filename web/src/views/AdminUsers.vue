@@ -30,6 +30,7 @@
                     :data="userItems"
                     :loading="loading"
                     :pagination="userPagination"
+                    :scroll-x="1100"
                     :row-key="(row: Api.Admin.NetReq.UserItem) => row.id"
                     @update:page="handleUserPageChange"
                 />
@@ -142,6 +143,7 @@
                                 :data="roleLogItems"
                                 :loading="roleLogLoading"
                                 :pagination="roleLogPagination"
+                                :scroll-x="720"
                                 :row-key="
                                     (row: Api.Admin.NetReq.UserRoleLogItem) =>
                                         row.id

@@ -609,7 +609,11 @@ const submitPost = () => {
     visibility: visitType.value,
   })
     .then((res) => {
-      window.$message.success('发布成功');
+      if (res.audit_status === 0) {
+        window.$message.success('发布成功，内容审核通过后对他人可见');
+      } else {
+        window.$message.success('发布成功');
+      }
       submitting.value = false;
       emit('post-success', res);
 

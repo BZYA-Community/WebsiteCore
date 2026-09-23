@@ -81,6 +81,10 @@
             </span>
           </div>
 
+          <div v-if="message.type === 99" class="whisper-content-wrap system-content-wrap">
+            {{ message.content }}
+          </div>
+
           <div v-if="message.type === 4" class="whisper-content-wrap">
             {{ message.content }}
           </div>
