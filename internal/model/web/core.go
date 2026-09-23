@@ -30,18 +30,20 @@ type UserInfoReq struct {
 }
 
 type UserInfoResp struct {
-	Id          int64  `json:"id"`
-	Nickname    string `json:"nickname"`
-	Username    string `json:"username"`
-	Status      int    `json:"status"`
-	Avatar      string `json:"avatar"`
-	Balance     int64  `json:"balance"`
-	Phone       string `json:"phone"`
-	IsAdmin     bool   `json:"is_admin"`
-	CreatedOn   int64  `json:"created_on"`
-	Follows     int64  `json:"follows"`
-	Followings  int64  `json:"followings"`
-	TweetsCount int    `json:"tweets_count"`
+	Id          int64    `json:"id"`
+	Nickname    string   `json:"nickname"`
+	Username    string   `json:"username"`
+	Status      int      `json:"status"`
+	Avatar      string   `json:"avatar"`
+	Balance     int64    `json:"balance"`
+	Phone       string   `json:"phone"`
+	IsAdmin     bool     `json:"is_admin"`
+	Roles       []string `json:"roles"`
+	Identity    string   `json:"identity"`
+	CreatedOn   int64    `json:"created_on"`
+	Follows     int64    `json:"follows"`
+	Followings  int64    `json:"followings"`
+	TweetsCount int      `json:"tweets_count"`
 }
 
 type GetMessagesReq struct {

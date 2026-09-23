@@ -62,6 +62,8 @@ var (
 	JWTSetting              *jwtConf
 	AdminSettingsSetting    *adminSettingsConf
 	WebProfileSetting       *WebProfileConf
+	AuditSetting            *AuditConf
+	OperatorSetting         *OperatorConf
 )
 
 func setupSetting(suite []string, noDefault bool) error {
@@ -125,12 +127,19 @@ func setupSetting(suite []string, noDefault bool) error {
 		"LocalOSS":          &LocalOSSSetting,
 		"S3":                &S3Setting,
 		"WebProfile":        &WebProfileSetting,
+		"Audit":             &AuditSetting,
+		"Operator":          &OperatorSetting,
 	}
 	for k, v := range objects {
 		err := vp.UnmarshalKey(k, v)
 		if err != nil {
 			return err
 		}
+	}
+
+	// yaml 缺省 Audit 段时保持默认开启内容审核
+	if AuditSetting == nil {
+		AuditSetting = &AuditConf{Enabled: true}
 	}
 
 	CacheSetting.CientSideCacheExpire *= time.Second

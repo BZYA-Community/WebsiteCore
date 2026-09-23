@@ -13,7 +13,19 @@ import (
 const (
 	UserStatusNormal = dbr.UserStatusNormal
 	UserStatusClosed = dbr.UserStatusClosed
+
+	RoleOperator = dbr.RoleOperator
+	RoleAdmin    = dbr.RoleAdmin
+	RoleAuditor  = dbr.RoleAuditor
+	RoleMentor   = dbr.RoleMentor
+
+	PostAuditPending  = dbr.PostAuditPending
+	PostAuditApproved = dbr.PostAuditApproved
+	PostAuditRejected = dbr.PostAuditRejected
 )
+
+// AllRoles 可由后台分配的管理角色
+var AllRoles = dbr.AllRoles
 
 type (
 	User                = dbr.User
@@ -22,5 +34,7 @@ type (
 	PostFormated        = dbr.PostFormated
 	UserFormated        = dbr.UserFormated
 	PostContentFormated = dbr.PostContentFormated
+	AuditLog            = dbr.AuditLog
+	UserRoleLog         = dbr.UserRoleLog
 	Model               = dbr.Model
 )

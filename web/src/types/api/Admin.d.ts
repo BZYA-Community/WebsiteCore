@@ -7,6 +7,8 @@ declare namespace Api {
                 user: {
                     /** 管理·用户禁言/解禁 */
                     status: (params: NetParams.UserStatusReq) => Promise<NetReq.UserChangeStatus>;
+                    /** 管理·变更用户角色 */
+                    role: (params: NetParams.UserRoleChangeReq) => Promise<NetReq.UserRoleChangeResp>;
                 },
                 site: {
                     /** 管理·更新系统配置 */
@@ -15,6 +17,10 @@ declare namespace Api {
                 settings: {
                     /** 管理·保存通用配置 */
                     save: (params: NetParams.SettingsSaveReq) => Promise<NetReq.SettingsSaveResp>;
+                },
+                audit: {
+                    /** 审核·通过/拒绝/删除帖子 */
+                    post: (params: NetParams.AuditPostReq) => Promise<NetReq.AuditPostResp>;
                 }
             },
             get: {
@@ -29,6 +35,22 @@ declare namespace Api {
                     schema: () => Promise<NetReq.SettingsSchemaResp>;
                     /** 管理·获取通用配置当前值 */
                     values: () => Promise<NetReq.SettingsValuesResp>;
+                },
+                user: {
+                    /** 管理·搜索用户列表 */
+                    list: (params: NetParams.UserListReq) => Promise<NetReq.UserListResp>;
+                    /** 管理·用户详情(完整手机号) */
+                    detail: (params: NetParams.UserDetailReq) => Promise<NetReq.UserDetailResp>;
+                    /** 管理·角色变更记录 */
+                    role: {
+                        logs: (params: NetParams.PageReq) => Promise<NetReq.UserRoleLogsResp>;
+                    }
+                },
+                audit: {
+                    /** 审核·帖子队列 */
+                    posts: (params: NetParams.AuditPostsReq) => Promise<NetReq.AuditPostsResp>;
+                    /** 审核·操作日志 */
+                    logs: (params: NetParams.PageReq) => Promise<NetReq.AuditLogsResp>;
                 }
             }
         }
@@ -38,6 +60,40 @@ declare namespace Api {
             interface UserStatusReq {
                 id: number;
                 status: number;
+            }
+
+            interface UserRoleChangeReq {
+                user_id: number;
+                role: 'mentor' | 'auditor' | 'admin' | 'operator';
+                action: 'add' | 'remove';
+            }
+
+            interface UserListReq {
+                keyword?: string;
+                page: number;
+                page_size: number;
+            }
+
+            interface UserDetailReq {
+                id: number;
+            }
+
+            interface PageReq {
+                page: number;
+                page_size: number;
+            }
+
+            interface AuditPostsReq {
+                /** 0待审核 1已通过 2未通过 */
+                status: number;
+                page: number;
+                page_size: number;
+            }
+
+            interface AuditPostReq {
+                post_id: number;
+                action: 'approve' | 'reject' | 'delete';
+                reason?: string;
             }
 
             interface SiteProfileReq {
@@ -72,6 +128,87 @@ declare namespace Api {
 
         namespace NetReq {
             interface UserChangeStatus {}
+
+            interface UserRoleChangeResp {}
+
+            interface AuditPostResp {}
+
+            interface Pager {
+                page: number;
+                page_size: number;
+                total_rows: number;
+            }
+
+            interface UserItem {
+                id: number;
+                nickname: string;
+                username: string;
+                phone: string;
+                roles: string[];
+                identity: string;
+                status: 1 | 2;
+                is_admin: boolean;
+                created_on: number;
+            }
+
+            interface UserListResp {
+                list: UserItem[];
+                pager: Pager;
+            }
+
+            interface UserDetailResp extends UserItem {}
+
+            interface UserRoleLogItem {
+                id: number;
+                user_id: number;
+                username: string;
+                operator_id: number;
+                operator_name: string;
+                old_roles: string;
+                new_roles: string;
+                action: string;
+                created_on: number;
+            }
+
+            interface UserRoleLogsResp {
+                list: UserRoleLogItem[];
+                pager: Pager;
+            }
+
+            interface AuditPostItem {
+                id: number;
+                user: {
+                    id: number;
+                    nickname: string;
+                    username: string;
+                };
+                texts: { content: string }[];
+                created_on: number;
+                /** 0待审核 1已通过 2未通过 */
+                audit_status: 0 | 1 | 2;
+            }
+
+            interface AuditPostsResp {
+                list: AuditPostItem[];
+                pager: Pager;
+            }
+
+            interface AuditLogItem {
+                id: number;
+                post_id: number;
+                operator_id: number;
+                operator_name: string;
+                action: 'approve' | 'reject' | 'delete' | string;
+                old_status: number;
+                new_status: number;
+                reason: string;
+                created_on: number;
+            }
+
+            interface AuditLogsResp {
+                list: AuditLogItem[];
+                pager: Pager;
+            }
 
             interface SettingOption {
                 label: string;

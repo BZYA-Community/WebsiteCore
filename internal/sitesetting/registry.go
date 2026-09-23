@@ -46,6 +46,7 @@ type bootstrapSnapshot struct {
 	SmsJuhe       confSmsJuheSnapshot
 	Alipay        confAlipaySnapshot
 	WebProfile    confWebProfileSnapshot
+	Audit         confAuditSnapshot
 }
 
 type confAppSnapshot struct {
@@ -145,6 +146,10 @@ type confAlipaySnapshot struct {
 	PublicCertFile    string
 	AppPublicCertFile string
 	InProduction      bool
+}
+
+type confAuditSnapshot struct {
+	Enabled bool
 }
 
 type confWebProfileSnapshot struct {
@@ -247,6 +252,9 @@ func ensureBootstrapSnapshot() {
 	}
 	if conf.AlipaySetting != nil {
 		bootstrapConfig.Alipay = confAlipaySnapshot{AppID: conf.AlipaySetting.AppID, PrivateKey: conf.AlipaySetting.PrivateKey, RootCertFile: conf.AlipaySetting.RootCertFile, PublicCertFile: conf.AlipaySetting.PublicCertFile, AppPublicCertFile: conf.AlipaySetting.AppPublicCertFile, InProduction: conf.AlipaySetting.InProduction}
+	}
+	if conf.AuditSetting != nil {
+		bootstrapConfig.Audit = confAuditSnapshot{Enabled: conf.AuditSetting.Enabled}
 	}
 	if conf.WebProfileSetting != nil {
 		bootstrapConfig.WebProfile = confWebProfileSnapshot{
@@ -383,6 +391,8 @@ func Registry() []Definition {
 		stringDefWithActive("alipay.public_cert_file", "payments", "alipay", "Alipay public cert file", "Path to the Alipay public certificate file.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Alipay") }, func() any { return conf.AlipaySetting.PublicCertFile }, func() any { return bootstrapConfig.Alipay.PublicCertFile }, validateTrimmedMax("alipay.public_cert_file", 1024), func(v any) { conf.AlipaySetting.PublicCertFile = v.(string) }),
 		stringDefWithActive("alipay.app_public_cert_file", "payments", "alipay", "Alipay app public cert file", "Path to the app public certificate file.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Alipay") }, func() any { return conf.AlipaySetting.AppPublicCertFile }, func() any { return bootstrapConfig.Alipay.AppPublicCertFile }, validateTrimmedMax("alipay.app_public_cert_file", 1024), func(v any) { conf.AlipaySetting.AppPublicCertFile = v.(string) }),
 		boolDefWithActive("alipay.in_production", "payments", "alipay", "Alipay production mode", "Use Alipay production environment.", ApplyModeRestartRequired, false, true, func() bool { return cfg.If("Alipay") }, func() any { return conf.AlipaySetting.InProduction }, func() any { return bootstrapConfig.Alipay.InProduction }, func(v any) { conf.AlipaySetting.InProduction = v.(bool) }),
+
+		boolDef("audit.enabled", "audit", "general", "Enable content audit", "New posts from ordinary users enter the pending queue and go public only after approval. Mentors and managers are exempt.", ApplyModeLive, false, true, func() any { return conf.AuditSetting.Enabled }, func() any { return bootstrapConfig.Audit.Enabled }, func(v any) { conf.AuditSetting.Enabled = v.(bool) }),
 	}
 }
 

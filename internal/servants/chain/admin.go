@@ -26,3 +26,22 @@ func Admin() gin.HandlerFunc {
 		c.Abort()
 	}
 }
+
+// Auditor 审核权限链: 管理员/运维/审核角色可访问
+func Auditor() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if user, exist := c.Get("USER"); exist {
+			if userModel, ok := user.(*ms.User); ok {
+				if userModel.Status == ms.UserStatusNormal &&
+					(userModel.IsAdmin || userModel.HasRole(ms.RoleAuditor)) {
+					c.Next()
+					return
+				}
+			}
+		}
+
+		response := app.NewResponse(c)
+		response.ToErrorResponse(_errNoAuditPermission)
+		c.Abort()
+	}
+}

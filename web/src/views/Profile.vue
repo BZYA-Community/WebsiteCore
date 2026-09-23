@@ -17,8 +17,8 @@
                     <div class="username">
                         <strong>{{ userInfo.nickname }}</strong>
                         <span> @{{ userInfo.username }} </span>
-                        <n-tag v-if="userInfo.is_admin" class="top-tag" type="error" size="small" round>
-                            管理员
+                        <n-tag v-if="showIdentityBadge(userInfo.identity)" class="top-tag" :type="identityTagType(userInfo.identity)" size="small" round>
+                            {{ userInfo.identity }}
                         </n-tag>
                     </div>
                     <div class="userinfo">
@@ -125,6 +125,7 @@ import { useStoreMain } from '@/store/main';
 import { useRoute, useRouter } from 'vue-router';
 import { useDialog, DropdownOption } from 'naive-ui';
 import { formatDate } from '@/utils/formatTime';
+import { identityTagType, showIdentityBadge } from '@/utils/identity';
 import { prettyQuoteNum } from '@/utils/count';
 import InfiniteLoading from 'v3-infinite-loading';
 import { SettingsOutline } from '@vicons/ionicons5';

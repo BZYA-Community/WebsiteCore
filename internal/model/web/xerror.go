@@ -105,5 +105,10 @@ var (
 	ErrFileInvalidExt   = xerror.NewError(10201, "文件类型不合法")
 	ErrFileInvalidSize  = xerror.NewError(10202, "文件大小超限")
 
+	ErrRoleChangeFailed = xerror.NewError(11001, "角色变更失败")
+	ErrAuditPostFailed  = xerror.NewError(11002, "审核操作失败")
+	// 11003 运维保护: 非运维账号尝试变更运维相关角色 HTTP映射403
+	ErrRoleChangeNoPermission = xerror.NewError(11003, "无权变更该用户角色")
+
 	ErrNotImplemented = xerror.NewError(10501, "功能未实现")
 )

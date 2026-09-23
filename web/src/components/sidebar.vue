@@ -65,6 +65,8 @@ import {
   ChatbubblesOutline,
   LeafOutline,
   PeopleOutline,
+  PeopleCircleOutline,
+  ShieldCheckmarkOutline,
   WalletOutline,
   SettingsOutline,
   ConstructOutline,
@@ -201,6 +203,20 @@ const menuOptions = computed(() => {
       key: 'admin-settings',
       icon: () => h(ConstructOutline),
       href: '/admin/settings',
+    });
+    options.push({
+      label: '用户管理',
+      key: 'admin-users',
+      icon: () => h(PeopleCircleOutline),
+      href: '/admin/users',
+    });
+  }
+  if (userInfo.value.is_admin || userInfo.value.roles?.includes('auditor')) {
+    options.push({
+      label: '审核队列',
+      key: 'admin-audit',
+      icon: () => h(ShieldCheckmarkOutline),
+      href: '/admin/audit',
     });
   }
 

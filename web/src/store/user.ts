@@ -14,9 +14,14 @@ export const useStoreUser = defineStore('user', () => {
         followings: 0,
         tweets_count: 0,
         is_admin: false,
+        roles: [] as string[],
+        identity: '',
     });
 
     const userLogined = computed(() => userInfo.value.id > 0);
+
+    /** 判断当前用户是否持有指定管理角色 */
+    const hasRole = (role: string) => (userInfo.value.roles || []).includes(role);
 
     function updateUserinfo(data: Record<string, any>) {
         userInfo.value = data;
@@ -33,12 +38,15 @@ export const useStoreUser = defineStore('user', () => {
             followings: 0,
             tweets_count: 0,
             is_admin: false,
+            roles: [],
+            identity: '',
         };
     }
 
     return {
         userInfo,
         userLogined,
+        hasRole,
         updateUserinfo, userLogout,
     }
 });

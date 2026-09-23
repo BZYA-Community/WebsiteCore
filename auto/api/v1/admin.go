@@ -7,9 +7,9 @@ package v1
 import (
 	"net/http"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/alimy/mir/v5"
 	"github.com/gin-gonic/gin"
-	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 )
 
 type _binding_ interface {
@@ -32,12 +32,16 @@ type Admin interface {
 	// Chain provide handlers chain for gin
 	Chain() gin.HandlersChain
 
-	SiteInfo(*web.SiteInfoReq) (*web.SiteInfoResp, error)
-	GetSiteSettings() (*web.SiteSettingsResp, error)
-	UpdateSiteSettings(*web.SiteSettingsReq) (*web.SiteSettingsResp, error)
-	GetSettingsSchema() (*web.AdminSettingsSchemaResp, error)
-	GetSettingsValues() (*web.AdminSettingsValuesResp, error)
+	AdminUserRoleLogs(*web.AdminUserRoleLogsReq) (*web.AdminUserRoleLogsResp, error)
+	AdminUserRoleChange(*web.AdminUserRoleReq) error
+	AdminUserDetail(*web.AdminUserDetailReq) (*web.AdminUserDetailResp, error)
+	AdminUserList(*web.AdminUserListReq) (*web.AdminUserListResp, error)
 	SaveSettings(*web.AdminSettingsSaveReq) (*web.AdminSettingsSaveResp, error)
+	GetSettingsValues() (*web.AdminSettingsValuesResp, error)
+	GetSettingsSchema() (*web.AdminSettingsSchemaResp, error)
+	UpdateSiteSettings(*web.SiteSettingsReq) (*web.SiteSettingsResp, error)
+	GetSiteSettings() (*web.SiteSettingsResp, error)
+	SiteInfo(*web.SiteInfoReq) (*web.SiteInfoResp, error)
 	ChangeUserStatus(*web.ChangeUserStatusReq) error
 
 	mustEmbedUnimplementedAdminServant()
@@ -51,28 +55,93 @@ func RegisterAdminServant(e *gin.Engine, s Admin) {
 	router.Use(middlewares...)
 
 	// register routes info to router
-	router.Handle("GET", "admin/site/status", func(c *gin.Context) {
+	router.Handle("GET", "admin/user/role/logs", func(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
 			return
 		default:
 		}
-		req := new(web.SiteInfoReq)
+		req := new(web.AdminUserRoleLogsReq)
 		if err := s.Bind(c, req); err != nil {
 			s.Render(c, nil, err)
 			return
 		}
-		resp, err := s.SiteInfo(req)
+		resp, err := s.AdminUserRoleLogs(req)
 		s.Render(c, resp, err)
 	})
-	router.Handle("GET", "admin/site/profile", func(c *gin.Context) {
+	router.Handle("POST", "admin/user/role", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.AdminUserRoleReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		s.Render(c, nil, s.AdminUserRoleChange(req))
+	})
+	router.Handle("GET", "admin/user/detail", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.AdminUserDetailReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.AdminUserDetail(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("GET", "admin/user/list", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.AdminUserListReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.AdminUserList(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("POST", "admin/settings/save", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.AdminSettingsSaveReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.SaveSettings(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("GET", "admin/settings/values", func(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
 			return
 		default:
 		}
 
-		resp, err := s.GetSiteSettings()
+		resp, err := s.GetSettingsValues()
+		s.Render(c, resp, err)
+	})
+	router.Handle("GET", "admin/settings/schema", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+
+		resp, err := s.GetSettingsSchema()
 		s.Render(c, resp, err)
 	})
 	router.Handle("POST", "admin/site/profile", func(c *gin.Context) {
@@ -89,38 +158,28 @@ func RegisterAdminServant(e *gin.Engine, s Admin) {
 		resp, err := s.UpdateSiteSettings(req)
 		s.Render(c, resp, err)
 	})
-	router.Handle("GET", "admin/settings/schema", func(c *gin.Context) {
+	router.Handle("GET", "admin/site/profile", func(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
 			return
 		default:
 		}
 
-		resp, err := s.GetSettingsSchema()
+		resp, err := s.GetSiteSettings()
 		s.Render(c, resp, err)
 	})
-	router.Handle("GET", "admin/settings/values", func(c *gin.Context) {
+	router.Handle("GET", "admin/site/status", func(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
 			return
 		default:
 		}
-
-		resp, err := s.GetSettingsValues()
-		s.Render(c, resp, err)
-	})
-	router.Handle("POST", "admin/settings/save", func(c *gin.Context) {
-		select {
-		case <-c.Request.Context().Done():
-			return
-		default:
-		}
-		req := new(web.AdminSettingsSaveReq)
+		req := new(web.SiteInfoReq)
 		if err := s.Bind(c, req); err != nil {
 			s.Render(c, nil, err)
 			return
 		}
-		resp, err := s.SaveSettings(req)
+		resp, err := s.SiteInfo(req)
 		s.Render(c, resp, err)
 	})
 	router.Handle("POST", "admin/user/status", func(c *gin.Context) {
@@ -145,19 +204,23 @@ func (UnimplementedAdminServant) Chain() gin.HandlersChain {
 	return nil
 }
 
-func (UnimplementedAdminServant) SiteInfo(req *web.SiteInfoReq) (*web.SiteInfoResp, error) {
+func (UnimplementedAdminServant) AdminUserRoleLogs(req *web.AdminUserRoleLogsReq) (*web.AdminUserRoleLogsResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
-func (UnimplementedAdminServant) GetSiteSettings() (*web.SiteSettingsResp, error) {
+func (UnimplementedAdminServant) AdminUserRoleChange(req *web.AdminUserRoleReq) error {
+	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAdminServant) AdminUserDetail(req *web.AdminUserDetailReq) (*web.AdminUserDetailResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
-func (UnimplementedAdminServant) UpdateSiteSettings(req *web.SiteSettingsReq) (*web.SiteSettingsResp, error) {
+func (UnimplementedAdminServant) AdminUserList(req *web.AdminUserListReq) (*web.AdminUserListResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
-func (UnimplementedAdminServant) GetSettingsSchema() (*web.AdminSettingsSchemaResp, error) {
+func (UnimplementedAdminServant) SaveSettings(req *web.AdminSettingsSaveReq) (*web.AdminSettingsSaveResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
@@ -165,7 +228,19 @@ func (UnimplementedAdminServant) GetSettingsValues() (*web.AdminSettingsValuesRe
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
-func (UnimplementedAdminServant) SaveSettings(req *web.AdminSettingsSaveReq) (*web.AdminSettingsSaveResp, error) {
+func (UnimplementedAdminServant) GetSettingsSchema() (*web.AdminSettingsSchemaResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAdminServant) UpdateSiteSettings(req *web.SiteSettingsReq) (*web.SiteSettingsResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAdminServant) GetSiteSettings() (*web.SiteSettingsResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAdminServant) SiteInfo(req *web.SiteInfoReq) (*web.SiteInfoResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

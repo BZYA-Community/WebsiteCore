@@ -28,6 +28,24 @@
                         置顶
                     </n-tag>
                     <n-tag
+                        v-if="post.audit_status === 0"
+                        class="top-tag"
+                        type="warning"
+                        size="small"
+                        round
+                    >
+                        待审核
+                    </n-tag>
+                    <n-tag
+                        v-if="post.audit_status === 2"
+                        class="top-tag"
+                        type="error"
+                        size="small"
+                        round
+                    >
+                        未通过
+                    </n-tag>
+                    <n-tag
                         v-if="post.visibility == 1"
                         class="top-tag"
                         type="error"

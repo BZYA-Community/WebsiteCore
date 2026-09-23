@@ -23,8 +23,8 @@
                                 class="top-tag" type="success" size="small" round>
                                 已关注
                             </n-tag>
-                            <n-tag v-if="user.is_admin" class="top-tag" type="error" size="small" round>
-                                管理员
+                            <n-tag v-if="showIdentityBadge(user.identity)" class="top-tag" :type="identityTagType(user.identity)" size="small" round>
+                                {{ user.identity }}
                             </n-tag>
                         </div>
                         <div class="userinfo">
@@ -138,6 +138,7 @@ import { useDialog, DropdownOption } from 'naive-ui';
 import WhisperAddFriend from '../components/whisper-add-friend.vue';
 import { MoreHorizFilled } from '@vicons/material';
 import { formatDate } from '@/utils/formatTime';
+import { identityTagType, showIdentityBadge } from '@/utils/identity';
 import { prettyQuoteNum } from '@/utils/count';
 import {
   SettingsOutline,
@@ -346,6 +347,7 @@ const loadUser = () => {
       user.username = res.username;
       user.nickname = res.nickname;
       user.is_admin = res.is_admin;
+      user.identity = res.identity;
       user.is_friend = res.is_friend;
       user.created_on = res.created_on;
       user.is_following = res.is_following;
