@@ -297,6 +297,17 @@ type jwtConf struct {
 	Expire time.Duration
 }
 
+type AuditConf struct {
+	Enabled bool `json:"enabled"`
+}
+
+// OperatorConf 默认运维账号配置: 账号不存在时按配置创建，
+// 存在时密码以配置为准(不一致则重置)；该段缺省或留空则不干预
+type OperatorConf struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 type WebProfileConf struct {
 	UseFriendship             bool   `json:"use_friendship"`
 	EnableTrendsBar           bool   `json:"enable_trends_bar"`

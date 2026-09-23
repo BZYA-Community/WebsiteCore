@@ -277,3 +277,9 @@ WebProfile:
   CopyrightLeftLink: ""
   CopyrightRight: "泡泡(PaoPao)开源社区"
   CopyrightRightLink: "https://github.com/rocboss/paopao-ce"
+
+Audit:
+  Enabled: true                   # 是否开启内容审核，开启后普通用户新帖需审核通过后公开
+Operator:
+  Username: kiana                 # 运维账号名
+  Password: ""                    # 运维账号密码(6-16位)，账号不存在时创建；已存在且与配置不一致时重置

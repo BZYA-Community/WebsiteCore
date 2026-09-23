@@ -358,6 +358,8 @@ func (s *looseSrv) GetUserProfile(req *web.GetUserProfileReq) (*web.GetUserProfi
 		Status:      he.Status,
 		Avatar:      he.Avatar,
 		IsAdmin:     he.IsAdmin,
+		Roles:       dbr.SplitRoles(he.Roles),
+		Identity:    dbr.IdentityOf(he.Roles, he.Phone),
 		IsFriend:    isFriend,
 		IsFollowing: isFollowing,
 		CreatedOn:   he.CreatedOn,

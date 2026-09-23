@@ -7,9 +7,9 @@ package v1
 import (
 	"net/http"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/alimy/mir/v5"
 	"github.com/gin-gonic/gin"
-	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 )
 
 type Site interface {

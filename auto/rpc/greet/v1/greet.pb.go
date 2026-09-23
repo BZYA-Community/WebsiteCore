@@ -119,9 +119,9 @@ const file_greet_v1_greet_proto_rawDesc = "" +
 	"\rGreetResponse\x12\x1a\n" +
 	"\bgreeting\x18\x01 \x01(\tR\bgreeting2J\n" +
 	"\fGreetService\x12:\n" +
-	"\x05Greet\x12\x16.greet.v1.GreetRequest\x1a\x17.greet.v1.GreetResponse\"\x00B\x93\x01\n" +
+	"\x05Greet\x12\x16.greet.v1.GreetRequest\x1a\x17.greet.v1.GreetResponse\"\x00B\x9c\x01\n" +
 	"\fcom.greet.v1B\n" +
-	"GreetProtoP\x01Z6github.com/BZYA-Community/WebsiteCore/auto/rpc/greet/v1;greetv1\xa2\x02\x03GXX\xaa\x02\bGreet.V1\xca\x02\bGreet\\V1\xe2\x02\x14Greet\\V1\\GPBMetadata\xea\x02\tGreet::V1b\x06proto3"
+	"GreetProtoP\x01Z?github.com/BZYA-Community/WebsiteCore/auto/rpc/greet/v1;greetv1\xa2\x02\x03GXX\xaa\x02\bGreet.V1\xca\x02\bGreet\\V1\xe2\x02\x14Greet\\V1\\GPBMetadata\xea\x02\tGreet::V1b\x06proto3"
 
 var (
 	file_greet_v1_greet_proto_rawDescOnce sync.Once

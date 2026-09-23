@@ -107,6 +107,22 @@ const routes = [
     component: () => import('@/views/AdminSettings.vue'),
   },
   {
+    path: '/admin/users',
+    name: 'admin-users',
+    meta: {
+      title: '用户管理',
+    },
+    component: () => import('@/views/AdminUsers.vue'),
+  },
+  {
+    path: '/admin/audit',
+    name: 'admin-audit',
+    meta: {
+      title: '审核队列',
+    },
+    component: () => import('@/views/AdminAudit.vue'),
+  },
+  {
     path: '/404',
     name: '404',
     meta: {

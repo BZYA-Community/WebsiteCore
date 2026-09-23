@@ -15,6 +15,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
@@ -69,6 +70,8 @@ func (s *coreSrv) GetUserInfo(req *web.UserInfoReq) (*web.UserInfoResp, error) {
 		Avatar:      user.Avatar,
 		Balance:     user.Balance,
 		IsAdmin:     user.IsAdmin,
+		Roles:       dbr.SplitRoles(user.Roles),
+		Identity:    dbr.IdentityOf(user.Roles, user.Phone),
 		CreatedOn:   user.CreatedOn,
 		Follows:     follows,
 		Followings:  followings,

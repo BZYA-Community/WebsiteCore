@@ -14,6 +14,10 @@ declare namespace Item {
     activation?: string;
     /** 是否为管理员 */
     is_admin: boolean;
+    /** 管理角色列表 operator/admin/auditor/mentor */
+    roles?: string[];
+    /** 显示身份 运维/管理员/审核/导师/道友/游客 */
+    identity?: string;
     /** 是否好友 */
     is_friend: boolean;
     /** 是否关注 */
@@ -227,6 +231,8 @@ declare namespace Item {
     is_essence: number;
     /** 是否删除：0为未删除，1为已删除 */
     is_del?: 0 | 1;
+    /** 审核状态：0为待审核，1为已通过，2为未通过 */
+    audit_status?: 0 | 1 | 2;
   }
 
   /** 组件用帖子 */

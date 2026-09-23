@@ -21,6 +21,15 @@ const (
 	PostVisitFollowing PostVisibleT = 60
 )
 
+// PostAuditT 审核状态: 0待审核 1已通过 2未通过 (删除复用软删 is_del)
+type PostAuditT uint8
+
+const (
+	PostAuditPending  PostAuditT = 0
+	PostAuditApproved PostAuditT = 1
+	PostAuditRejected PostAuditT = 2
+)
+
 type PostByMedia = Post
 
 type PostByComment = Post
@@ -41,6 +50,7 @@ type Post struct {
 	AttachmentPrice int64        `json:"attachment_price"`
 	IP              string       `json:"ip"`
 	IPLoc           string       `json:"ip_loc"`
+	AuditStatus     PostAuditT   `json:"audit_status"`
 }
 
 type PostFormated struct {
@@ -62,6 +72,7 @@ type PostFormated struct {
 	Tags            map[string]int8        `json:"tags"`
 	AttachmentPrice int64                  `json:"attachment_price"`
 	IPLoc           string                 `json:"ip_loc"`
+	AuditStatus     PostAuditT             `json:"audit_status"`
 }
 
 func (t PostVisibleT) ToOutValue() (res uint8) {
@@ -105,6 +116,7 @@ func (p *Post) Format() *PostFormated {
 			AttachmentPrice: p.AttachmentPrice,
 			Tags:            tagsMap,
 			IPLoc:           p.IPLoc,
+			AuditStatus:     p.AuditStatus,
 		}
 	}
 

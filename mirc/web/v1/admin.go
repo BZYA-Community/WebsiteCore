@@ -18,4 +18,13 @@ type Admin struct {
 	GetSettingsSchema  func(Get) web.AdminSettingsSchemaResp                          `mir:"admin/settings/schema"`
 	GetSettingsValues  func(Get) web.AdminSettingsValuesResp                          `mir:"admin/settings/values"`
 	SaveSettings       func(Post, web.AdminSettingsSaveReq) web.AdminSettingsSaveResp `mir:"admin/settings/save"`
+
+	// AdminUserList 管理·用户列表搜索
+	AdminUserList func(Get, web.AdminUserListReq) web.AdminUserListResp `mir:"admin/user/list"`
+	// AdminUserDetail 管理·用户详情(完整手机号 管理级可见)
+	AdminUserDetail func(Get, web.AdminUserDetailReq) web.AdminUserDetailResp `mir:"admin/user/detail"`
+	// AdminUserRoleChange 管理·变更用户角色
+	AdminUserRoleChange func(Post, web.AdminUserRoleReq) `mir:"admin/user/role"`
+	// AdminUserRoleLogs 管理·角色变更记录
+	AdminUserRoleLogs func(Get, web.AdminUserRoleLogsReq) web.AdminUserRoleLogsResp `mir:"admin/user/role/logs"`
 }

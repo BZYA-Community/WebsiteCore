@@ -38,6 +38,9 @@ type DataService interface {
 	FollowingManageService
 	UserRelationService
 
+	// 站点管理服务(用户管理/内容审核)
+	SiteAdminService
+
 	// 安全服务
 	SecurityService
 	AttachmentCheckService

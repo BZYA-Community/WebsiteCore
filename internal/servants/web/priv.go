@@ -265,6 +265,13 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 		AttachmentPrice: req.AttachmentPrice,
 		Visibility:      ms.PostVisibleT(req.Visibility.ToVisibleValue()),
 	}
+	// 内容审核开启时 普通用户(无任何管理角色)的新帖进入待审核 导师/审核/管理员/运维免审
+	// 注意: 免审路径必须显式置为已过审 PostAuditApproved(1) 否则零值0即待审核
+	if conf.AuditSetting.Enabled && !req.User.HasAnyRole() {
+		post.AuditStatus = ms.PostAuditPending
+	} else {
+		post.AuditStatus = ms.PostAuditApproved
+	}
 	post, err = s.Ds.CreatePost(post)
 	if err != nil {
 		logrus.Errorf("Ds.CreatePost err: %s", err)
@@ -316,8 +323,10 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 			})
 		}
 	}
-	// 推送Search
-	s.PushPostToSearch(post)
+	// 推送Search(待审核帖过审后再推入索引)
+	if post.AuditStatus != ms.PostAuditPending {
+		s.PushPostToSearch(post)
+	}
 	formatedPosts, err := s.Ds.RevampPosts([]*ms.PostFormated{post.Format()})
 	if err != nil {
 		logrus.Infof("Ds.RevampPosts err: %s", err)

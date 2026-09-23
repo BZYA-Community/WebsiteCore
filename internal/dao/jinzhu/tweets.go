@@ -387,15 +387,16 @@ func (s *tweetSrv) ListUserTweets(userId int64, style uint8, justEssence bool, l
 	case cs.StyleUserTweetsAdmin:
 		fallthrough
 	case cs.StyleUserTweetsSelf:
+		// 作者/管理员可见全部状态(含待审核)
 		db = db.Where("visibility >= ?", cs.TweetVisitPrivate)
 	case cs.StyleUserTweetsFriend:
-		db = db.Where("visibility >= ?", cs.TweetVisitFriend)
+		db = db.Where("visibility >= ? AND (visibility != ? OR audit_status = ?)", cs.TweetVisitFriend, cs.TweetVisitPublic, dbr.PostAuditApproved)
 	case cs.StyleUserTweetsFollowing:
-		db = db.Where("visibility >= ?", cs.TweetVisitFollowing)
+		db = db.Where("visibility >= ? AND (visibility != ? OR audit_status = ?)", cs.TweetVisitFollowing, cs.TweetVisitPublic, dbr.PostAuditApproved)
 	case cs.StyleUserTweetsGuest:
 		fallthrough
 	default:
-		db = db.Where("visibility >= ?", cs.TweetVisitPublic)
+		db = db.Where("visibility >= ? AND audit_status = ?", cs.TweetVisitPublic, dbr.PostAuditApproved)
 	}
 	if justEssence {
 		db = db.Where("is_essence=1")
@@ -413,7 +414,8 @@ func (s *tweetSrv) ListUserTweets(userId int64, style uint8, justEssence bool, l
 }
 
 func (s *tweetSrv) ListIndexNewestTweets(limit, offset int) (res []*ms.Post, total int64, err error) {
-	db := s.db.Table(_post_).Where("visibility >= ?", cs.TweetVisitPublic)
+	// 公共广场仅展示已过审的公开帖
+	db := s.db.Table(_post_).Where("visibility >= ? AND audit_status = ?", cs.TweetVisitPublic, dbr.PostAuditApproved)
 	if err = db.Count(&total).Error; err != nil {
 		return
 	}
@@ -427,7 +429,7 @@ func (s *tweetSrv) ListIndexNewestTweets(limit, offset int) (res []*ms.Post, tot
 }
 
 func (s *tweetSrv) ListIndexHotsTweets(limit, offset int) (res []*ms.Post, total int64, err error) {
-	db := s.db.Table(_post_).Joins(fmt.Sprintf("LEFT JOIN %s metric ON %s.id=metric.post_id", _post_metric_, _post_)).Where(fmt.Sprintf("visibility >= ? AND %s.is_del=0 AND metric.is_del=0", _post_), cs.TweetVisitPublic)
+	db := s.db.Table(_post_).Joins(fmt.Sprintf("LEFT JOIN %s metric ON %s.id=metric.post_id", _post_metric_, _post_)).Where(fmt.Sprintf("visibility >= ? AND audit_status = ? AND %s.is_del=0 AND metric.is_del=0", _post_), cs.TweetVisitPublic, dbr.PostAuditApproved)
 	if err = db.Count(&total).Error; err != nil {
 		return
 	}
@@ -441,7 +443,8 @@ func (s *tweetSrv) ListIndexHotsTweets(limit, offset int) (res []*ms.Post, total
 }
 
 func (s *tweetSrv) ListSyncSearchTweets(limit, offset int) (res []*ms.Post, total int64, err error) {
-	db := s.db.Table(_post_).Where("visibility >= ?", cs.TweetVisitFriend)
+	// 搜索引擎仅同步已过审的帖子
+	db := s.db.Table(_post_).Where("visibility >= ? AND audit_status = ?", cs.TweetVisitFriend, dbr.PostAuditApproved)
 	if err = db.Count(&total).Error; err != nil {
 		return
 	}
@@ -462,13 +465,14 @@ func (s *tweetSrv) ListFollowingTweets(userId int64, limit, offset int) (res []*
 	beFriendCount, beFollowCount := len(beFriendIds), len(beFollowIds)
 	db := s.db.Model(&dbr.Post{})
 	// 可见性: 0私密 10充电可见 20订阅可见 30保留 40保留 50好友可见 60关注可见 70保留 80保留 90公开',
+	// 非自己的公开帖需已过审 好友/关注可见帖按原有权限规则
 	switch {
 	case beFriendCount > 0 && beFollowCount > 0:
-		db = db.Where("user_id=? OR (visibility>=50 AND user_id IN(?)) OR (visibility>=60 AND user_id IN(?))", userId, beFriendIds, beFollowIds)
+		db = db.Where("user_id=? OR ((visibility>=50 AND (visibility!=90 OR audit_status=1)) AND user_id IN(?)) OR ((visibility>=60 AND (visibility!=90 OR audit_status=1)) AND user_id IN(?))", userId, beFriendIds, beFollowIds)
 	case beFriendCount > 0 && beFollowCount == 0:
-		db = db.Where("user_id=? OR (visibility>=50 AND user_id IN(?))", userId, beFriendIds)
+		db = db.Where("user_id=? OR ((visibility>=50 AND (visibility!=90 OR audit_status=1)) AND user_id IN(?))", userId, beFriendIds)
 	case beFriendCount == 0 && beFollowCount > 0:
-		db = db.Where("user_id=? OR (visibility>=60 AND user_id IN(?))", userId, beFollowIds)
+		db = db.Where("user_id=? OR ((visibility>=60 AND (visibility!=90 OR audit_status=1)) AND user_id IN(?))", userId, beFollowIds)
 	case beFriendCount == 0 && beFollowCount == 0:
 		db = db.Where("user_id = ?", userId)
 	}
@@ -553,6 +557,10 @@ func (s *tweetSrv) getUserTweets(db *gorm.DB, user *cs.VistUser, limit int, offs
 		// nothing
 	}
 	db = db.Where("visibility IN ? AND is_del=0", visibilities)
+	// 非作者/管理员关系: 未过审的公开帖不可见 好友/私密帖按原有权限规则
+	if user.RelTyp != cs.RelationAdmin && user.RelTyp != cs.RelationSelf {
+		db = db.Where("visibility != ? OR audit_status = ?", core.PostVisitPublic, dbr.PostAuditApproved)
+	}
 	err = db.Count(&total).Error
 	if err != nil {
 		return
