@@ -1,18 +1,26 @@
 export const parsePostTag = (content: string) => {
   const tags: string[] = [];
   const users: string[] = [];
-  var tagExp = /(#|＃)([^#@\s])+?\s+?/g; // 这⾥中⽂#和英⽂#都会识别
+  // 话题: 井号后紧跟非空白字符(#话题 空白结尾 / #话题# 闭合式)
+  // 井号后有空格(# 标题)或多个井号(## 标题)不匹配 —— 那是Markdown标题
+  var tagExp = /(#|＃)([^#@\s])+?(\s+?|#|＃|$)/g; // 这⾥中⽂#和英⽂#都会识别
   var atExp = /@([a-zA-Z0-9])+?\s+?/g; // 这⾥中⽂#和英⽂#都会识别
   content = content
     .replace(/<[^>]*?>/gi, '')
     .replace(/(.*?)<\/[^>]*?>/gi, '')
     .replace(tagExp, (item) => {
-      tags.push(item.substr(1).trim());
+      const raw = item.trim();
+      let tag = raw.substring(1);
+      // 闭合式话题去掉结尾井号
+      if (tag.endsWith('#') || tag.endsWith('＃')) {
+        tag = tag.slice(0, -1);
+      }
+      tags.push(tag);
       return (
         '<a class="hash-link" data-detail="tag:' +
-        encodeURIComponent(item.substr(1).trim()) +
+        encodeURIComponent(tag) +
         '">' +
-        item.trim() +
+        raw +
         '</a> '
       );
     })
@@ -44,17 +52,23 @@ export const preparePost = (
       content = content.substring(0, maxSize - 1);
     }
   }
-  const tagExp = /(#|＃)([^#@\s])+?\s+?/g; // 这⾥中⽂#和英⽂#都会识别
+  const tagExp = /(#|＃)([^#@\s])+?(\s+?|#|＃|$)/g; // 这⾥中⽂#和英⽂#都会识别
   const atExp = /@([a-zA-Z0-9])+?\s+?/g; // 这⾥中⽂#和英⽂#都会识别
   content = content
     .replace(/<[^>]*?>/gi, '')
     .replace(/(.*?)<\/[^>]*?>/gi, '')
     .replace(tagExp, (item) => {
+      const raw = item.trim();
+      let tag = raw.substring(1);
+      // 闭合式话题去掉结尾井号
+      if (tag.endsWith('#') || tag.endsWith('＃')) {
+        tag = tag.slice(0, -1);
+      }
       return (
         '<a class="hash-link" data-detail="tag:' +
-        encodeURIComponent(item.substring(1).trim()) +
+        encodeURIComponent(tag) +
         '">' +
-        item.trim() +
+        raw +
         '</a> '
       );
     })

@@ -10,6 +10,7 @@
                     />
                 </div>
                 <n-mention
+                    v-if="!editorMode"
                     type="textarea"
                     size="large"
                     autosize
@@ -21,6 +22,18 @@
                     @search="handleSearch"
                     @update:value="changeContent"
                     placeholder="说说您的新鲜事..."
+                />
+                <md-editor
+                    v-else
+                    class="compose-md-editor"
+                    :model-value="content"
+                    :theme="editorTheme"
+                    language="zh-CN"
+                    placeholder="支持 Markdown 长文：井号后加空格是标题，#话题# 或 #话题 加空格是话题标签"
+                    :toolbars-exclude="mdToolbarsExclude"
+                    no-mermaid
+                    no-katex
+                    @update:model-value="changeContent"
                 />
             </div>
 
@@ -165,13 +178,35 @@
                     <div class="submit-wrap">
                         <n-tooltip trigger="hover" placement="bottom">
                             <template #trigger>
+                                <n-button
+                                    quaternary
+                                    circle
+                                    type="primary"
+                                    @click.stop="switchEditorMode"
+                                >
+                                    <template #icon>
+                                        <n-icon
+                                            size="20"
+                                            color="var(--primary-color)"
+                                        >
+                                            <create-outline v-if="!editorMode" />
+                                            <chatbox-ellipses-outline v-else />
+                                        </n-icon>
+                                    </template>
+                                </n-button>
+                            </template>
+                            {{ editorMode ? '返回普通输入框' : '进入Markdown编辑器' }}
+                        </n-tooltip>
+
+                        <n-tooltip trigger="hover" placement="bottom">
+                            <template #trigger>
                                 <n-progress
                                     class="text-statistic"
                                     type="circle"
                                     :show-indicator="false"
                                     status="success"
                                     :stroke-width="10"
-                                    :percentage="(content.length / profile.defaultTweetMaxLength) * 100"
+                                    :percentage="(content.length / maxInputLength) * 100"
                                 />
                             </template>
                             已输入{{ content.length }}字
@@ -287,9 +322,15 @@ import {
   AttachOutline,
   CompassOutline,
   EyeOutline,
+  CreateOutline,
+  ChatboxEllipsesOutline,
 } from '@vicons/ionicons5';
+import { MdEditor } from 'md-editor-v3';
+import type { ToolbarNames } from 'md-editor-v3';
+import 'md-editor-v3/lib/style.css';
 import { createPost } from '@/api/post';
 import { parsePostTag } from '@/utils/content';
+import { MD_MAX_LENGTH, mdTheme } from '@/utils/markdown';
 import { isZipFile } from '@/utils/isZipFile';
 import type { MentionOption, UploadFileInfo, UploadInst } from 'naive-ui';
 import { VisibilityEnum, PostItemTypeEnum } from '@/utils/IEnum';
@@ -303,6 +344,7 @@ const emit = defineEmits<{
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const storeProfile = useStoreProfile();
+const { theme } = storeToRefs(storeMain);
 const { userInfo } = storeToRefs(storeUser);
 const { profile } = storeToRefs(storeProfile);
 
@@ -313,6 +355,21 @@ const showLinkSet = ref(false);
 const showEyeSet = ref(false);
 const content = ref('');
 const links = ref([]);
+// Markdown编辑器模式(长文发帖)
+const editorMode = ref(false);
+const editorTheme = computed(() => mdTheme(theme.value));
+// 精简工具栏: 去掉依赖外部CDN或与站点能力重复的项
+const mdToolbarsExclude: ToolbarNames[] = [
+  'mermaid',
+  'katex',
+  'image',
+  'github',
+  'htmlPreview',
+  'fullscreen',
+];
+const maxInputLength = computed(() =>
+  editorMode.value ? MD_MAX_LENGTH : profile.value.defaultTweetMaxLength,
+);
 
 const uploadRef = ref<UploadInst>();
 const attachmentPrice = ref(0);
@@ -412,9 +469,12 @@ const handleSearch = (k: string, prefix: string) => {
     loadSuggestionTags(k);
   }
 };
+const switchEditorMode = () => {
+  editorMode.value = !editorMode.value;
+};
 const changeContent = (v: string) => {
-  if (v.length > profile.value.defaultTweetMaxLength) {
-    content.value = v.substring(0, profile.value.defaultTweetMaxLength);
+  if (v.length > maxInputLength.value) {
+    content.value = v.substring(0, maxInputLength.value);
   } else {
     content.value = v;
   }
@@ -561,7 +621,7 @@ const submitPost = () => {
 
   contents.push({
     content: content.value,
-    type: PostItemTypeEnum.TEXT, // 文字
+    type: editorMode.value ? PostItemTypeEnum.MARKDOWN : PostItemTypeEnum.TEXT, // Markdown长文/文字
     sort,
   });
 
@@ -667,6 +727,12 @@ onMounted(() => {
             height: 42px;
             display: flex;
             align-items: center;
+        }
+
+        .compose-md-editor {
+            flex: 1;
+            min-width: 0;
+            height: 320px;
         }
 
         &.compose-options {

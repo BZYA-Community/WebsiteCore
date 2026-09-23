@@ -168,7 +168,7 @@ declare namespace Item {
   interface PostItemProps {
     /** 内容ID */
     id: number;
-    /** 类型：1为标题，2为文字段落，3为图片地址，4为视频地址，5为语音地址，6为链接地址，7为附件资源，8为收费资源 */
+    /** 类型：1为标题，2为文字段落，3为图片地址，4为视频地址，5为语音地址，6为链接地址，7为附件资源，8为收费资源，9为Markdown长文 */
     type: import('@/utils/IEnum').PostItemTypeEnum;
     /** POST ID */
     post_id: number;
@@ -239,6 +239,8 @@ declare namespace Item {
   interface PostComponentProps extends PostProps {
     /** 文字段落列表 */
     texts: PostItemProps[];
+    /** Markdown长文列表 */
+    markdowns: PostItemProps[];
     /** 图片列表 */
     imgs: PostItemProps[];
     /** 视频列表 */

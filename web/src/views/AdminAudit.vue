@@ -16,18 +16,55 @@
                 </n-tabs>
 
                 <template v-if="activeTab !== 'logs'">
-                    <n-data-table
-                        remote
-                        size="small"
-                        class="audit-table"
-                        :columns="postColumns"
-                        :data="postItems"
-                        :loading="loading"
-                        :pagination="postPagination"
-                        :scroll-x="1080"
-                        :row-key="(row: Api.Admin.NetReq.AuditPostItem) => row.id"
-                        @update:page="handlePostPageChange"
-                    />
+                    <div class="audit-cards">
+                        <div class="empty-wrap audit-empty" v-if="!loading && postItems.length === 0">
+                            <n-empty size="large" description="暂无数据" />
+                        </div>
+                        <div
+                            v-for="row in postItems"
+                            :key="row.id"
+                            class="audit-card"
+                            @click="openInNewTab(row.id)"
+                        >
+                            <div class="audit-card-head">
+                                <span class="audit-card-id">#{{ row.id }}</span>
+                                <n-tag size="small" round :type="statusTagType(row.audit_status)">
+                                    {{ statusText(row.audit_status) }}
+                                </n-tag>
+                                <n-tag size="small" round :bordered="false">
+                                    {{ visibilityText(row.visibility) }}
+                                </n-tag>
+                                <span class="audit-card-time">
+                                    {{ formatTime(row.created_on) }}
+                                </span>
+                            </div>
+                            <div class="audit-card-summary">{{ postSummary(row) }}</div>
+                            <div class="audit-card-foot">
+                                <span class="audit-card-author">
+                                    {{ row.user?.nickname || '' }} @{{ row.user?.username || '' }}
+                                </span>
+                                <n-button
+                                    size="tiny"
+                                    quaternary
+                                    type="info"
+                                    @click.stop="openInNewTab(row.id)"
+                                >
+                                    查看帖子
+                                </n-button>
+                            </div>
+                        </div>
+                        <div
+                            class="audit-card-pager"
+                            v-if="postPagination.itemCount > postPagination.pageSize"
+                        >
+                            <n-pagination
+                                :page="postPagination.page"
+                                :page-size="postPagination.pageSize"
+                                :item-count="postPagination.itemCount"
+                                @update:page="handlePostPageChange"
+                            />
+                        </div>
+                    </div>
                 </template>
                 <template v-else>
                     <n-data-table
@@ -46,64 +83,6 @@
             </n-spin>
         </n-card>
 
-        <n-modal
-            v-model:show="rejectShow"
-            preset="dialog"
-            title="拒绝原因"
-            positive-text="确定拒绝"
-            negative-text="取消"
-            @positive-click="handleRejectConfirm"
-        >
-            <n-space vertical>
-                <div class="reject-tip">
-                    拒绝后该帖子将转为私密并标记「未通过」（作者可见），作者可将可见性重新设为非私密后再次提交审核。
-                </div>
-                <n-input
-                    v-model:value="rejectReason"
-                    type="textarea"
-                    placeholder="请填写拒绝原因（必填）"
-                    :autosize="{ minRows: 2, maxRows: 4 }"
-                    maxlength="255"
-                    show-count
-                />
-            </n-space>
-        </n-modal>
-
-        <n-modal
-            v-model:show="detailShow"
-            preset="card"
-            class="post-detail-modal"
-            :title="detailTitle"
-            :bordered="false"
-            size="huge"
-        >
-            <n-spin :show="detailLoading">
-                <div v-if="detailPost" class="post-detail-body">
-                    <div class="post-detail-meta">
-                        <span>作者：{{ detailPost.user?.nickname || '' }} @{{ detailPost.user?.username || '' }}</span>
-                        <span>发布时间：{{ formatTime(detailPost.created_on) }}</span>
-                        <span>
-                            状态：<n-tag size="small" round :type="statusTagType(detailPost.audit_status)">{{ statusText(detailPost.audit_status) }}</n-tag>
-                        </span>
-                    </div>
-                    <div class="post-detail-contents">
-                        <template v-for="c in detailPost.contents" :key="c.id">
-                            <div v-if="c.type === 1 || c.type === 2" class="detail-text">{{ c.content }}</div>
-                            <n-image
-                                v-else-if="c.type === 3"
-                                :src="c.content"
-                                width="200"
-                                class="detail-image"
-                            />
-                            <div v-else class="detail-other">
-                                <n-tag size="small" :bordered="false">{{ contentTypeText(c.type) }}</n-tag>
-                                <span class="detail-other-content">{{ c.content }}</span>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-            </n-spin>
-        </n-modal>
     </div>
 </template>
 
@@ -111,11 +90,11 @@
 import { h, onMounted, reactive, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
-import { NButton, NSpace, NTag, useDialog } from 'naive-ui';
+import { NTag } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import { userInfo as fetchUserInfo } from '@/api/auth';
-import { getPost } from '@/api/post';
 import { formatTime } from '@/utils/formatTime';
+import { mdPlainText } from '@/utils/markdown';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { Api } from '@/utils/request';
@@ -127,22 +106,11 @@ const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const { userInfo } = storeToRefs(storeUser);
 const router = useRouter();
-const dialog = useDialog();
 
 const loading = ref(false);
-const acting = ref(false);
 const activeTab = ref('pending');
 const postItems = ref<AuditPostItem[]>([]);
 const logItems = ref<AuditLogItem[]>([]);
-const rejectShow = ref(false);
-const rejectReason = ref('');
-const rejectPostId = ref(0);
-const detailShow = ref(false);
-const detailLoading = ref(false);
-const detailPostId = ref(0);
-const detailPost = ref<AuditPostItem | null>(null);
-
-const detailTitle = () => `帖子详情 #${detailPostId.value}`;
 
 const tabStatusMap: Record<string, number> = {
     pending: 0,
@@ -225,6 +193,8 @@ const contentTypeText = (type: number) => {
             return '附件';
         case 8:
             return '收费附件';
+        case 9:
+            return 'Markdown长文';
         default:
             return `类型${type}`;
     }
@@ -248,14 +218,14 @@ const visibilityText = (visibility: number) => {
 const postSummary = (row: AuditPostItem) => {
     const contents = row.contents || [];
     const texts = contents
-        .filter((c) => c.type === 1 || c.type === 2)
-        .map((c) => c.content)
+        .filter((c) => c.type === 1 || c.type === 2 || c.type === 9)
+        .map((c) => (c.type === 9 ? mdPlainText(c.content) : c.content))
         .join(' ')
         .trim();
     if (texts !== '') {
         return texts;
     }
-    const media = contents.filter((c) => c.type !== 1 && c.type !== 2);
+    const media = contents.filter((c) => c.type !== 1 && c.type !== 2 && c.type !== 9);
     if (media.length > 0) {
         const kinds = Array.from(new Set(media.map((c) => contentTypeText(c.type))));
         return `(${media.length}个${kinds.join('/')}内容)`;
@@ -263,43 +233,9 @@ const postSummary = (row: AuditPostItem) => {
     return '(无内容)';
 };
 
-const openDetail = (row: AuditPostItem) => {
-    detailPostId.value = row.id;
-    detailPost.value = row;
-    detailShow.value = true;
-    detailLoading.value = false;
-};
-
-const openDetailById = async (postId: number) => {
-    detailPostId.value = postId;
-    detailPost.value = null;
-    detailShow.value = true;
-    detailLoading.value = true;
-    try {
-        const post = await getPost({ id: postId });
-        detailPost.value = {
-            id: post.id,
-            user: {
-                id: post.user?.id || 0,
-                nickname: post.user?.nickname || '',
-                username: post.user?.username || '',
-            },
-            contents: (post.contents || []).map((c, i) => ({
-                id: i,
-                content: c.content,
-                type: c.type,
-                sort: c.sort,
-            })),
-            visibility: post.visibility,
-            created_on: post.created_on,
-            audit_status: (post.audit_status ?? 1) as 0 | 1 | 2,
-        };
-    } catch (_err) {
-        window.$message.warning('帖子详情获取失败(可能已被删除)');
-        detailShow.value = false;
-    } finally {
-        detailLoading.value = false;
-    }
+// 新标签页打开帖子详情 审核员在帖子页内查看完整内容并直接审核
+const openInNewTab = (postId: number) => {
+    window.open(`/#/post?id=${postId}`, '_blank', 'noopener');
 };
 
 const loadPosts = async () => {
@@ -363,161 +299,6 @@ const handleLogPageChange = (page: number) => {
     loadLogs();
 };
 
-const doAction = async (
-    postId: number,
-    action: 'approve' | 'reject',
-    reason?: string
-) => {
-    acting.value = true;
-    try {
-        await Api.v1.admin.post.audit.post({
-            post_id: postId,
-            action,
-            reason,
-        });
-        window.$message.success('操作成功');
-        loadActiveTab();
-    } catch (_err) {
-        // do nothing
-    } finally {
-        acting.value = false;
-    }
-};
-
-const handleApprove = (row: AuditPostItem) => {
-    dialog.success({
-        title: '通过审核',
-        content: `确定通过该帖子（ID: ${row.id}）？通过后将公开出现在广场与搜索中。`,
-        positiveText: '通过',
-        negativeText: '取消',
-        onPositiveClick: () => doAction(row.id, 'approve'),
-    });
-};
-
-const handleReject = (row: AuditPostItem) => {
-    rejectPostId.value = row.id;
-    rejectReason.value = '';
-    rejectShow.value = true;
-};
-
-const handleRejectConfirm = () => {
-    const reason = rejectReason.value.trim();
-    if (!reason) {
-        window.$message.warning('请填写拒绝原因');
-        return false;
-    }
-    doAction(rejectPostId.value, 'reject', reason);
-    return true;
-};
-
-const postColumns: DataTableColumns<AuditPostItem> = [
-    {
-        title: 'ID',
-        key: 'id',
-        width: 90,
-        render: (row) =>
-            h(
-                'span',
-                {
-                    class: 'post-id-link',
-                    onClick: () => openDetail(row),
-                },
-                { default: () => `#${row.id}` }
-            ),
-    },
-    {
-        title: '内容',
-        key: 'content',
-        minWidth: 220,
-        ellipsis: { tooltip: true },
-        render: (row) =>
-            h(
-                'span',
-                { class: 'post-summary' },
-                { default: () => postSummary(row) }
-            ),
-    },
-    {
-        title: '作者',
-        key: 'user',
-        width: 150,
-        ellipsis: { tooltip: true },
-        render: (row) => `${row.user?.nickname || ''} @${row.user?.username || ''}`,
-    },
-    {
-        title: '可见性',
-        key: 'visibility',
-        width: 90,
-        render: (row) => visibilityText(row.visibility),
-    },
-    {
-        title: '发布时间',
-        key: 'created_on',
-        width: 150,
-        render: (row) => formatTime(row.created_on),
-    },
-    {
-        title: '状态',
-        key: 'audit_status',
-        width: 90,
-        render: (row) =>
-            h(
-                NTag,
-                {
-                    round: true,
-                    size: 'small',
-                    type: statusTagType(row.audit_status),
-                },
-                { default: () => statusText(row.audit_status) }
-            ),
-    },
-    {
-        title: '操作',
-        key: 'actions',
-        width: 160,
-        render: (row) =>
-            h(
-                NSpace,
-                { size: 'small' },
-                {
-                    default: () => {
-                        const buttons: Array<ReturnType<typeof h>> = [];
-                        if (row.audit_status !== 1) {
-                            buttons.push(
-                                h(
-                                    NButton,
-                                    {
-                                        size: 'tiny',
-                                        type: 'success',
-                                        secondary: true,
-                                        loading: acting.value,
-                                        onClick: () => handleApprove(row),
-                                    },
-                                    { default: () => '通过' }
-                                )
-                            );
-                        }
-                        if (row.audit_status !== 2) {
-                            buttons.push(
-                                h(
-                                    NButton,
-                                    {
-                                        size: 'tiny',
-                                        type: 'warning',
-                                        secondary: true,
-                                        onClick: () => handleReject(row),
-                                    },
-                                    { default: () => '拒绝' }
-                                )
-                            );
-                        }
-                        return buttons;
-                    },
-                }
-            ),
-    },
-];
-
 const logColumns: DataTableColumns<AuditLogItem> = [
     {
         title: 'ID',
@@ -533,7 +314,7 @@ const logColumns: DataTableColumns<AuditLogItem> = [
                 'span',
                 {
                     class: 'post-id-link',
-                    onClick: () => openDetailById(row.post_id),
+                    onClick: () => openInNewTab(row.post_id),
                 },
                 { default: () => `#${row.post_id}` }
             ),
@@ -633,12 +414,73 @@ onMounted(async () => {
     border-radius: 0;
 }
 
-.audit-table {
+.audit-cards {
     margin-top: 12px;
-}
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 
-.post-summary {
-    opacity: 0.85;
+    .audit-empty {
+        padding: 24px 0;
+    }
+
+    .audit-card {
+        border: 1px solid rgba(128, 128, 128, 0.18);
+        border-radius: 6px;
+        padding: 12px 14px;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+
+        &:hover {
+            border-color: rgba(24, 160, 88, 0.4);
+            box-shadow: 0 1px 6px rgba(24, 160, 88, 0.12);
+        }
+
+        .audit-card-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            .audit-card-id {
+                font-weight: 600;
+                color: #18a058;
+            }
+
+            .audit-card-time {
+                margin-left: auto;
+                font-size: 12px;
+                opacity: 0.65;
+            }
+        }
+
+        .audit-card-summary {
+            margin: 8px 0;
+            font-size: 14px;
+            line-height: 1.6;
+            opacity: 0.9;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .audit-card-foot {
+            display: flex;
+            align-items: center;
+
+            .audit-card-author {
+                flex: 1;
+                font-size: 13px;
+                opacity: 0.7;
+            }
+        }
+    }
+
+    .audit-card-pager {
+        display: flex;
+        justify-content: center;
+        margin-top: 6px;
+    }
 }
 
 .post-id-link {
@@ -647,57 +489,6 @@ onMounted(async () => {
 
     &:hover {
         text-decoration: underline;
-    }
-}
-
-.reject-tip {
-    font-size: 12px;
-    opacity: 0.65;
-}
-</style>
-
-<style lang="less">
-.post-detail-modal {
-    width: 640px;
-    max-width: 92vw;
-
-    .post-detail-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-        font-size: 13px;
-        opacity: 0.75;
-        margin-bottom: 12px;
-    }
-
-    .post-detail-contents {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        max-height: 55vh;
-        overflow-y: auto;
-
-        .detail-text {
-            white-space: pre-wrap;
-            word-break: break-word;
-            line-height: 1.7;
-        }
-
-        .detail-image {
-            border-radius: 4px;
-        }
-
-        .detail-other {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            word-break: break-all;
-
-            .detail-other-content {
-                font-size: 13px;
-                opacity: 0.8;
-            }
-        }
     }
 }
 </style>

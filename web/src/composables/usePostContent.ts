@@ -11,6 +11,7 @@ export function usePostContent(post: Item.PostProps, includeExtraFields: boolean
       let postData: Item.PostComponentProps = Object.assign(
         {
           texts: [],
+          markdowns: [],
           imgs: [],
           videos: [],
           links: [],
@@ -22,6 +23,9 @@ export function usePostContent(post: Item.PostProps, includeExtraFields: boolean
       postData.contents.map((content) => {
         if (+content.type === 1 || +content.type === 2) {
           postData.texts.push(content);
+        }
+        if (+content.type === 9) {
+          postData.markdowns.push(content);
         }
         if (+content.type === 3) {
           postData.imgs.push(content);

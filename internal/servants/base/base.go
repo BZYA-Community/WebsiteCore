@@ -331,7 +331,7 @@ func (s *DaoServant) pushAllPostToSearch() error {
 			for i, pf := range postsFormated {
 				contentFormated := ""
 				for _, content := range pf.Contents {
-					if content.Type == ms.ContentTypeText || content.Type == ms.ContentTypeTitle {
+					if content.Type == ms.ContentTypeText || content.Type == ms.ContentTypeTitle || content.Type == ms.ContentTypeMarkdown {
 						contentFormated = contentFormated + content.Content + "\n"
 					}
 				}
@@ -372,7 +372,7 @@ func (s *DaoServant) pushPostToSearch(post *ms.Post) {
 	}
 	contentFormated := ""
 	for _, content := range postFormated.Contents {
-		if content.Type == ms.ContentTypeText || content.Type == ms.ContentTypeTitle {
+		if content.Type == ms.ContentTypeText || content.Type == ms.ContentTypeTitle || content.Type == ms.ContentTypeMarkdown {
 			contentFormated = contentFormated + content.Content + "\n"
 		}
 	}

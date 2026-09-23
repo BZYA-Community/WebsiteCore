@@ -16,6 +16,8 @@ export enum PostItemTypeEnum {
   ATTACHMENT = 7,
   /** 收费资源 */
   CHARGEATTACHMENT = 8,
+  /** Markdown长文 */
+  MARKDOWN = 9,
 }
 
 /** 回复内容类型枚举 */
