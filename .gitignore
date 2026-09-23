@@ -1,0 +1,16 @@
+.DS_Store
+.mirc
+.idea
+__debug_bin
+!*.example
+/config.yaml
+*.log
+/paopao-ce
+/paopao
+/.env
+/.envrc
+/release
+/data
+/custom
+/.custom
+/run.sh

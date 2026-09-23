@@ -1,0 +1,18 @@
+package security
+
+import (
+	"strings"
+
+	"github.com/alimy/tryst/cfg"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
+)
+
+func NewPhoneVerifyService() core.PhoneVerifyService {
+	smsVendor, _ := cfg.Val("sms")
+	switch strings.ToLower(smsVendor) {
+	case "smsjuhe":
+		return newJuheSmsServant()
+	default:
+		return newJuheSmsServant()
+	}
+}

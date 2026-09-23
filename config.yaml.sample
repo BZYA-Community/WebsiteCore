@@ -1,0 +1,59 @@
+# Minimal bootstrap config for first startup.
+# Most product and operational settings are now managed in the admin UI:
+#   /#/admin/settings
+#
+# Loading behavior:
+# - Built-in defaults are embedded in the binary
+# - This file only overrides the bootstrap-critical parts
+# - Ports / DB / Redis / feature selection stay file-based
+
+App:
+  RunMode: debug
+
+Features:
+  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "MySQL", "BigCacheIndex", "LoggerFile"]
+
+WebServer:
+  HttpIp: 0.0.0.0
+  HttpPort: 8008
+
+Database:
+  LogLevel: error
+  TablePrefix: p_
+
+MySQL:
+  Username: paopao
+  Password: paopao
+  Host: 127.0.0.1:3306
+  DBName: paopao
+  Charset: utf8mb4
+  ParseTime: true
+  MaxIdleConns: 10
+  MaxOpenConns: 30
+
+Redis:
+  InitAddress:
+    - 127.0.0.1:6379
+
+JWT:
+  Secret: 18a6413dc4fe394c66345ebe501b2f26
+  Issuer: paopao-api
+  Expire: 86400
+
+AdminSettings:
+  EncryptionKey: "CHANGE-ME-TO-A-LONG-RANDOM-SECRET"
+
+# Optional first-boot overrides for the providers enabled in Features.Default.
+# If the embedded defaults already match your environment, you can remove these
+# and manage later adjustments from /#/admin/settings.
+Meili:
+  Host: 127.0.0.1:7700
+  Index: paopao-data
+  ApiKey: paopao-meilisearch
+  Secure: false
+
+LocalOSS:
+  SavePath: custom/data/paopao-ce/oss
+  Secure: false
+  Bucket: paopao
+  Domain: 127.0.0.1:8008
