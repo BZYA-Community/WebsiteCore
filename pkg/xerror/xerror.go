@@ -101,8 +101,8 @@ func HttpStatusCode(e error) (statusCode int, code int) {
 		statusCode = http.StatusUnauthorized
 	case TooManyRequests.StatusCode():
 		statusCode = http.StatusTooManyRequests
-	case 20022, 20023:
-		// 无管理权限/无审核权限
+	case 20007, 20022, 20023:
+		// 无权限执行该请求/无管理权限/无审核权限
 		statusCode = http.StatusForbidden
 	case 11003:
 		// 运维角色保护(web.ErrRoleChangeNoPermission) 非运维账号无权变更 HTTP映射403

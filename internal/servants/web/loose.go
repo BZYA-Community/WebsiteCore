@@ -528,15 +528,16 @@ func (s *looseSrv) TweetDetail(req *web.TweetDetailReq) (*web.TweetDetailResp, e
 	}
 	// 检测访问权限
 	// TODO: 提到最前面去检测
+	// 未过审的帖子(待审核/未通过)仅作者本人/管理员/审核可见
 	switch {
-	case req.User != nil && (req.User.ID == postFormated.User.ID || req.User.IsAdmin):
-		// read by self of super admin
+	case req.User != nil && (req.User.ID == postFormated.User.ID || req.User.IsAdmin || req.User.HasRole(ms.RoleAuditor)):
+		// read by self of super admin or auditor
 		break
-	case post.Visibility == core.PostVisitPublic:
+	case post.AuditStatus == ms.PostAuditApproved && post.Visibility == core.PostVisitPublic:
 		break
-	case post.Visibility == core.PostVisitFriend && postFormated.User.IsFriend:
+	case post.AuditStatus == ms.PostAuditApproved && post.Visibility == core.PostVisitFriend && postFormated.User.IsFriend:
 		break
-	case post.Visibility == core.PostVisitFollowing && postFormated.User.IsFollowing:
+	case post.AuditStatus == ms.PostAuditApproved && post.Visibility == core.PostVisitFollowing && postFormated.User.IsFollowing:
 		break
 	default:
 		return nil, web.ErrNoPermission

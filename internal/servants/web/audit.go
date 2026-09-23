@@ -5,6 +5,9 @@
 package web
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
@@ -43,10 +46,13 @@ func (s *auditSrv) ListAuditPosts(req *web.AdminAuditPostsReq) (*web.AdminAuditP
 	return (*web.AdminAuditPostsResp)(base.PageRespFrom(formated, req.Page, req.PageSize, total)), nil
 }
 
-// AuditPostAction 审核·通过/拒绝/删除
+// AuditPostAction 审核·通过/拒绝 (审核无权直接删除帖子 删除由作者自行操作)
 func (s *auditSrv) AuditPostAction(req *web.AdminAuditPostReq) error {
 	if req.User == nil {
 		return web.ErrNoPermission
+	}
+	if req.Action != "approve" && req.Action != "reject" {
+		return xerror.InvalidParams.WithDetails("仅支持通过/拒绝操作")
 	}
 	if req.Action == "reject" && len(req.Reason) == 0 {
 		return xerror.InvalidParams.WithDetails("拒绝操作需要填写原因")
@@ -69,7 +75,9 @@ func (s *auditSrv) AuditPostAction(req *web.AdminAuditPostReq) error {
 			s.PushPostToSearch(post)
 		}
 	case "reject":
+		// 拒绝: 标记未通过并打回私密(仅作者可见) 作者可将可见性重新设为非私密再次提交审核
 		post.AuditStatus = ms.PostAuditRejected
+		post.Visibility = ms.PostVisitPrivate
 		if err := s.Ds.UpdatePost(post); err != nil {
 			logrus.Errorf("Ds.UpdatePost err: %s", err)
 			return web.ErrAuditPostFailed
@@ -78,19 +86,6 @@ func (s *auditSrv) AuditPostAction(req *web.AdminAuditPostReq) error {
 		if err := s.DeleteSearchPost(post); err != nil {
 			logrus.Errorf("s.DeleteSearchPost err: %s", err)
 		}
-	case "delete":
-		mediaContents, err := s.Ds.DeletePost(post)
-		if err != nil {
-			logrus.Errorf("Ds.DeletePost err: %s", err)
-			return web.ErrAuditPostFailed
-		}
-		deleteOssObjects(s.oss, mediaContents)
-		if err := s.DeleteSearchPost(post); err != nil {
-			logrus.Errorf("s.DeleteSearchPost err: %s", err)
-		}
-		// 软删后作者动态条栏缓存过期
-		onTrendsActionEvent(_trendsActionDeleteTweet, post.UserID)
-		onTweetActionEvent(_tweetActionDelete, post.UserID, "")
 	}
 
 	// 写审核日志(API响应依赖 同步写入)
@@ -107,7 +102,58 @@ func (s *auditSrv) AuditPostAction(req *web.AdminAuditPostReq) error {
 	}
 	// 过期广场索引与作者个人动态缓存
 	cache.OnExpireIndexTweetEvent(post.UserID)
+	// 审核结果站内信通知作者
+	if req.Action == "approve" {
+		s.notifyAuditResult(post, true, "")
+	} else {
+		s.notifyAuditResult(post, false, req.Reason)
+	}
 	return nil
+}
+
+// notifyAuditResult 审核结果以系统消息通知帖子作者
+func (s *auditSrv) notifyAuditResult(post *ms.Post, approved bool, reason string) {
+	summary := auditPostSummary(s.Ds, post)
+	content := ""
+	if approved {
+		content = fmt.Sprintf("您发布的动态[%s]已通过审核，现已对他人可见。", summary)
+	} else {
+		// p_message.content 列长255 限制原因长度以保留重新提交指引
+		if r := []rune(reason); len(r) > 120 {
+			reason = string(r[:120]) + "…"
+		}
+		content = fmt.Sprintf("您发布的动态[%s]审核未通过。原因：%s。您可将该动态的可见性重新设为公开或非私密，即可再次提交审核。", summary, reason)
+	}
+	brief := "动态审核通过"
+	if !approved {
+		brief = "动态审核未通过"
+	}
+	onCreateMessageEvent(&ms.Message{
+		ReceiverUserID: post.UserID,
+		Type:           ms.MsgTypeSystem,
+		Brief:          brief,
+		Content:        content,
+		PostID:         post.ID,
+	})
+}
+
+// auditPostSummary 提取帖子首段文字内容作摘要(无文字时退回帖子ID)
+func auditPostSummary(ds core.DataService, post *ms.Post) string {
+	contents, err := ds.GetPostContentsByIDs([]int64{post.ID})
+	if err == nil {
+		for _, c := range contents {
+			if c.Type == ms.ContentTypeTitle || c.Type == ms.ContentTypeText {
+				s := strings.TrimSpace(c.Content)
+				if s != "" {
+					if len([]rune(s)) > 30 {
+						return string([]rune(s)[:30]) + "…"
+					}
+					return s
+				}
+			}
+		}
+	}
+	return fmt.Sprintf("#%d", post.ID)
 }
 
 // ListAuditLogs 审核日志
