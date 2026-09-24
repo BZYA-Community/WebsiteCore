@@ -223,8 +223,8 @@ func (s *commentManageSrv) ThumbsUpComment(userId int64, tweetId, commentId int6
 	defer db.Rollback()
 
 	var (
-		thumbsUpCount   int32 = 0
-		thumbsDownCount int32 = 0
+		thumbsUpCount   int32
+		thumbsDownCount int32
 	)
 	commentThumbs := &dbr.TweetCommentThumbs{}
 	// 检查thumbs状态
@@ -272,8 +272,8 @@ func (s *commentManageSrv) ThumbsDownComment(userId int64, tweetId, commentId in
 	defer db.Rollback()
 
 	var (
-		thumbsUpCount   int32 = 0
-		thumbsDownCount int32 = 0
+		thumbsUpCount   int32
+		thumbsDownCount int32
 	)
 	commentThumbs := &dbr.TweetCommentThumbs{}
 	// 检查thumbs状态
@@ -322,8 +322,8 @@ func (s *commentManageSrv) ThumbsUpReply(userId int64, tweetId, commentId, reply
 	defer db.Rollback()
 
 	var (
-		thumbsUpCount   int32 = 0
-		thumbsDownCount int32 = 0
+		thumbsUpCount   int32
+		thumbsDownCount int32
 	)
 	commentThumbs := &dbr.TweetCommentThumbs{}
 	// 检查thumbs状态
@@ -372,8 +372,8 @@ func (s *commentManageSrv) ThumbsDownReply(userId int64, tweetId, commentId, rep
 	defer db.Rollback()
 
 	var (
-		thumbsUpCount   int32 = 0
-		thumbsDownCount int32 = 0
+		thumbsUpCount   int32
+		thumbsDownCount int32
 	)
 	commentThumbs := &dbr.TweetCommentThumbs{}
 	// 检查thumbs状态
