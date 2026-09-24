@@ -88,6 +88,7 @@ const enableFollowAction = computed(() => props.type === 'follow');
 const emit = defineEmits<{
   (e: 'send-whisper', user: Item.UserInfo): void;
   (e: 'unfollow-success'): void;
+  (e: 'update-following', value: boolean): void;
   (e: 'delete-success', userId: number): void;
 }>();
 
@@ -103,7 +104,8 @@ const handleFollowUser = () => {
   const wasFollowing = props.contact.is_following;
   UserAction.followAction(dialog, props.contact.user_id, props.contact.username, props.contact.is_following)
     .then(_action => {
-      props.contact.is_following = _action;
+      // 关注状态由父组件通过 update-following 事件更新自身数据
+      emit('update-following', _action);
       if (wasFollowing && !_action) {
         emit('unfollow-success');
       }

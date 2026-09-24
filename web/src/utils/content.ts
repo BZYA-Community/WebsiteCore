@@ -3,8 +3,8 @@ export const parsePostTag = (content: string) => {
   const users: string[] = [];
   // 话题: 井号后紧跟非空白字符(#话题 空白结尾 / #话题# 闭合式)
   // 井号后有空格(# 标题)或多个井号(## 标题)不匹配 —— 那是Markdown标题
-  var tagExp = /(#|＃)([^#@\s])+?(\s+?|#|＃|$)/g; // 这⾥中⽂#和英⽂#都会识别
-  var atExp = /@([a-zA-Z0-9])+?\s+?/g; // 这⾥中⽂#和英⽂#都会识别
+  const tagExp = /(#|＃)([^#@\s])+?(\s+?|#|＃|$)/g; // 这⾥中⽂#和英⽂#都会识别
+  const atExp = /@([a-zA-Z0-9])+?\s+?/g; // 这⾥中⽂#和英⽂#都会识别
   content = content
     .replace(/<[^>]*?>/gi, '')
     .replace(/(.*?)<\/[^>]*?>/gi, '')
@@ -47,7 +47,7 @@ export const preparePost = (
   const isEllipsis = content.length > maxSize;
   if (isFold && isEllipsis) {
     content = content.substring(0, maxSize);
-    let latestChar = content.charAt(maxSize - 1);
+    const latestChar = content.charAt(maxSize - 1);
     if (latestChar == '#' || latestChar == '#' || latestChar == '@') {
       content = content.substring(0, maxSize - 1);
     }

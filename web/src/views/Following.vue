@@ -16,7 +16,7 @@
                 </div>
 
                 <n-list-item v-for="contact in list" :key="contact.user_id">
-                    <user-card type="follow" :contact="contact" @send-whisper="onSendWhisper" @unfollow-success="handleUnfollowSuccess" />
+                    <user-card type="follow" :contact="contact" @send-whisper="onSendWhisper" @update-following="(v) => (contact.is_following = v)" @unfollow-success="handleUnfollowSuccess" />
                 </n-list-item>
             </div>
         </n-list>
