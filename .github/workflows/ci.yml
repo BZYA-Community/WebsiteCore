@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - beta
+      - dev
+  pull_request:
+
+env:
+  GOPROXY: https://proxy.golang.org
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # go:embed 需要 web/dist 目录存在(干净检出时无构建产物)
+      - name: Prepare embed dir
+        run: mkdir -p web/dist
+
+      - name: Syntax check (build)
+        run: go build ./...
+
+      - name: Install golangci-lint
+        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+
+      - name: Code quality (golangci-lint)
+        run: golangci-lint run ./...
+
+  frontend:
+    name: Frontend Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # package-lock.json 未纳入版本管理, 使用 npm install
+      - name: Install dependencies
+        run: npm install
+
+      - name: Code quality (ESLint)
+        run: npm run lint
+
+      - name: Syntax check (build)
+        run: npm run build
