@@ -47,9 +47,8 @@ var _ = Describe("Convert", func() {
 
 	It("str to uint32 negative", func() {
 		s := convert.StrTo("-123")
-		i, err := s.UInt32()
-		Expect(err).To(BeNil())
-		Expect(i).NotTo(Equal(uint32(123)))
+		_, err := s.UInt32()
+		Expect(err).NotTo(BeNil())
 	})
 
 	It("str to int64", func() {

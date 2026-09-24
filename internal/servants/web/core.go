@@ -271,7 +271,7 @@ func (s *coreSrv) ChangePassword(req *web.ChangePasswordReq) error {
 	}
 	// 旧密码校验
 	user := req.User
-	if !validPassword(user.Password, req.OldPassword, req.User.Salt) {
+	if !validPassword(user.Password, req.OldPassword) {
 		return web.ErrErrorOldPassword
 	}
 	// 更新入库

@@ -95,7 +95,7 @@ func ensureOperatorAccount() {
 			Model:    &dbr.Model{},
 			Nickname: op.Username,
 			Username: op.Username,
-			Password: utils.EncodeMD5(utils.EncodeMD5(op.Password) + salt),
+			Password: utils.HashPassword(op.Password),
 			Salt:     salt,
 			Avatar:   _defaultOperatorAvatar,
 			Status:   ms.UserStatusNormal,
@@ -123,14 +123,13 @@ func ensureOperatorAccount() {
 	}
 	resetPassword := false
 	if op.Password != "" {
-		// 密码以配置为准，不一致则重置
-		expected := utils.EncodeMD5(utils.EncodeMD5(op.Password) + user.Salt)
-		if expected != user.Password {
+		// 密码以配置为准，不一致则重置(bcrypt)
+		if !utils.ComparePassword(user.Password, op.Password) {
 			if utf8.RuneCountInString(op.Password) < 6 || utf8.RuneCountInString(op.Password) > 16 {
 				logrus.Errorf("operator account[%s] password invalid(need 6-16 chars), skip reset", op.Username)
 			} else {
 				salt := uuid.Must(uuid.NewV4()).String()[:8]
-				updates["password"] = utils.EncodeMD5(utils.EncodeMD5(op.Password) + salt)
+				updates["password"] = utils.HashPassword(op.Password)
 				updates["salt"] = salt
 				resetPassword = true
 			}
@@ -143,7 +142,7 @@ func ensureOperatorAccount() {
 		logrus.Errorf("ensure operator account[%s] failure by err: %v", op.Username, err)
 		return
 	}
-	logrus.Infof("ensure operator account[%s]: roles %q -> %q, resetPassword=%v", op.Username, oldRoles, user.Roles, resetPassword)
+	logrus.Infof("ensure operator account: roles %q -> %q, resetPassword=%v", oldRoles, user.Roles, resetPassword)
 	// 过期该用户缓存，避免旧 gob 数据残留
 	ac := cache.NewAppCache()
 	ac.Delete(conf.KeyUserInfoById.Get(user.ID),
