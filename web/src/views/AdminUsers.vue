@@ -30,7 +30,7 @@
                     :data="userItems"
                     :loading="loading"
                     :pagination="userPagination"
-                    :scroll-x="1100"
+                    :scroll-x="1210"
                     :row-key="(row: Api.Admin.NetReq.UserItem) => row.id"
                     @update:page="handleUserPageChange"
                 />
@@ -160,6 +160,7 @@
 
 <script setup lang="ts">
 import { h, onMounted, reactive, ref } from 'vue';
+import type { Component } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
 import { NButton, NSpace, NTag, useDialog } from 'naive-ui';
@@ -332,6 +333,65 @@ const handleSearch = () => {
     loadUsers();
 };
 
+// 禁言/解封(复用既有 admin/user/status API)
+const handleStatusChange = (row: UserItem) => {
+    const banning = row.status === 1;
+    dialog.warning({
+        title: banning ? '禁言用户' : '解封用户',
+        content: `确定对 ${row.nickname || row.username} 进行${
+            banning ? '禁言' : '解封'
+        }处理？${banning ? '禁言后该用户无法登录。' : ''}`,
+        positiveText: '确定',
+        negativeText: '取消',
+        onPositiveClick: async () => {
+            try {
+                await Api.v1.admin.post.user.status({
+                    id: row.id,
+                    status: banning ? 2 : 1,
+                });
+                window.$message.success(banning ? '已禁言' : '已解封');
+                loadUsers();
+                // 详情抽屉打开时同步刷新
+                if (detailShow.value && detail.value.id === row.id) {
+                    loadDetail(row.id);
+                }
+            } catch (_err) {
+                // 错误提示由请求拦截器统一处理
+            }
+        },
+    });
+};
+
+// 软删除(is_del=1: 无法登录/从前台与列表消失, 数据保留可恢复)
+const handleUserDelete = (row: UserItem) => {
+    dialog.warning({
+        title: '删除用户',
+        content: `确定删除用户 ${row.nickname || row.username}？删除后该用户无法登录、不再出现在列表与前台，历史数据保留（数据库可恢复）。`,
+        positiveText: '删除',
+        negativeText: '取消',
+        onPositiveClick: async () => {
+            try {
+                await Api.v1.admin.post.user.delete({ id: row.id });
+                window.$message.success('已删除');
+                if (detailShow.value && detail.value.id === row.id) {
+                    detailShow.value = false;
+                }
+                // 删除后可能不足整页, 当前页超出时回退一页
+                const lastPage = Math.max(
+                    1,
+                    Math.ceil((userPagination.itemCount - 1) / userPagination.pageSize),
+                );
+                if (userPagination.page > lastPage) {
+                    userPagination.page = lastPage;
+                }
+                loadUsers();
+            } catch (_err) {
+                // 错误提示由请求拦截器统一处理
+            }
+        },
+    });
+};
+
 const handleUserPageChange = (page: number) => {
     userPagination.page = page;
     loadUsers();
@@ -420,18 +480,54 @@ const userColumns: DataTableColumns<UserItem> = [
     {
         title: '操作',
         key: 'actions',
-        width: 90,
-        render: (row) =>
-            h(
-                NButton,
-                {
-                    size: 'small',
-                    quaternary: true,
-                    type: 'info',
-                    onClick: () => openDetail(row),
-                },
-                { default: () => '详情' }
-            ),
+        width: 200,
+        render: (row) => {
+            // 不可操作自己; 运维账号仅运维可禁言/删除(与角色变更同规则)
+            const operable =
+                row.id !== userInfo.value.id &&
+                (selfIsOperator() || !(row.roles || []).includes('operator'));
+            const buttons: Component[] = [
+                h(
+                    NButton,
+                    {
+                        size: 'small',
+                        quaternary: true,
+                        type: 'info',
+                        onClick: () => openDetail(row),
+                    },
+                    { default: () => '详情' }
+                ),
+            ];
+            if (operable) {
+                buttons.push(
+                    h(
+                        NButton,
+                        {
+                            size: 'small',
+                            quaternary: true,
+                            type: 'warning',
+                            onClick: () => handleStatusChange(row),
+                        },
+                        { default: () => (row.status === 1 ? '禁言' : '解封') }
+                    ),
+                    h(
+                        NButton,
+                        {
+                            size: 'small',
+                            quaternary: true,
+                            type: 'error',
+                            onClick: () => handleUserDelete(row),
+                        },
+                        { default: () => '删除' }
+                    ),
+                );
+            }
+            return h(
+                NSpace,
+                { size: 'small' },
+                { default: () => buttons }
+            );
+        },
     },
 ];
 

@@ -9,6 +9,8 @@ declare namespace Api {
                     status: (params: NetParams.UserStatusReq) => Promise<NetReq.UserChangeStatus>;
                     /** 管理·变更用户角色 */
                     role: (params: NetParams.UserRoleChangeReq) => Promise<NetReq.UserRoleChangeResp>;
+                    /** 管理·软删除用户 */
+                    delete: (params: NetParams.UserDeleteReq) => Promise<NetReq.UserDeleteResp>;
                 },
                 site: {
                     /** 管理·更新系统配置 */
@@ -66,6 +68,10 @@ declare namespace Api {
                 user_id: number;
                 role: 'mentor' | 'auditor' | 'admin' | 'operator';
                 action: 'add' | 'remove';
+            }
+
+            interface UserDeleteReq {
+                id: number;
             }
 
             interface UserListReq {
@@ -130,6 +136,8 @@ declare namespace Api {
             interface UserChangeStatus {}
 
             interface UserRoleChangeResp {}
+
+            interface UserDeleteResp {}
 
             interface AuditPostResp {}
 
