@@ -23,7 +23,7 @@ func (s StrTo) MustInt() int {
 }
 
 func (s StrTo) UInt32() (uint32, error) {
-	v, err := strconv.Atoi(s.String())
+	v, err := strconv.ParseUint(s.String(), 10, 32)
 	return uint32(v), err
 }
 

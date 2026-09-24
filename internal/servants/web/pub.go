@@ -132,7 +132,7 @@ func (s *pubSrv) Login(req *web.LoginReq) (*web.LoginResp, error) {
 			return nil, web.ErrTooManyLoginError
 		}
 		// 对比密码是否正确
-		if validPassword(user.Password, req.Password, user.Salt) {
+		if validPassword(user.Password, req.Password) {
 			if user.Status == ms.UserStatusClosed {
 				return nil, web.ErrUserHasBeenBanned
 			}

@@ -1,3 +1,14 @@
+// HTML实体转义: v-html 渲染前保证文本不会被解析为标签
+const escapeHtml = (text: string): string =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+// 剥离HTML标签: 用浏览器DOM解析器解析后取纯文本再转义,
+// 避免正则过滤可被构造残缺标签绕过的问题(且防止实体解码后的内容重新形成标签)
+const stripHtml = (content: string): string => {
+  const doc = new DOMParser().parseFromString(content, 'text/html');
+  return escapeHtml(doc.body.textContent ?? '');
+};
+
 export const parsePostTag = (content: string) => {
   const tags: string[] = [];
   const users: string[] = [];
@@ -5,9 +16,7 @@ export const parsePostTag = (content: string) => {
   // 井号后有空格(# 标题)或多个井号(## 标题)不匹配 —— 那是Markdown标题
   const tagExp = /(#|＃)([^#@\s])+?(\s+?|#|＃|$)/g; // 这⾥中⽂#和英⽂#都会识别
   const atExp = /@([a-zA-Z0-9])+?\s+?/g; // 这⾥中⽂#和英⽂#都会识别
-  content = content
-    .replace(/<[^>]*?>/gi, '')
-    .replace(/(.*?)<\/[^>]*?>/gi, '')
+  content = stripHtml(content)
     .replace(tagExp, (item) => {
       const raw = item.trim();
       let tag = raw.substring(1);
@@ -48,15 +57,13 @@ export const preparePost = (
   if (isFold && isEllipsis) {
     content = content.substring(0, maxSize);
     const latestChar = content.charAt(maxSize - 1);
-    if (latestChar == '#' || latestChar == '#' || latestChar == '@') {
+    if (latestChar == '#' || latestChar == '＃' || latestChar == '@') {
       content = content.substring(0, maxSize - 1);
     }
   }
   const tagExp = /(#|＃)([^#@\s])+?(\s+?|#|＃|$)/g; // 这⾥中⽂#和英⽂#都会识别
   const atExp = /@([a-zA-Z0-9])+?\s+?/g; // 这⾥中⽂#和英⽂#都会识别
-  content = content
-    .replace(/<[^>]*?>/gi, '')
-    .replace(/(.*?)<\/[^>]*?>/gi, '')
+  content = stripHtml(content)
     .replace(tagExp, (item) => {
       const raw = item.trim();
       let tag = raw.substring(1);

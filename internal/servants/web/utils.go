@@ -5,7 +5,6 @@
 package web
 
 import (
-	"crypto/subtle"
 	"image"
 	"math/rand"
 	"strings"
@@ -88,20 +87,16 @@ func checkPassword(password string) error {
 	return nil
 }
 
-// ValidPassword 检查密码是否一致
-func validPassword(secret, password, salt string) bool {
-	expected := utils.EncodeMD5(utils.EncodeMD5(password) + salt)
-
-	// Check that the secret matches the expected value.
-	// Use constant time comparison to avoid timing attacks.
-	return subtle.ConstantTimeCompare([]byte(secret), []byte(expected)) == 1
+// validPassword 检查密码是否一致(bcrypt, 内部恒定时间比较)
+func validPassword(secret, password string) bool {
+	return utils.ComparePassword(secret, password)
 }
 
-// encryptPasswordAndSalt 密码加密&生成salt
+// encryptPasswordAndSalt 密码加密(bcrypt)并生成salt
+// 注: salt仅用于JWT issuer绑定(改密码使旧token失效), 不参与密码哈希
 func encryptPasswordAndSalt(password string) (string, string) {
 	salt := uuid.Must(uuid.NewV4()).String()[:8]
-	secret := utils.EncodeMD5(utils.EncodeMD5(password) + salt)
-	return secret, salt
+	return utils.HashPassword(password), salt
 }
 
 // deleteOssObjects 删除推文的媒体内容, 宽松处理错误(就是不处理), 后续完善
