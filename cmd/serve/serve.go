@@ -142,7 +142,7 @@ func ensureOperatorAccount() {
 		logrus.Errorf("ensure operator account[%s] failure by err: %v", op.Username, err)
 		return
 	}
-	logrus.Infof("ensure operator account: roles %q -> %q, resetPassword=%v", oldRoles, user.Roles, resetPassword)
+	logrus.Infof("ensure operator account: roles %q -> %q", oldRoles, user.Roles)
 	// 过期该用户缓存，避免旧 gob 数据残留
 	ac := cache.NewAppCache()
 	ac.Delete(conf.KeyUserInfoById.Get(user.ID),
