@@ -43,6 +43,11 @@ func (s *auditSrv) GetUsersByAdminQuery(keyword string, offset, limit int) (res 
 	return
 }
 
+// SoftDeleteUser 用户管理: 软删除用户(标记is_del=1, 数据保留可恢复)
+func (s *auditSrv) SoftDeleteUser(user *ms.User) error {
+	return user.Delete(s.db)
+}
+
 func (s *auditSrv) ListAuditPosts(status int, offset, limit int) (res []*ms.Post, total int64, err error) {
 	db := s.db.Model(&dbr.Post{}).Where("is_del = ?", 0)
 	if status >= 0 && status <= int(dbr.PostAuditRejected) {

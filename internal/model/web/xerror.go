@@ -109,6 +109,7 @@ var (
 	ErrAuditPostFailed  = xerror.NewError(11002, "审核操作失败")
 	// 11003 运维保护: 非运维账号尝试变更运维相关角色 HTTP映射403
 	ErrRoleChangeNoPermission = xerror.NewError(11003, "无权变更该用户角色")
+	ErrUserDeleteFailed       = xerror.NewError(11004, "删除用户失败")
 
 	ErrNotImplemented = xerror.NewError(10501, "功能未实现")
 )

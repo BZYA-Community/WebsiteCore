@@ -6,6 +6,7 @@ package dbr
 
 import (
 	"strings"
+	"time"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"gorm.io/gorm"
@@ -227,4 +228,12 @@ func (u *User) Create(db *gorm.DB) (*User, error) {
 
 func (u *User) Update(db *gorm.DB) error {
 	return db.Model(&User{}).Where("id = ? AND is_del = ?", u.Model.ID, 0).Save(u).Error
+}
+
+// Delete 软删除用户(标记is_del=1): 无法登录/查询, 数据保留可恢复
+func (u *User) Delete(db *gorm.DB) error {
+	return db.Model(u).Where("id = ?", u.Model.ID).Updates(map[string]any{
+		"deleted_on": time.Now().Unix(),
+		"is_del":     1,
+	}).Error
 }

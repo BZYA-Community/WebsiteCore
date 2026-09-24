@@ -43,6 +43,35 @@ func (s *adminSrv) ChangeUserStatus(req *web.ChangeUserStatusReq) error {
 	if err := s.Ds.UpdateUser(user); err != nil {
 		return xerror.ServerError
 	}
+	// 过期该用户缓存(info:id/info:name/profile:name)
+	onChangeUsernameEvent(user.ID, user.Username)
+	return nil
+}
+
+// AdminUserDelete 用户管理·软删除用户(标记is_del=1)
+// 软删除后无法登录、从用户列表/前台消失, 数据保留可恢复(数据库改回is_del=0)
+// 权限规则: 不可删除自己; 运维账号仅运维可删除
+func (s *adminSrv) AdminUserDelete(req *web.AdminUserDeleteReq) error {
+	if req.User == nil {
+		return web.ErrNoPermission
+	}
+	user, err := s.Ds.GetUserByID(req.ID)
+	if err != nil || user.Model == nil || user.ID <= 0 {
+		return web.ErrNoExistUsername
+	}
+	if user.ID == req.User.ID {
+		return xerror.InvalidParams.WithDetails("不能删除当前登录账号")
+	}
+	// 运维账号保护: 与角色变更同规则
+	if user.HasRole(ms.RoleOperator) && !req.User.HasRole(ms.RoleOperator) {
+		return web.ErrRoleChangeNoPermission
+	}
+	if err := s.Ds.SoftDeleteUser(user); err != nil {
+		logrus.Errorf("Ds.SoftDeleteUser err: %s", err)
+		return web.ErrUserDeleteFailed
+	}
+	// 过期该用户缓存(info:id/info:name/profile:name)
+	onChangeUsernameEvent(user.ID, user.Username)
 	return nil
 }
 

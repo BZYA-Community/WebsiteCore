@@ -36,6 +36,7 @@ type Admin interface {
 	AdminUserRoleChange(*web.AdminUserRoleReq) error
 	AdminUserDetail(*web.AdminUserDetailReq) (*web.AdminUserDetailResp, error)
 	AdminUserList(*web.AdminUserListReq) (*web.AdminUserListResp, error)
+	AdminUserDelete(*web.AdminUserDeleteReq) error
 	SaveSettings(*web.AdminSettingsSaveReq) (*web.AdminSettingsSaveResp, error)
 	GetSettingsValues() (*web.AdminSettingsValuesResp, error)
 	GetSettingsSchema() (*web.AdminSettingsSchemaResp, error)
@@ -195,6 +196,19 @@ func RegisterAdminServant(e *gin.Engine, s Admin) {
 		}
 		s.Render(c, nil, s.ChangeUserStatus(req))
 	})
+	router.Handle("POST", "admin/user/delete", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.AdminUserDeleteReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		s.Render(c, nil, s.AdminUserDelete(req))
+	})
 }
 
 // UnimplementedAdminServant can be embedded to have forward compatible implementations.
@@ -245,6 +259,10 @@ func (UnimplementedAdminServant) SiteInfo(req *web.SiteInfoReq) (*web.SiteInfoRe
 }
 
 func (UnimplementedAdminServant) ChangeUserStatus(req *web.ChangeUserStatusReq) error {
+	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAdminServant) AdminUserDelete(req *web.AdminUserDeleteReq) error {
 	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

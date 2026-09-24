@@ -79,6 +79,12 @@ type AdminUserRoleReq struct {
 	Action   string `json:"action" binding:"required,oneof=add remove"`
 }
 
+// AdminUserDeleteReq 用户管理·软删除用户(标记is_del, 数据保留可恢复)
+type AdminUserDeleteReq struct {
+	BaseInfo `json:"-" binding:"-"`
+	ID       int64 `json:"id" form:"id" binding:"required"`
+}
+
 // AdminUserRoleLogsReq 用户管理·角色变更记录
 type AdminUserRoleLogsReq struct {
 	BaseInfo `form:"-" binding:"-"`
