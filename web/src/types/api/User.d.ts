@@ -28,10 +28,19 @@ declare namespace Api {
                 }
                 /** 获取充值状态 */
                 recharge: (params: NetParams.UserGetRecharge) => Promise<NetReq.UserGetRecharge>;
+                /** 私信会话 */
+                chat: {
+                    /** 会话列表(含系统联系人) */
+                    contacts: (params?: NetParams.ChatGetContacts) => Promise<NetReq.ChatGetContacts>;
+                    /** 聊天历史(user_id=0为系统会话) */
+                    history: (params: NetParams.ChatGetHistory) => Promise<NetReq.ChatGetHistory>;
+                };
             },
             post: {
-                /** 发送用户私信 */
-                whisper: (data: NetParams.UserWhisper) => Promise<NetParams.UserWhisper>;
+                /** 发送私信(身份组权限后端强制) */
+                chat: {
+                    send: (data: NetParams.ChatSendMessage) => Promise<NetReq.ChatSendMessage>;
+                };
                 /** 关注用户 */
                 follow: (data: NetParams.FollowUserReq) => Promise<NetReq.FollowUserResp>;
                 /** 取消关注用户 */
@@ -66,7 +75,16 @@ declare namespace Api {
                 username: string;
             }
 
-            interface UserWhisper {
+            interface ChatGetContacts { }
+
+            interface ChatGetHistory {
+                /** 对端用户id, 0为系统会话 */
+                user_id: number;
+                page: number;
+                page_size: number;
+            }
+
+            interface ChatSendMessage {
                 user_id: number;
                 content: string;
             }
@@ -177,6 +195,23 @@ declare namespace Api {
 
             interface UserGetUnreadMsgCount {
                 count: number;
+            }
+
+            interface ChatGetContacts {
+                system: Item.ChatContactItem;
+                contacts: Item.ChatContactItem[];
+            }
+
+            interface ChatGetHistory {
+                messages: Item.ChatHistoryItem[];
+                peer?: Item.ChatContactItem;
+                can_send: boolean;
+                can_send_tip: string;
+                total_rows: number;
+            }
+
+            interface ChatSendMessage {
+                message_id: number;
             }
 
             interface UserGetMessages {

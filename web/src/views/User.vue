@@ -84,8 +84,6 @@
                     </div>
                 </div>
 
-                <!-- 私信组件 -->
-                <whisper :show="showWhisper" :user="user" @success="whisperSuccess" />
                 <!-- 加好友组件 -->
                 <whisper-add-friend :show="showAddFriendWhisper" :user="user" @success="addFriendWhisperSuccess" />
             
@@ -154,7 +152,7 @@ import { useStoreUser } from '@/store/user';
 import { useStoreProfile } from '@/store/profile';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
-import UserAction from '@/composables/useUserAction';
+import UserAction, { canWhisperUser, useChatJump } from '@/composables/useUserAction';
 
 type PageType = 'post' | 'comment' | 'highlight' | 'media' | 'star';
 
@@ -169,6 +167,7 @@ const { profile } = storeToRefs(storeProfile);
 
 const route = useRoute();
 const router = useRouter();
+const { goWhisper } = useChatJump();
 
 const loading = ref(false);
 const noMore = ref(false);
@@ -187,7 +186,6 @@ const user = reactive<Item.UserInfo>({
 	status: 1,
 });
 const userLoading = ref(false);
-const showWhisper = ref(false);
 const showAddFriendWhisper = ref(false);
 const list = ref<Item.PostProps[]>([]);
 const postList = ref<Item.PostProps[]>([]);
@@ -229,11 +227,7 @@ const listData = computed(() => {
 })
 
 const onSendWhisper = (receiver: Item.UserInfo) => {
-	user.id = receiver.id;
-	user.username = receiver.username;
-	user.nickname = receiver.nickname;
-	user.avatar = receiver.avatar;
-	showWhisper.value = true;
+	goWhisper(receiver);
 };
 
 function postFollowAction(userId: number, isFollowing: boolean) {
@@ -369,13 +363,10 @@ const updatePage = () => {
   loadPostsByStyle(pageType.value);
 };
 const openWhisper = () => {
-  showWhisper.value = true;
+  goWhisper(user);
 };
 const openAddFriendWhisper = () => {
   showAddFriendWhisper.value = true;
-};
-const whisperSuccess = () => {
-  showWhisper.value = false;
 };
 const addFriendWhisperSuccess = () => {
   showAddFriendWhisper.value = false;
@@ -397,13 +388,15 @@ const userOptions = computed(() => {
       },
     ];
   }
-  let options: DropdownOption[] = [
-    {
+  let options: DropdownOption[] = [];
+  // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
+  if (canWhisperUser(user)) {
+    options.push({
       label: '私信',
       key: 'whisper',
       icon: renderIcon(PaperPlaneOutline),
-    },
-  ];
+    });
+  }
   if (userInfo.value.is_admin) {
     if (user.status === 1) {
       options.push({

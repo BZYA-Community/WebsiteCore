@@ -20,8 +20,6 @@
                         @post-follow-action="postFollowAction" />
                 </n-list-item>
             </div>
-            <!-- 私信组件 -->
-            <whisper :show="showWhisper" :user="whisperReceiver" @success="whisperSuccess" />
         </n-list>
         <n-space v-if="totalPage > 0" justify="center">
             <InfiniteLoading class="load-more" :slots="{ complete: '没有更多收藏了', error: '加载出错' }" @infinite="nextPage">
@@ -45,6 +43,7 @@ import { useDialog } from 'naive-ui';
 import InfiniteLoading from 'v3-infinite-loading';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
+import { useChatJump } from '@/composables/useUserAction';
 
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
@@ -60,29 +59,9 @@ const list = ref<any[]>([]);
 const page = ref(+(route.query.p as any) || 1);
 const pageSize = ref(20);
 const totalPage = ref(0);
-const showWhisper = ref(false);
-const whisperReceiver = ref<Item.UserInfo>({
-  id: 0,
-  avatar: '',
-  username: '',
-  nickname: '',
-  is_admin: false,
-  is_friend: true,
-  is_following: false,
-  created_on: 0,
-  follows: 0,
-  followings: 0,
-  status: 1,
-});
 
-const onSendWhisper = (user: Item.UserInfo) => {
-  whisperReceiver.value = user;
-  showWhisper.value = true;
-};
-
-const whisperSuccess = () => {
-  showWhisper.value = false;
-};
+// 私信入口: 跳转消息页会话(原 whisper 弹窗已移除)
+const { goWhisper: onSendWhisper } = useChatJump();
 
 function postFollowAction(userId: number, isFollowing: boolean) {
   for (let index in list.value) {

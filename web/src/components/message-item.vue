@@ -139,7 +139,7 @@ import { formatRelativeTime } from '@/utils/formatTime';
 import { MoreHorizFilled } from '@vicons/material';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
-import UserAction from '@/composables/useUserAction';
+import UserAction, { canWhisperUser } from '@/composables/useUserAction';
 
 const defaultavatar =
   'https://paopao-demo.vercel.app/avatar/default/admin.png';
@@ -173,13 +173,15 @@ const actionOpts = computed(() => {
       props.message.sender_user_id == userInfo.value.id
       ? props.message.receiver_user
       : props.message.sender_user;
-  let options: DropdownOption[] = [
-    {
+  let options: DropdownOption[] = [];
+  // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
+  if (canWhisperUser(user)) {
+    options.push({
       label: '私信 @' + user.username,
       key: 'whisper',
       icon: renderIcon(PaperPlaneOutline),
-    },
-  ];
+    });
+  }
   if (userInfo.value.id != user.id) {
     if (user.is_following) {
       options.push({

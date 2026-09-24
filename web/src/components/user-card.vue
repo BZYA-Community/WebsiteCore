@@ -67,7 +67,7 @@ import {
   WalkOutline,
   PersonRemoveOutline,
 } from '@vicons/ionicons5';
-import UserAction from '@/composables/useUserAction';
+import UserAction, { canWhisperUser } from '@/composables/useUserAction';
 import { Api } from '@/utils/request';
 
 const dialog = useDialog();
@@ -114,13 +114,16 @@ const handleFollowUser = () => {
 };
 
 const actionOpts = computed(() => {
-  let options: DropdownOption[] = [
-    {
+  let options: DropdownOption[] = [];
+
+  // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
+  if (canWhisperUser({ roles: props.contact.roles })) {
+    options.push({
       label: '私信 @' + props.contact.username,
       key: 'whisper',
       icon: renderIcon(PaperPlaneOutline),
-    },
-  ];
+    });
+  }
 
   if (enableFollowAction.value) {
     if (props.contact.is_following) {
@@ -194,6 +197,8 @@ const handleAction = (item: 'follow' | 'unfollow' | 'whisper' | 'delete') => {
         follows: 0,
         followings: 0,
         status: 1,
+        roles: props.contact.roles || [],
+        identity: props.contact.identity || '',
       };
       emit('send-whisper', user);
       break;

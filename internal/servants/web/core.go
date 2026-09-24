@@ -5,7 +5,6 @@
 package web
 
 import (
-	"context"
 	"fmt"
 	"time"
 	"unicode/utf8"
@@ -173,36 +172,6 @@ func (s *coreSrv) ReadAllMessage(req *web.ReadAllMessageReq) error {
 	}
 	// 缓存处理
 	onMessageActionEvent(_messageActionRead, req.Uid)
-	return nil
-}
-
-func (s *coreSrv) SendUserWhisper(req *web.SendWhisperReq) error {
-	// 不允许发送私信给自己
-	if req.Uid == req.UserID {
-		return web.ErrNoWhisperToSelf
-	}
-	// 今日频次限制
-	ctx := context.Background()
-	if count, _ := s.Redis.GetCountWhisper(ctx, req.Uid); count >= _maxWhisperNumDaily {
-		return web.ErrTooManyWhisperNum
-	}
-	// 创建私信
-	_, err := s.Ds.CreateMessage(&ms.Message{
-		SenderUserID:   req.Uid,
-		ReceiverUserID: req.UserID,
-		Type:           ms.MsgTypeWhisper,
-		Brief:          "给你发送新私信了",
-		Content:        req.Content,
-	})
-	if err != nil {
-		logrus.Errorf("Ds.CreateWhisper err: %s", err)
-		return web.ErrSendWhisperFailed
-	}
-	// 缓存处理, 不需要处理错误
-	onMessageActionEvent(_messageActionSendWhisper, req.Uid, req.UserID)
-	// 写入当日（自然日）计数缓存
-	s.Redis.IncrCountWhisper(ctx, req.Uid)
-
 	return nil
 }
 

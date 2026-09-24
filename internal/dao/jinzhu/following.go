@@ -58,6 +58,8 @@ func (s *followingManageSrv) ListFollows(userId int64, limit, offset int) (*ms.C
 			Username:  f.User.Username,
 			Nickname:  f.User.Nickname,
 			Avatar:    f.User.Avatar,
+			Roles:     f.User.RoleList(),
+			Identity:  f.User.DisplayIdentity(),
 			CreatedOn: f.User.CreatedOn,
 		})
 	}
@@ -82,6 +84,7 @@ func (s *followingManageSrv) ListFollowings(userId int64, limit, offset int) (*m
 			Username:  user.Username,
 			Nickname:  user.Nickname,
 			Avatar:    user.Avatar,
+			Roles:     dbr.SplitRoles(user.Roles),
 			CreatedOn: user.CreatedOn,
 		})
 	}

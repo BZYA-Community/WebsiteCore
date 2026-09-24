@@ -144,6 +144,8 @@ declare namespace Item {
     nickname: string;
     avatar: string;
     phone?: string;
+    roles?: string[];
+    identity?: string;
     is_following: boolean;
     created_on: number;
   }
@@ -298,6 +300,35 @@ declare namespace Item {
     name: string;
     nickname: string;
     avatar: string;
+  }
+
+  /** 私信会话条目(user_id=0 为系统联系人) */
+  interface ChatContactItem {
+    user_id: number;
+    username: string;
+    nickname: string;
+    avatar: string;
+    roles: string[];
+    identity: string;
+    last_content: string;
+    last_time: number;
+    last_from_me: boolean;
+    unread: number;
+  }
+
+  /** 聊天消息(系统会话带 type/post_id/comment_id 供跳转) */
+  interface ChatHistoryItem {
+    id: number;
+    sender_id: number;
+    sender_name?: string;
+    sender_username?: string;
+    brief?: string;
+    content: string;
+    type: number;
+    post_id?: number;
+    comment_id?: number;
+    timestamp: number;
+    seen: boolean;
   }
 
   interface FollowItemProps {

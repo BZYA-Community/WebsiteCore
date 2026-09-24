@@ -27,4 +27,6 @@ type Admin struct {
 	AdminUserRoleChange func(Post, web.AdminUserRoleReq) `mir:"admin/user/role"`
 	// AdminUserRoleLogs 管理·角色变更记录
 	AdminUserRoleLogs func(Get, web.AdminUserRoleLogsReq) web.AdminUserRoleLogsResp `mir:"admin/user/role/logs"`
+	// AdminUserDelete 管理·软删除用户(标记is_del, 数据保留可恢复)
+	AdminUserDelete func(Post, web.AdminUserDeleteReq) `mir:"admin/user/delete"`
 }

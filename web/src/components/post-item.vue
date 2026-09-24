@@ -207,7 +207,7 @@ import copy from 'copy-to-clipboard';
 import { useStoreProfile } from '@/store/profile';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
-import UserAction from '@/composables/useUserAction';
+import UserAction, { canWhisperUser } from '@/composables/useUserAction';
 import { usePostContent } from '@/composables/usePostContent';
 
 const router = useRouter();
@@ -250,7 +250,8 @@ const renderIcon = (icon: Component) => {
 
 const tweetOptions = computed(() => {
   let options: DropdownOption[] = [];
-  if (!props.isOwner) {
+  // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
+  if (!props.isOwner && canWhisperUser(props.post.user)) {
     options.push({
       label: '私信 @' + props.post.user.username,
       key: 'whisper',
