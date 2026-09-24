@@ -131,7 +131,7 @@ watch(() => [unreadMsgCount, userInfo, profile], () => {
 onMounted(() => {
   window.onresize = () => {
     storeMain.triggerCollapsedLeft(document.body.clientWidth <= 821);
-    storeMain.triggerCollapsedRight(document.body.clientWidth <= 821);
+    storeMain.triggerCollapsedRight(document.body.clientWidth <= 1140);
   };
 });
 const menuOptions = computed(() => {

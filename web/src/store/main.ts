@@ -6,7 +6,8 @@ export const useStoreMain = defineStore('main', () => {
   const refreshTopicFollow = ref(Date.now());
   const theme = ref(localStorage.getItem('PAOPAO_THEME'));
   const collapsedLeft = ref(document.body.clientWidth <= 821);
-  const collapsedRight = ref(document.body.clientWidth <= 821);
+  // 右侧栏较宽(240px), 窄于1140px时布局放不下会右侧被裁切, 提前隐藏
+  const collapsedRight = ref(document.body.clientWidth <= 1140);
   const drawerModelShow = ref(document.body.clientWidth <= 821);
   const desktopModelShow = ref(document.body.clientWidth > 821);
   const authModalShow = ref(false);

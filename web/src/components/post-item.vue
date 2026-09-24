@@ -496,11 +496,18 @@ const handleMdClick = (e: MouseEvent, id: number) => {
     .post-markdown {
         width: 100%;
         cursor: pointer;
+        // 困住md-editor内部浮层的z-index(最高100001), 防止代码块头部等盖住站内弹窗
+        isolation: isolate;
 
         .read-full-link {
             display: inline-block;
             margin-top: 4px;
             cursor: pointer;
+        }
+
+        // 背景透明: 跟随帖子卡片背景(鼠标悬浮加深/深色模式)
+        .md-editor.md-editor {
+            --md-bk-color: transparent;
         }
 
         .md-editor-preview-wrapper {
