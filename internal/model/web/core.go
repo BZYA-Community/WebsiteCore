@@ -65,12 +65,6 @@ type ReadAllMessageReq struct {
 	SimpleInfo `json:"-" binding:"-"`
 }
 
-type SendWhisperReq struct {
-	SimpleInfo `json:"-" binding:"-"`
-	UserID     int64  `json:"user_id" binding:"required"`
-	Content    string `json:"content" binding:"required"`
-}
-
 type (
 	GetCollectionsReq  BasePageReq
 	GetCollectionsResp base.PageResp

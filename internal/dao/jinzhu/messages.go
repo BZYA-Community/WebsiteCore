@@ -79,3 +79,77 @@ func (s *messageSrv) GetMessages(userId int64, style cs.MessageStyle, limit int,
 	}
 	return
 }
+
+// GetRecentWhispers 我参与的全部私信最近limit行(会话列表分组用)
+func (s *messageSrv) GetRecentWhispers(userID int64, limit int) (res []*ms.Message, err error) {
+	err = s.db.Table(_message_).
+		Where("(receiver_user_id=? OR sender_user_id=?) AND type=4 AND is_del=0", userID, userID).
+		Order("id DESC").Limit(limit).Find(&res).Error
+	return
+}
+
+// CountWhisperUnreadBySender 按发送方统计我的私信未读数(会话角标)
+func (s *messageSrv) CountWhisperUnreadBySender(userID int64) (map[int64]int64, error) {
+	type row struct {
+		SenderUserID int64 `gorm:"column:sender_user_id"`
+		Count        int64 `gorm:"column:count"`
+	}
+	var rows []row
+	if err := s.db.Table(_message_).
+		Select("sender_user_id, COUNT(*) AS count").
+		Where("receiver_user_id=? AND type=4 AND is_read=0 AND is_del=0", userID).
+		Group("sender_user_id").Find(&rows).Error; err != nil {
+		return nil, err
+	}
+	res := make(map[int64]int64, len(rows))
+	for _, r := range rows {
+		res[r.SenderUserID] = r.Count
+	}
+	return res, nil
+}
+
+// GetWhisperHistory 与某人的私信双向历史(id倒序分页, servant层翻转为正序)
+func (s *messageSrv) GetWhisperHistory(userID, otherID int64, limit, offset int) (res []*ms.Message, total int64, err error) {
+	db := s.db.Table(_message_).
+		Where("((sender_user_id=? AND receiver_user_id=?) OR (sender_user_id=? AND receiver_user_id=?)) AND type=4 AND is_del=0",
+			userID, otherID, otherID, userID)
+	if err = db.Count(&total).Error; err != nil || total == 0 {
+		return
+	}
+	if offset >= 0 && limit > 0 {
+		db = db.Limit(limit).Offset(offset)
+	}
+	err = db.Order("id DESC").Find(&res).Error
+	return
+}
+
+// HasWhispered sender是否曾给receiver发过私信(首条限制判定)
+func (s *messageSrv) HasWhispered(senderID, receiverID int64) (bool, error) {
+	var count int64
+	err := s.db.Table(_message_).
+		Where("sender_user_id=? AND receiver_user_id=? AND type=4 AND is_del=0", senderID, receiverID).
+		Limit(1).Count(&count).Error
+	return count > 0, err
+}
+
+// ReadWhispersFrom 把某人发给我的私信全部标记已读(打开会话即读)
+func (s *messageSrv) ReadWhispersFrom(userID, senderID int64) error {
+	return s.db.Table(_message_).
+		Where("receiver_user_id=? AND sender_user_id=? AND type=4 AND is_read=0 AND is_del=0", userID, senderID).
+		Update("is_read", 1).Error
+}
+
+// ReadSystemMessages 系统会话全部标记已读(type 1动态/2评论/3回复/99系统)
+func (s *messageSrv) ReadSystemMessages(userID int64) error {
+	return s.db.Table(_message_).
+		Where("receiver_user_id=? AND type IN (1, 2, 3, 99) AND is_read=0 AND is_del=0", userID).
+		Update("is_read", 1).Error
+}
+
+// CountSystemUnread 系统会话未读数(系统联系人角标)
+func (s *messageSrv) CountSystemUnread(userID int64) (count int64, err error) {
+	err = s.db.Table(_message_).
+		Where("receiver_user_id=? AND type IN (1, 2, 3, 99) AND is_read=0 AND is_del=0", userID).
+		Count(&count).Error
+	return
+}

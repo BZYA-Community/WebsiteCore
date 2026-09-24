@@ -101,8 +101,6 @@
                           @post-follow-action="postFollowAction" />
                   </n-list-item>
             </div>
-            <!-- 私信组件 -->
-            <whisper :show="showWhisper" :user="whisperReceiver" @success="whisperSuccess" />
         </n-list>
 
         <n-space v-if="totalPage > 0" justify="center">
@@ -125,6 +123,7 @@ import { useStoreMain } from '@/store/main';
 import { useRoute, useRouter } from 'vue-router';
 import { useDialog, DropdownOption } from 'naive-ui';
 import { formatDate } from '@/utils/formatTime';
+import { useChatJump } from '@/composables/useUserAction';
 import { identityTagType, showIdentityBadge } from '@/utils/identity';
 import { prettyQuoteNum } from '@/utils/count';
 import InfiniteLoading from 'v3-infinite-loading';
@@ -166,20 +165,6 @@ const commentTotalPage = ref(0);
 const highlightTotalPage = ref(0);
 const mediaTotalPage = ref(0);
 const starTotalPage = ref(0);
-const showWhisper = ref(false);
-const whisperReceiver = ref<Item.UserInfo>({
-  id: 0,
-  avatar: '',
-  username: '',
-  nickname: '',
-  is_admin: false,
-  is_friend: true,
-  is_following: false,
-  created_on: 0,
-  follows: 0,
-  followings: 0,
-  status: 1,
-});
 
 const listData = computed(() => {
 	switch (pageType.value) {
@@ -232,14 +217,8 @@ const handleUserAction = (item: 'setting') => {
   }
 };
 
-const onSendWhisper = (user: Item.UserInfo) => {
-  whisperReceiver.value = user;
-  showWhisper.value = true;
-};
-
-const whisperSuccess = () => {
-  showWhisper.value = false;
-};
+// 私信入口: 跳转消息页会话(原 whisper 弹窗已移除)
+const { goWhisper: onSendWhisper } = useChatJump();
 
 function postFollowAction(userId: number, isFollowing: boolean) {
   updateFolloing(postList.value, userId, isFollowing);

@@ -19,8 +19,6 @@
                     <user-card type="follow" :contact="contact" @send-whisper="onSendWhisper" @unfollow-success="handleUnfollowSuccess" />
                 </n-list-item>
             </div>
-            <!-- 私信组件 -->
-            <whisper :show="showWhisper" :user="whisperReceiver" @success="whisperSuccess" />
         </n-list>
     </div>
     <n-space v-if="totalPage > 0" justify="center">
@@ -41,7 +39,7 @@ import InfiniteLoading from 'v3-infinite-loading';
 import { useRoute } from 'vue-router';
 import { Api } from '@/utils/request';
 import { usePagination } from '@/composables/usePagination';
-import UserAction from '@/composables/useUserAction';
+import { useChatJump } from '@/composables/useUserAction';
 import UserCard from '@/components/user-card.vue';
 
 const route = useRoute();
@@ -55,8 +53,8 @@ const showAddFriendWhisper = ref(false);
 // 使用 usePagination composable
 const { loading, noMore, page, pageSize, totalPage, reset, nextPage } = usePagination(20);
 
-// 使用 UserAction.useWhisper()
-const { showWhisper, whisperReceiver, onSendWhisper, whisperSuccess } = UserAction.useWhisper();
+// 私信入口: 跳转消息页会话(原 whisper 弹窗已移除)
+const { goWhisper: onSendWhisper } = useChatJump();
 
 function resetPage(tab: 'follows' | 'followings') {
   list.value = [];

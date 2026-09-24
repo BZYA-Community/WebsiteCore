@@ -64,7 +64,7 @@ const routes = [
     meta: {
       title: '消息',
     },
-    component: () => import('@/views/Messages.vue'),
+    component: () => import('@/views/Chat.vue'),
   },
   {
     path: '/collection',

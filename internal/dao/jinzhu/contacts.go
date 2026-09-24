@@ -249,6 +249,8 @@ func (s *contactManageSrv) GetContacts(userId int64, offset int, limit int) (*ms
 				Nickname:  c.User.Nickname,
 				Avatar:    c.User.Avatar,
 				Phone:     c.User.Phone,
+				Roles:     c.User.RoleList(),
+				Identity:  c.User.DisplayIdentity(),
 				CreatedOn: c.User.CreatedOn,
 			})
 		}

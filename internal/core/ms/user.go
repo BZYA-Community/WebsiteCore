@@ -6,13 +6,15 @@ package ms
 
 type (
 	ContactItem struct {
-		UserId      int64  `json:"user_id"`
-		Username    string `db:"username" json:"username"`
-		Nickname    string `json:"nickname"`
-		Avatar      string `json:"avatar"`
-		Phone       string `json:"phone,omitempty"`
-		IsFollowing bool   `json:"is_following"`
-		CreatedOn   int64  `json:"created_on"`
+		UserId      int64    `json:"user_id"`
+		Username    string   `db:"username" json:"username"`
+		Nickname    string   `json:"nickname"`
+		Avatar      string   `json:"avatar"`
+		Phone       string   `json:"phone,omitempty"`
+		Roles       []string `json:"roles,omitempty"`
+		Identity    string   `json:"identity,omitempty"`
+		IsFollowing bool     `json:"is_following"`
+		CreatedOn   int64    `json:"created_on"`
 	}
 
 	ContactList struct {

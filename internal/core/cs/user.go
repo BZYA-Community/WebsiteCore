@@ -36,6 +36,7 @@ type UserInfo struct {
 	Status    int    `json:"status"`
 	Avatar    string `json:"avatar"`
 	IsAdmin   bool   `json:"is_admin"`
+	Roles     string `json:"roles"`
 	CreatedOn int64  `json:"created_on"`
 }
 

@@ -64,8 +64,6 @@
                         @handle-friend-action="onHandleFriendAction" />
                 </n-list-item>
             </div>
-            <!-- 私信组件 -->
-            <whisper :show="showWhisper" :user="whisperReceiver" @success="whisperSuccess" />
             <!-- 加好友组件 -->
             <whisper-add-friend :show="showAddFriendWhisper" :user="user" @success="addFriendWhisperSuccess" />
         </n-list>
@@ -99,7 +97,7 @@ import { useStoreProfile } from '@/store/profile';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
 import { usePagination } from '@/composables/usePagination';
-import UserAction from '@/composables/useUserAction';
+import { useChatJump } from '@/composables/useUserAction';
 
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
@@ -184,8 +182,8 @@ const showAddFriendWhisper = ref(false);
 // 使用 usePagination composable
 const { loading, noMore, page, pageSize, totalPage, reset, nextPage } = usePagination(20);
 
-// 使用 UserAction.useWhisper()
-const { showWhisper, whisperReceiver, onSendWhisper, whisperSuccess } = UserAction.useWhisper();
+// 私信入口: 跳转消息页会话(原 whisper 弹窗已移除)
+const { goWhisper: onSendWhisper } = useChatJump();
 
 const openAddFriendWhisper = () => {
   showAddFriendWhisper.value = true;

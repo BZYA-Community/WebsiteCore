@@ -10,7 +10,15 @@ export default defineConfig({
     host: '0.0.0.0',
   },
   plugins: [
-    vue(),
+    vue({
+      template: {
+        compilerOptions: {
+          // vue-advanced-chat 为 Web Component, 保留原生标签交给运行时
+          isCustomElement: (tag) =>
+            tag === 'vue-advanced-chat' || tag === 'emoji-picker',
+        },
+      },
+    }),
     Components({
       resolvers: [NaiveUiResolver()],
     }),

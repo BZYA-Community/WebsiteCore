@@ -7,6 +7,7 @@ package web
 import (
 	"github.com/gin-gonic/gin"
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/cache"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
@@ -99,6 +100,14 @@ func (s *followshipSrv) FollowUser(r *web.FollowUserReq) error {
 		logrus.Errorf("Ds.FollowUser err: %s userId: %d followId: %d", err, r.User.ID, r.UserId)
 		return web.ErrUnfollowUserFailed
 	}
+	// 关注通知(系统会话, 带关注者id便于前端跳转其主页)
+	onCreateMessageEvent(&ms.Message{
+		SenderUserID:   r.User.ID,
+		ReceiverUserID: r.UserId,
+		Type:           ms.MsgTypeSystem,
+		Brief:          "关注了你",
+		Content:        "快去看看 TA 的主页吧",
+	})
 	// 触发缓存更新事件
 	// TODO: 合并成一个事件
 	cache.OnCacheMyFollowIdsEvent(s.Ds, r.User.ID)

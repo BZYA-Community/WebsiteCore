@@ -158,8 +158,6 @@
                         />
                     </n-space>
                 </n-modal>
-                  <!-- 私信组件 -->
-                <whisper :show="showWhisper" :user="whisperReceiver" @success="whisperSuccess" />
             </template>
             <div v-if="showAuditBar" class="audit-bar" @click.stop>
                 <n-tag
@@ -333,7 +331,7 @@ import copy from 'copy-to-clipboard';
 import { storeToRefs } from 'pinia';
 import { useStoreUser } from '@/store/user';
 import { Api } from '@/utils/request';
-import UserAction from '@/composables/useUserAction';
+import UserAction, { canWhisperUser, useChatJump } from '@/composables/useUserAction';
 import { usePostContent } from '@/composables/usePostContent';
 
 const useFriendship =
@@ -362,7 +360,8 @@ const showHighlightModal = ref(false);
 const showVisibilityModal = ref(false);
 const loading = ref(false);
 const tempVisibility = ref<VisibilityEnum>(VisibilityEnum.PUBLIC);
-const showWhisper = ref(false);
+// 私信入口: 跳转消息页会话(原 whisper 弹窗已移除)
+const { goWhisper: onSendWhisper } = useChatJump();
 // 审核操作(审核员/管理员在详情页直接审核)
 const showAuditReject = ref(false);
 const auditRejectReason = ref('');
@@ -378,28 +377,6 @@ const showAuditBar = computed(
     post.value.audit_status !== undefined &&
     post.value.audit_status !== 1,
 );
-const whisperReceiver = ref<Item.UserInfo>({
-  id: 0,
-  avatar: '',
-  username: '',
-  nickname: '',
-  is_admin: false,
-  is_friend: true,
-  is_following: false,
-  created_on: 0,
-  follows: 0,
-  followings: 0,
-  status: 1,
-});
-
-const onSendWhisper = (user: Item.UserInfo) => {
-  whisperReceiver.value = user;
-  showWhisper.value = true;
-};
-
-const whisperSuccess = () => {
-  showWhisper.value = false;
-};
 
 const emit = defineEmits<{
   (e: 'reload', post_id: number): void;
@@ -422,11 +399,14 @@ const adminOptions = computed(() => {
     !userInfo.value.is_admin &&
     userInfo.value.id != props.post.user.id
   ) {
-    options.push({
-      label: '私信 @' + props.post.user.username,
-      key: 'whisper',
-      icon: renderIcon(PaperPlaneOutline),
-    });
+    // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
+    if (canWhisperUser(props.post.user)) {
+      options.push({
+        label: '私信 @' + props.post.user.username,
+        key: 'whisper',
+        icon: renderIcon(PaperPlaneOutline),
+      });
+    }
     if (props.post.user.is_following) {
       options.push({
         label: '取消关注 @' + props.post.user.username,

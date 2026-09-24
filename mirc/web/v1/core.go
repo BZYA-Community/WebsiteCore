@@ -25,9 +25,6 @@ type Core struct {
 	// ReadAllMessage 标记所有未读消息已读
 	ReadAllMessage func(Post, web.ReadAllMessageReq) `mir:"user/message/readall"`
 
-	// SendUserWhisper 发送用户私信
-	SendUserWhisper func(Post, web.SendWhisperReq) `mir:"user/whisper"`
-
 	// GetCollections 获取用户收藏列表
 	GetCollections func(Get, web.GetCollectionsReq) web.GetCollectionsResp `mir:"user/collections"`
 

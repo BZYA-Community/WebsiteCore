@@ -28,7 +28,6 @@ type Core interface {
 	UserPhoneBind(*web.UserPhoneBindReq) error
 	GetStars(*web.GetStarsReq) (*web.GetStarsResp, error)
 	GetCollections(*web.GetCollectionsReq) (*web.GetCollectionsResp, error)
-	SendUserWhisper(*web.SendWhisperReq) error
 	ReadAllMessage(*web.ReadAllMessageReq) error
 	ReadMessage(*web.ReadMessageReq) error
 	GetMessages(*web.GetMessagesReq) (*web.GetMessagesResp, error)
@@ -188,19 +187,6 @@ func RegisterCoreServant(e *gin.Engine, s Core) {
 		resp, err := s.GetCollections(req)
 		s.Render(c, resp, err)
 	})
-	router.Handle("POST", "user/whisper", func(c *gin.Context) {
-		select {
-		case <-c.Request.Context().Done():
-			return
-		default:
-		}
-		req := new(web.SendWhisperReq)
-		if err := s.Bind(c, req); err != nil {
-			s.Render(c, nil, err)
-			return
-		}
-		s.Render(c, nil, s.SendUserWhisper(req))
-	})
 	router.Handle("POST", "user/message/readall", func(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
@@ -321,10 +307,6 @@ func (UnimplementedCoreServant) GetStars(req *web.GetStarsReq) (*web.GetStarsRes
 
 func (UnimplementedCoreServant) GetCollections(req *web.GetCollectionsReq) (*web.GetCollectionsResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
-}
-
-func (UnimplementedCoreServant) SendUserWhisper(req *web.SendWhisperReq) error {
-	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
 func (UnimplementedCoreServant) ReadAllMessage(req *web.ReadAllMessageReq) error {
