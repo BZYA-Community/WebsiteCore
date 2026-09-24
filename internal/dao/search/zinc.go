@@ -150,6 +150,9 @@ func (s *zincTweetSearchServant) postsFrom(resp *zinc.QueryResultT) (*core.Query
 		if err = json.Unmarshal(raw, item); err != nil {
 			return nil, err
 		}
+		// 索引仅收录已过审帖子(待审不入索引/过审推入/拒绝移除)，命中结果必然已过审；
+		// 索引文档无此字段，显式置为已过审避免零值0被前端误标为待审核
+		item.AuditStatus = ms.PostAuditApproved
 		posts = append(posts, item)
 	}
 

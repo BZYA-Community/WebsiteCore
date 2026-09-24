@@ -198,6 +198,9 @@ func (s *meiliTweetSearchServant) postsFrom(resp *meilisearch.SearchResponse) (*
 			ModifiedOn:      p.ModifiedOn,
 			AttachmentPrice: p.AttachmentPrice,
 			IPLoc:           p.IPLoc,
+			// 索引仅收录已过审帖子(待审不入索引/过审推入/拒绝移除)，命中结果必然已过审；
+			// 不落库字段，显式置为已过审避免零值0被前端误标为待审核
+			AuditStatus: ms.PostAuditApproved,
 		})
 	}
 	return &core.QueryResp{
