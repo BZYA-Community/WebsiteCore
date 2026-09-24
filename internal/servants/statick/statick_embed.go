@@ -10,8 +10,8 @@ package statick
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"github.com/BZYA-Community/WebsiteCore/web"
+	"github.com/gin-gonic/gin"
 )
 
 // RegisterWebStatick register web static assets route

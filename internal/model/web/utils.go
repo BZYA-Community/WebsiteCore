@@ -5,8 +5,8 @@
 package web
 
 import (
-	"github.com/alimy/mir/v5"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
+	"github.com/alimy/mir/v5"
 )
 
 func fileCheck(uploadType string, size int64) mir.Error {

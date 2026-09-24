@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cockroachdb/errors"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/pkg/json"
+	"github.com/cockroachdb/errors"
 	"gopkg.in/resty.v1"
 )
 

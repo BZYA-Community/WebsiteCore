@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants"
 	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
 	"github.com/gin-gonic/gin"
-	"github.com/BZYA-Community/WebsiteCore/internal/conf"
-	"github.com/BZYA-Community/WebsiteCore/internal/servants"
 )
 
 type localossService struct {

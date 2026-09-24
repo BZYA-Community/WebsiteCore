@@ -5,11 +5,11 @@
 package cache
 
 import (
-	"github.com/Masterminds/semver/v3"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/pkg/debug"
+	"github.com/Masterminds/semver/v3"
 )
 
 type noneCacheIndexServant struct {

@@ -7,7 +7,6 @@ package web
 import (
 	"fmt"
 
-	"github.com/gin-gonic/gin"
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
@@ -15,6 +14,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 

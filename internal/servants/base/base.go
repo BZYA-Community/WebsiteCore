@@ -10,11 +10,6 @@ import (
 	"math"
 	"net/http"
 
-	"github.com/alimy/mir/v5"
-	"github.com/cockroachdb/errors"
-	"github.com/getsentry/sentry-go"
-	sentrygin "github.com/getsentry/sentry-go/gin"
-	"github.com/gin-gonic/gin"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
@@ -26,6 +21,11 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/pkg/app"
 	"github.com/BZYA-Community/WebsiteCore/pkg/types"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
+	"github.com/alimy/mir/v5"
+	"github.com/cockroachdb/errors"
+	"github.com/getsentry/sentry-go"
+	sentrygin "github.com/getsentry/sentry-go/gin"
+	"github.com/gin-gonic/gin"
 )
 
 type BaseServant struct {

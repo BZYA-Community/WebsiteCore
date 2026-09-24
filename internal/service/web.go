@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants"
 	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/BZYA-Community/WebsiteCore/internal/conf"
-	"github.com/BZYA-Community/WebsiteCore/internal/servants"
 )
 
 type webService struct {

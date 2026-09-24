@@ -7,10 +7,10 @@ package search
 import (
 	"fmt"
 
-	"github.com/meilisearch/meilisearch-go"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/pkg/zinc"
+	"github.com/meilisearch/meilisearch-go"
 	"github.com/sirupsen/logrus"
 )
 

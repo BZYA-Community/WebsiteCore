@@ -5,8 +5,8 @@
 package events
 
 import (
-	"github.com/robfig/cron/v3"
 	"github.com/BZYA-Community/WebsiteCore/pkg/types"
+	"github.com/robfig/cron/v3"
 )
 
 type (

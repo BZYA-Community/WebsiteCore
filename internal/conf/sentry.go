@@ -7,9 +7,9 @@ package conf
 import (
 	"time"
 
+	"github.com/BZYA-Community/WebsiteCore/pkg/version"
 	"github.com/alimy/tryst/cfg"
 	"github.com/getsentry/sentry-go"
-	"github.com/BZYA-Community/WebsiteCore/pkg/version"
 )
 
 func initSentry() {

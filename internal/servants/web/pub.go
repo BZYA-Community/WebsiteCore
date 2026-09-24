@@ -13,8 +13,6 @@ import (
 	"regexp"
 	"unicode/utf8"
 
-	"github.com/afocus/captcha"
-	"github.com/gofrs/uuid/v5"
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
@@ -24,6 +22,8 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/pkg/utils"
 	"github.com/BZYA-Community/WebsiteCore/pkg/version"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
+	"github.com/afocus/captcha"
+	"github.com/gofrs/uuid/v5"
 	"github.com/sirupsen/logrus"
 )
 

@@ -5,9 +5,9 @@
 package chain
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/pkg/app"
+	"github.com/gin-gonic/gin"
 )
 
 func Admin() gin.HandlerFunc {

@@ -5,10 +5,10 @@
 package web
 
 import (
-	"github.com/alimy/tryst/cfg"
-	"github.com/robfig/cron/v3"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/infra/events"
+	"github.com/alimy/tryst/cfg"
+	"github.com/robfig/cron/v3"
 	"github.com/sirupsen/logrus"
 )
 

@@ -8,9 +8,9 @@
 package docs
 
 import (
+	"github.com/BZYA-Community/WebsiteCore/docs/openapi"
 	"github.com/alimy/tryst/cfg"
 	"github.com/gin-gonic/gin"
-	"github.com/BZYA-Community/WebsiteCore/docs/openapi"
 )
 
 // RegisterDocs register docs asset route

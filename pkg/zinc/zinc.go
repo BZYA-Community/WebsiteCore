@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/BZYA-Community/WebsiteCore/pkg/json"
 	"github.com/cockroachdb/errors"
 	"github.com/go-resty/resty/v2"
-	"github.com/BZYA-Community/WebsiteCore/pkg/json"
 )
 
 type ZincClient struct {

@@ -7,9 +7,9 @@ package metrics
 import (
 	"sync"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/alimy/tryst/event"
 	"github.com/alimy/tryst/pool"
-	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/sirupsen/logrus"
 )
 

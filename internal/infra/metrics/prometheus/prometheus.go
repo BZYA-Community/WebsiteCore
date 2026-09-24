@@ -7,13 +7,13 @@ package prometheus
 import (
 	"net/http"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
+	"github.com/BZYA-Community/WebsiteCore/internal/infra/events"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/robfig/cron/v3"
-	"github.com/BZYA-Community/WebsiteCore/internal/conf"
-	"github.com/BZYA-Community/WebsiteCore/internal/core"
-	"github.com/BZYA-Community/WebsiteCore/internal/infra/events"
 	"github.com/sirupsen/logrus"
 )
 
