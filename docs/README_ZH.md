@@ -6,13 +6,16 @@
 
 如果你想先从项目主入口开始，建议优先阅读：
 
-- [../README_ZH.md](../README_ZH.md) - 项目总览
-- [../INSTALL_ZH.md](../INSTALL_ZH.md) - 安装与本地部署指南
+- [../README.md](../README.md) - 项目总览
+- [INSTALL_ZH.md](INSTALL_ZH.md) - 安装与本地部署指南
 
 ## 文档分区
 
 | 分区 | 说明 |
 | --- | --- |
+| [INSTALL_ZH.md](INSTALL_ZH.md) | 安装与本地部署指南 |
+| [CHANGELOG.md](CHANGELOG.md) | 版本变更记录（含上游 paopao-ce 历史） |
+| [features-status.md](features-status.md) | 功能项成熟度与支持状态 |
 | [openapi/](openapi/) | 导出的 API 文档资源，包含生成的 OpenAPI 文件与静态文档产物 |
 | [proposal/](proposal/) | 产品设计、功能提案与实现思路说明 |
 | [deploy/](deploy/) | 本地、云平台与 Kubernetes 等部署参考文档 |
@@ -22,13 +25,13 @@
 
 ### 新贡献者
 
-1. 先阅读 [../README_ZH.md](../README_ZH.md)
-2. 再参考 [../INSTALL_ZH.md](../INSTALL_ZH.md)
+1. 先阅读 [../README.md](../README.md)
+2. 再参考 [INSTALL_ZH.md](INSTALL_ZH.md)
 3. 最后浏览 [proposal/](proposal/) 了解产品定位与功能方向
 
 ### 运维与自部署使用者
 
-1. 从 [../INSTALL_ZH.md](../INSTALL_ZH.md) 开始
+1. 从 [INSTALL_ZH.md](INSTALL_ZH.md) 开始
 2. 继续阅读 [deploy/README_ZH.md](deploy/README_ZH.md)
 3. 再进入与你目标环境对应的平台部署文档
 

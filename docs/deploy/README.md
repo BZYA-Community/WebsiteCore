@@ -6,7 +6,7 @@ This directory collects deployment-oriented documentation for PaoPao across loca
 
 For the higher-level setup flow, start with:
 
-- [../../INSTALL.md](../../INSTALL.md) - installation and runtime setup guide
+- [../INSTALL.md](../INSTALL.md) - installation and runtime setup guide
 - [../README.md](../README.md) - overall documentation index
 
 ## Deployment Sections
@@ -24,13 +24,13 @@ For the higher-level setup flow, start with:
 
 ### For local self-hosting
 
-1. Read [../../INSTALL.md](../../INSTALL.md)
+1. Read [../INSTALL.md](../INSTALL.md)
 2. Continue with [local/README.md](local/README.md)
 3. Use [core/](core/) if you need additional configuration detail
 
 ### For cloud deployment
 
-1. Read [../../INSTALL.md](../../INSTALL.md)
+1. Read [../INSTALL.md](../INSTALL.md)
 2. Review [core/](core/)
 3. Open the provider-specific guide for your target platform:
    - [aliyun/README.md](aliyun/README.md)
@@ -39,7 +39,7 @@ For the higher-level setup flow, start with:
 
 ### For Kubernetes-based deployment
 
-1. Read [../../INSTALL.md](../../INSTALL.md)
+1. Read [../INSTALL.md](../INSTALL.md)
 2. Review [core/](core/)
 3. Continue with [k8s/README.md](k8s/README.md)
 

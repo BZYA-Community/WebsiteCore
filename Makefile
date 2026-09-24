@@ -87,24 +87,10 @@ gen-mir:
 	@go generate mirc/gen.go
 	$(GOFMT) ./auto/api
 
-.PHONY: gen-rpc
-gen-rpc:
-	@rm -rf auto/rpc
-	buf generate proto
-	$(GOFMT) ./auto/rpc
-
 .PHONY: gen-enum
 gen-enum:
 	@go generate ./internal/model/enum/...
 	$(GOFMT) ./internal/model/enum
-
-.PHONY: proto-mod
-proto-mod:
-	@cd proto/ && buf mod update
-
-.PHONY: proto-lint
-proto-lint:
-	@cd proto/ && buf lint
 
 clean:
 	@go clean
@@ -125,18 +111,9 @@ pre-commit: fmt
 	@go mod tidy
 
 .PHONY: install-tools
-install-tools: install-protobuf-plugins
+install-tools:
 	@go install github.com/abice/go-enum@latest
 	@go install mvdan.cc/gofumpt@latest
-
-.PHONY: install-protobuf-plugins
-install-protobuf-plugins:
-	@go install github.com/bufbuild/buf/cmd/buf@latest
-	@go install github.com/bufbuild/buf/cmd/protoc-gen-buf-breaking@latest
-	@go install github.com/bufbuild/buf/cmd/protoc-gen-buf-lint@latest
-	@go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
-	@go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-	@go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 help:
 	@echo "make: make"

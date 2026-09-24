@@ -2,7 +2,7 @@
 
 [English](INSTALL.md) | 简体中文
 
-本文档介绍 PaoPao 在本地体验、开发调试和自部署场景下的推荐安装方式。项目整体说明请参考 [README_ZH.md](README_ZH.md)。
+本文档介绍 PaoPao 在本地体验、开发调试和自部署场景下的推荐安装方式。项目整体说明请参考 [README.md](../README.md)。
 
 ## 选择安装方式
 
@@ -266,7 +266,7 @@ make run TAGS='docs'
 
 如果需要平台化或生产化部署参考，请继续阅读：
 
-- [docs/deploy/README.md](docs/deploy/README.md)
+- [docs/deploy/README.md](deploy/README_ZH.md)
 - [docs/deploy/core/](docs/deploy/core/)
 - [docs/deploy/local/](docs/deploy/local/)
 - [docs/deploy/k8s/](docs/deploy/k8s/)
