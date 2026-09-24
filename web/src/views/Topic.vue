@@ -18,10 +18,12 @@
                 <n-space>
                     <tag-item
                         v-for="tag in tags"
+                        :key="tag.id"
                         :tag="tag"
                         :showAction="userLogined && tagsChecked"
                         :checkFollowing="inFollowTab"
                         :checkPin="inPinTab"
+                        @update="(patch) => Object.assign(tag, patch)"
                     >
                     </tag-item>
                 </n-space>

@@ -43,7 +43,7 @@
 
                 <n-switch
                     v-if="props.theme"
-                    :value="theme === 'dark'"
+                    :value="themeName === 'dark'"
                     @update:value="switchTheme"
                     size="small"
                     class="theme-switch-wrap"
@@ -74,7 +74,7 @@ import {
 import { storeToRefs } from 'pinia';
 
 const storeMain = useStoreMain();
-const { desktopModelShow, drawerModelShow, theme } = storeToRefs(storeMain);
+const { desktopModelShow, drawerModelShow, theme: themeName } = storeToRefs(storeMain);
 
 const router = useRouter();
 const activeDrawerRef = ref(false);

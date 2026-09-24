@@ -1,3 +1,10 @@
+[![Go](https://github.com/BZYA-Community/WebsiteCore/actions/workflows/go.yml/badge.svg)](https://github.com/BZYA-Community/WebsiteCore/actions/workflows/go.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/BZYA-Community/WebsiteCore)](https://goreportcard.com/report/github.com/BZYA-Community/WebsiteCore)
+[![Forks](https://img.shields.io/github/forks/BZYA-Community/WebsiteCore?style=flat)](https://github.com/BZYA-Community/WebsiteCore/network/members)
+[![Stars](https://img.shields.io/github/stars/BZYA-Community/WebsiteCore.svg?style=flat)](https://github.com/BZYA-Community/WebsiteCore/stargazers)
+[![MIT License](https://img.shields.io/github/license/BZYA-Community/WebsiteCore.svg?style=flat)](https://github.com/BZYA-Community/WebsiteCore/blob/main/LICENSE)
+[![Contributors](https://img.shields.io/github/contributors/BZYA-Community/WebsiteCore?style=flat)](https://github.com/BZYA-Community/WebsiteCore/graphs/contributors)
+
 <div align="center">
   <img src="./.assets/readme/paopao-logo.png" alt="logo" width="88" height="88">
   <h1>WebsiteCore</h1>

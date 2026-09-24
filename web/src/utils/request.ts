@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosRequestHeaders, Method } from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY } from '@/store/user';
 
@@ -11,8 +11,7 @@ service.interceptors.request.use(
 	(config) => {
 		// 鉴权Header
 		if (localStorage.getItem(TOKEN_KEY)) {
-			(config.headers as any)['Authorization'] =
-				'Bearer ' + localStorage.getItem(TOKEN_KEY);
+			config.headers.set('Authorization', 'Bearer ' + localStorage.getItem(TOKEN_KEY));
 		}
 
 		return config;
@@ -60,37 +59,41 @@ export function request<T, R>(config: AxiosRequestConfig<T>): Promise<R> {
  * 创建一个API对象，支持链式调用
  */
 export function createApi<T>(): Readonly<T> {
-	const createProxy = (...names: string[]) => new Proxy((...args: any) => {
-		let _path: string[] = [];
-		let method: 'get' | 'post' | '' = '';
-		let methods = ['get', 'post'];
+	const createProxy = (...names: string[]) => {
+		const exec = (...args: unknown[]) => {
+			const _path: string[] = [];
+			let method: 'get' | 'post' | '' = '';
+			const methods = ['get', 'post'];
 
-		for (const name of names) {
-			const lowerName = name.toLowerCase();
-			if (methods.includes(lowerName) && !method) {
-				method = lowerName as any;
-			} else {
-				_path.push(name);
+			for (const name of names) {
+				const lowerName = name.toLowerCase();
+				if (methods.includes(lowerName) && !method) {
+					method = lowerName as 'get' | 'post';
+				} else {
+					_path.push(name);
+				}
 			}
-		}
-		if (!method) method = 'get';
+			if (!method) method = 'get';
 
-		// 如果最后一条路径是 _self 则代表不需要它，直接去掉它
-		if (_path[_path.length - 1] === "_self") _path.pop();
+			// 如果最后一条路径是 _self 则代表不需要它，直接去掉它
+			if (_path[_path.length - 1] === "_self") _path.pop();
 
-		return request({
-			method,
-			url: _path.join('/'),
-			...(method === 'get' ? { params: args[0] } : { data: args[0] }),
+			return request({
+				method,
+				url: _path.join('/'),
+				...(method === 'get' ? { params: args[0] } : { data: args[0] }),
+			});
+		};
+		return new Proxy(exec, {
+			get(target, p: string) {
+				if (p === 'then') return undefined;
+				const t = target as unknown as Record<string, unknown>;
+				if (!t[p]) t[p] = createProxy(...names, p);
+				return t[p];
+			},
 		});
-	}, {
-		get(target: any, p: string) {
-			if (p === 'then') return undefined;
-			if (!target[p]) target[p] = createProxy(...names, p);
-			return target[p];
-		},
-	})
-	return createProxy();
+	};
+	return createProxy() as unknown as Readonly<T>;
 }
 
 export const Api = createApi<Api>();

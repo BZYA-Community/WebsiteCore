@@ -53,13 +53,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { computed } from 'vue';
 import { MoreVertOutlined } from '@vicons/material';
 import type { DropdownOption } from 'naive-ui';
 import { pinTopic, stickTopic, followTopic, unfollowTopic } from '@/api/post';
 import defaultUserAvatar from '@/assets/img/logo.png';
 
-const hasFollowing = ref(false);
 const props = withDefaults(
   defineProps<{
     tag: Item.TagProps;
@@ -69,6 +68,11 @@ const props = withDefaults(
   }>(),
   {},
 );
+
+// 关注/钉住/置顶状态由父组件持有, 通过 update 事件回写
+const emit = defineEmits<{
+  (e: 'update', patch: Partial<Pick<Item.TagProps, 'is_following' | 'is_pin' | 'is_top'>>): void;
+}>();
 
 const tagUserAvatar = computed(() => {
   if (props.tag.user) {
@@ -125,7 +129,7 @@ const handleTagAction = (
         topic_id: props.tag.id,
       })
         .then((_res) => {
-          props.tag.is_following = 1;
+          emit('update', { is_following: 1 });
           window.$message.success(`关注成功`);
         })
         .catch((err) => {
@@ -137,7 +141,7 @@ const handleTagAction = (
         topic_id: props.tag.id,
       })
         .then((_res) => {
-          props.tag.is_following = 0;
+          emit('update', { is_following: 0 });
           window.$message.success(`取消关注`);
         })
         .catch((err) => {
@@ -149,7 +153,7 @@ const handleTagAction = (
         topic_id: props.tag.id,
       })
         .then((_res) => {
-          props.tag.is_pin = 1;
+          emit('update', { is_pin: 1 });
           window.$message.success(`钉住成功`);
         })
         .catch((err) => {
@@ -161,7 +165,7 @@ const handleTagAction = (
         topic_id: props.tag.id,
       })
         .then((_res) => {
-          props.tag.is_pin = 0;
+          emit('update', { is_pin: 0 });
           window.$message.success(`取消钉住`);
         })
         .catch((err) => {
@@ -173,7 +177,7 @@ const handleTagAction = (
         topic_id: props.tag.id,
       })
         .then((res) => {
-          props.tag.is_top = res.top_status;
+          emit('update', { is_top: res.top_status });
           window.$message.success(`置顶成功`);
         })
         .catch((err) => {
@@ -185,7 +189,7 @@ const handleTagAction = (
         topic_id: props.tag.id,
       })
         .then((res) => {
-          props.tag.is_top = res.top_status;
+          emit('update', { is_top: res.top_status });
           window.$message.success(`取消置顶`);
         })
         .catch((err) => {
@@ -196,10 +200,6 @@ const handleTagAction = (
       break;
   }
 };
-
-onMounted(() => {
-  hasFollowing.value = false;
-});
 </script>
 
 <style lang="less">

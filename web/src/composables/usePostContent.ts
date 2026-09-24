@@ -8,7 +8,7 @@ import { computed } from 'vue';
 export function usePostContent(post: Item.PostProps, includeExtraFields: boolean = false) {
   return computed({
     get: () => {
-      let postData: Item.PostComponentProps = Object.assign(
+      const postData: Item.PostComponentProps = Object.assign(
         {
           texts: [],
           markdowns: [],

@@ -19,8 +19,8 @@ export const formatRelativeTime = (time: number) => {
 };
 
 export const formatPrettyTime = (time: number) => {
-  let mt = moment.unix(time);
-  let now = moment();
+  const mt = moment.unix(time);
+  const now = moment();
   if (mt.year() != now.year()) {
     return mt.utc(true).format('YYYY-MM-DD HH:mm');
   } else if (moment().diff(mt, 'month') > 3) {
@@ -30,8 +30,8 @@ export const formatPrettyTime = (time: number) => {
 };
 
 export const formatPrettyDate = (time: number) => {
-  let mt = moment.unix(time);
-  let now = moment();
+  const mt = moment.unix(time);
+  const now = moment();
   if (mt.year() != now.year()) {
     return mt.utc(true).format('YYYY-MM-DD');
   } else if (moment().diff(mt, 'month') > 3) {
