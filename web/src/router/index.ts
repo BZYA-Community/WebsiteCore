@@ -19,6 +19,14 @@ const routes = [
     component: () => import('@/views/Post.vue'),
   },
   {
+    path: '/compose-md',
+    name: 'compose-md',
+    meta: {
+      title: '发布长文',
+    },
+    component: () => import('@/views/ComposeMd.vue'),
+  },
+  {
     path: '/topic',
     name: 'topic',
     meta: {
