@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
+	"github.com/Masterminds/semver/v3"
 	"github.com/sirupsen/logrus"
 	"github.com/tencentyun/cos-go-sdk-v5"
 )

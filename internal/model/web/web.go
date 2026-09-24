@@ -5,12 +5,12 @@
 package web
 
 import (
-	"github.com/alimy/mir/v5"
-	"github.com/gin-gonic/gin"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/pkg/app"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
+	"github.com/alimy/mir/v5"
+	"github.com/gin-gonic/gin"
 )
 
 var bindAny = base.NewBindAnyFn()

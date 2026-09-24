@@ -5,8 +5,8 @@
 package admin
 
 import (
-	"github.com/gin-gonic/gin"
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/m/v1"
+	"github.com/gin-gonic/gin"
 )
 
 // RouteWeb register Manager route

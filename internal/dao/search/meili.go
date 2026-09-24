@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Masterminds/semver/v3"
-	"github.com/meilisearch/meilisearch-go"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/pkg/json"
+	"github.com/Masterminds/semver/v3"
+	"github.com/meilisearch/meilisearch-go"
 	"github.com/sirupsen/logrus"
 )
 

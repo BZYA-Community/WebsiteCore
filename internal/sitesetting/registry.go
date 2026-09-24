@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alimy/tryst/cfg"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
+	"github.com/alimy/tryst/cfg"
 	"github.com/sirupsen/logrus"
 )
 

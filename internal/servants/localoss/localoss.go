@@ -7,9 +7,9 @@ package localoss
 import (
 	"path/filepath"
 
-	"github.com/gin-gonic/gin"
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/s/v1"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
 

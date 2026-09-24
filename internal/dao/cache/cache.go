@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/allegro/bigcache/v3"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
+	"github.com/allegro/bigcache/v3"
 	"github.com/sirupsen/logrus"
 )
 

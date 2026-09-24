@@ -5,8 +5,8 @@
 package bot
 
 import (
-	"github.com/gin-gonic/gin"
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/r/v1"
+	"github.com/gin-gonic/gin"
 )
 
 // RouteBot register Bot route

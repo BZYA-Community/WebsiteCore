@@ -12,13 +12,13 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/alimy/tryst/cfg"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	"github.com/huaweicloud/huaweicloud-sdk-go-obs/obs"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
-	"github.com/BZYA-Community/WebsiteCore/internal/conf"
-	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/sirupsen/logrus"
 	"github.com/tencentyun/cos-go-sdk-v5"
 )

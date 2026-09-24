@@ -3,8 +3,8 @@ package security
 import (
 	"strings"
 
-	"github.com/alimy/tryst/cfg"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
+	"github.com/alimy/tryst/cfg"
 )
 
 func NewPhoneVerifyService() core.PhoneVerifyService {

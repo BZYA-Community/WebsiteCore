@@ -7,13 +7,13 @@ package dao
 import (
 	"sync"
 
-	"github.com/alimy/tryst/cfg"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/sakila"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/search"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/slonik"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/storage"
+	"github.com/alimy/tryst/cfg"
 	"github.com/sirupsen/logrus"
 )
 

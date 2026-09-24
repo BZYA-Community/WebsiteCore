@@ -8,11 +8,11 @@ import (
 	"bytes"
 	"encoding/gob"
 
-	"github.com/RoaringBitmap/roaring/roaring64"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/RoaringBitmap/roaring/roaring64"
 )
 
 type cacheDataService struct {

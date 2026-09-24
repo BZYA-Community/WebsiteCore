@@ -7,8 +7,6 @@ package web
 import (
 	"sync"
 
-	"github.com/alimy/tryst/cfg"
-	"github.com/gin-gonic/gin"
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
@@ -16,6 +14,8 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/cache"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/internal/sitesetting"
+	"github.com/alimy/tryst/cfg"
+	"github.com/gin-gonic/gin"
 )
 
 var (

@@ -7,10 +7,10 @@ package service
 import (
 	"fmt"
 
-	"github.com/fatih/color"
-	"github.com/gin-gonic/gin"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	util "github.com/BZYA-Community/WebsiteCore/pkg/utils"
+	"github.com/fatih/color"
+	"github.com/gin-gonic/gin"
 	"github.com/sourcegraph/conc"
 )
 

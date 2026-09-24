@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/Masterminds/semver/v3"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/sirupsen/logrus"
 )
 

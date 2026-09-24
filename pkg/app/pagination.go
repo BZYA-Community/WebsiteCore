@@ -5,9 +5,9 @@
 package app
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/pkg/convert"
+	"github.com/gin-gonic/gin"
 )
 
 func GetPage(c *gin.Context) int {

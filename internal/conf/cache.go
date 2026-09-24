@@ -7,8 +7,8 @@ package conf
 import (
 	"fmt"
 
-	"github.com/alimy/tryst/cache"
 	"github.com/BZYA-Community/WebsiteCore/pkg/types"
+	"github.com/alimy/tryst/cache"
 )
 
 const (

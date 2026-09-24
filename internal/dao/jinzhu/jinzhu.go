@@ -11,11 +11,11 @@ package jinzhu
 import (
 	"sync"
 
-	"github.com/Masterminds/semver/v3"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/cache"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/security"
+	"github.com/Masterminds/semver/v3"
 )
 
 var _onceInitial sync.Once

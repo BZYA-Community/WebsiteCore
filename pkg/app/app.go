@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gin-gonic/gin"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
+	"github.com/gin-gonic/gin"
 )
 
 type Response struct {

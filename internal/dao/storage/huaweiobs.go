@@ -9,9 +9,9 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/Masterminds/semver/v3"
 	"github.com/huaweicloud/huaweicloud-sdk-go-obs/obs"
-	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/sirupsen/logrus"
 )
 

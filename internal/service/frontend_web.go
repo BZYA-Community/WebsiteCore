@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Masterminds/semver/v3"
-	"github.com/fatih/color"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants"
+	"github.com/Masterminds/semver/v3"
+	"github.com/fatih/color"
 )
 
 type frontendWebService struct {

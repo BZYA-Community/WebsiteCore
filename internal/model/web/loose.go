@@ -5,7 +5,6 @@
 package web
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
@@ -13,6 +12,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/pkg/app"
+	"github.com/gin-gonic/gin"
 )
 
 const (

@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/Masterminds/semver/v3"
-	"github.com/fatih/color"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/cache"
 	"github.com/BZYA-Community/WebsiteCore/internal/infra/metrics/prometheus"
 	"github.com/BZYA-Community/WebsiteCore/internal/infra/metrics/statistics"
+	"github.com/Masterminds/semver/v3"
+	"github.com/fatih/color"
 )
 
 type metricsService struct {

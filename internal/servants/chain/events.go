@@ -5,9 +5,9 @@
 package chain
 
 import (
-	"github.com/alimy/tryst/event"
 	"github.com/BZYA-Community/WebsiteCore/internal/infra/events"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
+	"github.com/alimy/tryst/event"
 	"github.com/sirupsen/logrus"
 )
 

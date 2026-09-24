@@ -8,10 +8,10 @@ import (
 	"context"
 	"time"
 
-	"github.com/redis/rueidis"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/pkg/utils"
+	"github.com/redis/rueidis"
 )
 
 var (

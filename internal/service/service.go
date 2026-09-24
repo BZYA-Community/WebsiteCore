@@ -7,9 +7,9 @@ package service
 import (
 	"log"
 
+	"github.com/BZYA-Community/WebsiteCore/pkg/types"
 	"github.com/Masterminds/semver/v3"
 	"github.com/alimy/tryst/cfg"
-	"github.com/BZYA-Community/WebsiteCore/pkg/types"
 )
 
 type Service interface {

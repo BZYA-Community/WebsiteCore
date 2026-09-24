@@ -5,8 +5,8 @@
 package chain
 
 import (
-	"github.com/gin-gonic/gin"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/gin-gonic/gin"
 )
 
 func OnlineUserMeasure() gin.HandlerFunc {

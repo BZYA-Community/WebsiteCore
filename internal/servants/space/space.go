@@ -5,8 +5,8 @@
 package space
 
 import (
-	"github.com/gin-gonic/gin"
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/x/v1"
+	"github.com/gin-gonic/gin"
 )
 
 // RouteWeb register SpaceX route

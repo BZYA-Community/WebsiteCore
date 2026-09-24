@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/Masterminds/semver/v3"
 	"github.com/cockroachdb/errors"
-	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/sirupsen/logrus"
 )
 

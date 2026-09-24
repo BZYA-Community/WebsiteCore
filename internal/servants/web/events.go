@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/alimy/tryst/event"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
@@ -17,6 +16,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/infra/events"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
+	"github.com/alimy/tryst/event"
 	"github.com/sirupsen/logrus"
 )
 

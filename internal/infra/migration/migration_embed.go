@@ -10,6 +10,8 @@ package migration
 import (
 	"database/sql"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/scripts/migration"
 	"github.com/alimy/tryst/cfg"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database"
@@ -18,8 +20,6 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	"github.com/golang-migrate/migrate/v4/source"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
-	"github.com/BZYA-Community/WebsiteCore/internal/conf"
-	"github.com/BZYA-Community/WebsiteCore/scripts/migration"
 	"github.com/sirupsen/logrus"
 )
 

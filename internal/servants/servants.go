@@ -5,8 +5,6 @@
 package servants
 
 import (
-	"github.com/alimy/tryst/cfg"
-	"github.com/gin-gonic/gin"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/admin"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/bot"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/docs"
@@ -15,6 +13,8 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/space"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/statick"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/web"
+	"github.com/alimy/tryst/cfg"
+	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
 )
 

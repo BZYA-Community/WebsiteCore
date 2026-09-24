@@ -5,9 +5,9 @@
 package prometheus
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
 
