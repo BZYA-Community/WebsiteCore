@@ -1,27 +1,21 @@
 <template>
     <div>
-        <div class="compose-wrap" v-if="userInfo.id > 0">
-            <div class="compose-line">
-                <div class="compose-user">
-                    <n-avatar
-                        round
-                        :size="30"
-                        :src="userInfo.avatar"
-                    />
-                </div>
-                <n-mention
-                    type="textarea"
-                    size="large"
-                    autosize
-                    :bordered="false"
-                    :loading="loading"
-                    :value="content"
-                    :prefix="['@', '#']"
-                    :options="optionsRef"
-                    @search="handleSearch"
-                    @update:value="changeContent"
-                    placeholder="说说您的新鲜事..."
+        <main-nav title="发布长文" :back="true" />
+
+        <n-card size="small" class="main-content-wrap compose-md-card">
+            <div class="compose-md-editor-wrap">
+                <md-editor
+                    class="compose-md-page-editor"
+                    :model-value="content"
+                    :theme="editorTheme"
+                    language="zh-CN"
+                    placeholder="支持 Markdown：井号后加空格是标题，#话题# 或 #话题 加空格是话题标签"
+                    :toolbars-exclude="mdToolbarsExclude"
+                    no-mermaid
+                    no-katex
+                    @update:model-value="changeContent"
                 />
+                <div class="draft-tip">草稿自动保存，仅保留最近一次未发布的内容</div>
             </div>
 
             <n-upload
@@ -44,7 +38,7 @@
                 @remove="removeUpload"
                 @update:file-list="updateUpload"
             >
-                <div class="compose-line compose-options">
+                <div class="compose-md-toolbar">
                     <div class="attachment">
                         <n-upload-trigger #="{ handleClick }" abstract>
                             <n-button
@@ -147,7 +141,7 @@
                             </template>
                         </n-button>
 
-                         <n-button
+                        <n-button
                             v-if="allowTweetVisibility"
                             quaternary
                             circle
@@ -165,34 +159,15 @@
                     <div class="submit-wrap">
                         <n-tooltip trigger="hover" placement="bottom">
                             <template #trigger>
-                                <n-button
-                                    quaternary
-                                    circle
-                                    type="primary"
-                                    @click.stop="goMarkdownEditor"
-                                >
-                                    <template #icon>
-                                        <n-icon
-                                            size="20"
-                                            color="var(--primary-color)"
-                                        >
-                                            <create-outline />
-                                        </n-icon>
-                                    </template>
-                                </n-button>
-                            </template>
-                            进入Markdown编辑器
-                        </n-tooltip>
-
-                        <n-tooltip trigger="hover" placement="bottom">
-                            <template #trigger>
                                 <n-progress
                                     class="text-statistic"
                                     type="circle"
                                     :show-indicator="false"
                                     status="success"
                                     :stroke-width="10"
-                                    :percentage="(content.length / maxInputLength) * 100"
+                                    :percentage="
+                                        (content.length / MD_MAX_LENGTH) * 100
+                                    "
                                 />
                             </template>
                             已输入{{ content.length }}字
@@ -254,53 +229,18 @@
                     <template #create-button-default> 创建链接 </template>
                 </n-dynamic-input>
             </div>
-        </div>
-
-        <div class="compose-wrap" v-else>
-            <div class="login-wrap">
-                <span class="login-banner"> 登录后，精彩更多</span>
-            </div>
-            <div v-if="!profile.allowUserRegister" class="login-only-wrap">
-                <n-button
-                    strong
-                    secondary
-                    round
-                    type="primary"
-                    @click="triggerAuth('signin')"
-                >
-                    登录
-                </n-button>
-            </div>
-            <div v-if="profile.allowUserRegister" class="login-wrap">
-                <n-button
-                    strong
-                    secondary
-                    round
-                    type="primary"
-                    @click="triggerAuth('signin')"
-                >
-                    登录
-                </n-button>
-                <n-button
-                    strong
-                    secondary
-                    round
-                    type="info"
-                    @click="triggerAuth('signup')"
-                >
-                    注册
-                </n-button>
-            </div>
-        </div>
+        </n-card>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
+import { debounce } from 'lodash';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { useStoreProfile } from '@/store/profile';
-import { debounce } from 'lodash';
 
 import {
   ImageOutline,
@@ -308,39 +248,44 @@ import {
   AttachOutline,
   CompassOutline,
   EyeOutline,
-  CreateOutline,
 } from '@vicons/ionicons5';
+import { MdEditor } from 'md-editor-v3';
+import type { ToolbarNames } from 'md-editor-v3';
+import 'md-editor-v3/lib/style.css';
 import { createPost } from '@/api/post';
 import { parsePostTag } from '@/utils/content';
+import { MD_MAX_LENGTH, mdTheme } from '@/utils/markdown';
+import { userInfo as fetchUserInfo } from '@/api/auth';
 import { isZipFile } from '@/utils/isZipFile';
-import type { MentionOption, UploadFileInfo, UploadInst } from 'naive-ui';
+import type { UploadFileInfo, UploadInst } from 'naive-ui';
 import { VisibilityEnum, PostItemTypeEnum } from '@/utils/IEnum';
-import { storeToRefs } from 'pinia';
-import { useRouter } from 'vue-router';
-import { Api } from '@/utils/request';
 
-const emit = defineEmits<{
-  (e: 'post-success', post: Item.PostProps): void;
-}>();
+const MD_DRAFT_KEY = 'paopao-md-draft';
 
+const router = useRouter();
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const storeProfile = useStoreProfile();
+const { theme } = storeToRefs(storeMain);
 const { userInfo } = storeToRefs(storeUser);
 const { profile } = storeToRefs(storeProfile);
 
-const router = useRouter();
+const editorTheme = computed(() => mdTheme(theme.value));
+// 精简工具栏: 去掉依赖外部CDN或与站点能力重复的项
+const mdToolbarsExclude: ToolbarNames[] = [
+  'mermaid',
+  'katex',
+  'image',
+  'github',
+  'htmlPreview',
+  'fullscreen',
+];
 
-const optionsRef = ref<MentionOption[]>([]);
-const loading = ref(false);
 const submitting = ref(false);
 const showLinkSet = ref(false);
 const showEyeSet = ref(false);
 const content = ref('');
 const links = ref([]);
-const maxInputLength = computed(
-  () => profile.value.defaultTweetMaxLength,
-);
 
 const uploadRef = ref<UploadInst>();
 const attachmentPrice = ref(0);
@@ -350,7 +295,7 @@ const imageContents = ref<Item.CommentItemProps[]>([]);
 const videoContents = ref<Item.CommentItemProps[]>([]);
 const attachmentContents = ref<Item.AttachmentProps[]>([]);
 const visitType = ref<VisibilityEnum>(VisibilityEnum.PUBLIC);
-const defaultVisitType = ref<VisibilityEnum>(VisibilityEnum.PUBLIC);
+const defaultVisitType = ref<VisibilityEnum>(VisibilityEnum);
 
 const allowTweetVisibility = ref(
   import.meta.env.VITE_ALLOW_TWEET_VISIBILITY.toLowerCase() === 'true',
@@ -387,72 +332,24 @@ const switchEye = () => {
   }
 };
 
-// 加载at用户列表
-const loadSuggestionUsers = debounce((k) => {
-  Api.v1.suggest.get.users({
-    k,
-  })
-    .then((res) => {
-      let options: MentionOption[] = [];
-      res.suggest.map((i) => {
-        options.push({
-          label: i,
-          value: i,
-        });
-      });
-      optionsRef.value = options;
-      loading.value = false;
-    })
-    .catch((err) => {
-      loading.value = false;
-    });
-}, 200);
-
-// 加载推荐tag列表
-const loadSuggestionTags = debounce((k) => {
-  Api.v1.suggest.get.tags({
-    k,
-  })
-    .then((res) => {
-      let options: MentionOption[] = [];
-      res.suggest.map((i) => {
-        options.push({
-          label: i,
-          value: i,
-        });
-      });
-      optionsRef.value = options;
-      loading.value = false;
-    })
-    .catch((err) => {
-      loading.value = false;
-    });
-}, 200);
-
-const handleSearch = (k: string, prefix: string) => {
-  if (loading.value) {
-    return;
-  }
-  loading.value = true;
-  if (prefix === '@') {
-    loadSuggestionUsers(k);
+// 草稿自动保存(防误退出丢失长文) 发布成功后清除
+const saveDraft = debounce(() => {
+  if (content.value.trim().length > 0) {
+    localStorage.setItem(MD_DRAFT_KEY, content.value);
   } else {
-    loadSuggestionTags(k);
+    localStorage.removeItem(MD_DRAFT_KEY);
   }
-};
-// 跳转独立的Markdown长文编辑页
-const goMarkdownEditor = () => {
-  router.push({
-    name: 'compose-md',
-  });
-};
+}, 500);
+
 const changeContent = (v: string) => {
-  if (v.length > maxInputLength.value) {
-    content.value = v.substring(0, maxInputLength.value);
+  if (v.length > MD_MAX_LENGTH) {
+    content.value = v.substring(0, MD_MAX_LENGTH);
   } else {
     content.value = v;
   }
+  saveDraft();
 };
+
 const setUploadType = (type: string) => {
   uploadType.value = type;
 };
@@ -580,7 +477,7 @@ const removeUpload = ({ file }: any) => {
   }
 };
 
-// 发布动态
+// 发布Markdown长文
 const submitPost = () => {
   if (content.value.trim().length === 0) {
     window.$message.warning('请输入内容哦');
@@ -595,7 +492,7 @@ const submitPost = () => {
 
   contents.push({
     content: content.value,
-    type: PostItemTypeEnum.TEXT, // 文字
+    type: PostItemTypeEnum.MARKDOWN, // Markdown长文
     sort,
   });
 
@@ -649,9 +546,9 @@ const submitPost = () => {
         window.$message.success('发布成功');
       }
       submitting.value = false;
-      emit('post-success', res);
 
-      // 置空
+      // 置空并清除草稿
+      localStorage.removeItem(MD_DRAFT_KEY);
       showLinkSet.value = false;
       showEyeSet.value = false;
       uploadRef.value?.clear();
@@ -662,16 +559,50 @@ const submitPost = () => {
       videoContents.value = [];
       attachmentContents.value = [];
       visitType.value = defaultVisitType.value;
+
+      // 回广场并刷新
+      router.replace('/');
+      setTimeout(() => {
+        storeMain.doRefresh();
+      }, 50);
     })
     .catch((err) => {
       submitting.value = false;
     });
 };
-const triggerAuth = (key: string) => {
-  storeMain.triggerAuth(true);
-  storeMain.triggerAuthKey(key);
+
+const ensureLogin = async () => {
+  if (!localStorage.getItem(TOKEN_KEY) && userInfo.value.id === 0) {
+    storeMain.triggerAuth(true);
+    storeMain.triggerAuthKey('signin');
+    router.replace({
+      name: 'home',
+    });
+    return false;
+  }
+
+  if (userInfo.value.id === 0) {
+    try {
+      const currentUser = await fetchUserInfo();
+      storeUser.updateUserinfo(currentUser);
+    } catch (_err) {
+      storeUser.userLogout();
+      router.replace({
+        name: 'home',
+      });
+      return false;
+    }
+  }
+
+  return true;
 };
-onMounted(() => {
+
+onMounted(async () => {
+  const allowed = await ensureLogin();
+  if (!allowed) {
+    return;
+  }
+
   const defaultVisibility = profile.value.defaultTweetVisibility;
   if (profile.value.useFriendship && defaultVisibility === 'friend') {
     defaultVisitType.value = VisibilityEnum.FRIEND;
@@ -683,83 +614,76 @@ onMounted(() => {
     defaultVisitType.value = VisibilityEnum.PRIVATE;
   }
   visitType.value = defaultVisitType.value;
+
+  // 恢复未发布草稿
+  const draft = localStorage.getItem(MD_DRAFT_KEY);
+  if (draft && draft.trim().length > 0) {
+    content.value = draft;
+    window.$message.info('已恢复上次未发布的草稿');
+  }
 });
 </script>
 
-<style lang="less">
-.compose-wrap {
-    width: 100%;
-    padding: 16px;
-    box-sizing: border-box;
+<style lang="less" scoped>
+.compose-md-card {
+    margin-top: -1px;
+    border-radius: 0;
 
-    .compose-line {
+    .compose-md-editor-wrap {
+        .compose-md-page-editor {
+            height: 560px;
+        }
+        .draft-tip {
+            margin-top: 6px;
+            font-size: 12px;
+            opacity: 0.55;
+        }
+    }
+
+    .compose-md-toolbar {
+        margin-top: 12px;
         display: flex;
-        flex-direction: row;
+        justify-content: space-between;
 
-        .compose-user {
-            width: 42px;
-            height: 42px;
+        .attachment {
             display: flex;
             align-items: center;
         }
 
-        &.compose-options {
-            margin-top: 6px;
-            padding-left: 42px;
+        .submit-wrap {
             display: flex;
-            justify-content: space-between;
-
-            .submit-wrap {
-                display: flex;
-                align-items: center;
-                .text-statistic {
-                    margin-right: 8px;
-                    width: 20px;
-                    height: 20px;
-                    transform: rotate(180deg);
-                }
+            align-items: center;
+            .text-statistic {
+                margin-right: 8px;
+                width: 20px;
+                height: 20px;
+                transform: rotate(180deg);
             }
         }
     }
+
+    .attachment-list-wrap {
+        margin-top: 12px;
+        .n-upload-file-info__thumbnail {
+            overflow: hidden;
+        }
+    }
+
     .link-wrap {
-        margin-left: 42px;
-        margin-right: 42px;
+        margin-top: 12px;
     }
     .eye-wrap {
-        margin-left: 64px;
-    }
-    .login-only-wrap {
-        display: flex;
-        justify-content: center;
-        width: 100%;
-        button {
-            margin: 0 4px;
-            width: 50%
-        }
-    }
-    .login-wrap {
-        display: flex;
-        justify-content: center;
-        width: 100%;
-        .login-banner {
-            margin-bottom: 12px;
-            opacity: 0.8;
-        }
-        button {
-            margin: 0 4px;
-        }
+        margin-top: 12px;
     }
 }
-.attachment-list-wrap {
-    margin-top: 12px;
-    margin-left: 42px;
-    .n-upload-file-info__thumbnail {
-        overflow: hidden;
-    }
-}
-.dark {
-    .compose-wrap {
-        background-color: rgba(16, 16, 20, 0.75);
+
+@media (max-width: 821px) {
+    .compose-md-card {
+        .compose-md-editor-wrap {
+            .compose-md-page-editor {
+                height: 420px;
+            }
+        }
     }
 }
 </style>
