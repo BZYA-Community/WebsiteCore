@@ -20,12 +20,15 @@ with sync_playwright() as p:
         m = page.evaluate("""() => {
             const c = document.querySelector('.content-wrap');
             const s = document.querySelector('.sidebar-wrap, .main-wrap > div:first-child');
+            const mw = document.querySelector('.main-wrap');
             return {
                 w: c ? Math.round(c.getBoundingClientRect().width) : -1,
+                base: mw ? mw.clientWidth : document.documentElement.clientWidth,
                 sidebar: s ? s.getBoundingClientRect().width > 0 : false,
             };
         }""")
-        expect = min(max(620, w - 640), 1000) if w > 821 else min(w, 620)
+        # 预期基准=main-wrap内容宽(%的包含块, 桌面端已扣除gutter预留), 与CSS一致
+        expect = min(max(620, m['base'] - 640), 1000) if w > 821 else min(w, 620)
         ok = 'OK' if abs(m['w'] - expect) <= 2 else 'DIFF!'
         print(f"{w:>6} | {m['w']:>18} | {expect:>12} | {m['sidebar']}  {ok}")
         ctx.close()
