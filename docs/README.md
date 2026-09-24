@@ -7,12 +7,15 @@ This directory contains project documentation for development, deployment, API a
 If you are looking for the main project entry points, start from:
 
 - [../README.md](../README.md) - project overview
-- [../INSTALL.md](../INSTALL.md) - installation and local setup guide
+- [INSTALL.md](INSTALL.md) - installation and local setup guide
 
 ## Documentation Sections
 
 | Section | Description |
 | --- | --- |
+| [INSTALL.md](INSTALL.md) ([中文](INSTALL_ZH.md)) | Installation and local setup guide |
+| [CHANGELOG.md](CHANGELOG.md) | Release history (upstream paopao-ce lineage and fork notes) |
+| [features-status.md](features-status.md) | Feature maturity and support status |
 | [openapi/](openapi/) | Exported API documentation assets, including generated OpenAPI files and static docs artifacts |
 | [proposal/](proposal/) | Product ideas, design proposals, and implementation notes |
 | [deploy/](deploy/) | Deployment references for local, cloud, and Kubernetes environments |
@@ -23,12 +26,12 @@ If you are looking for the main project entry points, start from:
 ### New contributors
 
 1. Read [../README.md](../README.md)
-2. Follow [../INSTALL.md](../INSTALL.md)
+2. Follow [INSTALL.md](INSTALL.md)
 3. Browse [proposal/](proposal/) to understand product intent and feature direction
 
 ### Operators and self-hosters
 
-1. Start with [../INSTALL.md](../INSTALL.md)
+1. Start with [INSTALL.md](INSTALL.md)
 2. Continue into [deploy/README.md](deploy/README.md)
 3. Use the platform-specific deployment docs that match your target environment
 

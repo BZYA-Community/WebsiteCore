@@ -6,7 +6,7 @@
 
 如果你需要先了解完整安装流程，建议先阅读：
 
-- [../../INSTALL_ZH.md](../../INSTALL_ZH.md) - 安装与运行配置指南
+- [../INSTALL_ZH.md](../INSTALL_ZH.md) - 安装与运行配置指南
 - [../README_ZH.md](../README_ZH.md) - 文档总索引
 
 ## 部署分区
@@ -24,13 +24,13 @@
 
 ### 本地自部署
 
-1. 先阅读 [../../INSTALL_ZH.md](../../INSTALL_ZH.md)
+1. 先阅读 [../INSTALL_ZH.md](../INSTALL_ZH.md)
 2. 再查看 [local/README.md](local/README.md)
 3. 如果需要更细的配置说明，再进入 [core/](core/)
 
 ### 云平台部署
 
-1. 先阅读 [../../INSTALL_ZH.md](../../INSTALL_ZH.md)
+1. 先阅读 [../INSTALL_ZH.md](../INSTALL_ZH.md)
 2. 再查看 [core/](core/)
 3. 最后进入对应平台文档：
    - [aliyun/README.md](aliyun/README.md)
@@ -39,7 +39,7 @@
 
 ### Kubernetes 部署
 
-1. 先阅读 [../../INSTALL_ZH.md](../../INSTALL_ZH.md)
+1. 先阅读 [../INSTALL_ZH.md](../INSTALL_ZH.md)
 2. 再查看 [core/](core/)
 3. 最后阅读 [k8s/README.md](k8s/README.md)
 

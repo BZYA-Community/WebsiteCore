@@ -2,7 +2,7 @@
 
 English | [简体中文](INSTALL_ZH.md)
 
-This guide covers the recommended ways to run PaoPao in development, evaluation, and self-hosted deployments. For a project overview, see [README.md](README.md).
+This guide covers the recommended ways to run PaoPao in development, evaluation, and self-hosted deployments. For a project overview, see [README.md](../README.md).
 
 ## Choose an Installation Path
 
@@ -266,7 +266,7 @@ Then visit:
 
 For platform-specific or production-oriented deployment references, see:
 
-- [docs/deploy/README.md](docs/deploy/README.md)
+- [docs/deploy/README.md](deploy/README.md)
 - [docs/deploy/core/](docs/deploy/core/)
 - [docs/deploy/local/](docs/deploy/local/)
 - [docs/deploy/k8s/](docs/deploy/k8s/)

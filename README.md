@@ -1,220 +1,112 @@
-<div id="top"></div>
-
-[![Go](https://github.com/rocboss/paopao-ce/actions/workflows/go.yml/badge.svg)](https://github.com/rocboss/paopao-ce/actions/workflows/go.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/rocboss/paopao-ce)](https://goreportcard.com/report/github.com/rocboss/paopao-ce)
-[![Forks](https://img.shields.io/github/forks/rocboss/paopao-ce?style=flat)](https://github.com/rocboss/paopao-ce/network/members)
-[![Stars](https://img.shields.io/github/stars/rocboss/paopao-ce.svg?style=flat)](https://github.com/rocboss/paopao-ce/stargazers)
-[![MIT License](https://img.shields.io/github/license/rocboss/paopao-ce.svg?style=flat)](https://github.com/rocboss/paopao-ce/blob/main/LICENSE)
-[![Contributors](https://img.shields.io/github/contributors/rocboss/paopao-ce?style=flat)](https://github.com/rocboss/paopao-ce/graphs/contributors)
-[![Sourcegraph](https://img.shields.io/badge/view%20on-Sourcegraph-brightgreen.svg)](https://sourcegraph.com/github.com/rocboss/paopao-ce)
-
 <div align="center">
-  <a href="https://github.com/rocboss/paopao-ce">
-    <img src="./.assets/readme/paopao-logo.png" alt="PaoPao logo" width="88" height="88">
-  </a>
-
-  <h1 align="center">PaoPao</h1>
-
-  <p align="center">
-    An open-source micro-community platform built with Go and Vue.
-    <br />
-    Designed for self-hosted social products, community experiments, and customizable deployments.
-  </p>
-
-  <p align="center">
-    <a href="README_ZH.md">简体中文</a>
-    ·
-    <a href="https://paopao-demo.vercel.app/">Live Demo</a>
-    ·
-    <a href="https://github.com/rocboss/paopao-ce/pulls">Pull Requests</a>
-    ·
-    <a href="https://www.yuque.com/rocs/paopao/about">Project Notes</a>
+  <img src="./.assets/readme/paopao-logo.png" alt="logo" width="88" height="88">
+  <h1>WebsiteCore</h1>
+  <p>
+    基于 <a href="https://github.com/rocboss/paopao-ce">paopao-ce</a> 深度定制的微社区系统<br>
+    Go + Vue3 全栈 · 身份组权限 · 内容审核 · B站式站内私信
   </p>
 </div>
 
 ---
 
-## Overview
+## 简介
 
-PaoPao is a full-stack, open-source micro-community system. It combines a Go backend and a Vue 3 web client, with a modular feature system for storage, search, logging, observability, and deployment strategy.
+WebsiteCore 是一个自托管的微社区/论坛系统：Go 后端（Gin + GORM + Redis + Meilisearch）内嵌 Vue 3 前端单页应用，单二进制即可运行。在上游 paopao-ce 基础上，本仓库增加了身份组体系、内容审核流与会话化站内私信等能力。
 
-The repository is suitable for teams or individuals who want to run a community product, evaluate an extensible social platform, or build on top of an existing codebase instead of starting from scratch.
+## 功能特性
 
-## Why PaoPao
+- **用户身份组与 RBAC**：游客 / 道友 / 导师 / 审核 / 管理员 / 运维，管理后台支持角色变更、禁言与软删除，全程留痕（角色变更日志）
+- **内容审核**：普通用户发帖进入审核队列，导师及以上免审；审核拒绝打回私密并可重新提交，审核结果站内通知
+- **站内私信（B站式）**：消息中心 = 会话列表（系统联系人置顶）+ 独立聊天窗；已读/未读、历史分页、身份组权限（道友↔道友禁止私信，道友对高级身份首条限制，回复后解除）
+- **系统通知会话**：关注 / 评论 / 回复 / 审核 / 管理通知统一归入「系统通知」会话，可跳转到帖子与用户主页
+- **好友与关注**：好友申请（通讯录内同意/拒绝）、单向关注、好友可见/关注可见等帖子可见性
+- **内容形态**：短动态（图片/视频/附件/收费附件）、Markdown 长文、话题标签、热搜趋势
+- **可插拔特性**：存储（LocalOSS/MinIO/S3）、搜索（Meilisearch/Zinc）、数据库（PostgreSQL/MySQL/SQLite）等均通过 `Features` 开关装配
 
-- **Full-stack delivery**: backend and web frontend live in one repository.
-- **Modular runtime features**: enable different capability sets through `Features` suites such as `Default`, `Develop`, `Demo`, and `Slim`.
-- **Flexible infrastructure**: supports MySQL, PostgreSQL, SQLite, Redis, Meilisearch, and multiple object storage providers.
-- **Binary-friendly deployment**: build a single self-contained release binary and deploy it directly to your server.
-- **Self-hosting friendly**: configuration is file-based and operational docs are already included in the repo.
+## 技术栈
 
-## Preview
-
-### Web
-
-[![Light theme preview](./.assets/readme/preview-light.jpeg)](https://paopao-demo.vercel.app)
-
-[![Dark theme preview](./.assets/readme/preview-dark.jpeg)](https://paopao-demo.vercel.app)
-
-More screenshots and live behavior are available at [PaoPao](https://paopao-demo.vercel.app/).
-
-## Architecture at a Glance
-
-| Layer | Primary stack |
+| 层 | 技术 |
 | --- | --- |
-| Backend | Go, Gin, Cobra, GORM, Mir |
-| Web frontend | Vue 3, Vite, Naive UI |
-| Search | Meilisearch |
-| Cache | Redis |
-| Object storage | Local OSS, MinIO, AliOSS, COS, Huawei OBS, S3-compatible |
-| Observability | OpenTelemetry, Sentry, Pyroscope, Pprof |
+| 后端 | Go · Gin · GORM · Redis(rueidis) · go-mir(接口代码生成) · golang-migrate(数据库迁移) |
+| 前端 | Vue 3 · Vite · Naive UI · Pinia · vue-advanced-chat(私信) · md-editor-v3(长文) |
+| 依赖服务 | PostgreSQL / MySQL / SQLite · Redis · Meilisearch(可选) |
 
-## Repository Layout
+## 快速开始
 
-| Path | Purpose |
-| --- | --- |
-| `cmd/`, `internal/`, `pkg/` | Backend application and shared packages |
-| `web/` | Vue 3 web application |
-| `docs/` | Deployment, OpenAPI, design proposals, and related documentation |
-| `scripts/` | SQL bootstrap and helper assets |
-| `config.yaml.sample` | Complete runtime configuration template |
+### 1. 准备依赖服务
 
-## Quick Start
+需要一个数据库（PostgreSQL/MySQL/SQLite）、Redis；全文搜索可选 Meilisearch。
 
-### Develop from source
+### 2. 配置
 
-#### Requirements
-
-- Go `1.24+`
-- Node.js `20.19+` or `22.12+`
-- MySQL `5.7+`
-- Redis
-- Meilisearch
-
-#### Backend
-
-1. Import `scripts/paopao-mysql.sql` into MySQL.
-2. Copy the sample config and adjust only the bootstrap-critical values for your environment.
-3. Start the backend.
-
-```sh
+```bash
 cp config.yaml.sample config.yaml
-make run
 ```
 
-To build a release binary instead:
+关键项：
 
-```sh
-make build
+- `Features.Default`：特性开关列表。数据库特性名写 `Postgres` / `MySQL` / `Sqlite3`；启用自动建表迁移需同时加 `Migration` 并在编译时带 `migration` tag
+- `WebServer.HttpPort`：监听端口（默认 8008）
+- 数据库 / Redis / Meili 等连接信息按环境填写
+
+### 3. 构建并运行
+
+```bash
+# 构建前端(产物内嵌进二进制)
+cd web && npm install && npx vite build && cd ..
+
+# 构建后端(embed=内嵌前端, migration=启动时自动迁移数据库)
+make build TAGS='embed migration'
+
+# 运行(配置与数据文件相对二进制所在目录)
+cd release && ./paopao serve        # Windows: paopao.exe serve
 ```
 
-To serve the embedded web UI from the Go binary, build the web assets first and run with the `embed` tag:
+访问 `http://127.0.0.1:8008`。更多安装/部署细节见 [docs/INSTALL_ZH.md](docs/INSTALL_ZH.md)。
 
-```sh
-make build-web
-make run TAGS='embed'
+## 开发
+
+```bash
+make run          # 后端开发模式(go run)
+make gen-mir      # 接口代码再生成: mirc/web/v1/*.go -> auto/api/v1/(勿手改生成物)
+make gen-enum     # 枚举代码再生成
+make test         # 测试
+cd web && npm run dev    # 前端开发服务
 ```
 
-#### Web frontend
+新增 API 的标准流程：在 `mirc/web/v1/` 声明接口签名 → `make gen-mir` 生成路由骨架 → 在 `internal/servants/web/` 实现业务。数据库结构变更在 `scripts/migration/{mysql,postgres,sqlite3}/` 按编号新增 `NNNN_name.{up,down}.sql`（三方言各一份）。
 
-```sh
-cd web
-cp .env .env.local
-yarn
-yarn dev
+## 目录结构
+
+```
+├── auto/          # go-mir 生成的路由/接口代码(勿手改)
+├── cmd/           # 命令入口(serve/version/migrate)
+├── internal/      # 后端实现: conf(配置装配) core(服务接口) dao(数据层) servants(HTTP层)
+├── mirc/          # mir 接口声明(API 的唯一事实来源)
+├── pkg/           # 通用工具库
+├── release/       # 构建输出
+├── scripts/       # migration SQL 等脚本
+├── web/           # Vue3 前端
+└── docs/          # 全部文档(安装/部署/提案/API/变更记录)
 ```
 
-To produce static assets:
+## 文档
 
-```sh
-yarn build
-```
-
-For the full installation guide and migration notes, see [INSTALL.md](INSTALL.md).
-
-## Configuration and Feature Suites
-
-`config.yaml.sample` is now a **minimal bootstrap template**. At runtime, PaoPao loads the embedded default config first, then overlays `./custom/config.yaml` or `./config.yaml` if present, preferring the first file it finds.
-
-That means the external config can stay intentionally small. In the current design:
-
-- **Keep in YAML**: ports, feature selection, database, Redis, JWT, and `AdminSettings.EncryptionKey`
-- **Prefer the admin UI** (`/#/admin/settings`): site profile, app behavior limits, search provider settings, object-storage settings, SMS/payment settings, and other operational knobs supported by the registry
-- **Watch apply mode**: some settings are live, while others are marked restart-required in the admin page
-
-The `Features` section controls which capability bundles are enabled:
-
-```yaml
-Features:
-  Default: ["Base", "MySQL", "Option", "LocalOSS", "LoggerFile"]
-  Develop: ["Base", "MySQL", "Option", "Sms", "AliOSS", "LoggerOtlp"]
-  Demo: ["Base", "MySQL", "Option", "Sms", "MinIO", "LoggerOtlp"]
-  Slim: ["Base", "Sqlite3", "LocalOSS", "LoggerFile"]
-  Base: ["Zinc", "Redis", "Alipay"]
-  Option: ["SimpleCacheIndex"]
-  Sms: "SmsJuhe"
-```
-
-Typical examples:
-
-```sh
-# Use the default suite
-release/paopao serve
-
-# Use only the declared develop suite
-release/paopao serve --no-default-features --features develop
-
-# Add sms on top of the default suite
-release/paopao serve --features sms
-
-# Enable features explicitly
-release/paopao serve --no-default-features --features sqlite3,localoss,loggerfile,redis
-```
-
-For the current implementation status of each feature, see [features-status.md](features-status.md).
-
-## Documentation Map
-
-- [INSTALL.md](INSTALL.md) - installation and binary deployment instructions
-- [INSTALL_ZH.md](INSTALL_ZH.md) - Chinese installation guide
-- [docs/README.md](docs/README.md) - documentation index
-- [docs/README_ZH.md](docs/README_ZH.md) - Chinese documentation index
-- [docs/deploy/](docs/deploy/) - deployment documentation
-- [docs/openapi/](docs/openapi/) - exported API documentation assets
-- [docs/proposal/](docs/proposal/) - design notes and feature proposals
-- [deployed-sites.md](deployed-sites.md) - known deployed instances
-- [ROADMAP.md](ROADMAP.md) - roadmap and planning notes
-
-## Branch Strategy
-
-The project uses a staged branch model:
-
-| Branch | Role |
+| 文档 | 说明 |
 | --- | --- |
-| `main` | Stable production branch; bug-fix oriented |
-| `beta` | Public testing branch |
-| `alpha` | Internal testing branch |
-| `dev` | Main development branch for new work |
-| `feature/*` | Focused feature branches |
-| `r/*` | Distribution-oriented release branches |
+| [docs/INSTALL_ZH.md](docs/INSTALL_ZH.md) | 安装与本地部署指南 |
+| [docs/deploy/](docs/deploy/) | 本地/云平台/K8s 部署参考 |
+| [docs/features-status.md](docs/features-status.md) | 功能项成熟度与状态 |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | 版本变更记录 |
+| [docs/proposal/](docs/proposal/) | 设计提案与实现笔记 |
+| [docs/openapi/](docs/openapi/) | OpenAPI 文档资源（运行时由 `/docs/openapi` 提供） |
 
-If you plan to contribute new functionality, target **`dev`** unless the maintainers specify otherwise.
+完整索引见 [docs/README_ZH.md](docs/README_ZH.md)。
 
-## Contributing
+## 致谢
 
-Pull requests are welcome. If you want to contribute:
-
-1. Fork the repository.
-2. Create a branch from `dev` for feature work.
-3. Keep changes focused and documented.
-4. Open a PR with context about the problem, approach, and verification.
-
-If you deploy your own instance, consider adding it to [deployed-sites.md](deployed-sites.md).
-
-[![Star History Chart](https://api.star-history.com/svg?repos=rocboss/paopao-ce&type=Date)](https://star-history.com/#rocboss/paopao-ce&Date)
+- 上游项目 [rocboss/paopao-ce](https://github.com/rocboss/paopao-ce)（MIT License）
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](LICENSE) for details.
-
-<p align="right">(<a href="#top">back to top</a>)</p>
+[MIT](LICENSE)
