@@ -426,7 +426,7 @@ const userColumns: DataTableColumns<UserItem> = [
                 NButton,
                 {
                     size: 'small',
-                    quaternary,
+                    quaternary: true,
                     type: 'info',
                     onClick: () => openDetail(row),
                 },
