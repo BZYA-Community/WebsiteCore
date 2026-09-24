@@ -5,6 +5,13 @@
     --content-main: clamp(620px, calc(100% - 640px), 1000px);
 }
 
+// 1140px以下右侧栏已隐藏, 中间栏只需让出左侧栏空间
+@media screen and (max-width: 1140px) {
+    :root {
+        --content-main: clamp(620px, calc(100% - 440px), 1000px);
+    }
+}
+
 // 常驻预留滚动条空间: 切换页面时滚动条出现/消失不再引起布局宽度变化
 html {
     scrollbar-gutter: stable;

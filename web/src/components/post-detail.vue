@@ -889,6 +889,13 @@ onMounted(() => {
         word-break: break-all;
     }
     .post-markdown-wrap {
+        // 困住md-editor内部浮层的z-index(最高100001), 防止代码块头部等盖住站内弹窗
+        isolation: isolate;
+
+        // 背景透明: 跟随帖子卡片背景(深色模式一致)
+        .md-editor.md-editor {
+            --md-bk-color: transparent;
+        }
         .md-editor-preview-wrapper {
             padding: 0;
         }
