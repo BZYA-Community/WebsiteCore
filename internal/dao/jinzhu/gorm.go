@@ -10,29 +10,34 @@ import (
 
 // 数据库表名，统一使用 _<table name>_ 的形式命名， 比如tag表 => _tag_
 var (
-	_anouncement_        string
-	_anouncementContent_ string
-	_attachment_         string
-	_captcha_            string
-	_comment_            string
-	_commentMetric_      string
-	_commentContent_     string
-	_commentReply_       string
-	_following_          string
-	_contact_            string
-	_contactGroup_       string
-	_message_            string
-	_post_               string
-	_post_metric_        string
-	_post_by_comment_    string
-	_post_by_media_      string
-	_postCollection_     string
-	_postContent_        string
-	_postStar_           string
-	_tag_                string
-	_user_               string
-	_userRelation_       string
-	_userMetric_         string
+	_anouncement_          string
+	_anouncementContent_   string
+	_attachment_           string
+	_captcha_              string
+	_comment_              string
+	_course_               string
+	_courseGroup_          string
+	_courseComment_        string
+	_courseCommentContent_ string
+	_courseCommentReply_   string
+	_commentMetric_        string
+	_commentContent_       string
+	_commentReply_         string
+	_following_            string
+	_contact_              string
+	_contactGroup_         string
+	_message_              string
+	_post_                 string
+	_post_metric_          string
+	_post_by_comment_      string
+	_post_by_media_        string
+	_postCollection_       string
+	_postContent_          string
+	_postStar_             string
+	_tag_                  string
+	_user_                 string
+	_userRelation_         string
+	_userMetric_           string
 )
 
 func initTableName() {
@@ -42,6 +47,11 @@ func initTableName() {
 	_attachment_ = m[conf.TableAttachment]
 	_captcha_ = m[conf.TableCaptcha]
 	_comment_ = m[conf.TableComment]
+	_course_ = m[conf.TableCourse]
+	_courseGroup_ = m[conf.TableCourseGroup]
+	_courseComment_ = m[conf.TableCourseComment]
+	_courseCommentContent_ = m[conf.TableCourseCommentContent]
+	_courseCommentReply_ = m[conf.TableCourseCommentReply]
 	_commentMetric_ = m[conf.TableCommentMetric]
 	_commentContent_ = m[conf.TableCommentContent]
 	_commentReply_ = m[conf.TableCommentReply]

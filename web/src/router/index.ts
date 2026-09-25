@@ -27,6 +27,23 @@ const routes = [
     component: () => import('@/views/ComposeMd.vue'),
   },
   {
+    path: '/courses',
+    name: 'courses',
+    meta: {
+      title: '课程',
+      keepAlive: true,
+    },
+    component: () => import('@/views/Courses.vue'),
+  },
+  {
+    path: '/course',
+    name: 'course',
+    meta: {
+      title: '课程详情',
+    },
+    component: () => import('@/views/CourseDetail.vue'),
+  },
+  {
     path: '/topic',
     name: 'topic',
     meta: {

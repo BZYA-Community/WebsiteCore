@@ -69,6 +69,7 @@ import {
   SettingsOutline,
   ConstructOutline,
   LogOutOutline,
+  VideocamOutline,
 } from '@vicons/ionicons5';
 import { Hash } from '@vicons/tabler';
 import LOGO from '@/assets/img/logo.png';
@@ -143,6 +144,12 @@ const menuOptions = computed(() => {
       icon: () => h(Hash),
       href: '/topic',
     },
+    {
+      label: '课程',
+      key: 'courses',
+      icon: () => h(VideocamOutline),
+      href: '/courses',
+    },
   ];
   options.push({
     label: '主页',
@@ -213,6 +220,12 @@ const menuOptions = computed(() => {
           key: 'topic',
           icon: () => h(Hash),
           href: '/topic',
+        },
+        {
+          label: '课程',
+          key: 'courses',
+          icon: () => h(VideocamOutline),
+          href: '/courses',
         },
       ];
 });

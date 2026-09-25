@@ -119,8 +119,8 @@ declare namespace Api {
 
             interface AuditCommentReq {
                 id: number;
-                /** 0评论 1回复 */
-                comment_type: 0 | 1;
+                /** 0帖子评论 1帖子回复 2课程评论 3课程回复 */
+                comment_type: 0 | 1 | 2 | 3;
                 action: 'approve' | 'reject';
                 reason?: string;
             }
@@ -242,8 +242,8 @@ declare namespace Api {
 
             interface AuditCommentItem {
                 id: number;
-                /** 0评论 1回复 */
-                comment_type: 0 | 1;
+                /** 0帖子评论 1帖子回复 2课程评论 3课程回复 */
+                comment_type: 0 | 1 | 2 | 3;
                 post_id: number;
                 /** 回复所属评论ID(评论自身为0) */
                 comment_id: number;

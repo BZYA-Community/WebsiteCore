@@ -15,3 +15,7 @@ __debug_bin
 /.custom
 /run.sh
 scripts/shots/
+
+# 本地测试二进制(勿提交)
+paopao-*.exe
+*.exe~

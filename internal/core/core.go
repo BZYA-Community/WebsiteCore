@@ -29,6 +29,10 @@ type DataService interface {
 	CommentService
 	CommentManageService
 
+	// 课程服务
+	CourseService
+	CourseManageService
+
 	// 用户服务
 	UserManageService
 	ContactManageService

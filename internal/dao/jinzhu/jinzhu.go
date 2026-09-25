@@ -30,6 +30,8 @@ type dataSrv struct {
 	core.CommentService
 	core.CommentManageService
 	core.CommentMetricServantA
+	core.CourseService
+	core.CourseManageService
 	core.TrendsManageServantA
 	core.UserManageService
 	core.UserMetricServantA
@@ -67,6 +69,8 @@ func NewDataService() (core.DataService, core.VersionInfo) {
 		TweetHelpService:       newTweetHelpService(db),
 		CommentService:         newCommentService(db),
 		CommentManageService:   newCommentManageService(db),
+		CourseService:          newCourseService(db),
+		CourseManageService:    newCourseManageService(db),
 		TrendsManageServantA:   newTrendsManageServentA(db),
 		UserManageService:      newUserManageService(db, ums),
 		SiteAdminService:       newAuditService(db),

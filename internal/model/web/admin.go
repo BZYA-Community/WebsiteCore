@@ -147,12 +147,12 @@ func (r *AdminAuditCommentsReq) SetPageInfo(page, pageSize int) {
 
 type AdminAuditCommentsResp base.PageResp
 
-// AdminAuditCommentReq 评论审核动作·comment_type: 0评论 1回复
+// AdminAuditCommentReq 评论审核动作·comment_type: 0帖子评论 1帖子回复 2课程评论 3课程回复
 type AdminAuditCommentReq struct {
 	BaseInfo `json:"-" binding:"-"`
 	ID       int64 `json:"id" binding:"required"`
 	// 0为合法值(评论) 不能加required 否则zero value校验失败
-	CommentType int    `json:"comment_type" binding:"oneof=0 1"`
+	CommentType int    `json:"comment_type" binding:"oneof=0 1 2 3"`
 	Action      string `json:"action" binding:"required,oneof=approve reject"`
 	Reason      string `json:"reason"`
 }
@@ -160,7 +160,7 @@ type AdminAuditCommentReq struct {
 // AdminAuditCommentItem 评论审核队列条目(评论与回复合并)
 type AdminAuditCommentItem struct {
 	ID          int64                `json:"id"`
-	CommentType int                  `json:"comment_type"` // 0评论 1回复
+	CommentType int                  `json:"comment_type"` // 0帖子评论 1帖子回复 2课程评论 3课程回复
 	PostID      int64                `json:"post_id"`
 	CommentID   int64                `json:"comment_id"` // 回复所属评论ID(评论自身为0)
 	User        *AdminAuditUserBrief `json:"user"`

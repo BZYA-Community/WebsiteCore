@@ -191,13 +191,13 @@ func (s *auditSrv) ListAuditComments(req *web.AdminAuditCommentsReq) (*web.Admin
 	}
 	userIds := make([]int64, 0, len(rows))
 	commentIds := make([]int64, 0, len(rows))
-	replyIds := make([]int64, 0, len(rows))
+	courseCommentIds := make([]int64, 0, len(rows))
 	for _, row := range rows {
 		userIds = append(userIds, row.UserID)
 		if row.CommentType == 0 {
 			commentIds = append(commentIds, row.ID)
-		} else {
-			replyIds = append(replyIds, row.ID)
+		} else if row.CommentType == 2 {
+			courseCommentIds = append(courseCommentIds, row.ID)
 		}
 	}
 	users, _ := s.Ds.GetUsersByIDs(userIds)
@@ -222,6 +222,24 @@ func (s *auditSrv) ListAuditComments(req *web.AdminAuditCommentsReq) (*web.Admin
 			}
 		}
 	}
+	// 课程评论内容(comment_type=2) 与帖子评论同一摘要逻辑
+	courseContentMap := make(map[int64]string, len(courseCommentIds))
+	if len(courseCommentIds) > 0 {
+		if contents, err := s.Ds.GetCourseCommentContentsByIDs(courseCommentIds); err == nil {
+			for _, c := range contents {
+				switch c.Type {
+				case ms.ContentTypeImage:
+					courseContentMap[c.CommentID] += "[图片]"
+				case ms.ContentTypeVideo:
+					courseContentMap[c.CommentID] += "[视频]"
+				case ms.ContentTypeAttachment, ms.ContentTypeChargeAttachment:
+					courseContentMap[c.CommentID] += "[附件]"
+				default:
+					courseContentMap[c.CommentID] += c.Content
+				}
+			}
+		}
+	}
 	items := make([]*web.AdminAuditCommentItem, 0, len(rows))
 	for _, row := range rows {
 		item := &web.AdminAuditCommentItem{
@@ -235,6 +253,14 @@ func (s *auditSrv) ListAuditComments(req *web.AdminAuditCommentsReq) (*web.Admin
 		}
 		if row.CommentType == 1 {
 			if reply, err := s.Ds.GetCommentReplyByID(row.ID); err == nil {
+				item.Content = auditBriefText(reply.Content)
+			}
+		}
+		if row.CommentType == 2 {
+			item.Content = auditBriefText(courseContentMap[row.ID])
+		}
+		if row.CommentType == 3 {
+			if reply, err := s.Ds.GetCourseCommentReplyByID(row.ID); err == nil {
 				item.Content = auditBriefText(reply.Content)
 			}
 		}
@@ -273,10 +299,18 @@ func (s *auditSrv) AuditCommentAction(req *web.AdminAuditCommentReq) error {
 		oldStatus int
 		err       error
 	)
-	if req.CommentType == 0 {
+	// comment_type: 0帖子评论 1帖子回复 2课程评论 3课程回复
+	switch req.CommentType {
+	case 0:
 		oldStatus, err = s.Ds.UpdateCommentAuditStatus(req.ID, newStatus)
-	} else {
+	case 1:
 		oldStatus, err = s.Ds.UpdateCommentReplyAuditStatus(req.ID, newStatus)
+	case 2:
+		oldStatus, err = s.Ds.UpdateCourseCommentAuditStatus(req.ID, newStatus)
+	case 3:
+		oldStatus, err = s.Ds.UpdateCourseCommentReplyAuditStatus(req.ID, newStatus)
+	default:
+		return xerror.InvalidParams
 	}
 	if err != nil {
 		logrus.Errorf("Ds.UpdateCommentAuditStatus err: %s", err)
@@ -284,6 +318,30 @@ func (s *auditSrv) AuditCommentAction(req *web.AdminAuditCommentReq) error {
 	}
 	if oldStatus == newStatus {
 		// 状态未变化 幂等返回
+		return nil
+	}
+
+	// 课程评论/回复: 独立联动(课程计数+结果通知, 不涉及帖子计数/搜索索引)
+	if req.CommentType >= 2 {
+		courseID := s.applyCourseCommentAuditEffects(req.CommentType, req.ID, oldStatus, newStatus, req.Reason)
+		if courseID <= 0 {
+			return nil
+		}
+		action := "course_comment_" + req.Action
+		if req.CommentType == 3 {
+			action = "course_reply_" + req.Action
+		}
+		// 审核日志post_id列复用为课程id, action前缀course_区分
+		if err := s.Ds.CreateAuditLog(&ms.AuditLog{
+			PostID:     courseID,
+			OperatorID: req.User.ID,
+			Action:     action,
+			OldStatus:  uint8(oldStatus),
+			NewStatus:  uint8(newStatus),
+			Reason:     req.Reason,
+		}); err != nil {
+			logrus.Errorf("Ds.CreateAuditLog err: %s", err)
+		}
 		return nil
 	}
 
@@ -394,6 +452,67 @@ func (s *auditSrv) applyReplyAuditEffects(replyId int64, oldStatus, newStatus in
 	// 缓存处理
 	onCommentActionEvent(comment.PostID, comment.ID, _commentActionAudit)
 	return post
+}
+
+// applyCourseCommentAuditEffects 课程评论/回复审核联动: 课程评论数 + 结果通知(回复父评论reply_count已在DAO内调整)
+// 返回课程id(供审核日志记录), 失败返回0
+func (s *auditSrv) applyCourseCommentAuditEffects(commentType int, id int64, oldStatus, newStatus int, reason string) int64 {
+	var (
+		courseID int64
+		userID   int64
+		summary  string
+		isReply  bool
+	)
+	if commentType == 2 {
+		comment, err := s.Ds.GetCourseCommentByID(id)
+		if err != nil || comment.Model == nil || comment.ID <= 0 {
+			logrus.Errorf("auditSrv GetCourseCommentByID[%d] err: %v", id, err)
+			return 0
+		}
+		courseID, userID = comment.CourseID, comment.UserID
+		if contents, err := s.Ds.GetCourseCommentContentsByIDs([]int64{comment.ID}); err == nil {
+			text := ""
+			for _, c := range contents {
+				if c.Type == ms.ContentTypeText || c.Type == ms.ContentTypeTitle {
+					text += c.Content
+				}
+			}
+			summary = auditBriefText(text)
+		}
+	} else {
+		isReply = true
+		reply, err := s.Ds.GetCourseCommentReplyByID(id)
+		if err != nil || reply.Model == nil || reply.ID <= 0 {
+			logrus.Errorf("auditSrv GetCourseCommentReplyByID[%d] err: %v", id, err)
+			return 0
+		}
+		userID = reply.UserID
+		summary = auditBriefText(reply.Content)
+		comment, err := s.Ds.GetCourseCommentByID(reply.CommentID)
+		if err != nil {
+			logrus.Errorf("auditSrv GetCourseCommentByID[%d] err: %s", reply.CommentID, err)
+			return 0
+		}
+		courseID = comment.CourseID
+	}
+	switch {
+	case newStatus == int(ms.PostAuditApproved):
+		// 过审: 补记课程评论数(通知的PostID置0——课程评论无对应帖子)
+		if err := s.Ds.AdjustCourseCommentCount(courseID, 1); err != nil {
+			logrus.Errorf("Ds.AdjustCourseCommentCount err: %s", err)
+		}
+		s.notifyCommentAuditResult(userID, isReply, 0, summary, "", true)
+	case oldStatus == int(ms.PostAuditApproved):
+		// 由过审转为拒绝: 回减课程评论数
+		if err := s.Ds.AdjustCourseCommentCount(courseID, -1); err != nil {
+			logrus.Errorf("Ds.AdjustCourseCommentCount err: %s", err)
+		}
+		s.notifyCommentAuditResult(userID, isReply, 0, summary, reason, false)
+	default:
+		// 待审->拒绝: 从未计数 仅通知结果
+		s.notifyCommentAuditResult(userID, isReply, 0, summary, reason, false)
+	}
+	return courseID
 }
 
 // notifyCommentApproved 评论过审后补发创建时被延迟的通知(帖子作者+文中@的用户)

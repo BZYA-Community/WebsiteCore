@@ -1,9 +1,4 @@
-[![CI](https://github.com/BZYA-Community/WebsiteCore/actions/workflows/ci.yml/badge.svg)](https://github.com/BZYA-Community/WebsiteCore/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/BZYA-Community/WebsiteCore)](https://goreportcard.com/report/github.com/BZYA-Community/WebsiteCore)
-[![Forks](https://img.shields.io/github/forks/BZYA-Community/WebsiteCore?style=flat)](https://github.com/BZYA-Community/WebsiteCore/network/members)
-[![Stars](https://img.shields.io/github/stars/BZYA-Community/WebsiteCore.svg?style=flat)](https://github.com/BZYA-Community/WebsiteCore/stargazers)
-[![MIT License](https://img.shields.io/github/license/BZYA-Community/WebsiteCore.svg?style=flat)](https://github.com/BZYA-Community/WebsiteCore/blob/main/LICENSE)
-[![Contributors](https://img.shields.io/github/contributors/BZYA-Community/WebsiteCore?style=flat)](https://github.com/BZYA-Community/WebsiteCore/graphs/contributors)
+[![work on my machine](https://img.shields.io/badge/work%20on-my%20machine-blue?style=for-the-badge)](https://github.com/BZYA-Community/WebsiteCore)
 
 <div align="center">
   <img src="./.assets/readme/paopao-logo.png" alt="logo" width="88" height="88">

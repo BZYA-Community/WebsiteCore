@@ -52,6 +52,22 @@ var (
 	ErrPostContentsEmpty       = xerror.NewError(30016, "内容不能为空")
 	ErrPostContentsTooLong     = xerror.NewError(30017, "内容超过长度限制")
 
+	// 课程模块 700xx
+	ErrGetCourseGroupsFailed        = xerror.NewError(70001, "获取课程分组失败")
+	ErrGetCourseListFailed          = xerror.NewError(70002, "获取课程列表失败")
+	ErrCourseNotExist               = xerror.NewError(70003, "课程不存在")
+	ErrCourseGroupNotExist          = xerror.NewError(70004, "课程分组不存在")
+	ErrCourseTeacherInvalid         = xerror.NewError(70005, "讲师用户不存在")
+	ErrCourseGroupNotEmpty          = xerror.NewError(70006, "分组下存在课程，无法删除")
+	ErrCreateCourseFailed           = xerror.NewError(70007, "课程创建失败")
+	ErrUpdateCourseFailed           = xerror.NewError(70008, "课程更新失败")
+	ErrDeleteCourseFailed           = xerror.NewError(70009, "课程删除失败")
+	ErrCourseVideoInvalid           = xerror.NewError(70010, "课程视频无效或尚未上传完成")
+	ErrGetCourseCommentsFailed      = xerror.NewError(70011, "获取课程评论失败")
+	ErrCreateCourseCommentFailed    = xerror.NewError(70012, "评论发布失败")
+	ErrDeleteCourseCommentFailed    = xerror.NewError(70013, "评论删除失败")
+	ErrCourseUploadCredentialFailed = xerror.NewError(70014, "获取上传凭证失败")
+
 	ErrGetCommentsFailed      = xerror.NewError(40001, "获取评论列表失败")
 	ErrCreateCommentFailed    = xerror.NewError(40002, "评论发布失败")
 	ErrGetCommentFailed       = xerror.NewError(40003, "获取评论详情失败")

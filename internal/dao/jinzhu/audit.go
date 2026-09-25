@@ -73,19 +73,29 @@ func (s *auditSrv) CreateAuditLog(log *ms.AuditLog) error {
 // ListAuditComments 评论审核队列: 评论与回复UNION合并按创建时间倒序分页
 // status: 0待审核 1已通过 2未通过 -1全部
 func (s *auditSrv) ListAuditComments(status int, offset, limit int) (res []*dbr.AuditCommentRow, total int64, err error) {
-	condC, condR := "", ""
+	condC, condR, condCC, condCR := "", "", "", ""
 	var args []any
 	if status >= 0 && status <= int(dbr.PostAuditRejected) {
 		condC = " AND c.audit_status = ?"
 		condR = " AND r.audit_status = ?"
-		args = append(args, status, status)
+		condCC = " AND cc.audit_status = ?"
+		condCR = " AND cr.audit_status = ?"
+		// 注意: 四个UNION分支的顺序参数, 追加顺序必须与SQL分支顺序一致
+		args = append(args, status, status, status, status)
 	}
+	// comment_type: 0帖子评论 1帖子回复 2课程评论 3课程回复; post_id列在课程类型下承载course_id
 	union := fmt.Sprintf(`SELECT c.id, 0 AS comment_type, c.post_id, 0 AS comment_id, c.user_id, c.audit_status, c.created_on
 FROM %s c WHERE c.is_del = 0%s
 UNION ALL
 SELECT r.id, 1 AS comment_type, p.post_id, r.comment_id, r.user_id, r.audit_status, r.created_on
-FROM %s r JOIN %s p ON r.comment_id = p.id WHERE r.is_del = 0%s`,
-		_comment_, condC, _commentReply_, _comment_, condR)
+FROM %s r JOIN %s p ON r.comment_id = p.id WHERE r.is_del = 0%s
+UNION ALL
+SELECT cc.id, 2 AS comment_type, cc.course_id, 0 AS comment_id, cc.user_id, cc.audit_status, cc.created_on
+FROM %s cc WHERE cc.is_del = 0%s
+UNION ALL
+SELECT cr.id, 3 AS comment_type, pc.course_id, cr.comment_id, cr.user_id, cr.audit_status, cr.created_on
+FROM %s cr JOIN %s pc ON cr.comment_id = pc.id WHERE cr.is_del = 0%s`,
+		_comment_, condC, _commentReply_, _comment_, condR, _courseComment_, condCC, _courseCommentReply_, _courseComment_, condCR)
 	if err = s.db.Raw("SELECT COUNT(*) FROM ("+union+") t", args...).Scan(&total).Error; err != nil {
 		return
 	}

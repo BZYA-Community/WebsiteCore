@@ -93,7 +93,7 @@
                         >
                             <div class="audit-card-head">
                                 <span class="audit-card-id">
-                                    {{ row.comment_type === 1 ? '回复' : '评论' }}#{{ row.id }}
+                                    {{ commentTypeText(row.comment_type) }}#{{ row.id }}
                                 </span>
                                 <n-tag size="small" round :type="statusTagType(row.audit_status)">
                                     {{ statusText(row.audit_status) }}
@@ -113,7 +113,7 @@
                                     type="info"
                                     @click.stop="openCommentInNewTab(row)"
                                 >
-                                    查看{{ row.comment_type === 1 ? '回复' : '评论' }}
+                                    查看{{ commentTypeText(row.comment_type) }}
                                 </n-button>
                                 <n-button
                                     size="tiny"
@@ -360,6 +360,20 @@ const statusText = (status: number) => {
     }
 };
 
+// comment_type: 0帖子评论 1帖子回复 2课程评论 3课程回复
+const commentTypeText = (type: number) => {
+    switch (type) {
+        case 1:
+            return '回复';
+        case 2:
+            return '课程评论';
+        case 3:
+            return '课程回复';
+        default:
+            return '评论';
+    }
+};
+
 const actionText = (action: string) => {
     switch (action) {
         case 'approve':
@@ -380,6 +394,16 @@ const actionText = (action: string) => {
             return '昵称通过';
         case 'nickname_reject':
             return '昵称拒绝';
+        case 'course_comment_approve':
+            return '课程评论通过';
+        case 'course_comment_reject':
+            return '课程评论拒绝';
+        case 'course_reply_approve':
+            return '课程回复通过';
+        case 'course_reply_reject':
+            return '课程回复拒绝';
+        case 'course_delete':
+            return '课程删除';
         default:
             return action;
     }
@@ -448,8 +472,13 @@ const openInNewTab = (postId: number) => {
     window.open(`/#/post?id=${postId}`, '_blank', 'noopener');
 };
 
-// 评论/回复审核条目: 跳转对应帖子并定位高亮该评论(回复定位到所属评论下的回复)
+// 评论/回复审核条目: 跳转对应帖子并定位高亮该评论(回复定位到所属评论下的回复);
+// 课程评论/回复(comment_type 2/3)跳转课程详情页(post_id列承载课程id)
 const openCommentInNewTab = (row: AuditCommentItem) => {
+    if (row.comment_type >= 2) {
+        window.open(`/#/course?id=${row.post_id}`, '_blank', 'noopener');
+        return;
+    }
     const commentId = row.comment_type === 1 ? row.comment_id : row.id;
     let url = `/#/post?id=${row.post_id}&comment_id=${commentId}`;
     if (row.comment_type === 1) {
