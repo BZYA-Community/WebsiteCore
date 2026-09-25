@@ -149,8 +149,8 @@ type AdminAuditCommentsResp base.PageResp
 
 // AdminAuditCommentReq 评论审核动作·comment_type: 0评论 1回复
 type AdminAuditCommentReq struct {
-	BaseInfo    `json:"-" binding:"-"`
-	ID          int64  `json:"id" binding:"required"`
+	BaseInfo `json:"-" binding:"-"`
+	ID       int64 `json:"id" binding:"required"`
 	// 0为合法值(评论) 不能加required 否则zero value校验失败
 	CommentType int    `json:"comment_type" binding:"oneof=0 1"`
 	Action      string `json:"action" binding:"required,oneof=approve reject"`
@@ -159,14 +159,14 @@ type AdminAuditCommentReq struct {
 
 // AdminAuditCommentItem 评论审核队列条目(评论与回复合并)
 type AdminAuditCommentItem struct {
-	ID          int64  `json:"id"`
-	CommentType int    `json:"comment_type"` // 0评论 1回复
-	PostID      int64  `json:"post_id"`
-	CommentID   int64  `json:"comment_id"` // 回复所属评论ID(评论自身为0)
+	ID          int64                `json:"id"`
+	CommentType int                  `json:"comment_type"` // 0评论 1回复
+	PostID      int64                `json:"post_id"`
+	CommentID   int64                `json:"comment_id"` // 回复所属评论ID(评论自身为0)
 	User        *AdminAuditUserBrief `json:"user"`
-	Content     string `json:"content"`
-	AuditStatus int    `json:"audit_status"`
-	CreatedOn   int64  `json:"created_on"`
+	Content     string               `json:"content"`
+	AuditStatus int                  `json:"audit_status"`
+	CreatedOn   int64                `json:"created_on"`
 }
 
 // AdminAuditUserBrief 审核条目关联用户摘要
@@ -199,11 +199,11 @@ type AdminAuditNicknameReq struct {
 
 // AdminAuditNicknameItem 昵称审核队列条目
 type AdminAuditNicknameItem struct {
-	UserID           int64  `json:"user_id"`
-	Username         string `json:"username"`
-	Nickname         string `json:"nickname"`
-	PendingNickname  string `json:"pending_nickname"`
-	CreatedOn        int64  `json:"created_on"`
+	UserID          int64  `json:"user_id"`
+	Username        string `json:"username"`
+	Nickname        string `json:"nickname"`
+	PendingNickname string `json:"pending_nickname"`
+	CreatedOn       int64  `json:"created_on"`
 }
 
 // AdminAuditLogsReq 审核日志

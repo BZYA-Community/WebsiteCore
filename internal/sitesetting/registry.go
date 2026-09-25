@@ -49,11 +49,11 @@ type bootstrapSnapshot struct {
 }
 
 type confAppSnapshot struct {
-	MaxCommentCount      int64
-	MaxWhisperDaily      int64
-	MaxCaptchaTimes      int
-	DefaultPageSize      int
-	MaxPageSize          int
+	MaxCommentCount int64
+	MaxWhisperDaily int64
+	MaxCaptchaTimes int
+	DefaultPageSize int
+	MaxPageSize     int
 }
 
 type confTweetSearchSnapshot struct {
@@ -142,22 +142,22 @@ type confAuditSnapshot struct {
 }
 
 type confWebProfileSnapshot struct {
-	UseFriendship             bool
-	EnableTrendsBar           bool
-	AllowTweetAttachment      bool
-	AllowTweetVideo           bool
-	AllowUserRegister         bool
-	AllowPhoneBind            bool
-	DefaultTweetMaxLength     int
-	TweetWebEllipsisSize      int
-	TweetMobileEllipsisSize   int
-	DefaultTweetVisibility    string
-	DefaultMsgLoopInterval    int
-	CopyrightTop              string
-	CopyrightLeft             string
-	CopyrightLeftLink         string
-	CopyrightRight            string
-	CopyrightRightLink        string
+	UseFriendship           bool
+	EnableTrendsBar         bool
+	AllowTweetAttachment    bool
+	AllowTweetVideo         bool
+	AllowUserRegister       bool
+	AllowPhoneBind          bool
+	DefaultTweetMaxLength   int
+	TweetWebEllipsisSize    int
+	TweetMobileEllipsisSize int
+	DefaultTweetVisibility  string
+	DefaultMsgLoopInterval  int
+	CopyrightTop            string
+	CopyrightLeft           string
+	CopyrightLeftLink       string
+	CopyrightRight          string
+	CopyrightRightLink      string
 }
 
 type Option struct {
@@ -196,11 +196,11 @@ func ensureBootstrapSnapshot() {
 	bootstrapConfig = &bootstrapSnapshot{}
 	if conf.AppSetting != nil {
 		bootstrapConfig.App = confAppSnapshot{
-			MaxCommentCount:      conf.AppSetting.MaxCommentCount,
-			MaxWhisperDaily:      conf.AppSetting.MaxWhisperDaily,
-			MaxCaptchaTimes:      conf.AppSetting.MaxCaptchaTimes,
-			DefaultPageSize:      conf.AppSetting.DefaultPageSize,
-			MaxPageSize:          conf.AppSetting.MaxPageSize,
+			MaxCommentCount: conf.AppSetting.MaxCommentCount,
+			MaxWhisperDaily: conf.AppSetting.MaxWhisperDaily,
+			MaxCaptchaTimes: conf.AppSetting.MaxCaptchaTimes,
+			DefaultPageSize: conf.AppSetting.DefaultPageSize,
+			MaxPageSize:     conf.AppSetting.MaxPageSize,
 		}
 	}
 	if conf.TweetSearchSetting != nil {
@@ -241,22 +241,22 @@ func ensureBootstrapSnapshot() {
 	}
 	if conf.WebProfileSetting != nil {
 		bootstrapConfig.WebProfile = confWebProfileSnapshot{
-			UseFriendship:             conf.WebProfileSetting.UseFriendship,
-			EnableTrendsBar:           conf.WebProfileSetting.EnableTrendsBar,
-			AllowTweetAttachment:      conf.WebProfileSetting.AllowTweetAttachment,
-			AllowTweetVideo:           conf.WebProfileSetting.AllowTweetVideo,
-			AllowUserRegister:         conf.WebProfileSetting.AllowUserRegister,
-			AllowPhoneBind:            conf.WebProfileSetting.AllowPhoneBind,
-			DefaultTweetMaxLength:     conf.WebProfileSetting.DefaultTweetMaxLength,
-			TweetWebEllipsisSize:      conf.WebProfileSetting.TweetWebEllipsisSize,
-			TweetMobileEllipsisSize:   conf.WebProfileSetting.TweetMobileEllipsisSize,
-			DefaultTweetVisibility:    conf.WebProfileSetting.DefaultTweetVisibility,
-			DefaultMsgLoopInterval:    conf.WebProfileSetting.DefaultMsgLoopInterval,
-			CopyrightTop:              conf.WebProfileSetting.CopyrightTop,
-			CopyrightLeft:             conf.WebProfileSetting.CopyrightLeft,
-			CopyrightLeftLink:         conf.WebProfileSetting.CopyrightLeftLink,
-			CopyrightRight:            conf.WebProfileSetting.CopyrightRight,
-			CopyrightRightLink:        conf.WebProfileSetting.CopyrightRightLink,
+			UseFriendship:           conf.WebProfileSetting.UseFriendship,
+			EnableTrendsBar:         conf.WebProfileSetting.EnableTrendsBar,
+			AllowTweetAttachment:    conf.WebProfileSetting.AllowTweetAttachment,
+			AllowTweetVideo:         conf.WebProfileSetting.AllowTweetVideo,
+			AllowUserRegister:       conf.WebProfileSetting.AllowUserRegister,
+			AllowPhoneBind:          conf.WebProfileSetting.AllowPhoneBind,
+			DefaultTweetMaxLength:   conf.WebProfileSetting.DefaultTweetMaxLength,
+			TweetWebEllipsisSize:    conf.WebProfileSetting.TweetWebEllipsisSize,
+			TweetMobileEllipsisSize: conf.WebProfileSetting.TweetMobileEllipsisSize,
+			DefaultTweetVisibility:  conf.WebProfileSetting.DefaultTweetVisibility,
+			DefaultMsgLoopInterval:  conf.WebProfileSetting.DefaultMsgLoopInterval,
+			CopyrightTop:            conf.WebProfileSetting.CopyrightTop,
+			CopyrightLeft:           conf.WebProfileSetting.CopyrightLeft,
+			CopyrightLeftLink:       conf.WebProfileSetting.CopyrightLeftLink,
+			CopyrightRight:          conf.WebProfileSetting.CopyrightRight,
+			CopyrightRightLink:      conf.WebProfileSetting.CopyrightRightLink,
 		}
 	}
 }

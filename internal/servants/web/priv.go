@@ -219,11 +219,11 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 	mediaContents = contents
 	tags := tagsFrom(req.Tags)
 	post := &ms.Post{
-		UserID:          req.User.ID,
-		Tags:            strings.Join(tags, ","),
-		IP:              req.ClientIP,
-		IPLoc:           utils.GetIPLoc(req.ClientIP),
-		Visibility:      ms.PostVisibleT(req.Visibility.ToVisibleValue()),
+		UserID:     req.User.ID,
+		Tags:       strings.Join(tags, ","),
+		IP:         req.ClientIP,
+		IPLoc:      utils.GetIPLoc(req.ClientIP),
+		Visibility: ms.PostVisibleT(req.Visibility.ToVisibleValue()),
 	}
 	// 内容审核开启时 普通用户(无任何管理角色)的非私密新帖进入待审核
 	// 导师/审核/管理员/运维免审 私密帖仅自己可见不进审核队列
