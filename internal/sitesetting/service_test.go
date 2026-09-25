@@ -9,10 +9,10 @@ import (
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
-	_ "modernc.org/sqlite"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
+	_ "modernc.org/sqlite"
 )
 
 func TestGetProfileUsesBootstrapDefaultsWhenNoOverride(t *testing.T) {
@@ -37,20 +37,20 @@ func TestUpdateEditableProfilePersistsOnlyEditableKeys(t *testing.T) {
 	svc := newTestService(t)
 
 	profile, err := svc.UpdateEditableProfile(context.Background(), EditableProfile{
-		UseFriendship:             false,
-		EnableTrendsBar:           true,
-		AllowTweetAttachment:      false,
-		AllowTweetVideo:           false,
-		DefaultTweetMaxLength:     1200,
-		TweetWebEllipsisSize:      300,
-		TweetMobileEllipsisSize:   200,
-		DefaultTweetVisibility:    "public",
-		DefaultMsgLoopInterval:    3000,
-		CopyrightTop:              "top",
-		CopyrightLeft:             "left",
-		CopyrightLeftLink:         "https://left.example.com",
-		CopyrightRight:            "right",
-		CopyrightRightLink:        "https://right.example.com",
+		UseFriendship:           false,
+		EnableTrendsBar:         true,
+		AllowTweetAttachment:    false,
+		AllowTweetVideo:         false,
+		DefaultTweetMaxLength:   1200,
+		TweetWebEllipsisSize:    300,
+		TweetMobileEllipsisSize: 200,
+		DefaultTweetVisibility:  "public",
+		DefaultMsgLoopInterval:  3000,
+		CopyrightTop:            "top",
+		CopyrightLeft:           "left",
+		CopyrightLeftLink:       "https://left.example.com",
+		CopyrightRight:          "right",
+		CopyrightRightLink:      "https://right.example.com",
 	})
 	if err != nil {
 		t.Fatalf("UpdateEditableProfile() error = %v", err)
@@ -180,22 +180,22 @@ func newTestService(t *testing.T) *Service {
 	})
 	conf.Initial(nil, false)
 	conf.WebProfileSetting = &conf.WebProfileConf{
-		UseFriendship:             true,
-		EnableTrendsBar:           false,
-		AllowTweetAttachment:      true,
-		AllowTweetVideo:           true,
-		AllowUserRegister:         true,
-		AllowPhoneBind:            true,
-		DefaultTweetMaxLength:     2000,
-		TweetWebEllipsisSize:      400,
-		TweetMobileEllipsisSize:   300,
-		DefaultTweetVisibility:    "friend",
-		DefaultMsgLoopInterval:    5000,
-		CopyrightTop:              "fallback-top",
-		CopyrightLeft:             "fallback-left",
-		CopyrightLeftLink:         "",
-		CopyrightRight:            "fallback-right",
-		CopyrightRightLink:        "https://fallback.example.com",
+		UseFriendship:           true,
+		EnableTrendsBar:         false,
+		AllowTweetAttachment:    true,
+		AllowTweetVideo:         true,
+		AllowUserRegister:       true,
+		AllowPhoneBind:          true,
+		DefaultTweetMaxLength:   2000,
+		TweetWebEllipsisSize:    400,
+		TweetMobileEllipsisSize: 300,
+		DefaultTweetVisibility:  "friend",
+		DefaultMsgLoopInterval:  5000,
+		CopyrightTop:            "fallback-top",
+		CopyrightLeft:           "fallback-left",
+		CopyrightLeftLink:       "",
+		CopyrightRight:          "fallback-right",
+		CopyrightRightLink:      "https://fallback.example.com",
 	}
 	bootstrapConfig = nil
 	db, err := gorm.Open(&sqlite.Dialector{DriverName: "sqlite", DSN: "file::memory:?cache=shared"}, &gorm.Config{NamingStrategy: schema.NamingStrategy{TablePrefix: "p_", SingularTable: true}})

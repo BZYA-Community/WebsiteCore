@@ -51,12 +51,12 @@ type PostContentItem struct {
 }
 
 type CreateTweetReq struct {
-	BaseInfo        `json:"-" binding:"-"`
-	Contents        []*PostContentItem `json:"contents" binding:"required"`
-	Tags            []string           `json:"tags" binding:"required"`
-	Users           []string           `json:"users" binding:"required"`
-	Visibility      TweetVisibleType   `json:"visibility"`
-	ClientIP        string             `json:"-" binding:"-"`
+	BaseInfo   `json:"-" binding:"-"`
+	Contents   []*PostContentItem `json:"contents" binding:"required"`
+	Tags       []string           `json:"tags" binding:"required"`
+	Users      []string           `json:"users" binding:"required"`
+	Visibility TweetVisibleType   `json:"visibility"`
+	ClientIP   string             `json:"-" binding:"-"`
 }
 
 type CreateTweetResp ms.PostFormated

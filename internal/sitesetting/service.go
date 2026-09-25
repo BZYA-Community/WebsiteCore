@@ -20,20 +20,20 @@ import (
 )
 
 type EditableProfile struct {
-	UseFriendship             bool
-	EnableTrendsBar           bool
-	AllowTweetAttachment      bool
-	AllowTweetVideo           bool
-	DefaultTweetMaxLength     int
-	TweetWebEllipsisSize      int
-	TweetMobileEllipsisSize   int
-	DefaultTweetVisibility    string
-	DefaultMsgLoopInterval    int
-	CopyrightTop              string
-	CopyrightLeft             string
-	CopyrightLeftLink         string
-	CopyrightRight            string
-	CopyrightRightLink        string
+	UseFriendship           bool
+	EnableTrendsBar         bool
+	AllowTweetAttachment    bool
+	AllowTweetVideo         bool
+	DefaultTweetMaxLength   int
+	TweetWebEllipsisSize    int
+	TweetMobileEllipsisSize int
+	DefaultTweetVisibility  string
+	DefaultMsgLoopInterval  int
+	CopyrightTop            string
+	CopyrightLeft           string
+	CopyrightLeftLink       string
+	CopyrightRight          string
+	CopyrightRightLink      string
 }
 
 type settingRecord struct {
@@ -111,22 +111,22 @@ func (s *Service) ApplyPersistedOverrides(ctx context.Context) error {
 func (s *Service) GetProfile(ctx context.Context) (*web.SiteProfileResp, error) {
 	_ = ctx
 	return &web.SiteProfileResp{
-		UseFriendship:             conf.WebProfileSetting.UseFriendship,
-		EnableTrendsBar:           conf.WebProfileSetting.EnableTrendsBar,
-		AllowTweetAttachment:      conf.WebProfileSetting.AllowTweetAttachment,
-		AllowTweetVideo:           conf.WebProfileSetting.AllowTweetVideo,
-		AllowUserRegister:         conf.WebProfileSetting.AllowUserRegister,
-		AllowPhoneBind:            conf.WebProfileSetting.AllowPhoneBind,
-		DefaultTweetMaxLength:     conf.WebProfileSetting.DefaultTweetMaxLength,
-		TweetWebEllipsisSize:      conf.WebProfileSetting.TweetWebEllipsisSize,
-		TweetMobileEllipsisSize:   conf.WebProfileSetting.TweetMobileEllipsisSize,
-		DefaultTweetVisibility:    conf.WebProfileSetting.DefaultTweetVisibility,
-		DefaultMsgLoopInterval:    conf.WebProfileSetting.DefaultMsgLoopInterval,
-		CopyrightTop:              conf.WebProfileSetting.CopyrightTop,
-		CopyrightLeft:             conf.WebProfileSetting.CopyrightLeft,
-		CopyrightLeftLink:         conf.WebProfileSetting.CopyrightLeftLink,
-		CopyrightRight:            conf.WebProfileSetting.CopyrightRight,
-		CopyrightRightLink:        conf.WebProfileSetting.CopyrightRightLink,
+		UseFriendship:           conf.WebProfileSetting.UseFriendship,
+		EnableTrendsBar:         conf.WebProfileSetting.EnableTrendsBar,
+		AllowTweetAttachment:    conf.WebProfileSetting.AllowTweetAttachment,
+		AllowTweetVideo:         conf.WebProfileSetting.AllowTweetVideo,
+		AllowUserRegister:       conf.WebProfileSetting.AllowUserRegister,
+		AllowPhoneBind:          conf.WebProfileSetting.AllowPhoneBind,
+		DefaultTweetMaxLength:   conf.WebProfileSetting.DefaultTweetMaxLength,
+		TweetWebEllipsisSize:    conf.WebProfileSetting.TweetWebEllipsisSize,
+		TweetMobileEllipsisSize: conf.WebProfileSetting.TweetMobileEllipsisSize,
+		DefaultTweetVisibility:  conf.WebProfileSetting.DefaultTweetVisibility,
+		DefaultMsgLoopInterval:  conf.WebProfileSetting.DefaultMsgLoopInterval,
+		CopyrightTop:            conf.WebProfileSetting.CopyrightTop,
+		CopyrightLeft:           conf.WebProfileSetting.CopyrightLeft,
+		CopyrightLeftLink:       conf.WebProfileSetting.CopyrightLeftLink,
+		CopyrightRight:          conf.WebProfileSetting.CopyrightRight,
+		CopyrightRightLink:      conf.WebProfileSetting.CopyrightRightLink,
 	}, nil
 }
 
@@ -453,20 +453,20 @@ func validateProfileInput(input EditableProfile) error {
 
 func EditableFromRequest(req *web.SiteSettingsReq) EditableProfile {
 	return EditableProfile{
-		UseFriendship:             *req.UseFriendship,
-		EnableTrendsBar:           *req.EnableTrendsBar,
-		AllowTweetAttachment:      *req.AllowTweetAttachment,
-		AllowTweetVideo:           *req.AllowTweetVideo,
-		DefaultTweetMaxLength:     *req.DefaultTweetMaxLength,
-		TweetWebEllipsisSize:      *req.TweetWebEllipsisSize,
-		TweetMobileEllipsisSize:   *req.TweetMobileEllipsisSize,
-		DefaultTweetVisibility:    *req.DefaultTweetVisibility,
-		DefaultMsgLoopInterval:    *req.DefaultMsgLoopInterval,
-		CopyrightTop:              *req.CopyrightTop,
-		CopyrightLeft:             *req.CopyrightLeft,
-		CopyrightLeftLink:         stringValue(req.CopyrightLeftLink),
-		CopyrightRight:            *req.CopyrightRight,
-		CopyrightRightLink:        stringValue(req.CopyrightRightLink),
+		UseFriendship:           *req.UseFriendship,
+		EnableTrendsBar:         *req.EnableTrendsBar,
+		AllowTweetAttachment:    *req.AllowTweetAttachment,
+		AllowTweetVideo:         *req.AllowTweetVideo,
+		DefaultTweetMaxLength:   *req.DefaultTweetMaxLength,
+		TweetWebEllipsisSize:    *req.TweetWebEllipsisSize,
+		TweetMobileEllipsisSize: *req.TweetMobileEllipsisSize,
+		DefaultTweetVisibility:  *req.DefaultTweetVisibility,
+		DefaultMsgLoopInterval:  *req.DefaultMsgLoopInterval,
+		CopyrightTop:            *req.CopyrightTop,
+		CopyrightLeft:           *req.CopyrightLeft,
+		CopyrightLeftLink:       stringValue(req.CopyrightLeftLink),
+		CopyrightRight:          *req.CopyrightRight,
+		CopyrightRightLink:      stringValue(req.CopyrightRightLink),
 	}
 }
 
