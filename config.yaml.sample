@@ -11,7 +11,7 @@ App:
   RunMode: debug
 
 Features:
-  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "MySQL", "BigCacheIndex", "LoggerFile"]
+  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
 
 WebServer:
   HttpIp: 0.0.0.0
@@ -21,15 +21,13 @@ Database:
   LogLevel: error
   TablePrefix: p_
 
-MySQL:
-  Username: paopao
-  Password: paopao
-  Host: 127.0.0.1:3306
-  DBName: paopao
-  Charset: utf8mb4
-  ParseTime: true
-  MaxIdleConns: 10
-  MaxOpenConns: 30
+Postgres:
+  Host: 127.0.0.1
+  Port: 5432
+  User: paopao
+  Password: paopao           # 仅本地开发用的弱口令，与 docker-compose.dev.yml 保持一致
+  Dbname: websitecore
+  sslmode: disable
 
 Redis:
   InitAddress:

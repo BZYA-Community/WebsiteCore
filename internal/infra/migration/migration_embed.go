@@ -9,6 +9,8 @@ package migration
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/scripts/migration"
@@ -23,10 +25,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func Run() {
+func Run() error {
 	if !cfg.If("Migration") {
 		logrus.Infoln("skip migrate because not add Migration feature in config.yaml")
-		return
+		return nil
 	}
 
 	var (
@@ -50,8 +52,7 @@ func Run() {
 		db, err = sql.Open("mysql", conf.MysqlSetting.Dsn())
 	}
 	if err != nil {
-		logrus.Errorf("initial db for migration failed: %s", err)
-		return
+		return fmt.Errorf("initial db for migration failed: %w", err)
 	}
 
 	migrationsTable := conf.DatabaseSetting.TablePrefix + "schema_migrations"
@@ -70,25 +71,21 @@ func Run() {
 	}
 
 	if err2 != nil {
-		logrus.Errorf("new database driver failed: %s", err)
-		return
-	} else {
-		defer dbDriver.Close()
+		return fmt.Errorf("new database driver failed: %w", err2)
 	}
+	defer dbDriver.Close()
 	if err != nil {
-		logrus.Errorf("new source driver failed: %s", err)
-		return
+		return fmt.Errorf("new source driver failed: %w", err)
 	}
 
 	m, err := migrate.NewWithInstance("iofs", srcDriver, dbName, dbDriver)
 	if err != nil {
-		logrus.Errorf("new migrate instance failed: %s", err)
-		return
+		return fmt.Errorf("new migrate instance failed: %w", err)
 	}
 
-	if err = m.Up(); err != nil && err != migrate.ErrNoChange {
-		logrus.Errorf("migrate up failed: %s", err)
-		return
+	if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return fmt.Errorf("migrate up failed: %w", err)
 	}
 	logrus.Infoln("migrate up success")
+	return nil
 }

@@ -8,12 +8,14 @@
 package migration
 
 import (
+	"fmt"
+
 	"github.com/alimy/tryst/cfg"
-	"github.com/sirupsen/logrus"
 )
 
-func Run() {
+func Run() error {
 	if cfg.If("Migration") {
-		logrus.Infoln("want migrate feature but not support in this compile version")
+		return fmt.Errorf("migration feature requested but this build lacks the `migration` build tag")
 	}
+	return nil
 }

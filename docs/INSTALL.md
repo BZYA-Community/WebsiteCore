@@ -18,16 +18,13 @@ This guide covers the recommended ways to run PaoPao in development, evaluation,
 - Go `1.24+`
 - Node.js `20.19+` or `22.12+`
 - Yarn `1.x`
-- MySQL `5.7+` if using the MySQL path
-- Redis
-- Meilisearch
+- Docker with Compose (for the local PostgreSQL / Redis / Meilisearch stack)
 
 ### Helpful repository files
 
-- `config.yaml.sample` - canonical configuration template
-- `scripts/paopao-mysql.sql` - MySQL bootstrap schema
-- `scripts/paopao-postgres.sql` - PostgreSQL bootstrap schema
-- `scripts/paopao-sqlite3.sql` - SQLite bootstrap schema
+- `config.yaml.sample` - canonical configuration template (overrides over embedded defaults)
+- `docker-compose.dev.yml` - local PostgreSQL / Redis / Meilisearch dev stack
+- `scripts/migration/{postgres,mysql,sqlite3}/` - versioned migration SQL
 
 <a id="run-from-source"></a>
 
@@ -35,15 +32,32 @@ This guide covers the recommended ways to run PaoPao in development, evaluation,
 
 ### Backend
 
-1. Initialize your database with the matching SQL file for your chosen database engine.
-2. Copy the configuration template.
-3. Adjust only the bootstrap-critical settings for your environment.
-4. Run or build the backend.
+1. Start the local dependency stack (PostgreSQL, Redis, Meilisearch):
 
-```sh
-cp config.yaml.sample config.yaml
-make run
-```
+   ```sh
+   make deps-up
+   ```
+
+2. Copy the configuration template and set a JWT secret — the app exits at startup if `JWT.Secret` is empty:
+
+   ```sh
+   cp config.yaml.sample config.yaml
+   openssl rand -hex 24   # put the output into JWT.Secret
+   ```
+
+3. Create the database schema from the embedded migrations:
+
+   ```sh
+   make migrate
+   ```
+
+4. Run or build the backend:
+
+   ```sh
+   make run               # or: make build-web && make run TAGS='embed' to serve the frontend
+   ```
+
+The dev stack pins `postgres:18.6`, `redis:7.4.11` and `getmeili/meilisearch:v1.54.0`, binds every port to `127.0.0.1`, and keeps data in named volumes (`make deps-reset` wipes them). `config.yaml.sample` already targets this stack: PostgreSQL, database `websitecore`, user/password `paopao`.
 
 Build a release binary:
 
@@ -106,8 +120,8 @@ The artifact is written to `release/`. Deployment steps:
 
 Notes:
 
-- Automatic migration requires both the `migration` build tag and the `"Migration"` feature declared in the `Features` section of `config.yaml` (e.g. `Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "MySQL", "Migration"]`). When both are present, the schema is migrated automatically at startup.
-- Without the `migration` tag, initialize the database manually with the matching SQL script from `scripts/`.
+- Automatic migration requires both the `migration` build tag and the `"Migration"` feature declared in the `Features` section of `config.yaml` (e.g. `Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "Migration"]`). When both are present, the schema is migrated automatically at startup.
+- Without the `migration` tag the schema is not created automatically; rebuild with the tag, or apply the versioned migrations under `scripts/migration/` yourself.
 - Attachments and other persistent data are stored under `custom/` next to the binary by default; back that directory up.
 
 ## Common Build Tags
@@ -148,7 +162,7 @@ The `Features` section controls which capability bundles are enabled:
 
 ```yaml
 Features:
-  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "MySQL", "BigCacheIndex", "LoggerFile"]
+  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
   Develop: ["Base", "MySQL", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerMeili", "OSS:Retention"]
   Demo: ["Base", "MySQL", "Option", "Zinc", "Sms", "MinIO", "LoggerZinc", "Migration"]
   Slim: ["Base", "Sqlite3", "LocalOSS", "LoggerFile", "OSS:TempDir"]
@@ -178,13 +192,15 @@ The default modern stack is centered on **Meilisearch**, **Redis**, and either *
 
 ### Meilisearch (recommended search engine)
 
+`make deps-up` already starts Meilisearch for local development. To run a standalone instance instead:
+
 ```sh
 mkdir -p data/meili/data
 docker run -d --name meili \
   -v ${PWD}/data/meili/data:/meili_data \
-  -p 7700:7700 \
+  -p 127.0.0.1:7700:7700 \
   -e MEILI_MASTER_KEY=paopao-meilisearch \
-  getmeili/meilisearch:v0.29.0
+  getmeili/meilisearch:v1.54.0
 ```
 
 Matching config example:
@@ -250,7 +266,7 @@ Add the Docs feature suite and run with the `docs` build tag:
 
 ```yaml
 Features:
-  Default: ["Base", "MySQL", "Option", "LocalOSS", "LoggerFile", "Docs"]
+  Default: ["Base", "Postgres", "Option", "LocalOSS", "LoggerFile", "Docs"]
   Docs: ["Docs:OpenAPI"]
 ```
 

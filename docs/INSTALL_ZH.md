@@ -18,16 +18,13 @@
 - Go `1.24+`
 - Node.js `20.19+` 或 `22.12+`
 - Yarn `1.x`
-- 若使用 MySQL 方案，需要 MySQL `5.7+`
-- Redis
-- Meilisearch
+- Docker 与 Compose（用于本地 PostgreSQL / Redis / Meilisearch 依赖栈）
 
 ### 关键文件
 
-- `config.yaml.sample` - 标准配置模板
-- `scripts/paopao-mysql.sql` - MySQL 初始化脚本
-- `scripts/paopao-postgres.sql` - PostgreSQL 初始化脚本
-- `scripts/paopao-sqlite3.sql` - SQLite 初始化脚本
+- `config.yaml.sample` - 标准配置模板（叠加在内置默认配置之上）
+- `docker-compose.dev.yml` - 本地 PostgreSQL / Redis / Meilisearch 依赖栈
+- `scripts/migration/{postgres,mysql,sqlite3}/` - 版本化迁移 SQL
 
 <a id="run-from-source"></a>
 
@@ -35,15 +32,32 @@
 
 ### 后端
 
-1. 按照所选数据库导入对应 SQL 初始化脚本。
-2. 复制配置模板。
-3. 只调整与你环境相关的启动关键配置。
-4. 启动或构建后端。
+1. 启动本地依赖栈（PostgreSQL、Redis、Meilisearch）：
 
-```sh
-cp config.yaml.sample config.yaml
-make run
-```
+   ```sh
+   make deps-up
+   ```
+
+2. 复制配置模板并设置 JWT 密钥——`JWT.Secret` 留空会导致启动直接退出：
+
+   ```sh
+   cp config.yaml.sample config.yaml
+   openssl rand -hex 24   # 将输出填入 JWT.Secret
+   ```
+
+3. 用内嵌迁移脚本建库：
+
+   ```sh
+   make migrate
+   ```
+
+4. 启动或构建后端：
+
+   ```sh
+   make run               # 或 make build-web && make run TAGS='embed' 以内嵌方式提供前端
+   ```
+
+依赖栈将 `postgres:18.6`、`redis:7.4.11`、`getmeili/meilisearch:v1.54.0` 的端口全部绑定到 `127.0.0.1`，数据保存在命名卷中（`make deps-reset` 会清空）。`config.yaml.sample` 已按该栈配置：PostgreSQL、数据库 `websitecore`、账号/密码 `paopao`。
 
 构建发布二进制：
 
@@ -106,8 +120,8 @@ make linux-amd64 CGO_ENABLED=0 TAGS='embed migration'
 
 说明：
 
-- 自动迁移需要两个条件同时满足：编译时带 `migration` 标签，且 `config.yaml` 的 `Features` 中声明 `"Migration"`（例如 `Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "MySQL", "Migration"]`）。满足后服务启动时会自动执行数据库迁移，无需手工导入 SQL 初始化脚本。
-- 若不带 `migration` 标签，请先按数据库类型手工导入 `scripts/` 下对应的 SQL 脚本。
+- 自动迁移需要两个条件同时满足：编译时带 `migration` 标签，且 `config.yaml` 的 `Features` 中声明 `"Migration"`（例如 `Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "Migration"]`）。满足后服务启动时会自动执行数据库迁移，无需手工建表。
+- 若不带 `migration` 标签，schema 不会自动创建；请带上标签重新构建，或自行应用 `scripts/migration/` 下的版本化迁移。
 - 附件等持久化数据默认保存在二进制所在目录的 `custom/` 下，注意备份。
 
 ## 常用构建标签
@@ -148,7 +162,7 @@ make run TAGS='embed'
 
 ```yaml
 Features:
-  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "MySQL", "BigCacheIndex", "LoggerFile"]
+  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
   Develop: ["Base", "MySQL", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerMeili", "OSS:Retention"]
   Demo: ["Base", "MySQL", "Option", "Zinc", "Sms", "MinIO", "LoggerZinc", "Migration"]
   Slim: ["Base", "Sqlite3", "LocalOSS", "LoggerFile", "OSS:TempDir"]
@@ -178,13 +192,15 @@ release/paopao serve --no-default-features --features sqlite3,localoss,loggerfil
 
 ### Meilisearch（推荐搜索引擎）
 
+本地开发时 `make deps-up` 已自动启动 Meilisearch。若需单独运行一个实例：
+
 ```sh
 mkdir -p data/meili/data
 docker run -d --name meili \
   -v ${PWD}/data/meili/data:/meili_data \
-  -p 7700:7700 \
+  -p 127.0.0.1:7700:7700 \
   -e MEILI_MASTER_KEY=paopao-meilisearch \
-  getmeili/meilisearch:v0.29.0
+  getmeili/meilisearch:v1.54.0
 ```
 
 对应配置示例：
@@ -250,7 +266,7 @@ docker run -it -p 4040:4040 pyroscope/pyroscope:latest server
 
 ```yaml
 Features:
-  Default: ["Base", "MySQL", "Option", "LocalOSS", "LoggerFile", "Docs"]
+  Default: ["Base", "Postgres", "Option", "LocalOSS", "LoggerFile", "Docs"]
   Docs: ["Docs:OpenAPI"]
 ```
 

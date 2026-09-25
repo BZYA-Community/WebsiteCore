@@ -30,6 +30,8 @@ LDFLAGS = -X "${MOD_NAME}/pkg/version.version=${BUILD_VERSION}" \
           -X "${MOD_NAME}/pkg/version.buildTags=${TAGS}" \
 		  -w -s
 
+COMPOSE_DEV = docker compose -f docker-compose.dev.yml
+
 all: fmt build
 
 build:
@@ -46,6 +48,30 @@ build-web:
 
 run:
 	@go run -pgo=auto -trimpath -gcflags "all=-N -l" -tags '$(TAGS)' -ldflags '$(LDFLAGS)' . serve
+
+.PHONY: migrate
+migrate:
+	@echo "Migrating database..."
+	@go run -trimpath -tags 'migration $(TAGS)' -ldflags '$(LDFLAGS)' . migrate
+
+.PHONY: deps-up deps-down deps-logs deps-status deps-reset
+deps-up:
+	@echo "Starting dev dependency stack..."
+	@$(COMPOSE_DEV) up -d --wait
+
+deps-down:
+	@echo "Stopping dev dependency stack (volumes kept)..."
+	@$(COMPOSE_DEV) down
+
+deps-logs:
+	@$(COMPOSE_DEV) logs -f
+
+deps-status:
+	@$(COMPOSE_DEV) ps
+
+deps-reset:
+	@echo "Removing dev dependency stack and its volumes..."
+	@$(COMPOSE_DEV) down -v
 
 .PHONY: release
 release: linux-amd64 darwin-amd64 darwin-arm64 windows-x64
@@ -123,3 +149,9 @@ help:
 	@echo "make run TAGS='embed': start api server and serve embed web frontend"
 	@echo "make build TAGS='embed': build executable with embed web frontend"
 	@echo "make release TAGS='embed': build release executables with embed web frontend"
+	@echo "make migrate: run database migrations"
+	@echo "make deps-up: start dev dependency stack"
+	@echo "make deps-down: stop dev dependency stack, keeping data volumes"
+	@echo "make deps-logs: follow dev dependency stack logs"
+	@echo "make deps-status: show dev dependency stack status"
+	@echo "make deps-reset: remove dev dependency stack and its data volumes"
