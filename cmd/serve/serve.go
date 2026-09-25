@@ -121,7 +121,6 @@ func ensureOperatorAccount() {
 		updates["is_admin"] = true
 		user.IsAdmin = true
 	}
-	resetPassword := false
 	if op.Password != "" {
 		// 密码以配置为准，不一致则重置(bcrypt)
 		if !utils.ComparePassword(user.Password, op.Password) {
@@ -131,7 +130,6 @@ func ensureOperatorAccount() {
 				salt := uuid.Must(uuid.NewV4()).String()[:8]
 				updates["password"] = utils.HashPassword(op.Password)
 				updates["salt"] = salt
-				resetPassword = true
 			}
 		}
 	}
