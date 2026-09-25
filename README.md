@@ -6,7 +6,6 @@
 [![Contributors](https://img.shields.io/github/contributors/BZYA-Community/WebsiteCore?style=flat)](https://github.com/BZYA-Community/WebsiteCore/graphs/contributors)
 
 <div align="center">
-  <img src="./.assets/readme/paopao-logo.png" alt="logo" width="88" height="88">
   <h1>WebsiteCore</h1>
   <p>
     基于 <a href="https://github.com/rocboss/paopao-ce">paopao-ce</a> 深度定制的微社区系统<br>
