@@ -41,8 +41,8 @@
                     />
                 </div>
                 <n-empty v-if="!searchLoading && searchList.length === 0" description="没有找到相关课程" />
-                <InfiniteLoading @infinite="loadSearchNext">
-                    <template #complete><span></span></template>
+                <InfiniteLoading :key="'search-' + searchLoadKey" @infinite="onSearchInfinite">
+                    <template #complete><span class="load-end">我是有底线的</span></template>
                 </InfiniteLoading>
             </template>
 
@@ -113,8 +113,8 @@
                     />
                 </div>
                 <n-empty v-if="!drawerLoading && drawerList.length === 0" description="该分组暂无课程" />
-                <InfiniteLoading @infinite="loadDrawerNext">
-                    <template #complete><span></span></template>
+                <InfiniteLoading :key="'group-' + drawerLoadKey" @infinite="onDrawerInfinite">
+                    <template #complete><span class="load-end">我是有底线的</span></template>
                 </InfiniteLoading>
             </n-drawer-content>
         </n-drawer>
@@ -271,6 +271,8 @@ const searchList = ref<CourseItem[]>([]);
 const searchPage = ref(1);
 const searchTotal = ref(0);
 const searchLoading = ref(false);
+// 每次搜索自增, 强制InfiniteLoading重挂载(重置其loaded/complete内部状态)
+const searchLoadKey = ref(0);
 const pageSize = 20;
 
 const doSearch = () => {
@@ -284,26 +286,41 @@ const doSearch = () => {
   searchList.value = [];
   searchPage.value = 1;
   searchTotal.value = 0;
-  loadSearchNext();
+  searchLoadKey.value++;
 };
 const clearSearch = () => {
   searching.value = false;
   keyword.value = '';
   searchList.value = [];
 };
-const loadSearchNext = async () => {
-  if (searchLoading.value) return;
-  if (searchTotal.value > 0 && searchList.value.length >= searchTotal.value) return;
+// 返回是否还有更多(供InfiniteLoading决定loaded/complete)
+const loadSearchData = async (): Promise<boolean> => {
+  if (searchLoading.value) return false;
+  if (searchTotal.value > 0 && searchList.value.length >= searchTotal.value) return false;
   searchLoading.value = true;
   try {
     const res = await getCourseList({ keyword: searchKeyword.value, page: searchPage.value, page_size: pageSize });
     searchList.value = searchList.value.concat(res.list || []);
     searchTotal.value = res.pager?.total_rows || 0;
     searchPage.value++;
+    return searchList.value.length < searchTotal.value;
   } catch (_err) {
-    // do nothing
+    throw new Error('load failed');
   } finally {
     searchLoading.value = false;
+  }
+};
+// InfiniteLoading 收尾: 必须调用 $state.loaded()/complete() 否则spinner不消失
+const onSearchInfinite = async ($state: any) => {
+  try {
+    const hasMore = await loadSearchData();
+    if (hasMore) {
+      $state.loaded();
+    } else {
+      $state.complete();
+    }
+  } catch (_err) {
+    $state.error();
   }
 };
 
@@ -315,6 +332,7 @@ const drawerList = ref<CourseItem[]>([]);
 const drawerPage = ref(1);
 const drawerTotal = ref(0);
 const drawerLoading = ref(false);
+const drawerLoadKey = ref(0);
 
 const enterGroup = (groupId: number) => {
   const g = groups.value.find((i) => i.id === groupId);
@@ -324,21 +342,34 @@ const enterGroup = (groupId: number) => {
   drawerPage.value = 1;
   drawerTotal.value = 0;
   groupDrawerShow.value = true;
-  loadDrawerNext();
+  drawerLoadKey.value++;
 };
-const loadDrawerNext = async () => {
-  if (drawerLoading.value) return;
-  if (drawerTotal.value > 0 && drawerList.value.length >= drawerTotal.value) return;
+const loadDrawerData = async (): Promise<boolean> => {
+  if (drawerLoading.value) return false;
+  if (drawerTotal.value > 0 && drawerList.value.length >= drawerTotal.value) return false;
   drawerLoading.value = true;
   try {
     const res = await getCourseList({ group_id: drawerGroupId.value, page: drawerPage.value, page_size: pageSize });
     drawerList.value = drawerList.value.concat(res.list || []);
     drawerTotal.value = res.pager?.total_rows || 0;
     drawerPage.value++;
+    return drawerList.value.length < drawerTotal.value;
   } catch (_err) {
-    // do nothing
+    throw new Error('load failed');
   } finally {
     drawerLoading.value = false;
+  }
+};
+const onDrawerInfinite = async ($state: any) => {
+  try {
+    const hasMore = await loadDrawerData();
+    if (hasMore) {
+      $state.loaded();
+    } else {
+      $state.complete();
+    }
+  } catch (_err) {
+    $state.error();
   }
 };
 
@@ -738,5 +769,13 @@ onMounted(() => {
 
 .empty-wrap {
     padding: 40px 0;
+}
+
+.load-end {
+    display: block;
+    text-align: center;
+    color: #999;
+    font-size: 13px;
+    padding: 16px 0;
 }
 </style>

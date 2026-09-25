@@ -7,14 +7,13 @@
         </div>
 
         <template v-else-if="course">
-            <!-- 播放器(签名地址) -->
-            <div class="player-wrap" @play.capture="onFirstPlay">
-                <paopao-video-player
+            <!-- 播放器(video.js, 签名地址异步到达后初始化) -->
+            <div class="player-wrap">
+                <video-player
                     v-if="videoUrl"
                     :src="videoUrl"
-                    :colors="['#18a058', '#2aca75']"
-                    :hoverable="true"
-                    theme="gradient"
+                    :poster="course.cover"
+                    @play="onFirstPlay"
                 />
                 <div v-else class="player-loading">
                     <n-spin size="large" />
@@ -66,7 +65,7 @@
                     </n-list-item>
                 </n-list>
                 <n-empty v-if="comments.length === 0" description="暂无评论" />
-                <InfiniteLoading @infinite="loadCommentsNext">
+                <InfiniteLoading :key="commentsLoadKey" @infinite="onCommentsInfinite">
                     <template #complete><span class="load-end">没有更多评论了</span></template>
                 </InfiniteLoading>
             </div>
@@ -82,6 +81,7 @@
 import { onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import InfiniteLoading from 'v3-infinite-loading';
+import VideoPlayer from '@/components/video-player.vue';
 import { formatPrettyTime } from '@/utils/formatTime';
 import {
   getCourse,
@@ -102,6 +102,8 @@ const comments = ref<CourseComment[]>([]);
 const commentPage = ref(1);
 const commentTotal = ref(0);
 const commentLoading = ref(false);
+// 自增key强制InfiniteLoading重挂载(重置内部状态), 评论加载全部经由@infinite触发
+const commentsLoadKey = ref(0);
 const pageSize = 20;
 // 每次进入详情页只计一次播放
 const playCounted = ref(false);
@@ -137,19 +139,34 @@ const onFirstPlay = () => {
     .catch(() => {});
 };
 
-const loadCommentsNext = async () => {
-  if (commentLoading.value) return;
-  if (commentTotal.value > 0 && comments.value.length >= commentTotal.value) return;
+// 返回是否还有更多(供InfiniteLoading决定loaded/complete)
+const loadCommentsData = async (): Promise<boolean> => {
+  if (commentLoading.value) return false;
+  if (commentTotal.value > 0 && comments.value.length >= commentTotal.value) return false;
   commentLoading.value = true;
   try {
     const res = await getCourseComments({ id: courseId, page: commentPage.value, page_size: pageSize });
     comments.value = comments.value.concat(res.list || []);
     commentTotal.value = res.pager?.total_rows || 0;
     commentPage.value++;
+    return comments.value.length < commentTotal.value;
   } catch (_err) {
-    // do nothing
+    throw new Error('load failed');
   } finally {
     commentLoading.value = false;
+  }
+};
+// InfiniteLoading 收尾: 必须调用 $state.loaded()/complete() 否则spinner不消失
+const onCommentsInfinite = async ($state: any) => {
+  try {
+    const hasMore = await loadCommentsData();
+    if (hasMore) {
+      $state.loaded();
+    } else {
+      $state.complete();
+    }
+  } catch (_err) {
+    $state.error();
   }
 };
 
@@ -157,7 +174,7 @@ const reloadComments = () => {
   comments.value = [];
   commentPage.value = 1;
   commentTotal.value = 0;
-  loadCommentsNext();
+  commentsLoadKey.value++;
   // 评论数可能因审核延迟变化 重新拉取详情
   loadCourse();
 };
@@ -166,7 +183,7 @@ onMounted(() => {
   if (courseId > 0) {
     loadCourse();
     loadVideoUrl();
-    loadCommentsNext();
+    // 评论由InfiniteLoading进入视口时自动加载
   } else {
     loading.value = false;
   }
@@ -182,8 +199,6 @@ onMounted(() => {
 
 .player-wrap {
     width: 100%;
-    aspect-ratio: 16 / 9;
-    background: #000;
     border-radius: 8px;
     overflow: hidden;
 
@@ -191,7 +206,8 @@ onMounted(() => {
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 100%;
+        aspect-ratio: 16 / 9;
+        background: #000;
     }
 }
 

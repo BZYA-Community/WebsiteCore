@@ -4,8 +4,8 @@
 
         <n-list class="main-content-wrap" bordered>
             <n-tabs type="line" animated v-model:value="tab">
-                <n-tab-pane name="contact" tab="好友" />
-                <n-tab-pane name="requesting" tab="好友申请" />
+                <n-tab-pane name="contact"><template #tab>好友</template></n-tab-pane>
+                <n-tab-pane name="requesting"><template #tab>好友申请</template></n-tab-pane>
             </n-tabs>
 
             <!-- 好友列表 -->

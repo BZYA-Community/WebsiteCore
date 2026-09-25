@@ -20,7 +20,7 @@ export function usePostContent(post: Item.PostProps, includeExtraFields: boolean
         },
         post,
       );
-      postData.contents.map((content) => {
+      (postData.contents || []).map((content) => {
         if (+content.type === 1 || +content.type === 2) {
           postData.texts.push(content);
         }

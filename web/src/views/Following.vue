@@ -4,8 +4,8 @@
 
         <n-list class="main-content-wrap" bordered>
             <n-tabs type="line" animated :default-value="tabler" @update:value="changeTab">
-                <n-tab-pane name="follows" tab="正在关注" />
-                <n-tab-pane name="followings" tab="我的粉丝" />
+                <n-tab-pane name="follows"><template #tab>正在关注</template></n-tab-pane>
+                <n-tab-pane name="followings"><template #tab>我的粉丝</template></n-tab-pane>
             </n-tabs>
             <div v-if="loading && list.length === 0" class="skeleton-wrap">
                 <post-skeleton :num="pageSize" />

@@ -62,7 +62,7 @@
                     size="large"
                     justify-content="space-evenly"
                 >
-                    <n-tab-pane name="signin" tab="登录">
+                    <n-tab-pane name="signin"><template #tab>登录</template>
                         <n-form
                             ref="loginRef"
                             :model="loginForm"
@@ -105,7 +105,7 @@
                             登录
                         </n-button>
                     </n-tab-pane>
-                    <n-tab-pane name="signup" tab="注册">
+                    <n-tab-pane name="signup"><template #tab>注册</template>
                         <n-form
                             ref="registerRef"
                             :model="registerForm"

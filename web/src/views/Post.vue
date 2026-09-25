@@ -18,9 +18,9 @@
                     <template #prefix>
                         <span class="comment-title-item">评论</span>
                     </template>
-                    <n-tab-pane name="default" tab="推荐" />
-                    <n-tab-pane name="hots" tab="热门" />
-                    <n-tab-pane name="newest" tab="最新" />
+                    <n-tab-pane name="default"><template #tab>推荐</template></n-tab-pane>
+                    <n-tab-pane name="hots"><template #tab>热门</template></n-tab-pane>
+                    <n-tab-pane name="newest"><template #tab>最新</template></n-tab-pane>
                 </n-tabs>
             </div>
             <n-list-item v-if="post.id > 0">

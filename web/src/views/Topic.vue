@@ -4,10 +4,10 @@
 
         <n-list class="main-content-wrap tags-wrap" bordered>
             <n-tabs type="line" animated @update:value="changeTab">
-                <n-tab-pane name="hot" tab="热门" />
-                <n-tab-pane name="new" tab="最新" />
-                <n-tab-pane name="follow" tab="关注" v-if="userLogined" />
-                <n-tab-pane name="pin" tab="钉住" v-if="userLogined" />
+                <n-tab-pane name="hot"><template #tab>热门</template></n-tab-pane>
+                <n-tab-pane name="new"><template #tab>最新</template></n-tab-pane>
+                <n-tab-pane name="follow" v-if="userLogined"><template #tab>关注</template></n-tab-pane>
+                <n-tab-pane name="pin" v-if="userLogined"><template #tab>钉住</template></n-tab-pane>
                 <template v-if="userLogined" #suffix>
                     <n-tag v-model:checked="tagsChecked" checkable>
                         {{tagsEditText}}
