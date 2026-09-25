@@ -379,7 +379,11 @@ const submitPost = () => {
     users: Array.from(new Set(users)),
   })
     .then((res) => {
-      window.$message.success('发布成功');
+      if (res.audit_status === 0) {
+        window.$message.success('评论已提交，审核通过后对外可见');
+      } else {
+        window.$message.success('发布成功');
+      }
       submitting.value = false;
       emit('post-success');
 

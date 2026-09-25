@@ -222,24 +222,6 @@ CREATE TABLE `p_post_metric` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- ----------------------------
--- Table structure for p_post_attachment_bill
--- ----------------------------
-DROP TABLE IF EXISTS `p_post_attachment_bill`;
-CREATE TABLE `p_post_attachment_bill` (
-	`id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '购买记录ID',
-	`post_id` BIGINT NOT NULL DEFAULT '0' COMMENT 'POST ID',
-	`user_id` BIGINT NOT NULL DEFAULT '0' COMMENT '用户ID',
-	`paid_amount` BIGINT NOT NULL DEFAULT '0' COMMENT '支付金额',
-	`created_on` BIGINT NOT NULL DEFAULT '0' COMMENT '创建时间',
-	`modified_on` BIGINT NOT NULL DEFAULT '0' COMMENT '修改时间',
-	`deleted_on` BIGINT NOT NULL DEFAULT '0' COMMENT '删除时间',
-	`is_del` tinyint NOT NULL DEFAULT '0' COMMENT '是否删除 0 为未删除、1 为已删除',
-	PRIMARY KEY (`id`) USING BTREE,
-	KEY `idx_post_attachment_bill_post_id` (`post_id`) USING BTREE,
-	KEY `idx_post_attachment_bill_user_id` (`user_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=5000002 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='冒泡/文章附件账单';
-
--- ----------------------------
 -- Table structure for p_post_collection
 -- ----------------------------
 DROP TABLE IF EXISTS `p_post_collection`;
@@ -349,7 +331,6 @@ CREATE TABLE `p_user` (
 	`salt` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '盐值',
 	`status` tinyint NOT NULL DEFAULT '1' COMMENT '状态，1正常，2停用',
 	`avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '用户头像',
-	`balance` BIGINT NOT NULL COMMENT '用户余额（分）',
 	`is_admin` tinyint NOT NULL DEFAULT '0' COMMENT '是否管理员',
 	`created_on` BIGINT NOT NULL DEFAULT '0' COMMENT '创建时间',
 	`modified_on` BIGINT NOT NULL DEFAULT '0' COMMENT '修改时间',
@@ -430,45 +411,6 @@ CREATE TABLE `p_contact_group` (
 	`deleted_on` BIGINT NOT NULL DEFAULT '0' COMMENT '删除时间',
 	PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='联系人分组';
-
--- ----------------------------
--- Table structure for p_wallet_recharge
--- ----------------------------
-DROP TABLE IF EXISTS `p_wallet_recharge`;
-CREATE TABLE `p_wallet_recharge` (
-	`id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '充值ID',
-	`user_id` BIGINT NOT NULL DEFAULT '0' COMMENT '用户ID',
-	`amount` BIGINT NOT NULL DEFAULT '0' COMMENT '充值金额',
-	`trade_no` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '支付宝订单号',
-	`trade_status` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '交易状态',
-	`created_on` BIGINT NOT NULL DEFAULT '0' COMMENT '创建时间',
-	`modified_on` BIGINT NOT NULL DEFAULT '0' COMMENT '修改时间',
-	`deleted_on` BIGINT NOT NULL DEFAULT '0' COMMENT '删除时间',
-	`is_del` tinyint NOT NULL DEFAULT '0' COMMENT '是否删除 0 为未删除、1 为已删除',
-	PRIMARY KEY (`id`) USING BTREE,
-	KEY `idx_wallet_recharge_user_id` (`user_id`) USING BTREE,
-	KEY `idx_wallet_recharge_trade_no` (`trade_no`) USING BTREE,
-	KEY `idx_wallet_recharge_trade_status` (`trade_status`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=10023 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='钱包流水';
-
--- ----------------------------
--- Table structure for p_wallet_statement
--- ----------------------------
-DROP TABLE IF EXISTS `p_wallet_statement`;
-CREATE TABLE `p_wallet_statement` (
-	`id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '账单ID',
-	`user_id` BIGINT NOT NULL DEFAULT '0' COMMENT '用户ID',
-	`change_amount` BIGINT NOT NULL DEFAULT '0' COMMENT '变动金额',
-	`balance_snapshot` BIGINT NOT NULL DEFAULT '0' COMMENT '资金快照',
-	`reason` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '变动原因',
-	`post_id` BIGINT NOT NULL DEFAULT '0' COMMENT '关联动态',
-	`created_on` BIGINT NOT NULL DEFAULT '0' COMMENT '创建时间',
-	`modified_on` BIGINT NOT NULL DEFAULT '0' COMMENT '修改时间',
-	`deleted_on` BIGINT NOT NULL DEFAULT '0' COMMENT '删除时间',
-	`is_del` tinyint NOT NULL DEFAULT '0' COMMENT '是否删除 0 为未删除、1 为已删除',
-	PRIMARY KEY (`id`) USING BTREE,
-	KEY `idx_wallet_statement_user_id` (`user_id`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=10010 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='钱包流水';
 
 DROP VIEW IF EXISTS p_post_by_media;
 CREATE VIEW p_post_by_media AS 

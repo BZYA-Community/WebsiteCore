@@ -13,9 +13,6 @@ type Priv struct {
 	// UploadAttachment 上传资源
 	UploadAttachment func(Post, web.UploadAttachmentReq) web.UploadAttachmentResp `mir:"attachment"`
 
-	// DownloadAttachmentPrecheck 下载资源预检
-	DownloadAttachmentPrecheck func(Get, web.DownloadAttachmentPrecheckReq) web.DownloadAttachmentPrecheckResp `mir:"attachment/precheck"`
-
 	// DownloadAttachment 下载资源
 	DownloadAttachment func(Get, web.DownloadAttachmentReq) web.DownloadAttachmentResp `mir:"attachment"`
 

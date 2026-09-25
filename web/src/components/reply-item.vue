@@ -1,5 +1,5 @@
 <template>
-    <div class="reply-item">
+    <div class="reply-item" :id="`reply-${props.reply.id}`" :class="{ 'reply-pending': props.reply.audit_status === AuditStatusEnum.PENDING }">
         <div class="header-wrap">
             <div class="username">
                 <router-link class="user-link" :to="{
@@ -18,6 +18,24 @@
                 }" v-if="props.reply.at_user_id > 0">
                     {{ props.reply.at_user.username }}
                 </router-link>
+                <n-tag
+                    v-if="props.reply.audit_status === AuditStatusEnum.PENDING"
+                    class="audit-tag"
+                    type="warning"
+                    size="small"
+                    round
+                >
+                    审核中
+                </n-tag>
+                <n-tag
+                    v-else-if="props.reply.audit_status === AuditStatusEnum.REJECTED"
+                    class="audit-tag"
+                    type="error"
+                    size="small"
+                    round
+                >
+                    未通过审核
+                </n-tag>
             </div>
             <div class="timestamp">
                 {{ props.reply.ip_loc }}
@@ -98,7 +116,7 @@ import {
   ThumbDownTwotone,
   ThumbDownOutlined,
 } from '@vicons/material';
-import { YesNoEnum } from '@/utils/IEnum';
+import { YesNoEnum, AuditStatusEnum } from '@/utils/IEnum';
 import { useStoreUser } from '@/store/user';
 import { storeToRefs } from 'pinia';
 
@@ -190,6 +208,10 @@ const execDelAction = () => {
     padding: 8px;
     border-bottom: 1px solid #f3f3f3;
 
+    &.reply-pending {
+        opacity: 0.75;
+    }
+
     .header-wrap {
         display: flex;
         align-items: center;
@@ -204,6 +226,11 @@ const execDelAction = () => {
             .reply-name {
                 margin: 0 3px;
                 opacity: 0.75;
+            }
+
+            .audit-tag {
+                transform: scale(0.75);
+                margin-left: 2px;
             }
         }
 

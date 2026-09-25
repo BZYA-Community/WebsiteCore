@@ -48,7 +48,6 @@ var (
 	BigCacheIndexSetting    *bigCacheIndexConf
 	RedisCacheIndexSetting  *redisCacheIndexConf
 	SmsJuheSetting          *smsJuheConf
-	AlipaySetting           *alipayConf
 	TweetSearchSetting      *tweetSearchConf
 	ZincSetting             *zincConf
 	MeiliSetting            *meiliConf
@@ -99,7 +98,6 @@ func setupSetting(suite []string, noDefault bool) error {
 		"SimpleCacheIndex":  &SimpleCacheIndexSetting,
 		"BigCacheIndex":     &BigCacheIndexSetting,
 		"RedisCacheIndex":   &RedisCacheIndexSetting,
-		"Alipay":            &AlipaySetting,
 		"SmsJuhe":           &SmsJuheSetting,
 		"Pyroscope":         &PyroscopeSetting,
 		"Sentry":            &sentrySetting,

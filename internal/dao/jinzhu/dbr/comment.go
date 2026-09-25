@@ -13,14 +13,15 @@ import (
 
 type Comment struct {
 	*Model
-	PostID          int64  `json:"post_id"`
-	UserID          int64  `json:"user_id"`
-	IP              string `json:"ip"`
-	IPLoc           string `json:"ip_loc"`
-	IsEssence       int8   `json:"is_essense"`
-	ReplyCount      int32  `json:"reply_count"`
-	ThumbsUpCount   int32  `json:"thumbs_up_count"`
-	ThumbsDownCount int32  `json:"-"`
+	PostID          int64      `json:"post_id"`
+	UserID          int64      `json:"user_id"`
+	IP              string     `json:"ip"`
+	IPLoc           string     `json:"ip_loc"`
+	IsEssence       int8       `json:"is_essense"`
+	ReplyCount      int32      `json:"reply_count"`
+	ThumbsUpCount   int32      `json:"thumbs_up_count"`
+	ThumbsDownCount int32      `json:"-"`
+	AuditStatus     PostAuditT `json:"audit_status"`
 }
 
 type CommentFormated struct {
@@ -36,6 +37,7 @@ type CommentFormated struct {
 	IsEssence     int8                    `json:"is_essence"`
 	IsThumbsUp    int8                    `json:"is_thumbs_up"`
 	IsThumbsDown  int8                    `json:"is_thumbs_down"`
+	AuditStatus   PostAuditT              `json:"audit_status"`
 	CreatedOn     int64                   `json:"created_on"`
 	ModifiedOn    int64                   `json:"modified_on"`
 }
@@ -57,6 +59,7 @@ func (c *Comment) Format() *CommentFormated {
 		IsEssence:     c.IsEssence,
 		IsThumbsUp:    types.No,
 		IsThumbsDown:  types.No,
+		AuditStatus:   c.AuditStatus,
 		CreatedOn:     c.CreatedOn,
 		ModifiedOn:    c.ModifiedOn,
 	}

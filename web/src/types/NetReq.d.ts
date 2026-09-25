@@ -107,9 +107,7 @@ declare namespace NetReq {
   interface SiteProfile {
     use_friendship?: boolean;
     enable_trends_bar?: boolean;
-    enable_wallet?: boolean;
     allow_tweet_attachment?: boolean;
-    allow_tweet_attachment_price?: boolean;
     allow_tweet_video?: boolean;
     allow_user_register?: boolean;
     allow_phone_bind?: boolean;

@@ -47,7 +47,6 @@ type Post struct {
 	IsLock          int          `json:"is_lock"`
 	LatestRepliedOn int64        `json:"latest_replied_on"`
 	Tags            string       `json:"tags"`
-	AttachmentPrice int64        `json:"attachment_price"`
 	IP              string       `json:"ip"`
 	IPLoc           string       `json:"ip_loc"`
 	AuditStatus     PostAuditT   `json:"audit_status"`
@@ -70,7 +69,6 @@ type PostFormated struct {
 	CreatedOn       int64                  `json:"created_on"`
 	ModifiedOn      int64                  `json:"modified_on"`
 	Tags            map[string]int8        `json:"tags"`
-	AttachmentPrice int64                  `json:"attachment_price"`
 	IPLoc           string                 `json:"ip_loc"`
 	AuditStatus     PostAuditT             `json:"audit_status"`
 }
@@ -113,7 +111,6 @@ func (p *Post) Format() *PostFormated {
 			LatestRepliedOn: p.LatestRepliedOn,
 			CreatedOn:       p.CreatedOn,
 			ModifiedOn:      p.ModifiedOn,
-			AttachmentPrice: p.AttachmentPrice,
 			Tags:            tagsMap,
 			IPLoc:           p.IPLoc,
 			AuditStatus:     p.AuditStatus,

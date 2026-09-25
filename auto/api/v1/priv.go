@@ -40,7 +40,6 @@ type Priv interface {
 	DeleteTweet(*web.DeleteTweetReq) error
 	CreateTweet(*web.CreateTweetReq) (*web.CreateTweetResp, error)
 	DownloadAttachment(*web.DownloadAttachmentReq) (*web.DownloadAttachmentResp, error)
-	DownloadAttachmentPrecheck(*web.DownloadAttachmentPrecheckReq) (*web.DownloadAttachmentPrecheckResp, error)
 	UploadAttachment(*web.UploadAttachmentReq) (*web.UploadAttachmentResp, error)
 
 	mustEmbedUnimplementedPrivServant()
@@ -374,21 +373,6 @@ func RegisterPrivServant(e *gin.Engine, s Priv, m ...PrivChain) {
 		resp, err := s.DownloadAttachment(req)
 		s.Render(c, resp, err)
 	})
-	router.Handle("GET", "attachment/precheck", func(c *gin.Context) {
-		select {
-		case <-c.Request.Context().Done():
-			return
-		default:
-		}
-		req := new(web.DownloadAttachmentPrecheckReq)
-		var bv _binding_ = req
-		if err := bv.Bind(c); err != nil {
-			s.Render(c, nil, err)
-			return
-		}
-		resp, err := s.DownloadAttachmentPrecheck(req)
-		s.Render(c, resp, err)
-	})
 	router.Handle("POST", "attachment", func(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
@@ -498,10 +482,6 @@ func (UnimplementedPrivServant) CreateTweet(req *web.CreateTweetReq) (*web.Creat
 }
 
 func (UnimplementedPrivServant) DownloadAttachment(req *web.DownloadAttachmentReq) (*web.DownloadAttachmentResp, error) {
-	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
-}
-
-func (UnimplementedPrivServant) DownloadAttachmentPrecheck(req *web.DownloadAttachmentPrecheckReq) (*web.DownloadAttachmentPrecheckResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

@@ -82,8 +82,6 @@ declare namespace NetParams {
     tags: string[];
     /** 艾特用户列表 */
     users: string[];
-    /** 附件价格 */
-    attachment_price: number;
     /** 可见性：0为公开，1为私密，2为好友可见 */
     visibility: import('@/utils/IEnum').VisibilityEnum;
   }

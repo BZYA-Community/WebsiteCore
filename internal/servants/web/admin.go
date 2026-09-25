@@ -12,6 +12,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
@@ -130,10 +131,7 @@ func (s *adminSrv) SaveSettings(req *web.AdminSettingsSaveReq) (*web.AdminSettin
 
 // maskPhone 手机号脱敏 138****1234
 func maskPhone(phone string) string {
-	if len(phone) < 7 {
-		return phone
-	}
-	return phone[:3] + "****" + phone[len(phone)-4:]
+	return dbr.MaskPhone(phone)
 }
 
 // AdminUserList 用户管理·搜索用户列表

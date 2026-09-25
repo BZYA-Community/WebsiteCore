@@ -26,7 +26,6 @@ var (
 	_post_metric_        string
 	_post_by_comment_    string
 	_post_by_media_      string
-	_postAttachmentBill_ string
 	_postCollection_     string
 	_postContent_        string
 	_postStar_           string
@@ -34,8 +33,6 @@ var (
 	_user_               string
 	_userRelation_       string
 	_userMetric_         string
-	_walletRecharge_     string
-	_walletStatement_    string
 )
 
 func initTableName() {
@@ -56,7 +53,6 @@ func initTableName() {
 	_post_metric_ = m[conf.TablePostMetric]
 	_post_by_comment_ = m[conf.TablePostByComment]
 	_post_by_media_ = m[conf.TablePostByMedia]
-	_postAttachmentBill_ = m[conf.TablePostAttachmentBill]
 	_postCollection_ = m[conf.TablePostCollection]
 	_postContent_ = m[conf.TablePostContent]
 	_postStar_ = m[conf.TablePostStar]
@@ -64,6 +60,4 @@ func initTableName() {
 	_user_ = m[conf.TableUser]
 	_userRelation_ = m[conf.TableUserRelation]
 	_userMetric_ = m[conf.TableUserMetric]
-	_walletRecharge_ = m[conf.TableWalletRecharge]
-	_walletStatement_ = m[conf.TableWalletStatement]
 }

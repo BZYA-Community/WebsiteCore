@@ -90,3 +90,13 @@ export enum YesNoEnum {
   NO = 0,
   YES = 1,
 }
+
+/** 内容审核状态枚举(帖子/评论/回复共用) */
+export enum AuditStatusEnum {
+  /** 待审核(仅作者与审核员可见) */
+  PENDING = 0,
+  /** 已通过 */
+  APPROVED = 1,
+  /** 未通过 */
+  REJECTED = 2,
+}

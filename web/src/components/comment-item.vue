@@ -1,5 +1,5 @@
 <template>
-    <div class="comment-item">
+    <div class="comment-item" :id="`comment-${comment.id}`" :class="{ 'comment-pending': comment.audit_status === AuditStatusEnum.PENDING }">
         <n-thing content-indented>
             <template #avatar>
                 <n-avatar round :size="30" :src="comment.user.avatar" />
@@ -28,6 +28,24 @@
                     round
                 >
                     精选
+                </n-tag>
+                <n-tag
+                    v-if="comment.audit_status === AuditStatusEnum.PENDING"
+                    class="top-tag"
+                    type="warning"
+                    size="small"
+                    round
+                >
+                    审核中
+                </n-tag>
+                <n-tag
+                    v-else-if="comment.audit_status === AuditStatusEnum.REJECTED"
+                    class="top-tag"
+                    type="error"
+                    size="small"
+                    round
+                >
+                    未通过审核
                 </n-tag>
             </template>
             <template #header-extra>
@@ -135,6 +153,7 @@ import { parsePostTag } from '@/utils/content';
 import { Trash, ArrowBarToUp, ArrowBarDown } from '@vicons/tabler';
 import { deleteComment, highlightComment } from '@/api/post';
 import { YesNoEnum } from '@/utils/IEnum';
+import { AuditStatusEnum } from '@/utils/IEnum';
 import { storeToRefs } from 'pinia';
 
 const router = useRouter();
@@ -242,6 +261,10 @@ const execHightlightAction = () => {
     width: 100%;
     padding: 16px;
     box-sizing: border-box;
+
+    &.comment-pending {
+        opacity: 0.75;
+    }
 
     .nickname-wrap {
         font-size: 14px;

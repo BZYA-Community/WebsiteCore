@@ -135,13 +135,12 @@
             </template>
 
             <template #footer>
-                <post-attachment 
+                <post-attachment
                     v-if="post.attachments.length > 0"
                     :attachments="post.attachments" />
                 <post-attachment
                     v-if="post.charge_attachments.length > 0"
                     :attachments="post.charge_attachments"
-                    :price="post.attachment_price"
                 />
                 <post-image
                     v-if="post.imgs.length > 0"

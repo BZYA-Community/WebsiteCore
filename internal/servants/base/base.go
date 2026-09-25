@@ -251,6 +251,57 @@ func (s *DaoServant) PrepareTweet(user *ms.User, tweet *ms.PostFormated) error {
 	return nil
 }
 
+// CanViewTweet 统一校验用户对帖子的读权限(与TweetDetail的可见性判定保持同口径):
+// 作者本人/管理员/审核员直接放行; 其余要求帖子已过审且满足可见性
+// (公开 / 好友双向之一 / 关注可见=访问者关注了作者), 私密帖仅作者与管理侧可见
+// post 同时兼容 *ms.Post 与 *ms.PostFormated
+func (s *DaoServant) CanViewTweet(user *ms.User, post any) bool {
+	var (
+		userID   int64
+		visible  ms.PostVisibleT
+		audit    ms.PostAuditT
+		hasValue bool
+	)
+	switch p := post.(type) {
+	case *ms.Post:
+		if p != nil {
+			userID, visible, audit, hasValue = p.UserID, p.Visibility, p.AuditStatus, true
+		}
+	case *ms.PostFormated:
+		if p != nil {
+			userID, visible, audit, hasValue = p.UserID, p.Visibility, p.AuditStatus, true
+		}
+	default:
+		return false
+	}
+	if !hasValue {
+		return false
+	}
+	// 作者本人/管理员/审核员直接放行
+	if user != nil && (user.ID == userID || user.IsAdmin || user.HasRole(ms.RoleAuditor)) {
+		return true
+	}
+	// 其余情况要求帖子已过审
+	if audit != ms.PostAuditApproved {
+		return false
+	}
+	switch visible {
+	case core.PostVisitPublic:
+		return true
+	case core.PostVisitFriend:
+		if user == nil {
+			return false
+		}
+		return s.Ds.IsFriend(userID, user.ID) || s.Ds.IsFriend(user.ID, userID)
+	case core.PostVisitFollowing:
+		// 关注可见: 访问者关注了作者即可见(与TweetDetail的IsFollowing口径一致)
+		return user != nil && s.Ds.IsFollow(user.ID, userID)
+	default:
+		// PostVisitPrivate及其它未知值一律拒绝
+		return false
+	}
+}
+
 func (s *DaoServant) PrepareTweets(userId int64, tweets []*ms.PostFormated) error {
 	userIdSet := make(map[int64]types.Empty, len(tweets))
 	for _, tweet := range tweets {
@@ -298,6 +349,10 @@ func (s *DaoServant) GetTweetBy(id int64) (*ms.PostFormated, error) {
 	postFormated := post.Format()
 	for _, user := range users {
 		postFormated.User = user.Format()
+	}
+	if postFormated.User == nil {
+		// 作者用户已不存在时填充占位 避免前端空指针
+		postFormated.User = ms.GhostUserFormated
 	}
 	for _, content := range postContents {
 		if content.PostID == post.ID {

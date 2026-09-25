@@ -30,11 +30,13 @@ var AllRoles = dbr.AllRoles
 type (
 	User                = dbr.User
 	Post                = dbr.Post
+	PostAuditT          = dbr.PostAuditT
 	ConditionsT         = dbr.ConditionsT
 	PostFormated        = dbr.PostFormated
 	UserFormated        = dbr.UserFormated
 	PostContentFormated = dbr.PostContentFormated
 	AuditLog            = dbr.AuditLog
+	AuditCommentRow     = dbr.AuditCommentRow
 	UserRoleLog         = dbr.UserRoleLog
 	Model               = dbr.Model
 )

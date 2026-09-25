@@ -11,11 +11,15 @@ import (
 
 // CommentService 评论检索服务
 type CommentService interface {
-	GetComments(tweetId int64, style cs.StyleCommentType, limit int, offset int) ([]*ms.Comment, int64, error)
+	// viewerId/viewerIsAuditor: 审核视角控制可见性——
+	//   游客: 仅已过审(audit_status=1)
+	//   登录用户: 已过审 + 本人发布的任意状态(作者可见自己的待审/未过审评论)
+	//   审核员/管理员: 全部
+	GetComments(tweetId int64, style cs.StyleCommentType, viewerId int64, viewerIsAuditor bool, limit int, offset int) ([]*ms.Comment, int64, error)
 	GetCommentByID(id int64) (*ms.Comment, error)
 	GetCommentReplyByID(id int64) (*ms.CommentReply, error)
 	GetCommentContentsByIDs(ids []int64) ([]*ms.CommentContent, error)
-	GetCommentRepliesByID(ids []int64) ([]*ms.CommentReplyFormated, error)
+	GetCommentRepliesByID(ids []int64, viewerId int64, viewerIsAuditor bool) ([]*ms.CommentReplyFormated, error)
 	GetCommentThumbsMap(userId int64, tweetId int64) (cs.CommentThumbsMap, cs.CommentThumbsMap, error)
 }
 

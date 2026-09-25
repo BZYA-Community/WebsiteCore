@@ -237,11 +237,6 @@ func (s *zincTweetSearchServant) createIndex() {
 			Sortable: true,
 			Store:    true,
 		},
-		"attachment_price": &zinc.ZincIndexPropertyT{
-			Type:     "numeric",
-			Sortable: true,
-			Store:    true,
-		},
 		"created_on": &zinc.ZincIndexPropertyT{
 			Type:     "numeric",
 			Index:    true,
@@ -277,7 +272,6 @@ func (s *zincTweetSearchServant) toDocs(data []core.TsDocItem) []map[string]any 
 			"tags":              tagMaps,
 			"ip_loc":            d.Post.IPLoc,
 			"latest_replied_on": d.Post.LatestRepliedOn,
-			"attachment_price":  d.Post.AttachmentPrice,
 			"created_on":        d.Post.CreatedOn,
 			"modified_on":       d.Post.ModifiedOn,
 		})

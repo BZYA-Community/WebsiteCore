@@ -13,7 +13,6 @@ const (
 	TweetBlockAudio
 	TweetBlockLink
 	TweetBlockAttachment
-	TweetBlockChargeAttachment
 
 	// 推文可见性
 	TweetVisitPublic    TweetVisibleType = 90
@@ -84,7 +83,6 @@ type TweetInfo struct {
 	IsLock          int              `json:"is_lock"`
 	LatestRepliedOn int64            `json:"latest_replied_on"`
 	Tags            string           `json:"tags"`
-	AttachmentPrice int64            `json:"attachment_price"`
 	IP              string           `json:"ip"`
 	IPLoc           string           `json:"ip_loc"`
 	CreatedOn       int64            `json:"created_on"`
@@ -108,7 +106,6 @@ type TweetItem struct {
 	CreatedOn       int64            `json:"created_on"`
 	ModifiedOn      int64            `json:"modified_on"`
 	Tags            map[string]int8  `json:"tags"`
-	AttachmentPrice int64            `json:"attachment_price"`
 	IPLoc           string           `json:"ip_loc"`
 }
 
@@ -142,7 +139,6 @@ type NewTweetReq struct {
 	Contents        TweetBlockList   `json:"contents" binding:"required"`
 	Tags            []string         `json:"tags" binding:"required"`
 	Users           []string         `json:"users" binding:"required"`
-	AttachmentPrice int64            `json:"attachment_price"`
 	Visibility      TweetVisibleType `json:"visibility"`
 	ClientIP        string           `json:"-" binding:"-"`
 }

@@ -32,7 +32,6 @@ var (
 	_ core.TweetHelpServantA   = (*tweetHelpSrvA)(nil)
 
 	_ core.UserManageService = (*userManageSrv)(nil)
-	_ core.WalletService     = (*walletSrv)(nil)
 
 	_ core.DataService = (*dataSrv)(nil)
 	_ core.VersionInfo = (*dataSrv)(nil)

@@ -33,12 +33,11 @@ const (
 )
 
 type (
-	PostStar           = dbr.PostStar
-	PostCollection     = dbr.PostCollection
-	PostAttachmentBill = dbr.PostAttachmentBill
-	PostContent        = dbr.PostContent
-	Attachment         = dbr.Attachment
-	AttachmentType     = dbr.AttachmentType
-	PostContentT       = dbr.PostContentT
-	PostVisibleT       = dbr.PostVisibleT
+	PostStar       = dbr.PostStar
+	PostCollection = dbr.PostCollection
+	PostContent    = dbr.PostContent
+	Attachment     = dbr.Attachment
+	AttachmentType = dbr.AttachmentType
+	PostContentT   = dbr.PostContentT
+	PostVisibleT   = dbr.PostVisibleT
 )

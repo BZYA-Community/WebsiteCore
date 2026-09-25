@@ -35,7 +35,6 @@ type UserInfoResp struct {
 	Username    string   `json:"username"`
 	Status      int      `json:"status"`
 	Avatar      string   `json:"avatar"`
-	Balance     int64    `json:"balance"`
 	Phone       string   `json:"phone"`
 	IsAdmin     bool     `json:"is_admin"`
 	Roles       []string `json:"roles"`

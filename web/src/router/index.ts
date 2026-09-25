@@ -35,14 +35,6 @@ const routes = [
     component: () => import('@/views/Topic.vue'),
   },
   {
-    path: '/anouncement',
-    name: 'anouncement',
-    meta: {
-      title: '公告',
-    },
-    component: () => import('@/views/Anouncement.vue'),
-  },
-  {
     path: '/profile',
     name: 'profile',
     meta: {
@@ -89,14 +81,6 @@ const routes = [
       title: '关注',
     },
     component: () => import('@/views/Following.vue'),
-  },
-  {
-    path: '/wallet',
-    name: 'wallet',
-    meta: {
-      title: '钱包',
-    },
-    component: () => import('@/views/Wallet.vue'),
   },
   {
     path: '/setting',

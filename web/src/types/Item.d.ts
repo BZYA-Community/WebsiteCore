@@ -30,8 +30,6 @@ declare namespace Item {
     followings: number;
     /** 推文数 */
     tweets_count?: number;
-    /** 用户余额（分） */
-    balance?: number;
     /** 用户状态 */
     status?: 1 | 2;
   }
@@ -84,6 +82,8 @@ declare namespace Item {
     is_thumbs_up: import('@/utils/IEnum').YesNoEnum;
     /** 是否反对，0为未反对，1为已反对 */
     is_thumbs_down: import('@/utils/IEnum').YesNoEnum;
+    /** 审核状态：0待审核 1已通过 2未通过（仅作者/审核员可见未过审评论） */
+    audit_status?: 0 | 1 | 2;
     /** 创建时间 */
     created_on: number;
     /** 修改时间 */
@@ -127,6 +127,8 @@ declare namespace Item {
     is_thumbs_up: import('@/utils/IEnum').YesNoEnum;
     /** 是否反对，0为未反对，1为已反对 */
     is_thumbs_down: import('@/utils/IEnum').YesNoEnum;
+    /** 审核状态：0待审核 1已通过 2未通过（仅作者/审核员可见未过审回复） */
+    audit_status?: 0 | 1 | 2;
     /** 创建时间 */
     created_on: number;
     /** 修改时间 */
@@ -197,8 +199,6 @@ declare namespace Item {
     user_id: number;
     /** 发帖人用户数据 */
     user: UserInfo;
-    /** 附件价格（分） */
-    attachment_price: number;
     /** 发帖时IP地址 */
     ip?: string;
     /** 发帖时城市地址 */
@@ -397,12 +397,5 @@ declare namespace Item {
     page_size: number;
     /** 总条数 */
     total_rows: number;
-  }
-
-  interface BillProps {
-    id: number;
-    reason: string;
-    change_amount: number;
-    created_on: number;
   }
 }

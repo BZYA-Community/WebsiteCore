@@ -56,7 +56,20 @@ func (s *commentSrv) GetCommentThumbsMap(userId int64, tweetId int64) (cs.Commen
 	return commentThumbs, replyThumbs, nil
 }
 
-func (s *commentSrv) GetComments(tweetId int64, style cs.StyleCommentType, limit int, offset int) (res []*ms.Comment, total int64, err error) {
+// addCommentAuditScope 评论审核可见范围(评论与回复共用):
+// 审核员/管理员见全部; 登录用户见已过审+本人发布的任意状态; 游客仅见已过审
+func addCommentAuditScope(db *gorm.DB, viewerId int64, viewerIsAuditor bool) *gorm.DB {
+	switch {
+	case viewerIsAuditor:
+		return db
+	case viewerId > 0:
+		return db.Where("(audit_status = ? OR user_id = ?)", int(dbr.PostAuditApproved), viewerId)
+	default:
+		return db.Where("audit_status = ?", int(dbr.PostAuditApproved))
+	}
+}
+
+func (s *commentSrv) GetComments(tweetId int64, style cs.StyleCommentType, viewerId int64, viewerIsAuditor bool, limit int, offset int) (res []*ms.Comment, total int64, err error) {
 	db := s.db.Table(_comment_)
 	sort := "is_essence DESC, id ASC"
 	switch style {
@@ -72,6 +85,7 @@ func (s *commentSrv) GetComments(tweetId int64, style cs.StyleCommentType, limit
 		// nothing
 	}
 	db = db.Where("post_id=?", tweetId)
+	db = addCommentAuditScope(db, viewerId, viewerIsAuditor)
 	if err = db.Count(&total).Error; err != nil {
 		return
 	}
@@ -108,7 +122,7 @@ func (s *commentSrv) GetCommentContentsByIDs(ids []int64) ([]*ms.CommentContent,
 	}, 0, 0)
 }
 
-func (s *commentSrv) GetCommentRepliesByID(ids []int64) ([]*ms.CommentReplyFormated, error) {
+func (s *commentSrv) GetCommentRepliesByID(ids []int64, viewerId int64, viewerIsAuditor bool) ([]*ms.CommentReplyFormated, error) {
 	CommentReply := &dbr.CommentReply{}
 	replies, err := CommentReply.List(s.db, &dbr.ConditionsT{
 		"comment_id IN ?": ids,
@@ -116,6 +130,16 @@ func (s *commentSrv) GetCommentRepliesByID(ids []int64) ([]*ms.CommentReplyForma
 	}, 0, 0)
 	if err != nil {
 		return nil, err
+	}
+	// 审核可见范围与评论同口径(回复量以页内评论为界 内存过滤即可)
+	if !viewerIsAuditor {
+		kept := make([]*dbr.CommentReply, 0, len(replies))
+		for _, reply := range replies {
+			if reply.AuditStatus == dbr.PostAuditApproved || reply.UserID == viewerId {
+				kept = append(kept, reply)
+			}
+		}
+		replies = kept
 	}
 	userIds := []int64{}
 	for _, reply := range replies {
@@ -136,6 +160,10 @@ func (s *commentSrv) GetCommentRepliesByID(ids []int64) ([]*ms.CommentReplyForma
 			if reply.AtUserID == user.ID {
 				replyFormated.AtUser = user.Format()
 			}
+		}
+		if replyFormated.User == nil {
+			// 作者用户已不存在时填充占位 避免前端空指针
+			replyFormated.User = ms.GhostUserFormated
 		}
 		repliesFormated = append(repliesFormated, replyFormated)
 	}
@@ -186,7 +214,8 @@ func (s *commentManageSrv) CreateComment(comment *ms.Comment) (*ms.Comment, erro
 }
 
 func (s *commentManageSrv) CreateCommentReply(reply *ms.CommentReply) (res *ms.CommentReply, err error) {
-	if res, err = reply.Create(s.db); err == nil {
+	if res, err = reply.Create(s.db); err == nil && reply.AuditStatus == dbr.PostAuditApproved {
+		// 仅即时过审的回复计入回复数 待审核的在过审时补记(见UpdateCommentReplyAuditStatus)
 		// 宽松处理错误
 		s.db.Table(_comment_).Where("id=?", reply.CommentID).Update("reply_count", gorm.Expr("reply_count+1"))
 	}
@@ -208,8 +237,11 @@ func (s *commentManageSrv) DeleteCommentReply(reply *ms.CommentReply) (err error
 	if err != nil {
 		return
 	}
-	// 宽松处理错误
-	db.Table(_comment_).Where("id=?", reply.CommentID).Update("reply_count", gorm.Expr("reply_count-1"))
+	// 仅已过审回复曾计入reply_count 待审/未过审回复删除时不回减
+	if reply.AuditStatus == dbr.PostAuditApproved {
+		// 宽松处理错误
+		db.Table(_comment_).Where("id=?", reply.CommentID).Update("reply_count", gorm.Expr("reply_count-1"))
+	}
 	db.Commit()
 	return
 }

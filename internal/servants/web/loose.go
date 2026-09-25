@@ -408,14 +408,28 @@ func (s *looseSrv) TopicList(req *web.TopicListReq) (*web.TopicListResp, error) 
 
 func (s *looseSrv) TweetComments(req *web.TweetCommentsReq) (res *web.TweetCommentsResp, err error) {
 	limit, offset := req.PageSize, (req.Page-1)*req.PageSize
-	// 尝试直接从缓存中获取数据
+	// 越权修复: 私密/好友/关注/未过审帖子的评论不可被任意读取(与TweetDetail同口径)
+	post, err := s.Ds.GetPostByID(req.TweetId)
+	if err != nil {
+		logrus.Errorf("looseSrv.TweetComments get post err: %s", err)
+		return nil, web.ErrGetPostFailed
+	}
+	if !s.CanViewTweet(req.User, post) {
+		return nil, web.ErrNoPermission
+	}
+	// 仅游客走缓存: 缓存键不含用户身份，登录用户的点赞状态(IsThumbsUp/Down)直接查库，避免跨用户串页
 	key, ok := "", false
-	if res, key, ok = s.tweetCommentsFromCache(req, limit, offset); ok {
-		logrus.Debugf("looseSrv.TweetComments from cache key:%s", key)
-		return
+	if req.Uid <= 0 {
+		if res, key, ok = s.tweetCommentsFromCache(req, limit, offset); ok {
+			logrus.Debugf("looseSrv.TweetComments from cache key:%s", key)
+			return
+		}
 	}
 
-	comments, totalRows, xerr := s.Ds.GetComments(req.TweetId, req.Style.ToInnerValue(), limit, offset)
+	// 评论审核可见范围: 审核员全部/作者见本人待审/其余仅过审(与GetComments同口径)
+	viewerIsAuditor := req.User != nil && (req.User.IsAdmin || req.User.HasRole(ms.RoleAuditor))
+
+	comments, totalRows, xerr := s.Ds.GetComments(req.TweetId, req.Style.ToInnerValue(), req.Uid, viewerIsAuditor, limit, offset)
 	if xerr != nil {
 		logrus.Errorf("looseSrv.TweetComments occurs error[1]: %s", xerr)
 		return nil, web.ErrGetCommentsFailed
@@ -440,7 +454,7 @@ func (s *looseSrv) TweetComments(req *web.TweetCommentsReq) (res *web.TweetComme
 		return nil, web.ErrGetCommentsFailed
 	}
 
-	replies, xerr := s.Ds.GetCommentRepliesByID(commentIDs)
+	replies, xerr := s.Ds.GetCommentRepliesByID(commentIDs, req.Uid, viewerIsAuditor)
 	if xerr != nil {
 		logrus.Errorf("looseSrv.TweetComments occurs error[4]: %s", xerr)
 		return nil, web.ErrGetCommentsFailed
@@ -488,11 +502,17 @@ func (s *looseSrv) TweetComments(req *web.TweetCommentsReq) (res *web.TweetComme
 				commentFormated.User = user.Format()
 			}
 		}
+		if commentFormated.User == nil {
+			// 作者用户已不存在时填充占位 避免前端空指针
+			commentFormated.User = ms.GhostUserFormated
+		}
 		commentsFormated = append(commentsFormated, commentFormated)
 	}
 	resp := joint.PageRespFrom(commentsFormated, req.Page, req.PageSize, totalRows)
-	// 缓存处理
-	base.OnCacheRespEvent(s.ac, key, resp, s.tweetCommentsExpire)
+	// 缓存处理(仅游客结果入缓存，见函数开头说明)
+	if req.Uid <= 0 {
+		base.OnCacheRespEvent(s.ac, key, resp, s.tweetCommentsExpire)
+	}
 	return &web.TweetCommentsResp{
 		CachePageResp: joint.CachePageResp{
 			Data: resp,
@@ -517,6 +537,10 @@ func (s *looseSrv) TweetDetail(req *web.TweetDetailReq) (*web.TweetDetailResp, e
 	postFormated := post.Format()
 	for _, user := range users {
 		postFormated.User = user.Format()
+	}
+	if postFormated.User == nil {
+		// 作者用户已不存在时填充占位 避免前端空指针
+		postFormated.User = ms.GhostUserFormated
 	}
 	for _, content := range postContents {
 		if content.PostID == post.ID {

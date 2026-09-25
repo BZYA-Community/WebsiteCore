@@ -19,6 +19,10 @@ type Audit interface {
 	Chain() gin.HandlersChain
 
 	ListAuditLogs(*web.AdminAuditLogsReq) (*web.AdminAuditLogsResp, error)
+	AuditNicknameAction(*web.AdminAuditNicknameReq) error
+	ListAuditNicknames(*web.AdminAuditNicknamesReq) (*web.AdminAuditNicknamesResp, error)
+	AuditCommentAction(*web.AdminAuditCommentReq) error
+	ListAuditComments(*web.AdminAuditCommentsReq) (*web.AdminAuditCommentsResp, error)
 	AuditPostAction(*web.AdminAuditPostReq) error
 	ListAuditPosts(*web.AdminAuditPostsReq) (*web.AdminAuditPostsResp, error)
 
@@ -45,6 +49,60 @@ func RegisterAuditServant(e *gin.Engine, s Audit) {
 			return
 		}
 		resp, err := s.ListAuditLogs(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("POST", "admin/audit/nickname", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.AdminAuditNicknameReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		s.Render(c, nil, s.AuditNicknameAction(req))
+	})
+	router.Handle("GET", "admin/audit/nicknames", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.AdminAuditNicknamesReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.ListAuditNicknames(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("POST", "admin/audit/comment", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.AdminAuditCommentReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		s.Render(c, nil, s.AuditCommentAction(req))
+	})
+	router.Handle("GET", "admin/audit/comments", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.AdminAuditCommentsReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.ListAuditComments(req)
 		s.Render(c, resp, err)
 	})
 	router.Handle("POST", "admin/audit/post", func(c *gin.Context) {
@@ -84,6 +142,22 @@ func (UnimplementedAuditServant) Chain() gin.HandlersChain {
 }
 
 func (UnimplementedAuditServant) ListAuditLogs(req *web.AdminAuditLogsReq) (*web.AdminAuditLogsResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAuditServant) AuditNicknameAction(req *web.AdminAuditNicknameReq) error {
+	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAuditServant) ListAuditNicknames(req *web.AdminAuditNicknamesReq) (*web.AdminAuditNicknamesResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAuditServant) AuditCommentAction(req *web.AdminAuditCommentReq) error {
+	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAuditServant) ListAuditComments(req *web.AdminAuditCommentsReq) (*web.AdminAuditCommentsResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
