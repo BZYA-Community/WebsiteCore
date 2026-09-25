@@ -244,10 +244,10 @@ func (s *contactManageSrv) GetContacts(userId int64, offset int, limit int) (*ms
 	for _, c := range contacts {
 		if c.User != nil {
 			resp.Contacts = append(resp.Contacts, ms.ContactItem{
-				UserId:    c.FriendId,
-				Username:  c.User.Username,
-				Nickname:  c.User.Nickname,
-				Avatar:    c.User.Avatar,
+				UserId:   c.FriendId,
+				Username: c.User.Username,
+				Nickname: c.User.Nickname,
+				Avatar:   c.User.Avatar,
 				// 手机号脱敏，避免好友列表泄露完整手机号(登录凭证)
 				Phone:     dbr.MaskPhone(c.User.Phone),
 				Roles:     c.User.RoleList(),

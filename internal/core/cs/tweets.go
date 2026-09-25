@@ -136,11 +136,11 @@ type ReactionItem struct {
 }
 
 type NewTweetReq struct {
-	Contents        TweetBlockList   `json:"contents" binding:"required"`
-	Tags            []string         `json:"tags" binding:"required"`
-	Users           []string         `json:"users" binding:"required"`
-	Visibility      TweetVisibleType `json:"visibility"`
-	ClientIP        string           `json:"-" binding:"-"`
+	Contents   TweetBlockList   `json:"contents" binding:"required"`
+	Tags       []string         `json:"tags" binding:"required"`
+	Users      []string         `json:"users" binding:"required"`
+	Visibility TweetVisibleType `json:"visibility"`
+	ClientIP   string           `json:"-" binding:"-"`
 }
 
 func (t TweetVisibleType) ToOutValue() (res uint8) {
