@@ -40,9 +40,15 @@ WebsiteCore 是一个自托管的微社区/论坛系统：Go 后端（Gin + GORM
 
 ## 快速开始
 
-### 1. 准备依赖服务
+### 1. 启动依赖服务
 
-需要一个数据库（PostgreSQL/MySQL/SQLite）、Redis；全文搜索可选 Meilisearch。
+本地开发依赖（PostgreSQL、Redis、Meilisearch）由仓库自带的 compose 一键启动：
+
+```bash
+make deps-up        # 启动并等待健康检查通过
+```
+
+镜像均已 pin（`postgres:18.6` / `redis:7.4.11` / `getmeili/meilisearch:v1.54.0`），端口只绑定 `127.0.0.1`。更多命令见 [docs/deploy/local/001-本地开发依赖环境部署.md](docs/deploy/local/001-本地开发依赖环境部署.md)。
 
 ### 2. 配置
 
@@ -52,21 +58,22 @@ cp config.yaml.sample config.yaml
 
 关键项：
 
-- `Features.Default`：特性开关列表。数据库特性名写 `Postgres` / `MySQL` / `Sqlite3`；启用自动建表迁移需同时加 `Migration` 并在编译时带 `migration` tag
+- `JWT.Secret`：**必填**，留空启动会直接退出。生成：`openssl rand -hex 24`
+- `Features.Default`：默认已是 `Postgres`；数据库特性名写 `Postgres` / `MySQL` / `Sqlite3`
 - `WebServer.HttpPort`：监听端口（默认 8008）
-- 数据库 / Redis / Meili 等连接信息按环境填写
+- 数据库 / Redis / Meili 连接信息已与 `docker-compose.dev.yml` 对齐，无需改动
 
-### 3. 构建并运行
+### 3. 建库
 
 ```bash
-# 构建前端(产物内嵌进二进制)
-cd web && npm install && npx vite build && cd ..
+make migrate        # 用内嵌迁移脚本建出完整 schema
+```
 
-# 构建后端(embed=内嵌前端, migration=启动时自动迁移数据库)
-make build TAGS='embed migration'
+### 4. 构建前端并运行
 
-# 运行(配置与数据文件相对二进制所在目录)
-cd release && ./paopao serve        # Windows: paopao.exe serve
+```bash
+make build-web          # 构建前端产物(供 embed 内嵌)
+make run TAGS='embed'   # 启动后端并内嵌前端
 ```
 
 访问 `http://127.0.0.1:8008`。更多安装/部署细节见 [docs/INSTALL_ZH.md](docs/INSTALL_ZH.md)。
