@@ -107,6 +107,12 @@ func HttpStatusCode(e error) (statusCode int, code int) {
 	case 11003:
 		// 运维角色保护(web.ErrRoleChangeNoPermission) 非运维账号无权变更 HTTP映射403
 		statusCode = http.StatusForbidden
+	case 20001, 20002, 20003:
+		// 注册用户名校验(已存在/长度/字符) 属客户端输入问题 HTTP映射400
+		statusCode = http.StatusBadRequest
+	case 30016, 30017:
+		// 推文内容校验(空内容/超长) HTTP映射400
+		statusCode = http.StatusBadRequest
 	}
 	return
 }

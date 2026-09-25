@@ -49,6 +49,8 @@ var (
 	ErrHighlightPostFailed     = xerror.NewError(30013, "动态设为亮点失败")
 	ErrGetPostsUnknowStyle     = xerror.NewError(30014, "使用未知样式参数获取动态列表")
 	ErrGetPostsNilUser         = xerror.NewError(30015, "使用游客账户获取动态详情失败")
+	ErrPostContentsEmpty       = xerror.NewError(30016, "内容不能为空")
+	ErrPostContentsTooLong     = xerror.NewError(30017, "内容超过长度限制")
 
 	ErrGetCommentsFailed      = xerror.NewError(40001, "获取评论列表失败")
 	ErrCreateCommentFailed    = xerror.NewError(40002, "评论发布失败")

@@ -278,7 +278,8 @@ window.$message = useMessage();
 </script>
 
 <style lang="less">
-.sidebar-wrap::-webkit-scrollbar {
+.sidebar-wrap::-webkit-scrollbar,
+.sidebar-wrap .n-menu::-webkit-scrollbar {
     width: 0;
     /* 隐藏滚动条的宽度 */
     height: 0;
@@ -293,9 +294,16 @@ window.$message = useMessage();
     right: calc(50% + var(--content-main) / 2 + 10px);
     padding: 12px 0;
     box-sizing: border-box;
-    max-height: calc(100vh);
-    /* 调整高度 */
-    overflow: auto;
+    /* 纵向flex布局: 菜单区自适应滚动, 底部用户卡片固定位置不被菜单压住 */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    .n-menu {
+        flex: 1 1 0;
+        min-height: 0;
+        overflow-y: auto;
+    }
 
     .n-menu .n-menu-item-content::before {
         border-radius: 21px;
@@ -319,10 +327,8 @@ window.$message = useMessage();
     .user-wrap {
         display: flex;
         align-items: center;
-        position: absolute;
-        bottom: 12px;
-        left: 12px;
-        right: 12px;
+        flex-shrink: 0;
+        padding: 12px 12px 0;
 
         .user-mini-wrap {
             display: none;

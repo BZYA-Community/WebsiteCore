@@ -9,6 +9,7 @@ import (
 	"io"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
@@ -204,7 +205,34 @@ func (s *privSrv) DownloadAttachment(req *web.DownloadAttachmentReq) (*web.Downl
 	}, nil
 }
 
+// validTweetContents 校验推文内容分块: 至少含一个非空白内容块;
+// 标题+正文文本总长不超过站点配置上限(Markdown长文类型不在此限)
+func validTweetContents(contents []*web.PostContentItem) error {
+	hasContent := false
+	textLen := 0
+	for _, item := range contents {
+		if strings.TrimSpace(item.Content) == "" {
+			continue
+		}
+		hasContent = true
+		if item.Type == ms.ContentTypeTitle || item.Type == ms.ContentTypeText {
+			textLen += utf8.RuneCountInString(item.Content)
+		}
+	}
+	if !hasContent {
+		return web.ErrPostContentsEmpty
+	}
+	if maxLen := conf.WebProfileSetting.DefaultTweetMaxLength; maxLen > 0 && textLen > maxLen {
+		return web.ErrPostContentsTooLong
+	}
+	return nil
+}
+
 func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, xerr error) {
+	// 基础内容校验(空/纯空白/文本超长直接拒绝, 避免先上传媒体再回滚)
+	if xerr = validTweetContents(req.Contents); xerr != nil {
+		return nil, xerr
+	}
 	var mediaContents []string
 	defer func() {
 		if xerr != nil {
