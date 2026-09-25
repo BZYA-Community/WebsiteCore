@@ -13,14 +13,15 @@ import (
 
 type CommentReply struct {
 	*Model
-	CommentID       int64  `db:"comment_id" json:"comment_id"`
-	UserID          int64  `db:"user_id" json:"user_id"`
-	AtUserID        int64  `db:"at_user_id" json:"at_user_id"`
-	Content         string `json:"content"`
-	IP              string `json:"ip"`
-	IPLoc           string `json:"ip_loc"`
-	ThumbsUpCount   int32  `json:"thumbs_up_count"`
-	ThumbsDownCount int32  `json:"-"`
+	CommentID       int64      `db:"comment_id" json:"comment_id"`
+	UserID          int64      `db:"user_id" json:"user_id"`
+	AtUserID        int64      `db:"at_user_id" json:"at_user_id"`
+	Content         string     `json:"content"`
+	IP              string     `json:"ip"`
+	IPLoc           string     `json:"ip_loc"`
+	ThumbsUpCount   int32      `json:"thumbs_up_count"`
+	ThumbsDownCount int32      `json:"-"`
+	AuditStatus     PostAuditT `json:"audit_status"`
 }
 
 type CommentReplyFormated struct {
@@ -35,6 +36,7 @@ type CommentReplyFormated struct {
 	ThumbsUpCount int32         `json:"thumbs_up_count"`
 	IsThumbsUp    int8          `json:"is_thumbs_up"`
 	IsThumbsDown  int8          `json:"is_thumbs_down"`
+	AuditStatus   PostAuditT    `json:"audit_status"`
 	CreatedOn     int64         `json:"created_on"`
 	ModifiedOn    int64         `json:"modified_on"`
 }
@@ -56,6 +58,7 @@ func (c *CommentReply) Format() *CommentReplyFormated {
 		ThumbsUpCount: c.ThumbsUpCount,
 		IsThumbsUp:    types.No,
 		IsThumbsDown:  types.No,
+		AuditStatus:   c.AuditStatus,
 		CreatedOn:     c.CreatedOn,
 		ModifiedOn:    c.ModifiedOn,
 	}

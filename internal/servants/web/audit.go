@@ -6,6 +6,7 @@ package web
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
@@ -175,6 +176,431 @@ func markdownSummaryText(s string) string {
 	s = strings.Join(kept, " ")
 	replacer := strings.NewReplacer("**", "", "*", "", "__", "", "_", "", "`", "")
 	return strings.TrimSpace(replacer.Replace(s))
+}
+
+// commentMentionRegex 从评论文本中提取@用户名
+var commentMentionRegex = regexp.MustCompile(`@([a-zA-Z0-9][a-zA-Z0-9_\-]{0,29})`)
+
+// ListAuditComments 评论审核队列(评论与回复合并)
+func (s *auditSrv) ListAuditComments(req *web.AdminAuditCommentsReq) (*web.AdminAuditCommentsResp, error) {
+	limit, offset := req.PageSize, (req.Page-1)*req.PageSize
+	rows, total, err := s.Ds.ListAuditComments(req.Status, offset, limit)
+	if err != nil {
+		logrus.Errorf("Ds.ListAuditComments err: %s", err)
+		return nil, web.ErrGetPostsFailed
+	}
+	userIds := make([]int64, 0, len(rows))
+	commentIds := make([]int64, 0, len(rows))
+	replyIds := make([]int64, 0, len(rows))
+	for _, row := range rows {
+		userIds = append(userIds, row.UserID)
+		if row.CommentType == 0 {
+			commentIds = append(commentIds, row.ID)
+		} else {
+			replyIds = append(replyIds, row.ID)
+		}
+	}
+	users, _ := s.Ds.GetUsersByIDs(userIds)
+	userMap := make(map[int64]*ms.User, len(users))
+	for _, u := range users {
+		userMap[u.ID] = u
+	}
+	contentMap := make(map[int64]string, len(commentIds))
+	if len(commentIds) > 0 {
+		if contents, err := s.Ds.GetCommentContentsByIDs(commentIds); err == nil {
+			for _, c := range contents {
+				switch c.Type {
+				case ms.ContentTypeImage:
+					contentMap[c.CommentID] += "[图片]"
+				case ms.ContentTypeVideo:
+					contentMap[c.CommentID] += "[视频]"
+				case ms.ContentTypeAttachment, ms.ContentTypeChargeAttachment:
+					contentMap[c.CommentID] += "[附件]"
+				default:
+					contentMap[c.CommentID] += c.Content
+				}
+			}
+		}
+	}
+	items := make([]*web.AdminAuditCommentItem, 0, len(rows))
+	for _, row := range rows {
+		item := &web.AdminAuditCommentItem{
+			ID:          row.ID,
+			CommentType: int(row.CommentType),
+			PostID:      row.PostID,
+			CommentID:   row.CommentID,
+			Content:     auditBriefText(contentMap[row.ID]),
+			AuditStatus: int(row.AuditStatus),
+			CreatedOn:   row.CreatedOn,
+		}
+		if row.CommentType == 1 {
+			if reply, err := s.Ds.GetCommentReplyByID(row.ID); err == nil {
+				item.Content = auditBriefText(reply.Content)
+			}
+		}
+		if u, exist := userMap[row.UserID]; exist {
+			item.User = &web.AdminAuditUserBrief{ID: u.ID, Nickname: u.Nickname, Username: u.Username}
+		}
+		items = append(items, item)
+	}
+	return (*web.AdminAuditCommentsResp)(base.PageRespFrom(items, req.Page, req.PageSize, total)), nil
+}
+
+// auditBriefText 审核条目内容摘要(超长截断)
+func auditBriefText(s string) string {
+	if r := []rune(strings.TrimSpace(s)); len(r) > 60 {
+		return string(r[:60]) + "…"
+	} else if len(r) == 0 {
+		return "(无文字内容)"
+	} else {
+		return string(r)
+	}
+}
+
+// AuditCommentAction 评论审核·通过/拒绝(评论与回复)
+func (s *auditSrv) AuditCommentAction(req *web.AdminAuditCommentReq) error {
+	if req.User == nil {
+		return web.ErrNoPermission
+	}
+	if req.Action == "reject" && len(req.Reason) == 0 {
+		return xerror.InvalidParams.WithDetails("拒绝操作需要填写原因")
+	}
+	newStatus := int(ms.PostAuditApproved)
+	if req.Action == "reject" {
+		newStatus = int(ms.PostAuditRejected)
+	}
+	var (
+		oldStatus int
+		err       error
+	)
+	if req.CommentType == 0 {
+		oldStatus, err = s.Ds.UpdateCommentAuditStatus(req.ID, newStatus)
+	} else {
+		oldStatus, err = s.Ds.UpdateCommentReplyAuditStatus(req.ID, newStatus)
+	}
+	if err != nil {
+		logrus.Errorf("Ds.UpdateCommentAuditStatus err: %s", err)
+		return web.ErrAuditCommentFailed
+	}
+	if oldStatus == newStatus {
+		// 状态未变化 幂等返回
+		return nil
+	}
+
+	action := "comment_" + req.Action
+	if req.CommentType == 1 {
+		action = "reply_" + req.Action
+	}
+	var post *ms.Post
+	if req.CommentType == 0 {
+		if post = s.applyCommentAuditEffects(req.ID, oldStatus, newStatus, req.Reason); post == nil {
+			return nil
+		}
+	} else {
+		if post = s.applyReplyAuditEffects(req.ID, oldStatus, newStatus, req.Reason); post == nil {
+			return nil
+		}
+	}
+
+	// 写审核日志(失败不影响审核结果)
+	if err := s.Ds.CreateAuditLog(&ms.AuditLog{
+		PostID:     post.ID,
+		OperatorID: req.User.ID,
+		Action:     action,
+		OldStatus:  uint8(oldStatus),
+		NewStatus:  uint8(newStatus),
+		Reason:     req.Reason,
+	}); err != nil {
+		logrus.Errorf("Ds.CreateAuditLog err: %s", err)
+	}
+	return nil
+}
+
+// applyCommentAuditEffects 评论审核状态变更的联动: 帖子计数/索引/延迟通知/缓存
+func (s *auditSrv) applyCommentAuditEffects(commentId int64, oldStatus, newStatus int, reason string) *ms.Post {
+	comment, err := s.Ds.GetCommentByID(commentId)
+	if err != nil || comment.Model == nil || comment.ID <= 0 {
+		logrus.Errorf("auditSrv GetCommentByID[%d] err: %v", commentId, err)
+		return nil
+	}
+	post, err := s.Ds.GetPostByID(comment.PostID)
+	if err != nil {
+		logrus.Errorf("auditSrv GetPostByID[%d] err: %s", comment.PostID, err)
+		return nil
+	}
+	switch {
+	case newStatus == int(ms.PostAuditApproved):
+		// 过审: 补记评论数/索引 并补发创建时被延迟的通知
+		post.CommentCount++
+		post.LatestRepliedOn = comment.CreatedOn
+		if err := s.Ds.UpdatePost(post); err != nil {
+			logrus.Errorf("Ds.UpdatePost err: %s", err)
+		}
+		s.PushPostToSearch(post)
+		s.notifyCommentApproved(post, comment)
+		s.notifyCommentAuditResult(comment.UserID, false, post.ID, commentBrief(s.Ds, comment), "", true)
+	case oldStatus == int(ms.PostAuditApproved):
+		// 由过审转为拒绝: 回减评论数
+		post.CommentCount--
+		if err := s.Ds.UpdatePost(post); err != nil {
+			logrus.Errorf("Ds.UpdatePost err: %s", err)
+		}
+		s.notifyCommentAuditResult(comment.UserID, false, post.ID, commentBrief(s.Ds, comment), reason, false)
+	default:
+		// 待审->拒绝: 从未计数/通知过 仅通知结果
+		s.notifyCommentAuditResult(comment.UserID, false, post.ID, commentBrief(s.Ds, comment), reason, false)
+	}
+	// 缓存处理
+	onCommentActionEvent(comment.PostID, comment.ID, _commentActionAudit)
+	return post
+}
+
+// applyReplyAuditEffects 回复审核状态变更的联动(父评论reply_count已在DAO内调整)
+func (s *auditSrv) applyReplyAuditEffects(replyId int64, oldStatus, newStatus int, reason string) *ms.Post {
+	reply, err := s.Ds.GetCommentReplyByID(replyId)
+	if err != nil || reply.Model == nil || reply.ID <= 0 {
+		logrus.Errorf("auditSrv GetCommentReplyByID[%d] err: %v", replyId, err)
+		return nil
+	}
+	comment, err := s.Ds.GetCommentByID(reply.CommentID)
+	if err != nil {
+		logrus.Errorf("auditSrv GetCommentByID[%d] err: %s", reply.CommentID, err)
+		return nil
+	}
+	post, err := s.Ds.GetPostByID(comment.PostID)
+	if err != nil {
+		logrus.Errorf("auditSrv GetPostByID[%d] err: %s", comment.PostID, err)
+		return nil
+	}
+	switch {
+	case newStatus == int(ms.PostAuditApproved):
+		post.CommentCount++
+		post.LatestRepliedOn = reply.CreatedOn
+		if err := s.Ds.UpdatePost(post); err != nil {
+			logrus.Errorf("Ds.UpdatePost err: %s", err)
+		}
+		s.PushPostToSearch(post)
+		s.notifyReplyApproved(post, comment, reply)
+		s.notifyCommentAuditResult(reply.UserID, true, post.ID, auditBriefText(reply.Content), "", true)
+	case oldStatus == int(ms.PostAuditApproved):
+		post.CommentCount--
+		if err := s.Ds.UpdatePost(post); err != nil {
+			logrus.Errorf("Ds.UpdatePost err: %s", err)
+		}
+		s.notifyCommentAuditResult(reply.UserID, true, post.ID, auditBriefText(reply.Content), reason, false)
+	default:
+		s.notifyCommentAuditResult(reply.UserID, true, post.ID, auditBriefText(reply.Content), reason, false)
+	}
+	// 缓存处理
+	onCommentActionEvent(comment.PostID, comment.ID, _commentActionAudit)
+	return post
+}
+
+// notifyCommentApproved 评论过审后补发创建时被延迟的通知(帖子作者+文中@的用户)
+func (s *auditSrv) notifyCommentApproved(post *ms.Post, comment *ms.Comment) {
+	postMaster, err := s.Ds.GetUserByID(post.UserID)
+	if err == nil && postMaster.ID != comment.UserID {
+		onCreateMessageEvent(&ms.Message{
+			SenderUserID:   comment.UserID,
+			ReceiverUserID: postMaster.ID,
+			Type:           ms.MsgtypeComment,
+			Brief:          "在泡泡中评论了你",
+			PostID:         post.ID,
+			CommentID:      comment.ID,
+		})
+	}
+	contents, err := s.Ds.GetCommentContentsByIDs([]int64{comment.ID})
+	if err != nil {
+		return
+	}
+	notified := map[int64]bool{post.UserID: true, comment.UserID: true}
+	for _, c := range contents {
+		if c.Type != ms.ContentTypeText {
+			continue
+		}
+		for _, m := range commentMentionRegex.FindAllStringSubmatch(c.Content, -1) {
+			user, err := s.Ds.GetUserByUsername(m[1])
+			if err != nil || notified[user.ID] {
+				continue
+			}
+			notified[user.ID] = true
+			onCreateMessageEvent(&ms.Message{
+				SenderUserID:   comment.UserID,
+				ReceiverUserID: user.ID,
+				Type:           ms.MsgtypeComment,
+				Brief:          "在泡泡评论中@了你",
+				PostID:         post.ID,
+				CommentID:      comment.ID,
+			})
+		}
+	}
+}
+
+// notifyReplyApproved 回复过审后补发创建时被延迟的通知
+func (s *auditSrv) notifyReplyApproved(post *ms.Post, comment *ms.Comment, reply *ms.CommentReply) {
+	commentMaster, err1 := s.Ds.GetUserByID(comment.UserID)
+	postMaster, err2 := s.Ds.GetUserByID(post.UserID)
+	if err1 == nil && commentMaster.ID != reply.UserID {
+		onCreateMessageEvent(&ms.Message{
+			SenderUserID:   reply.UserID,
+			ReceiverUserID: commentMaster.ID,
+			Type:           ms.MsgTypeReply,
+			Brief:          "在泡泡评论下回复了你",
+			PostID:         post.ID,
+			CommentID:      comment.ID,
+			ReplyID:        reply.ID,
+		})
+	}
+	if err2 == nil && postMaster.ID != reply.UserID && (err1 != nil || commentMaster.ID != postMaster.ID) {
+		onCreateMessageEvent(&ms.Message{
+			SenderUserID:   reply.UserID,
+			ReceiverUserID: postMaster.ID,
+			Type:           ms.MsgTypeReply,
+			Brief:          "在泡泡评论下发布了新回复",
+			PostID:         post.ID,
+			CommentID:      comment.ID,
+			ReplyID:        reply.ID,
+		})
+	}
+	if reply.AtUserID > 0 {
+		if user, err := s.Ds.GetUserByID(reply.AtUserID); err == nil && user.ID != reply.UserID &&
+			(err1 != nil || commentMaster.ID != user.ID) && (err2 != nil || postMaster.ID != user.ID) {
+			onCreateMessageEvent(&ms.Message{
+				SenderUserID:   reply.UserID,
+				ReceiverUserID: user.ID,
+				Type:           ms.MsgTypeReply,
+				Brief:          "在泡泡评论的回复中@了你",
+				PostID:         post.ID,
+				CommentID:      comment.ID,
+				ReplyID:        reply.ID,
+			})
+		}
+	}
+}
+
+// notifyCommentAuditResult 评论/回复审核结果以系统消息通知作者
+func (s *auditSrv) notifyCommentAuditResult(receiverUserID int64, isReply bool, postID int64, summary, reason string, approved bool) {
+	kind := "评论"
+	if isReply {
+		kind = "回复"
+	}
+	content, brief := "", ""
+	if approved {
+		brief = kind + "审核通过"
+		content = fmt.Sprintf("你的%s[%s]已通过审核，现已对他人可见。", kind, summary)
+	} else {
+		if r := []rune(reason); len(r) > 120 {
+			reason = string(r[:120]) + "…"
+		}
+		brief = kind + "审核未通过"
+		content = fmt.Sprintf("你的%s[%s]审核未通过。原因：%s。", kind, summary, reason)
+	}
+	onCreateMessageEvent(&ms.Message{
+		ReceiverUserID: receiverUserID,
+		Type:           ms.MsgTypeSystem,
+		Brief:          brief,
+		Content:        content,
+		PostID:         postID,
+	})
+}
+
+// commentBrief 评论内容摘要
+func commentBrief(ds core.DataService, comment *ms.Comment) string {
+	contents, err := ds.GetCommentContentsByIDs([]int64{comment.ID})
+	if err == nil {
+		for _, c := range contents {
+			switch c.Type {
+			case ms.ContentTypeImage:
+				continue
+			case ms.ContentTypeVideo:
+				continue
+			default:
+				if s := strings.TrimSpace(c.Content); s != "" {
+					return auditBriefText(s)
+				}
+			}
+		}
+		if len(contents) > 0 {
+			return "(媒体内容)"
+		}
+	}
+	return fmt.Sprintf("#%d", comment.ID)
+}
+
+// ListAuditNicknames 昵称审核队列
+func (s *auditSrv) ListAuditNicknames(req *web.AdminAuditNicknamesReq) (*web.AdminAuditNicknamesResp, error) {
+	limit, offset := req.PageSize, (req.Page-1)*req.PageSize
+	users, total, err := s.Ds.ListAuditNicknames(offset, limit)
+	if err != nil {
+		logrus.Errorf("Ds.ListAuditNicknames err: %s", err)
+		return nil, web.ErrGetPostsFailed
+	}
+	items := make([]*web.AdminAuditNicknameItem, 0, len(users))
+	for _, u := range users {
+		items = append(items, &web.AdminAuditNicknameItem{
+			UserID:          u.ID,
+			Username:        u.Username,
+			Nickname:        u.Nickname,
+			PendingNickname: u.PendingNickname,
+			CreatedOn:       u.CreatedOn,
+		})
+	}
+	return (*web.AdminAuditNicknamesResp)(base.PageRespFrom(items, req.Page, req.PageSize, total)), nil
+}
+
+// AuditNicknameAction 昵称审核·通过/拒绝
+func (s *auditSrv) AuditNicknameAction(req *web.AdminAuditNicknameReq) error {
+	if req.User == nil {
+		return web.ErrNoPermission
+	}
+	if req.Action == "reject" && len(req.Reason) == 0 {
+		return xerror.InvalidParams.WithDetails("拒绝操作需要填写原因")
+	}
+	user, err := s.Ds.GetUserByID(req.UserID)
+	if err != nil || user.Model == nil || user.ID <= 0 {
+		return xerror.InvalidParams.WithDetails("用户不存在")
+	}
+	if user.PendingNickname == "" {
+		return xerror.InvalidParams.WithDetails("该用户没有待审核的昵称变更")
+	}
+	pending := user.PendingNickname
+	if req.Action == "approve" {
+		if err := s.Ds.UpdateUserNickname(user, pending, ""); err != nil {
+			logrus.Errorf("Ds.UpdateUserNickname err: %s", err)
+			return web.ErrAuditNicknameFailed
+		}
+		// 缓存处理
+		onChangeUsernameEvent(user.ID, user.Username)
+		onCreateMessageEvent(&ms.Message{
+			ReceiverUserID: user.ID,
+			Type:           ms.MsgTypeSystem,
+			Brief:          "昵称审核通过",
+			Content:        fmt.Sprintf("你的昵称已变更为[%s]。", pending),
+		})
+	} else {
+		if err := s.Ds.UpdateUserNickname(user, user.Nickname, ""); err != nil {
+			logrus.Errorf("Ds.UpdateUserNickname err: %s", err)
+			return web.ErrAuditNicknameFailed
+		}
+		if r := []rune(req.Reason); len(r) > 120 {
+			req.Reason = string(r[:120]) + "…"
+		}
+		onCreateMessageEvent(&ms.Message{
+			ReceiverUserID: user.ID,
+			Type:           ms.MsgTypeSystem,
+			Brief:          "昵称审核未通过",
+			Content:        fmt.Sprintf("你的昵称变更[%s]审核未通过。原因：%s。", pending, req.Reason),
+		})
+	}
+	// 写审核日志(失败不影响审核结果)
+	if err := s.Ds.CreateAuditLog(&ms.AuditLog{
+		OperatorID: req.User.ID,
+		Action:     "nickname_" + req.Action,
+		Reason:     req.Reason,
+	}); err != nil {
+		logrus.Errorf("Ds.CreateAuditLog err: %s", err)
+	}
+	return nil
 }
 
 // ListAuditLogs 审核日志

@@ -78,11 +78,6 @@ var (
 	ErrGetCollectionsFailed = xerror.NewError(60001, "获取收藏列表失败")
 	ErrGetStarsFailed       = xerror.NewError(60002, "获取点赞列表失败")
 
-	ErrRechargeReqFail       = xerror.NewError(70001, "充值请求失败")
-	ErrRechargeNotifyError   = xerror.NewError(70002, "充值回调失败")
-	ErrGetRechargeFailed     = xerror.NewError(70003, "充值详情获取失败")
-	ErrUserWalletBillsFailed = xerror.NewError(70004, "用户钱包账单获取失败")
-
 	ErrNoRequestingFriendToSelf   = xerror.NewError(80001, "不允许添加自己为好友")
 	ErrNotExistFriendId           = xerror.NewError(80002, "好友id不存在")
 	ErrSendRequestingFriendFailed = xerror.NewError(80003, "申请添加朋友请求发送失败")
@@ -119,6 +114,8 @@ var (
 	// 11003 运维保护: 非运维账号尝试变更运维相关角色 HTTP映射403
 	ErrRoleChangeNoPermission = xerror.NewError(11003, "无权变更该用户角色")
 	ErrUserDeleteFailed       = xerror.NewError(11004, "删除用户失败")
+	ErrAuditCommentFailed     = xerror.NewError(11005, "评论审核操作失败")
+	ErrAuditNicknameFailed    = xerror.NewError(11006, "昵称审核操作失败")
 
 	ErrNotImplemented = xerror.NewError(10501, "功能未实现")
 )

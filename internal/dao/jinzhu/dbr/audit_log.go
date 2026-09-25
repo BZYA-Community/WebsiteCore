@@ -24,6 +24,17 @@ func (l *AuditLog) Create(db *gorm.DB) (*AuditLog, error) {
 	return l, err
 }
 
+// AuditCommentRow 评论审核队列行(评论与回复UNION合并后的投影)
+type AuditCommentRow struct {
+	ID          int64      `json:"id"`
+	CommentType int8       `json:"comment_type"` // 0评论 1回复
+	PostID      int64      `json:"post_id"`
+	CommentID   int64      `json:"comment_id"` // 回复所属评论ID(评论自身为0)
+	UserID      int64      `json:"user_id"`
+	AuditStatus PostAuditT `json:"audit_status"`
+	CreatedOn   int64      `json:"created_on"`
+}
+
 func (l *AuditLog) List(db *gorm.DB, conditions *ConditionsT, offset, limit int) ([]*AuditLog, error) {
 	var logs []*AuditLog
 	if offset >= 0 && limit > 0 {

@@ -102,7 +102,6 @@ type appConf struct {
 	MaxCommentCount       int64
 	MaxWhisperDaily       int64
 	MaxCaptchaTimes       int
-	AttachmentIncomeRate  float64
 	DefaultContextTimeout time.Duration
 	DefaultPageSize       int
 	MaxPageSize           int
@@ -311,9 +310,7 @@ type OperatorConf struct {
 type WebProfileConf struct {
 	UseFriendship             bool   `json:"use_friendship"`
 	EnableTrendsBar           bool   `json:"enable_trends_bar"`
-	EnableWallet              bool   `json:"enable_wallet"`
 	AllowTweetAttachment      bool   `json:"allow_tweet_attachment"`
-	AllowTweetAttachmentPrice bool   `json:"allow_tweet_attachment_price"`
 	AllowTweetVideo           bool   `json:"allow_tweet_video"`
 	AllowUserRegister         bool   `json:"allow_user_register"`
 	AllowPhoneBind            bool   `json:"allow_phone_bind"`
@@ -409,7 +406,6 @@ func (s *databaseConf) TableNames() (res TableNameMap) {
 		TablePostMetric,
 		TablePostByComment,
 		TablePostByMedia,
-		TablePostAttachmentBill,
 		TablePostCollection,
 		TablePostContent,
 		TablePostStar,
@@ -417,8 +413,6 @@ func (s *databaseConf) TableNames() (res TableNameMap) {
 		TableUser,
 		TableUserRelation,
 		TableUserMetric,
-		TableWalletRecharge,
-		TableWalletStatement,
 	}
 	res = make(TableNameMap, len(tableNames))
 	for _, name := range tableNames {

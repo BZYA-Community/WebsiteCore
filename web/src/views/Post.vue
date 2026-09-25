@@ -58,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, computed } from 'vue';
+import { ref, watch, onMounted, computed, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { getPost, getPostComments } from '@/api/post';
 import InfiniteLoading from 'v3-infinite-loading';
@@ -112,6 +112,8 @@ const loadPost = () => {
     id: 0,
   } as Item.PostProps;
   loading.value = true;
+  // 允许本次加载后重新定位审核跳转目标
+  pendingLocate = true;
   getPost({
     id: postId.value,
   })
@@ -159,6 +161,7 @@ const loadDefaultComments = ($state: any) => {
       }
       stateHandler.loaded();
       commentLoading.value = false;
+      tryLocateAuditComment();
     })
     .catch((err) => {
       commentLoading.value = false;
@@ -198,6 +201,7 @@ const loadHotsComments = ($state: any) => {
       }
       stateHandler.loaded();
       commentLoading.value = false;
+      tryLocateAuditComment();
     })
     .catch((err) => {
       commentLoading.value = false;
@@ -237,6 +241,7 @@ const loadNewestComments = ($state: any) => {
       }
       stateHandler.loaded();
       commentLoading.value = false;
+      tryLocateAuditComment();
     })
     .catch((err) => {
       commentLoading.value = false;
@@ -262,6 +267,40 @@ const loadComments = ($state: any) => {
     loadNewestComments($state);
   }
   commentLoading.value = false;
+};
+
+// 审核跳转定位: /post?id=x&comment_id=y(可带reply_id=z)
+// 评论加载完成后滚动至目标评论并高亮 未命中且还有下一页时自动续载
+let pendingLocate = true;
+const tryLocateAuditComment = () => {
+  const commentId = route.query.comment_id as string | undefined;
+  if (!commentId || !pendingLocate) {
+    return;
+  }
+  nextTick(() => {
+    const anchorId = route.query.reply_id
+      ? `reply-${route.query.reply_id}`
+      : `comment-${commentId}`;
+    const el =
+      document.getElementById(anchorId) ||
+      document.getElementById(`comment-${commentId}`);
+    if (el) {
+      pendingLocate = false;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('audit-highlight');
+      setTimeout(() => el.classList.remove('audit-highlight'), 5000);
+      return;
+    }
+    const noMore =
+      sortStrategy.value === 'default'
+        ? defaultNoMore.value
+        : sortStrategy.value === 'hots'
+        ? hotsNoMore.value
+        : newestNoMore.value;
+    if (!noMore) {
+      loadComments(stateHandler);
+    }
+  });
 };
 
 const reloadComments = () => {
@@ -292,6 +331,25 @@ watch(postId, () => {
   }
 });
 </script>
+
+<style lang="less">
+/* 审核跳转高亮(作用于comment-item/reply-item根元素 需全局作用域) */
+.audit-highlight {
+    outline: 2px solid #18a058;
+    border-radius: 8px;
+    background-color: rgba(24, 160, 88, 0.1);
+    animation: audit-highlight-fade 5s ease-in-out;
+}
+
+@keyframes audit-highlight-fade {
+    0% {
+        background-color: rgba(24, 160, 88, 0.3);
+    }
+    100% {
+        background-color: rgba(24, 160, 88, 0.05);
+    }
+}
+</style>
 
 <style lang="less" scoped>
 .detail-wrap {

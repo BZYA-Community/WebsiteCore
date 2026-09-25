@@ -5,13 +5,18 @@
 package storage
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/Masterminds/semver/v3"
 	"github.com/cockroachdb/errors"
@@ -167,10 +172,35 @@ func (s *localossServant) SignURL(objectKey string, expiredInSec int64) (string,
 	}
 	expiration := time.Now().Unix() + expiredInSec
 
-	// Fixed: Just make things simple and simple now so return an veiry simple sign url.
-	// Maybe make another process logic for sign url in future but not now.
-	uri := fmt.Sprintf("%s%s?expired=%d", s.domain, objectKey, expiration)
+	// 安全修复: 旧实现仅附加expired参数从不校验，等于永久公开链接；
+	// 现在生成真实HMAC签名，由LocalOSS文件服务(serveLocalOSSObject)强制校验
+	signedPath := objectKey
+	if u, err := url.Parse(s.domain); err == nil {
+		signedPath = u.Path + objectKey
+	}
+	uri := fmt.Sprintf("%s%s?expired=%d&sign=%s", s.domain, objectKey, expiration, LocalOSSSign(signedPath, expiration))
 	return uri, nil
+}
+
+// LocalOSSSign 使用服务端密钥对"请求路径+过期时间"生成HMAC-SHA256签名，
+// 密钥复用JWT密钥(服务端私有不外泄)
+func LocalOSSSign(reqPath string, expired int64) string {
+	secret := ""
+	if conf.JWTSetting != nil {
+		secret = conf.JWTSetting.Secret
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(fmt.Sprintf("%s:%d", reqPath, expired)))
+	return hex.EncodeToString(mac.Sum(nil))
+}
+
+// VerifyLocalOSSSign 校验签名与有效期，恒定时间比较避免时序攻击
+func VerifyLocalOSSSign(reqPath string, expired int64, sign string) bool {
+	if expired < time.Now().Unix() {
+		return false
+	}
+	expected := LocalOSSSign(reqPath, expired)
+	return hmac.Equal([]byte(expected), []byte(sign))
 }
 
 func (s *localossServant) ObjectURL(objetKey string) string {

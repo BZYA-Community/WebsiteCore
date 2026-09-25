@@ -40,6 +40,7 @@ type TagType = cs.TagType
 type CommentStyleType string
 
 type TweetCommentsReq struct {
+	BaseInfo   `form:"-" binding:"-"`
 	SimpleInfo `form:"-" binding:"-"`
 	TweetId    int64            `form:"id" binding:"required"`
 	Style      CommentStyleType `form:"style"`

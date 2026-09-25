@@ -21,7 +21,6 @@ const (
 	_imgCaptchaKey        = "paopao_img_captcha:"
 	_smsCaptchaKey        = "paopao_sms_captcha"
 	_countWhisperKey      = "paopao_whisper_key"
-	_rechargeStatusKey    = "paopao_recharge_status:"
 )
 
 type redisCache struct {
@@ -147,14 +146,4 @@ func (r *redisCache) IncrCountWhisper(ctx context.Context, uid int64) (err error
 		err = r.c.Do(ctx, r.c.B().Expire().Key(key).Seconds(int64(endTime.Sub(currentTime)/time.Second)).Build()).Error()
 	}
 	return
-}
-
-func (r *redisCache) SetRechargeStatus(ctx context.Context, tradeNo string) error {
-	return r.c.Do(ctx, r.c.B().Set().
-		Key(_rechargeStatusKey+tradeNo).Value("1").
-		Nx().ExSeconds(5).Build()).Error()
-}
-
-func (r *redisCache) DelRechargeStatus(ctx context.Context, tradeNo string) error {
-	return r.c.Do(ctx, r.c.B().Del().Key(_rechargeStatusKey+tradeNo).Build()).Error()
 }

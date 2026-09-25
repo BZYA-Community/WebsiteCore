@@ -9,6 +9,7 @@ import (
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
+	_ "modernc.org/sqlite"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
@@ -38,9 +39,7 @@ func TestUpdateEditableProfilePersistsOnlyEditableKeys(t *testing.T) {
 	profile, err := svc.UpdateEditableProfile(context.Background(), EditableProfile{
 		UseFriendship:             false,
 		EnableTrendsBar:           true,
-		EnableWallet:              true,
 		AllowTweetAttachment:      false,
-		AllowTweetAttachmentPrice: false,
 		AllowTweetVideo:           false,
 		DefaultTweetMaxLength:     1200,
 		TweetWebEllipsisSize:      300,
@@ -69,8 +68,8 @@ func TestUpdateEditableProfilePersistsOnlyEditableKeys(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetValues() error = %v", err)
 	}
-	if !hasValue(values.Items, "web_profile.enable_wallet", true, false) {
-		t.Fatalf("web_profile.enable_wallet override not found")
+	if !hasValue(values.Items, "web_profile.enable_trends_bar", true, false) {
+		t.Fatalf("web_profile.enable_trends_bar override not found")
 	}
 }
 
@@ -153,16 +152,16 @@ func TestBootstrapAppliesPersistedOverrides(t *testing.T) {
 	svc.codec = newSecretCodec()
 
 	_, err := svc.SaveValues(context.Background(), []web.AdminSettingValueInput{{
-		Key:   "web_profile.enable_wallet",
+		Key:   "web_profile.enable_trends_bar",
 		Value: []byte(`true`),
 	}})
 	if err != nil {
 		t.Fatalf("SaveValues() error = %v", err)
 	}
-	conf.WebProfileSetting.EnableWallet = false
+	conf.WebProfileSetting.EnableTrendsBar = false
 	Bootstrap(context.Background(), svc.db)
-	if !conf.WebProfileSetting.EnableWallet {
-		t.Fatal("Bootstrap() did not apply persisted web_profile.enable_wallet override")
+	if !conf.WebProfileSetting.EnableTrendsBar {
+		t.Fatal("Bootstrap() did not apply persisted web_profile.enable_trends_bar override")
 	}
 }
 
@@ -183,9 +182,7 @@ func newTestService(t *testing.T) *Service {
 	conf.WebProfileSetting = &conf.WebProfileConf{
 		UseFriendship:             true,
 		EnableTrendsBar:           false,
-		EnableWallet:              false,
 		AllowTweetAttachment:      true,
-		AllowTweetAttachmentPrice: true,
 		AllowTweetVideo:           true,
 		AllowUserRegister:         true,
 		AllowPhoneBind:            true,
@@ -201,7 +198,7 @@ func newTestService(t *testing.T) *Service {
 		CopyrightRightLink:        "https://fallback.example.com",
 	}
 	bootstrapConfig = nil
-	db, err := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{NamingStrategy: schema.NamingStrategy{TablePrefix: "p_", SingularTable: true}})
+	db, err := gorm.Open(&sqlite.Dialector{DriverName: "sqlite", DSN: "file::memory:?cache=shared"}, &gorm.Config{NamingStrategy: schema.NamingStrategy{TablePrefix: "p_", SingularTable: true}})
 	if err != nil {
 		t.Fatalf("gorm.Open() error = %v", err)
 	}

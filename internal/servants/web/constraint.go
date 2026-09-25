@@ -8,8 +8,6 @@ import (
 
 var (
 	_ api.Admin      = (*adminSrv)(nil)
-	_ api.AlipayPub  = (*alipayPubSrv)(nil)
-	_ api.AlipayPriv = (*alipayPrivSrv)(nil)
 	_ api.Core       = (*coreSrv)(nil)
 	_ api.Followship = (*followshipSrv)(nil)
 	_ api.Friendship = (*friendshipSrv)(nil)

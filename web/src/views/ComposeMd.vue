@@ -187,22 +187,6 @@
 
                 <div class="attachment-list-wrap">
                     <n-upload-file-list />
-                    <div
-                        class="attachment-price-wrap"
-                        v-if="attachmentContents.length > 0"
-                    >
-                        <n-input-number
-                            v-if="profile.allowTweetAttachmentPrice"
-                            v-model:value="attachmentPrice"
-                            :min="0"
-                            :max="100000"
-                            placeholder="请输入附件价格，0为免费附件"
-                        >
-                            <template #prefix>
-                                <span> 附件价格￥</span>
-                            </template>
-                        </n-input-number>
-                    </div>
                 </div>
             </n-upload>
 
@@ -288,7 +272,6 @@ const content = ref('');
 const links = ref([]);
 
 const uploadRef = ref<UploadInst>();
-const attachmentPrice = ref(0);
 const uploadType = ref('public/image');
 const fileQueue = ref<UploadFileInfo[]>([]);
 const imageContents = ref<Item.CommentItemProps[]>([]);
@@ -536,7 +519,6 @@ const submitPost = () => {
     contents,
     tags: Array.from(new Set(tags)),
     users: Array.from(new Set(users)),
-    attachment_price: +attachmentPrice.value * 100,
     visibility: visitType.value,
   })
     .then((res) => {

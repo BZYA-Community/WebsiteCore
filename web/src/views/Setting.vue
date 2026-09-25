@@ -354,6 +354,7 @@ import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { useStoreProfile } from '@/store/profile';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
+import { userInfo as fetchUserInfo } from '@/api/auth';
 
 const uploadGateway = import.meta.env.VITE_HOST + '/v1/attachment';
 const uploadToken = 'Bearer ' + localStorage.getItem(TOKEN_KEY);
@@ -586,12 +587,25 @@ const loadCaptcha4Activate = () => {
 };
 
 const handleNicknameChange = () => {
+  const submitted = userInfo.value.nickname || '';
   Api.v1.user.post.nickname({
-    nickname: userInfo.value.nickname || '',
+    nickname: submitted,
   })
-    .then((res) => {
+    .then(async (_res) => {
       showNicknameEdit.value = false;
-      window.$message.success('昵称修改成功');
+      // 昵称可能需要审核: 重新拉取用户信息以恢复服务端权威昵称
+      // 返回昵称==提交值说明立即生效(管理角色) 否则处于待审核状态
+      try {
+        const fresh = await fetchUserInfo();
+        storeUser.updateUserinfo(fresh);
+        if ((fresh.nickname || '') === submitted) {
+          window.$message.success('昵称修改成功');
+        } else {
+          window.$message.info('昵称修改已提交，审核通过后生效');
+        }
+      } catch (_err) {
+        window.$message.success('昵称修改已提交');
+      }
     })
     .catch((err) => {
       showNicknameEdit.value = true;

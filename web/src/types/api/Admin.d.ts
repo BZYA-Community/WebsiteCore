@@ -23,6 +23,10 @@ declare namespace Api {
                 audit: {
                     /** 审核·通过/拒绝/删除帖子 */
                     post: (params: NetParams.AuditPostReq) => Promise<NetReq.AuditPostResp>;
+                    /** 审核·通过/拒绝评论或回复 */
+                    comment: (params: NetParams.AuditCommentReq) => Promise<NetReq.AuditCommentResp>;
+                    /** 审核·通过/拒绝昵称变更 */
+                    nickname: (params: NetParams.AuditNicknameReq) => Promise<NetReq.AuditNicknameResp>;
                 }
             },
             get: {
@@ -51,6 +55,10 @@ declare namespace Api {
                 audit: {
                     /** 审核·帖子队列 */
                     posts: (params: NetParams.AuditPostsReq) => Promise<NetReq.AuditPostsResp>;
+                    /** 审核·评论/回复队列 */
+                    comments: (params: NetParams.AuditCommentsReq) => Promise<NetReq.AuditCommentsResp>;
+                    /** 审核·昵称变更队列 */
+                    nicknames: (params: NetParams.PageReq) => Promise<NetReq.AuditNicknamesResp>;
                     /** 审核·操作日志 */
                     logs: (params: NetParams.PageReq) => Promise<NetReq.AuditLogsResp>;
                 }
@@ -102,12 +110,31 @@ declare namespace Api {
                 reason?: string;
             }
 
+            interface AuditCommentsReq {
+                /** 0待审核 1已通过 2未通过 */
+                status: number;
+                page: number;
+                page_size: number;
+            }
+
+            interface AuditCommentReq {
+                id: number;
+                /** 0评论 1回复 */
+                comment_type: 0 | 1;
+                action: 'approve' | 'reject';
+                reason?: string;
+            }
+
+            interface AuditNicknameReq {
+                user_id: number;
+                action: 'approve' | 'reject';
+                reason?: string;
+            }
+
             interface SiteProfileReq {
                 use_friendship: boolean;
                 enable_trends_bar: boolean;
-                enable_wallet: boolean;
                 allow_tweet_attachment: boolean;
-                allow_tweet_attachment_price: boolean;
                 allow_tweet_video: boolean;
                 default_tweet_max_length: number;
                 tweet_web_ellipsis_size: number;
@@ -140,6 +167,10 @@ declare namespace Api {
             interface UserDeleteResp {}
 
             interface AuditPostResp {}
+
+            interface AuditCommentResp {}
+
+            interface AuditNicknameResp {}
 
             interface Pager {
                 page: number;
@@ -206,6 +237,44 @@ declare namespace Api {
 
             interface AuditPostsResp {
                 list: AuditPostItem[];
+                pager: Pager;
+            }
+
+            interface AuditCommentItem {
+                id: number;
+                /** 0评论 1回复 */
+                comment_type: 0 | 1;
+                post_id: number;
+                /** 回复所属评论ID(评论自身为0) */
+                comment_id: number;
+                user?: {
+                    id: number;
+                    nickname: string;
+                    username: string;
+                };
+                content: string;
+                /** 0待审核 1已通过 2未通过 */
+                audit_status: 0 | 1 | 2;
+                created_on: number;
+            }
+
+            interface AuditCommentsResp {
+                list: AuditCommentItem[];
+                pager: Pager;
+            }
+
+            interface AuditNicknameItem {
+                user_id: number;
+                username: string;
+                /** 当前昵称 */
+                nickname: string;
+                /** 待审核昵称 */
+                pending_nickname: string;
+                created_on: number;
+            }
+
+            interface AuditNicknamesResp {
+                list: AuditNicknameItem[];
                 pager: Pager;
             }
 
@@ -282,9 +351,7 @@ declare namespace Api {
             interface SiteProfileResp {
                 use_friendship: boolean;
                 enable_trends_bar: boolean;
-                enable_wallet: boolean;
                 allow_tweet_attachment: boolean;
-                allow_tweet_attachment_price: boolean;
                 allow_tweet_video: boolean;
                 allow_user_register: boolean;
                 allow_phone_bind: boolean;

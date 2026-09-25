@@ -113,6 +113,9 @@ func (s *tweetHelpSrv) MergePosts(posts []*ms.Post) ([]*ms.PostFormated, error) 
 	for _, post := range posts {
 		postFormated := post.Format()
 		postFormated.User = userMap[post.UserID]
+		if postFormated.User == nil {
+			postFormated.User = ms.GhostUserFormated
+		}
 		postFormated.Contents = contentMap[post.ID]
 		postsFormated = append(postsFormated, postFormated)
 	}
@@ -151,6 +154,9 @@ func (s *tweetHelpSrv) RevampPosts(posts []*ms.PostFormated) ([]*ms.PostFormated
 	// 数据整合
 	for _, post := range posts {
 		post.User = userMap[post.UserID]
+		if post.User == nil {
+			post.User = ms.GhostUserFormated
+		}
 		post.Contents = contentMap[post.ID]
 	}
 	return posts, nil
@@ -612,32 +618,6 @@ func (s *tweetSrv) GetUserPostCollectionCount(userID int64) (int64, error) {
 		UserID: userID,
 	}
 	return collection.Count(s.db, &dbr.ConditionsT{})
-}
-
-func (s *tweetSrv) GetUserWalletBills(userID int64, offset, limit int) ([]*ms.WalletStatement, error) {
-	statement := &dbr.WalletStatement{
-		UserID: userID,
-	}
-
-	return statement.List(s.db, &dbr.ConditionsT{
-		"ORDER": "id DESC",
-	}, offset, limit)
-}
-
-func (s *tweetSrv) GetUserWalletBillCount(userID int64) (int64, error) {
-	statement := &dbr.WalletStatement{
-		UserID: userID,
-	}
-	return statement.Count(s.db, &dbr.ConditionsT{})
-}
-
-func (s *tweetSrv) GetPostAttatchmentBill(postID, userID int64) (*ms.PostAttachmentBill, error) {
-	bill := &dbr.PostAttachmentBill{
-		PostID: postID,
-		UserID: userID,
-	}
-
-	return bill.Get(s.db)
 }
 
 func (s *tweetSrv) GetPostContentsByIDs(ids []int64) ([]*ms.PostContent, error) {

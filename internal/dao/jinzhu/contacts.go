@@ -248,7 +248,8 @@ func (s *contactManageSrv) GetContacts(userId int64, offset int, limit int) (*ms
 				Username:  c.User.Username,
 				Nickname:  c.User.Nickname,
 				Avatar:    c.User.Avatar,
-				Phone:     c.User.Phone,
+				// 手机号脱敏，避免好友列表泄露完整手机号(登录凭证)
+				Phone:     dbr.MaskPhone(c.User.Phone),
 				Roles:     c.User.RoleList(),
 				Identity:  c.User.DisplayIdentity(),
 				CreatedOn: c.User.CreatedOn,

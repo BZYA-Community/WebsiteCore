@@ -220,10 +220,7 @@
 
             <template #footer>
                 <post-attachment :attachments="post.attachments" />
-                <post-attachment
-                    :attachments="post.charge_attachments"
-                    :price="post.attachment_price"
-                />
+                <post-attachment :attachments="post.charge_attachments" />
                 <post-image :imgs="post.imgs" />
                 <post-video :videos="post.videos" :full="true" />
                 <post-link :links="post.links" />

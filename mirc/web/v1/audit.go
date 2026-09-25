@@ -14,6 +14,14 @@ type Audit struct {
 	ListAuditPosts func(Get, web.AdminAuditPostsReq) web.AdminAuditPostsResp `mir:"admin/audit/posts"`
 	// AuditPostAction 审核动作·通过/拒绝/删除
 	AuditPostAction func(Post, web.AdminAuditPostReq) `mir:"admin/audit/post"`
+	// ListAuditComments 评论审核队列·评论与回复合并按状态筛选
+	ListAuditComments func(Get, web.AdminAuditCommentsReq) web.AdminAuditCommentsResp `mir:"admin/audit/comments"`
+	// AuditCommentAction 评论审核动作·通过/拒绝评论或回复
+	AuditCommentAction func(Post, web.AdminAuditCommentReq) `mir:"admin/audit/comment"`
+	// ListAuditNicknames 昵称审核队列
+	ListAuditNicknames func(Get, web.AdminAuditNicknamesReq) web.AdminAuditNicknamesResp `mir:"admin/audit/nicknames"`
+	// AuditNicknameAction 昵称审核动作·通过/拒绝昵称变更
+	AuditNicknameAction func(Post, web.AdminAuditNicknameReq) `mir:"admin/audit/nickname"`
 	// ListAuditLogs 审核日志
 	ListAuditLogs func(Get, web.AdminAuditLogsReq) web.AdminAuditLogsResp `mir:"admin/audit/logs"`
 }

@@ -251,22 +251,6 @@ CREATE TABLE "p_post_metric" (
 );
 
 -- ----------------------------
--- Table structure for p_post_attachment_bill
--- ----------------------------
-DROP TABLE IF EXISTS "p_post_attachment_bill";
-CREATE TABLE "p_post_attachment_bill" (
-  "id" integer NOT NULL,
-  "post_id" integer NOT NULL,
-  "user_id" integer NOT NULL,
-  "paid_amount" integer NOT NULL,
-  "created_on" integer NOT NULL,
-  "modified_on" integer NOT NULL,
-  "deleted_on" integer NOT NULL,
-  "is_del" integer NOT NULL,
-  PRIMARY KEY ("id")
-);
-
--- ----------------------------
 -- Table structure for p_post_collection
 -- ----------------------------
 DROP TABLE IF EXISTS "p_post_collection";
@@ -365,7 +349,6 @@ CREATE TABLE "p_user" (
   "salt" text(16) NOT NULL,
   "status" integer NOT NULL,
   "avatar" text(255) NOT NULL,
-  "balance" integer NOT NULL,
   "is_admin" integer NOT NULL,
   "created_on" integer NOT NULL,
   "modified_on" integer NOT NULL,
@@ -387,41 +370,6 @@ CREATE TABLE "p_user_metric" (
 	"modified_on" integer NOT NULL DEFAULT 0,
 	"deleted_on" integer NOT NULL DEFAULT 0,
 	PRIMARY KEY ("id")
-);
-
--- ----------------------------
--- Table structure for p_wallet_recharge
--- ----------------------------
-DROP TABLE IF EXISTS "p_wallet_recharge";
-CREATE TABLE "p_wallet_recharge" (
-  "id" integer NOT NULL,
-  "user_id" integer NOT NULL,
-  "amount" integer NOT NULL,
-  "trade_no" text(64) NOT NULL,
-  "trade_status" text(32) NOT NULL,
-  "created_on" integer NOT NULL,
-  "modified_on" integer NOT NULL,
-  "deleted_on" integer NOT NULL,
-  "is_del" integer NOT NULL,
-  PRIMARY KEY ("id")
-);
-
--- ----------------------------
--- Table structure for p_wallet_statement
--- ----------------------------
-DROP TABLE IF EXISTS "p_wallet_statement";
-CREATE TABLE "p_wallet_statement" (
-  "id" integer NOT NULL,
-  "user_id" integer NOT NULL,
-  "change_amount" integer NOT NULL,
-  "balance_snapshot" integer NOT NULL,
-  "reason" text(255) NOT NULL,
-  "post_id" integer NOT NULL,
-  "created_on" integer NOT NULL,
-  "modified_on" integer NOT NULL,
-  "deleted_on" integer NOT NULL,
-  "is_del" integer NOT NULL,
-  PRIMARY KEY ("id")
 );
 
 DROP VIEW IF EXISTS p_post_by_media;

@@ -67,7 +67,6 @@ func (s *coreSrv) GetUserInfo(req *web.UserInfoReq) (*web.UserInfoResp, error) {
 		Username:    user.Username,
 		Status:      user.Status,
 		Avatar:      user.Avatar,
-		Balance:     user.Balance,
 		IsAdmin:     user.IsAdmin,
 		Roles:       dbr.SplitRoles(user.Roles),
 		Identity:    dbr.IdentityOf(user.Roles, user.Phone),
@@ -76,8 +75,8 @@ func (s *coreSrv) GetUserInfo(req *web.UserInfoReq) (*web.UserInfoResp, error) {
 		Followings:  followings,
 		TweetsCount: user.TweetsCount,
 	}
-	if user.Phone != "" && len(user.Phone) == 11 {
-		resp.Phone = user.Phone[0:3] + "****" + user.Phone[7:]
+	if user.Phone != "" {
+		resp.Phone = dbr.MaskPhone(user.Phone)
 	}
 	return resp, nil
 }
@@ -314,6 +313,17 @@ func (s *coreSrv) ChangeNickname(req *web.ChangeNicknameReq) error {
 		return web.ErrNicknameLengthLimit
 	}
 	user := req.User
+	// 审核开关: 无管理角色的用户昵称变更先暂存 待审核通过后生效(见auditSrv)
+	if conf.AuditSetting.Enabled && !user.HasAnyRole() {
+		user.PendingNickname = req.Nickname
+		if err := s.Ds.UpdateUser(user); err != nil {
+			logrus.Errorf("Ds.UpdateUser err: %s", err)
+			return xerror.ServerError
+		}
+		// 用户信息有缓存(GetUserInfo*) 暂存字段写入后需失效缓存 否则审核端读到旧数据
+		onChangeUsernameEvent(user.ID, user.Username)
+		return nil
+	}
 	user.Nickname = req.Nickname
 	if err := s.Ds.UpdateUser(user); err != nil {
 		logrus.Errorf("Ds.UpdateUser err: %s", err)

@@ -6,9 +6,7 @@ export const useStoreProfile = defineStore("profile", () => {
     const profile = ref({
         useFriendship: true,
         enableTrendsBar: true,
-        enableWallet: false,
         allowTweetAttachment: true,
-        allowTweetAttachmentPrice: true,
         allowTweetVideo: true,
         allowUserRegister: true,
         allowPhoneBind: true,
@@ -31,14 +29,8 @@ export const useStoreProfile = defineStore("profile", () => {
         profile.value.enableTrendsBar =
             import.meta.env.VITE_ENABLE_TRENDS_BAR.toLowerCase() === 'true';
 
-        profile.value.enableWallet =
-            import.meta.env.VITE_ENABLE_WALLET.toLowerCase() === 'true';
-
         profile.value.allowTweetAttachment =
             import.meta.env.VITE_ALLOW_TWEET_ATTACHMENT.toLowerCase() === 'true';
-
-        profile.value.allowTweetAttachmentPrice =
-            import.meta.env.VITE_ALLOW_TWEET_ATTACHMENT_PRICE.toLowerCase() === 'true';
 
         profile.value.allowTweetVideo =
             import.meta.env.VITE_ALLOW_TWEET_VIDEO.toLowerCase() === 'true';
@@ -83,13 +75,8 @@ export const useStoreProfile = defineStore("profile", () => {
 
         profile.value.enableTrendsBar = data.enable_trends_bar ?? profile.value.enableTrendsBar;
 
-        profile.value.enableWallet = data.enable_wallet ?? profile.value.enableWallet;
-
         profile.value.allowTweetAttachment =
             data.allow_tweet_attachment ?? profile.value.allowTweetAttachment;
-
-        profile.value.allowTweetAttachmentPrice =
-            data.allow_tweet_attachment_price ?? profile.value.allowTweetAttachmentPrice;
 
         profile.value.allowTweetVideo = data.allow_tweet_video ?? profile.value.allowTweetVideo;
 

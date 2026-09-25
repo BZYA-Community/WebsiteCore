@@ -9,7 +9,7 @@ WebServer: # Web服务
   ReadTimeout: 60
   WriteTimeout: 60
 JWT: # 鉴权加密
-  Secret: 18a6413dc4fe394c66345ebe501b2f26
+  Secret: ""   # 必填! 运行前生成: openssl rand -hex 24 (留空启动会直接报错退出)
   Issuer: paopao-api
   Expire: 86400
 Zinc: # Zinc搜索配置

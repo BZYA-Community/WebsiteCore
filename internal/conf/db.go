@@ -34,7 +34,6 @@ const (
 	TablePostMetric         = "post_metric"
 	TablePostByComment      = "post_by_comment"
 	TablePostByMedia        = "post_by_media"
-	TablePostAttachmentBill = "post_attachment_bill"
 	TablePostCollection     = "post_collection"
 	TablePostContent        = "post_content"
 	TablePostStar           = "post_star"
@@ -43,8 +42,6 @@ const (
 	TableUser               = "user"
 	TableUserRelation       = "user_relation"
 	TableUserMetric         = "user_metric"
-	TableWalletRecharge     = "wallet_recharge"
-	TableWalletStatement    = "wallet_statement"
 )
 
 type TableNameMap map[string]string

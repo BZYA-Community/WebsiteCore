@@ -133,6 +133,79 @@ type AdminAuditPostReq struct {
 	Reason   string `json:"reason"`
 }
 
+// AdminAuditCommentsReq 评论审核队列·status: 0待审核 1已通过 2未通过 -1全部
+type AdminAuditCommentsReq struct {
+	SimpleInfo `form:"-" binding:"-"`
+	Status     int `form:"status"`
+	Page       int `form:"-" binding:"-"`
+	PageSize   int `form:"-" binding:"-"`
+}
+
+func (r *AdminAuditCommentsReq) SetPageInfo(page, pageSize int) {
+	r.Page, r.PageSize = page, pageSize
+}
+
+type AdminAuditCommentsResp base.PageResp
+
+// AdminAuditCommentReq 评论审核动作·comment_type: 0评论 1回复
+type AdminAuditCommentReq struct {
+	BaseInfo    `json:"-" binding:"-"`
+	ID          int64  `json:"id" binding:"required"`
+	// 0为合法值(评论) 不能加required 否则zero value校验失败
+	CommentType int    `json:"comment_type" binding:"oneof=0 1"`
+	Action      string `json:"action" binding:"required,oneof=approve reject"`
+	Reason      string `json:"reason"`
+}
+
+// AdminAuditCommentItem 评论审核队列条目(评论与回复合并)
+type AdminAuditCommentItem struct {
+	ID          int64  `json:"id"`
+	CommentType int    `json:"comment_type"` // 0评论 1回复
+	PostID      int64  `json:"post_id"`
+	CommentID   int64  `json:"comment_id"` // 回复所属评论ID(评论自身为0)
+	User        *AdminAuditUserBrief `json:"user"`
+	Content     string `json:"content"`
+	AuditStatus int    `json:"audit_status"`
+	CreatedOn   int64  `json:"created_on"`
+}
+
+// AdminAuditUserBrief 审核条目关联用户摘要
+type AdminAuditUserBrief struct {
+	ID       int64  `json:"id"`
+	Nickname string `json:"nickname"`
+	Username string `json:"username"`
+}
+
+// AdminAuditNicknamesReq 昵称审核队列
+type AdminAuditNicknamesReq struct {
+	SimpleInfo `form:"-" binding:"-"`
+	Page       int `form:"-" binding:"-"`
+	PageSize   int `form:"-" binding:"-"`
+}
+
+func (r *AdminAuditNicknamesReq) SetPageInfo(page, pageSize int) {
+	r.Page, r.PageSize = page, pageSize
+}
+
+type AdminAuditNicknamesResp base.PageResp
+
+// AdminAuditNicknameReq 昵称审核动作
+type AdminAuditNicknameReq struct {
+	BaseInfo `json:"-" binding:"-"`
+	UserID   int64  `json:"user_id" binding:"required"`
+	Action   string `json:"action" binding:"required,oneof=approve reject"`
+	Reason   string `json:"reason"`
+}
+
+// AdminAuditNicknameItem 昵称审核队列条目
+type AdminAuditNicknameItem struct {
+	UserID           int64  `json:"user_id"`
+	Username         string `json:"username"`
+	Nickname         string `json:"nickname"`
+	PendingNickname  string `json:"pending_nickname"`
+	CreatedOn        int64  `json:"created_on"`
+}
+
 // AdminAuditLogsReq 审核日志
 type AdminAuditLogsReq struct {
 	SimpleInfo `form:"-" binding:"-"`

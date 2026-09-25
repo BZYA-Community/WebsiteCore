@@ -177,60 +177,20 @@ func (s *privSrv) UploadAttachment(req *web.UploadAttachmentReq) (*web.UploadAtt
 	}, nil
 }
 
-func (s *privSrv) DownloadAttachmentPrecheck(req *web.DownloadAttachmentPrecheckReq) (*web.DownloadAttachmentPrecheckResp, error) {
-	content, err := s.Ds.GetPostContentByID(req.ContentID)
-	if err != nil {
-		logrus.Errorf("Ds.GetPostContentByID err: %s", err)
-		return nil, web.ErrInvalidDownloadReq
-	}
-	resp := &web.DownloadAttachmentPrecheckResp{Paid: true}
-	if content.Type == ms.ContentTypeChargeAttachment {
-		tweet, err := s.GetTweetBy(content.PostID)
-		if err != nil {
-			logrus.Errorf("get tweet err: %v", err)
-			return nil, web.ErrInvalidDownloadReq
-		}
-		// 发布者或管理员免费下载
-		if tweet.UserID == req.User.ID || req.User.IsAdmin {
-			return resp, nil
-		}
-		// 检测是否有购买记录
-		resp.Paid = s.checkPostAttachmentIsPaid(req.ContentID, req.User.ID)
-	}
-	return resp, nil
-}
-
 func (s *privSrv) DownloadAttachment(req *web.DownloadAttachmentReq) (*web.DownloadAttachmentResp, error) {
 	content, err := s.Ds.GetPostContentByID(req.ContentID)
 	if err != nil {
 		logrus.Errorf("s.GetPostContentByID err: %v", err)
 		return nil, web.ErrInvalidDownloadReq
 	}
-	// 收费附件
-	if content.Type == ms.ContentTypeChargeAttachment {
-		post, err := s.GetTweetBy(content.PostID)
-		if err != nil {
-			logrus.Errorf("s.GetTweetBy err: %v", err)
-			return nil, xerror.ServerError
-		}
-		paidFlag := false
-		// 发布者或管理员免费下载 或者 检测是否有购买记录
-		if post.UserID == req.User.ID || req.User.IsAdmin || s.checkPostAttachmentIsPaid(post.ID, req.User.ID) {
-			paidFlag = true
-		}
-		// 未购买，则尝试购买
-		if !paidFlag {
-			err := s.buyPostAttachment(&ms.Post{
-				Model: &ms.Model{
-					ID: post.ID,
-				},
-				UserID:          post.UserID,
-				AttachmentPrice: post.AttachmentPrice,
-			}, req.User)
-			if err != nil {
-				return nil, err
-			}
-		}
+	post, err := s.GetTweetBy(content.PostID)
+	if err != nil {
+		logrus.Errorf("s.GetTweetBy err: %v", err)
+		return nil, xerror.ServerError
+	}
+	// 越权修复: 附件所属帖子对当前用户不可见时拒绝下载(私密/好友/关注/未过审)
+	if !s.CanViewTweet(req.User, post) {
+		return nil, web.ErrNoPermission
 	}
 	// 签发附件下载链接
 	objectKey := s.oss.ObjectKey(content.Content)
@@ -263,7 +223,6 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 		Tags:            strings.Join(tags, ","),
 		IP:              req.ClientIP,
 		IPLoc:           utils.GetIPLoc(req.ClientIP),
-		AttachmentPrice: req.AttachmentPrice,
 		Visibility:      ms.PostVisibleT(req.Visibility.ToVisibleValue()),
 	}
 	// 内容审核开启时 普通用户(无任何管理角色)的非私密新帖进入待审核
@@ -286,9 +245,6 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 			// 属性非法
 			logrus.Infof("contents check err: %s", err)
 			continue
-		}
-		if item.Type == ms.ContentTypeAttachment && req.AttachmentPrice > 0 {
-			item.Type = ms.ContentTypeChargeAttachment
 		}
 		postContent := &ms.PostContent{
 			PostID:  post.ID,
@@ -406,6 +362,20 @@ func (s *privSrv) CreateCommentReply(req *web.CreateCommentReplyReq) (_ *web.Cre
 	if post, comment, atUserID, err = s.createPostPreHandler(req.CommentID, req.Uid, req.AtUserID); err != nil {
 		return nil, web.ErrCreateReplyFailed
 	}
+	// 越权修复: 不可见或锁定的帖子不允许回复
+	user, err := s.Ds.GetUserByID(req.Uid)
+	if err != nil {
+		logrus.Errorf("Ds.GetUserByID err: %s", err)
+		return nil, web.ErrCreateReplyFailed
+	}
+	if !s.CanViewTweet(user, post) {
+		return nil, web.ErrNoPermission
+	}
+	if post.IsLock > 0 {
+		return nil, web.ErrNoPermission
+	}
+	// 审核开关: 无管理角色的用户回复需先过审 计数/索引/通知延迟到过审时生效(见auditSrv)
+	needAudit := conf.AuditSetting.Enabled && !user.HasAnyRole() && post.Visibility != ms.PostVisitPrivate
 
 	// 创建评论
 	reply := &ms.CommentReply{
@@ -416,58 +386,65 @@ func (s *privSrv) CreateCommentReply(req *web.CreateCommentReplyReq) (_ *web.Cre
 		IP:        req.ClientIP,
 		IPLoc:     utils.GetIPLoc(req.ClientIP),
 	}
+	if needAudit {
+		reply.AuditStatus = ms.PostAuditPending
+	} else {
+		reply.AuditStatus = ms.PostAuditApproved
+	}
 
 	reply, err = s.Ds.CreateCommentReply(reply)
 	if err != nil {
 		return nil, web.ErrCreateReplyFailed
 	}
 
-	// 更新Post回复数
-	post.CommentCount++
-	post.LatestRepliedOn = time.Now().Unix()
-	s.Ds.UpdatePost(post)
+	if reply.AuditStatus == ms.PostAuditApproved {
+		// 更新Post回复数
+		post.CommentCount++
+		post.LatestRepliedOn = time.Now().Unix()
+		s.Ds.UpdatePost(post)
 
-	// 更新索引
-	s.PushPostToSearch(post)
+		// 更新索引
+		s.PushPostToSearch(post)
 
-	// 创建用户消息提醒
-	commentMaster, err := s.Ds.GetUserByID(comment.UserID)
-	if err == nil && commentMaster.ID != req.Uid {
-		onCreateMessageEvent(&ms.Message{
-			SenderUserID:   req.Uid,
-			ReceiverUserID: commentMaster.ID,
-			Type:           ms.MsgTypeReply,
-			Brief:          "在泡泡评论下回复了你",
-			PostID:         post.ID,
-			CommentID:      comment.ID,
-			ReplyID:        reply.ID,
-		})
-	}
-	postMaster, err := s.Ds.GetUserByID(post.UserID)
-	if err == nil && postMaster.ID != req.Uid && commentMaster.ID != postMaster.ID {
-		onCreateMessageEvent(&ms.Message{
-			SenderUserID:   req.Uid,
-			ReceiverUserID: postMaster.ID,
-			Type:           ms.MsgTypeReply,
-			Brief:          "在泡泡评论下发布了新回复",
-			PostID:         post.ID,
-			CommentID:      comment.ID,
-			ReplyID:        reply.ID,
-		})
-	}
-	if atUserID > 0 {
-		user, err := s.Ds.GetUserByID(atUserID)
-		if err == nil && user.ID != req.Uid && commentMaster.ID != user.ID && postMaster.ID != user.ID {
-			// 创建消息提醒
+		// 创建用户消息提醒
+		commentMaster, err := s.Ds.GetUserByID(comment.UserID)
+		if err == nil && commentMaster.ID != req.Uid {
 			onCreateMessageEvent(&ms.Message{
 				SenderUserID:   req.Uid,
-				ReceiverUserID: user.ID,
+				ReceiverUserID: commentMaster.ID,
 				Type:           ms.MsgTypeReply,
-				Brief:          "在泡泡评论的回复中@了你",
+				Brief:          "在泡泡评论下回复了你",
 				PostID:         post.ID,
 				CommentID:      comment.ID,
 				ReplyID:        reply.ID,
 			})
+		}
+		postMaster, err := s.Ds.GetUserByID(post.UserID)
+		if err == nil && postMaster.ID != req.Uid && commentMaster.ID != postMaster.ID {
+			onCreateMessageEvent(&ms.Message{
+				SenderUserID:   req.Uid,
+				ReceiverUserID: postMaster.ID,
+				Type:           ms.MsgTypeReply,
+				Brief:          "在泡泡评论下发布了新回复",
+				PostID:         post.ID,
+				CommentID:      comment.ID,
+				ReplyID:        reply.ID,
+			})
+		}
+		if atUserID > 0 {
+			user, err := s.Ds.GetUserByID(atUserID)
+			if err == nil && user.ID != req.Uid && commentMaster.ID != user.ID && postMaster.ID != user.ID {
+				// 创建消息提醒
+				onCreateMessageEvent(&ms.Message{
+					SenderUserID:   req.Uid,
+					ReceiverUserID: user.ID,
+					Type:           ms.MsgTypeReply,
+					Brief:          "在泡泡评论的回复中@了你",
+					PostID:         post.ID,
+					CommentID:      comment.ID,
+					ReplyID:        reply.ID,
+				})
+			}
 		}
 	}
 	// 缓存处理
@@ -489,8 +466,10 @@ func (s *privSrv) DeleteComment(req *web.DeleteCommentReq) error {
 	if err != nil {
 		return web.ErrDeleteCommentFailed
 	}
-	// 更新post回复数
-	post.CommentCount--
+	// 更新post回复数(仅已过审评论曾计入 待审/未过审评论删除不回减)
+	if comment.AuditStatus == ms.PostAuditApproved {
+		post.CommentCount--
+	}
 	if err := s.Ds.UpdatePost(post); err != nil {
 		logrus.Errorf("Ds.UpdatePost err: %s", err)
 		return web.ErrDeleteCommentFailed
@@ -541,14 +520,34 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 		logrus.Errorf("Ds.GetPostByID err:%s", err)
 		return nil, xerror.ServerError
 	}
+	// 越权修复: 不可见或锁定的帖子不允许评论
+	user, err := s.Ds.GetUserByID(req.Uid)
+	if err != nil {
+		logrus.Errorf("Ds.GetUserByID err: %s", err)
+		return nil, xerror.ServerError
+	}
+	if !s.CanViewTweet(user, post) {
+		return nil, web.ErrNoPermission
+	}
+	if post.IsLock > 0 {
+		return nil, web.ErrNoPermission
+	}
 	if post.CommentCount >= conf.AppSetting.MaxCommentCount {
 		return nil, web.ErrMaxCommentCount
 	}
+	// 审核开关: 无管理角色的用户评论需先过审 计数/索引/通知延迟到过审时生效(见auditSrv)
+	// 私密帖子仅作者可见 无需审核
+	needAudit := conf.AuditSetting.Enabled && !user.HasAnyRole() && post.Visibility != ms.PostVisitPrivate
 	comment := &ms.Comment{
 		PostID: post.ID,
 		UserID: req.Uid,
 		IP:     req.ClientIP,
 		IPLoc:  utils.GetIPLoc(req.ClientIP),
+	}
+	if needAudit {
+		comment.AuditStatus = ms.PostAuditPending
+	} else {
+		comment.AuditStatus = ms.PostAuditApproved
 	}
 	comment, err = s.Ds.CreateComment(comment)
 	if err != nil {
@@ -573,41 +572,43 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 		s.Ds.CreateCommentContent(postContent)
 	}
 
-	// 更新Post回复数
-	post.CommentCount++
-	post.LatestRepliedOn = time.Now().Unix()
-	s.Ds.UpdatePost(post)
+	if comment.AuditStatus == ms.PostAuditApproved {
+		// 更新Post回复数
+		post.CommentCount++
+		post.LatestRepliedOn = time.Now().Unix()
+		s.Ds.UpdatePost(post)
 
-	// 更新索引
-	s.PushPostToSearch(post)
+		// 更新索引
+		s.PushPostToSearch(post)
 
-	// 创建用户消息提醒
-	postMaster, err := s.Ds.GetUserByID(post.UserID)
-	if err == nil && postMaster.ID != req.Uid {
-		onCreateMessageEvent(&ms.Message{
-			SenderUserID:   req.Uid,
-			ReceiverUserID: postMaster.ID,
-			Type:           ms.MsgtypeComment,
-			Brief:          "在泡泡中评论了你",
-			PostID:         post.ID,
-			CommentID:      comment.ID,
-		})
-	}
-	for _, u := range req.Users {
-		user, err := s.Ds.GetUserByUsername(u)
-		if err != nil || user.ID == req.Uid || user.ID == postMaster.ID {
-			continue
+		// 创建用户消息提醒
+		postMaster, err := s.Ds.GetUserByID(post.UserID)
+		if err == nil && postMaster.ID != req.Uid {
+			onCreateMessageEvent(&ms.Message{
+				SenderUserID:   req.Uid,
+				ReceiverUserID: postMaster.ID,
+				Type:           ms.MsgtypeComment,
+				Brief:          "在泡泡中评论了你",
+				PostID:         post.ID,
+				CommentID:      comment.ID,
+			})
 		}
+		for _, u := range req.Users {
+			user, err := s.Ds.GetUserByUsername(u)
+			if err != nil || user.ID == req.Uid || user.ID == postMaster.ID {
+				continue
+			}
 
-		// 创建消息提醒
-		onCreateMessageEvent(&ms.Message{
-			SenderUserID:   req.Uid,
-			ReceiverUserID: user.ID,
-			Type:           ms.MsgtypeComment,
-			Brief:          "在泡泡评论中@了你",
-			PostID:         post.ID,
-			CommentID:      comment.ID,
-		})
+			// 创建消息提醒
+			onCreateMessageEvent(&ms.Message{
+				SenderUserID:   req.Uid,
+				ReceiverUserID: user.ID,
+				Type:           ms.MsgtypeComment,
+				Brief:          "在泡泡评论中@了你",
+				PostID:         post.ID,
+				CommentID:      comment.ID,
+			})
+		}
 	}
 	// 缓存处理
 	onCommentActionEvent(comment.PostID, comment.ID, _commentActionCreate)
@@ -763,9 +764,11 @@ func (s *privSrv) deletePostCommentReply(reply *ms.CommentReply) error {
 	if err != nil {
 		return err
 	}
-	// 更新Post回复数
-	post.CommentCount--
-	post.LatestRepliedOn = time.Now().Unix()
+	// 更新Post回复数(仅已过审回复曾计入 待审/未过审回复删除不回减)
+	if reply.AuditStatus == ms.PostAuditApproved {
+		post.CommentCount--
+		post.LatestRepliedOn = time.Now().Unix()
+	}
 	s.Ds.UpdatePost(post)
 	// 更新索引
 	s.PushPostToSearch(post)
@@ -904,23 +907,6 @@ func (s *privSrv) deletePostCollection(collection *ms.PostCollection) error {
 
 	// 更新索引
 	s.PushPostToSearch(post)
-	return nil
-}
-
-func (s *privSrv) checkPostAttachmentIsPaid(postID, userID int64) bool {
-	bill, err := s.Ds.GetPostAttatchmentBill(postID, userID)
-	return err == nil && bill.Model != nil && bill.ID > 0
-}
-
-func (s *privSrv) buyPostAttachment(post *ms.Post, user *ms.User) error {
-	if user.Balance < post.AttachmentPrice {
-		return web.ErrInsuffientDownloadMoney
-	}
-	// 执行购买
-	if err := s.Ds.HandlePostAttachmentBought(post, user); err != nil {
-		logrus.Errorf("Ds.HandlePostAttachmentBought err: %s", err)
-		return xerror.ServerError
-	}
 	return nil
 }
 

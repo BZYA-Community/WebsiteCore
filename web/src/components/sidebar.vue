@@ -61,13 +61,11 @@ import { NIcon, NBadge, useMessage } from 'naive-ui';
 import {
   HomeOutline,
   BookmarksOutline,
-  MegaphoneOutline,
   ChatbubblesOutline,
   LeafOutline,
   PeopleOutline,
   PeopleCircleOutline,
   ShieldCheckmarkOutline,
-  WalletOutline,
   SettingsOutline,
   ConstructOutline,
   LogOutOutline,
@@ -91,9 +89,6 @@ const router = useRouter();
 const hasUnreadMsg = ref(false);
 const selectedPath = ref<any>(route.name || '');
 const msgLoop = ref();
-
-const enableAnnoucement =
-  import.meta.env.VITE_ENABLE_ANOUNCEMENT.toLowerCase() === 'true';
 
 watch(route, () => {
   selectedPath.value = route.name;
@@ -149,14 +144,6 @@ const menuOptions = computed(() => {
       href: '/topic',
     },
   ];
-  if (enableAnnoucement) {
-    options.push({
-      label: '公告',
-      key: 'anouncement',
-      icon: () => h(MegaphoneOutline),
-      href: '/anouncement',
-    });
-  }
   options.push({
     label: '主页',
     key: 'profile',
@@ -181,14 +168,6 @@ const menuOptions = computed(() => {
       key: 'contacts',
       icon: () => h(PeopleOutline),
       href: '/contacts',
-    });
-  }
-  if (profile.value.enableWallet) {
-    options.push({
-      label: '钱包',
-      key: 'wallet',
-      icon: () => h(WalletOutline),
-      href: '/wallet',
     });
   }
   options.push({

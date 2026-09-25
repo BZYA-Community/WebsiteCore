@@ -35,6 +35,7 @@ const (
 	_commentActionReplyThumbsUp
 	_commentActionReplyThumbsDown
 	_commentActionHighlight
+	_commentActionAudit
 )
 
 const (
@@ -225,6 +226,10 @@ func (e *commentActionEvent) Action() (err error) {
 	case _commentActionThumbsUp, _commentActionThumbsDown:
 		err = e.updateCommentMetric()
 		e.expireHotsComments()
+	case _commentActionAudit:
+		// 审核导致可见性变化: 失效评论列表缓存并刷新rank指标(指标行在创建时已存在 不能重复插入)
+		err = e.updateCommentMetric()
+		e.expireAllStyleComments()
 	case _commentActionHighlight:
 		e.expireAllStyleComments()
 	default:

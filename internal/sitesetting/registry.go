@@ -44,13 +44,11 @@ type bootstrapSnapshot struct {
 	S3            confS3Snapshot
 	LocalOSS      confLocalOSSSnapshot
 	SmsJuhe       confSmsJuheSnapshot
-	Alipay        confAlipaySnapshot
 	WebProfile    confWebProfileSnapshot
 	Audit         confAuditSnapshot
 }
 
 type confAppSnapshot struct {
-	AttachmentIncomeRate float64
 	MaxCommentCount      int64
 	MaxWhisperDaily      int64
 	MaxCaptchaTimes      int
@@ -139,15 +137,6 @@ type confSmsJuheSnapshot struct {
 	TplVal  string
 }
 
-type confAlipaySnapshot struct {
-	AppID             string
-	PrivateKey        string
-	RootCertFile      string
-	PublicCertFile    string
-	AppPublicCertFile string
-	InProduction      bool
-}
-
 type confAuditSnapshot struct {
 	Enabled bool
 }
@@ -155,9 +144,7 @@ type confAuditSnapshot struct {
 type confWebProfileSnapshot struct {
 	UseFriendship             bool
 	EnableTrendsBar           bool
-	EnableWallet              bool
 	AllowTweetAttachment      bool
-	AllowTweetAttachmentPrice bool
 	AllowTweetVideo           bool
 	AllowUserRegister         bool
 	AllowPhoneBind            bool
@@ -209,7 +196,6 @@ func ensureBootstrapSnapshot() {
 	bootstrapConfig = &bootstrapSnapshot{}
 	if conf.AppSetting != nil {
 		bootstrapConfig.App = confAppSnapshot{
-			AttachmentIncomeRate: conf.AppSetting.AttachmentIncomeRate,
 			MaxCommentCount:      conf.AppSetting.MaxCommentCount,
 			MaxWhisperDaily:      conf.AppSetting.MaxWhisperDaily,
 			MaxCaptchaTimes:      conf.AppSetting.MaxCaptchaTimes,
@@ -250,9 +236,6 @@ func ensureBootstrapSnapshot() {
 	if conf.SmsJuheSetting != nil {
 		bootstrapConfig.SmsJuhe = confSmsJuheSnapshot{Gateway: conf.SmsJuheSetting.Gateway, Key: conf.SmsJuheSetting.Key, TplID: conf.SmsJuheSetting.TplID, TplVal: conf.SmsJuheSetting.TplVal}
 	}
-	if conf.AlipaySetting != nil {
-		bootstrapConfig.Alipay = confAlipaySnapshot{AppID: conf.AlipaySetting.AppID, PrivateKey: conf.AlipaySetting.PrivateKey, RootCertFile: conf.AlipaySetting.RootCertFile, PublicCertFile: conf.AlipaySetting.PublicCertFile, AppPublicCertFile: conf.AlipaySetting.AppPublicCertFile, InProduction: conf.AlipaySetting.InProduction}
-	}
 	if conf.AuditSetting != nil {
 		bootstrapConfig.Audit = confAuditSnapshot{Enabled: conf.AuditSetting.Enabled}
 	}
@@ -260,9 +243,7 @@ func ensureBootstrapSnapshot() {
 		bootstrapConfig.WebProfile = confWebProfileSnapshot{
 			UseFriendship:             conf.WebProfileSetting.UseFriendship,
 			EnableTrendsBar:           conf.WebProfileSetting.EnableTrendsBar,
-			EnableWallet:              conf.WebProfileSetting.EnableWallet,
 			AllowTweetAttachment:      conf.WebProfileSetting.AllowTweetAttachment,
-			AllowTweetAttachmentPrice: conf.WebProfileSetting.AllowTweetAttachmentPrice,
 			AllowTweetVideo:           conf.WebProfileSetting.AllowTweetVideo,
 			AllowUserRegister:         conf.WebProfileSetting.AllowUserRegister,
 			AllowPhoneBind:            conf.WebProfileSetting.AllowPhoneBind,
@@ -291,9 +272,7 @@ func Registry() []Definition {
 	return []Definition{
 		boolDef("web_profile.use_friendship", "web", "profile", "Use friendship", "Switch the frontend friendship model.", ApplyModeLive, false, true, func() any { return conf.WebProfileSetting.UseFriendship }, func() any { return bootstrapConfig.WebProfile.UseFriendship }, func(v any) { conf.WebProfileSetting.UseFriendship = v.(bool) }),
 		boolDef("web_profile.enable_trends_bar", "web", "profile", "Enable trends bar", "Show the trends sidebar in the web UI.", ApplyModeLive, false, true, func() any { return conf.WebProfileSetting.EnableTrendsBar }, func() any { return bootstrapConfig.WebProfile.EnableTrendsBar }, func(v any) { conf.WebProfileSetting.EnableTrendsBar = v.(bool) }),
-		boolDef("web_profile.enable_wallet", "web", "profile", "Enable wallet", "Enable wallet-related frontend features.", ApplyModeLive, false, true, func() any { return conf.WebProfileSetting.EnableWallet }, func() any { return bootstrapConfig.WebProfile.EnableWallet }, func(v any) { conf.WebProfileSetting.EnableWallet = v.(bool) }),
 		boolDef("web_profile.allow_tweet_attachment", "web", "profile", "Allow attachments", "Allow file attachments on posts.", ApplyModeLive, false, true, func() any { return conf.WebProfileSetting.AllowTweetAttachment }, func() any { return bootstrapConfig.WebProfile.AllowTweetAttachment }, func(v any) { conf.WebProfileSetting.AllowTweetAttachment = v.(bool) }),
-		boolDef("web_profile.allow_tweet_attachment_price", "web", "profile", "Allow paid attachments", "Allow post attachments to have a price.", ApplyModeLive, false, true, func() any { return conf.WebProfileSetting.AllowTweetAttachmentPrice }, func() any { return bootstrapConfig.WebProfile.AllowTweetAttachmentPrice }, func(v any) { conf.WebProfileSetting.AllowTweetAttachmentPrice = v.(bool) }),
 		boolDef("web_profile.allow_tweet_video", "web", "profile", "Allow video posts", "Allow video uploads on posts.", ApplyModeLive, false, true, func() any { return conf.WebProfileSetting.AllowTweetVideo }, func() any { return bootstrapConfig.WebProfile.AllowTweetVideo }, func(v any) { conf.WebProfileSetting.AllowTweetVideo = v.(bool) }),
 		boolDef("web_profile.allow_user_register", "web", "profile", "Allow user registration", "Bootstrap-only registration gate from YAML/features.", ApplyModeBootstrapOnly, false, false, func() any { return conf.WebProfileSetting.AllowUserRegister }, func() any { return bootstrapConfig.WebProfile.AllowUserRegister }, nil),
 		boolDef("web_profile.allow_phone_bind", "web", "profile", "Allow phone binding", "Bootstrap-only phone binding gate from YAML/features.", ApplyModeBootstrapOnly, false, false, func() any { return conf.WebProfileSetting.AllowPhoneBind }, func() any { return bootstrapConfig.WebProfile.AllowPhoneBind }, nil),
@@ -313,12 +292,6 @@ func Registry() []Definition {
 		stringDef("web_profile.copyright_right_link", "web", "profile", "Copyright right link", "Optional right footer link.", ApplyModeLive, false, true, nil, func() any { return conf.WebProfileSetting.CopyrightRightLink }, func() any { return bootstrapConfig.WebProfile.CopyrightRightLink }, validateOptionalURL("copyright_right_link", 255), func(v any) { conf.WebProfileSetting.CopyrightRightLink = v.(string) }),
 
 		int64Def("app.max_comment_count", "app", "general", "Max comment count", "Maximum comments allowed on a post.", ApplyModeLive, func() any { return conf.AppSetting.MaxCommentCount }, func() any { return bootstrapConfig.App.MaxCommentCount }, func(v int64) error { return betweenInt64(v, 1, 100000, "max_comment_count") }, func(v any) { conf.AppSetting.MaxCommentCount = v.(int64) }),
-		floatDef("app.attachment_income_rate", "app", "general", "Attachment income rate", "Revenue share for paid attachments.", ApplyModeLive, func() any { return conf.AppSetting.AttachmentIncomeRate }, func() any { return bootstrapConfig.App.AttachmentIncomeRate }, func(v float64) error {
-			if v < 0 || v > 1 {
-				return xerror.InvalidParams.WithDetails("attachment_income_rate must be between 0 and 1")
-			}
-			return nil
-		}, func(v any) { conf.AppSetting.AttachmentIncomeRate = v.(float64) }),
 		intDef("app.default_page_size", "app", "general", "Default page size", "Default pagination size.", ApplyModeLive, false, true, func() any { return conf.AppSetting.DefaultPageSize }, func() any { return bootstrapConfig.App.DefaultPageSize }, func(v int) error { return between(v, 1, conf.AppSetting.MaxPageSize, "default_page_size") }, func(v any) { conf.AppSetting.DefaultPageSize = v.(int) }),
 		intDef("app.max_page_size", "app", "general", "Max page size", "Maximum pagination size.", ApplyModeLive, false, true, func() any { return conf.AppSetting.MaxPageSize }, func() any { return bootstrapConfig.App.MaxPageSize }, func(v int) error {
 			return between(v, maxInt(conf.AppSetting.DefaultPageSize, 1), 1000, "max_page_size")
@@ -384,13 +357,6 @@ func Registry() []Definition {
 		stringDefWithActive("sms_juhe.key", "notifications", "sms_juhe", "SMS key", "Juhe SMS key.", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsJuheSetting.Key }, func() any { return bootstrapConfig.SmsJuhe.Key }, validateTrimmedMax("sms_juhe.key", 255), func(v any) { conf.SmsJuheSetting.Key = v.(string) }),
 		stringDefWithActive("sms_juhe.tpl_id", "notifications", "sms_juhe", "SMS template ID", "Juhe SMS template ID.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsJuheSetting.TplID }, func() any { return bootstrapConfig.SmsJuhe.TplID }, validateTrimmedMax("sms_juhe.tpl_id", 255), func(v any) { conf.SmsJuheSetting.TplID = v.(string) }),
 		stringDefWithActive("sms_juhe.tpl_val", "notifications", "sms_juhe", "SMS template value", "Juhe SMS template value format.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsJuheSetting.TplVal }, func() any { return bootstrapConfig.SmsJuhe.TplVal }, validateTrimmedMax("sms_juhe.tpl_val", 255), func(v any) { conf.SmsJuheSetting.TplVal = v.(string) }),
-
-		stringDefWithActive("alipay.app_id", "payments", "alipay", "Alipay app ID", "Alipay application ID.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Alipay") }, func() any { return conf.AlipaySetting.AppID }, func() any { return bootstrapConfig.Alipay.AppID }, validateTrimmedMax("alipay.app_id", 255), func(v any) { conf.AlipaySetting.AppID = v.(string) }),
-		stringDefWithActive("alipay.private_key", "payments", "alipay", "Alipay private key", "Alipay private key PEM content.", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("Alipay") }, func() any { return conf.AlipaySetting.PrivateKey }, func() any { return bootstrapConfig.Alipay.PrivateKey }, validateTrimmedMax("alipay.private_key", 8192), func(v any) { conf.AlipaySetting.PrivateKey = v.(string) }),
-		stringDefWithActive("alipay.root_cert_file", "payments", "alipay", "Alipay root cert file", "Path to the Alipay root certificate file.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Alipay") }, func() any { return conf.AlipaySetting.RootCertFile }, func() any { return bootstrapConfig.Alipay.RootCertFile }, validateTrimmedMax("alipay.root_cert_file", 1024), func(v any) { conf.AlipaySetting.RootCertFile = v.(string) }),
-		stringDefWithActive("alipay.public_cert_file", "payments", "alipay", "Alipay public cert file", "Path to the Alipay public certificate file.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Alipay") }, func() any { return conf.AlipaySetting.PublicCertFile }, func() any { return bootstrapConfig.Alipay.PublicCertFile }, validateTrimmedMax("alipay.public_cert_file", 1024), func(v any) { conf.AlipaySetting.PublicCertFile = v.(string) }),
-		stringDefWithActive("alipay.app_public_cert_file", "payments", "alipay", "Alipay app public cert file", "Path to the app public certificate file.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Alipay") }, func() any { return conf.AlipaySetting.AppPublicCertFile }, func() any { return bootstrapConfig.Alipay.AppPublicCertFile }, validateTrimmedMax("alipay.app_public_cert_file", 1024), func(v any) { conf.AlipaySetting.AppPublicCertFile = v.(string) }),
-		boolDefWithActive("alipay.in_production", "payments", "alipay", "Alipay production mode", "Use Alipay production environment.", ApplyModeRestartRequired, false, true, func() bool { return cfg.If("Alipay") }, func() any { return conf.AlipaySetting.InProduction }, func() any { return bootstrapConfig.Alipay.InProduction }, func(v any) { conf.AlipaySetting.InProduction = v.(bool) }),
 
 		boolDef("audit.enabled", "audit", "general", "Enable content audit", "New posts from ordinary users enter the pending queue and go public only after approval. Mentors and managers are exempt.", ApplyModeLive, false, true, func() any { return conf.AuditSetting.Enabled }, func() any { return bootstrapConfig.Audit.Enabled }, func(v any) { conf.AuditSetting.Enabled = v.(bool) }),
 	}

@@ -6,14 +6,11 @@ interface ImportMetaEnv {
   readonly VITE_HOST: string;
   readonly VITE_USE_FRIENDSHIP: string;
   readonly VITE_USE_WEB_PROFILE: string;
-  readonly VITE_ENABLE_ANOUNCEMENT: string;
-  readonly VITE_ENABLE_WALLET: string;
   readonly VITE_ENABLE_TRENDS_BAR: string;
   readonly VITE_ALLOW_USER_REGISTER: string;
   readonly VITE_ALLOW_PHONE_BIND: string;
   readonly VITE_ALLOW_ACTIVATION: string;
   readonly VITE_ALLOW_TWEET_ATTACHMENT: string;
-  readonly VITE_ALLOW_TWEET_ATTACHMENT_PRICE: string;
   readonly VITE_ALLOW_TWEET_VIDEO: string;
   readonly VITE_ALLOW_TWEET_LABEL: string;
   readonly VITE_ALLOW_TWEET_VISIBILITY: string;

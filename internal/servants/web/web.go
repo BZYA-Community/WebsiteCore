@@ -46,12 +46,6 @@ func RouteWeb(e *gin.Engine) {
 	api.RegisterFollowshipServant(e, newFollowshipSrv(ds))
 	api.RegisterFriendshipServant(e, newFriendshipSrv(ds))
 	api.RegisterSiteServant(e, newSiteSrv(_siteSettings))
-	// regster servants if needed by configure
-	cfg.Be("Alipay", func() {
-		client := conf.MustAlipayClient()
-		api.RegisterAlipayPubServant(e, newAlipayPubSrv(ds))
-		api.RegisterAlipayPrivServant(e, newAlipayPrivSrv(ds, client))
-	})
 	// shedule jobs if need
 	scheduleJobs()
 }

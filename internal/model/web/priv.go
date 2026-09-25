@@ -55,7 +55,6 @@ type CreateTweetReq struct {
 	Contents        []*PostContentItem `json:"contents" binding:"required"`
 	Tags            []string           `json:"tags" binding:"required"`
 	Users           []string           `json:"users" binding:"required"`
-	AttachmentPrice int64              `json:"attachment_price"`
 	Visibility      TweetVisibleType   `json:"visibility"`
 	ClientIP        string             `json:"-" binding:"-"`
 }
@@ -179,15 +178,6 @@ type UploadAttachmentResp struct {
 	Content   string            `json:"content"`
 }
 
-type DownloadAttachmentPrecheckReq struct {
-	BaseInfo  `form:"-" binding:"-"`
-	ContentID int64 `form:"id"`
-}
-
-type DownloadAttachmentPrecheckResp struct {
-	Paid bool `json:"paid"`
-}
-
 type DownloadAttachmentReq struct {
 	BaseInfo  `form:"-" binding:"-"`
 	ContentID int64 `form:"id"`
@@ -272,18 +262,6 @@ func (r *UploadAttachmentReq) Bind(c *gin.Context) (xerr error) {
 	}
 	r.UploadType, r.ContentType = uploadType, contentType
 	r.File, r.FileSize, r.FileExt = file, fileHeader.Size, fileExt
-	return nil
-}
-
-func (r *DownloadAttachmentPrecheckReq) Bind(c *gin.Context) error {
-	user, exist := base.UserFrom(c)
-	if !exist {
-		return xerror.UnauthorizedAuthNotExist
-	}
-	r.BaseInfo = BaseInfo{
-		User: user,
-	}
-	r.ContentID = convert.StrTo(c.Query("id")).MustInt64()
 	return nil
 }
 

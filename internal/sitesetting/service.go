@@ -22,9 +22,7 @@ import (
 type EditableProfile struct {
 	UseFriendship             bool
 	EnableTrendsBar           bool
-	EnableWallet              bool
 	AllowTweetAttachment      bool
-	AllowTweetAttachmentPrice bool
 	AllowTweetVideo           bool
 	DefaultTweetMaxLength     int
 	TweetWebEllipsisSize      int
@@ -115,9 +113,7 @@ func (s *Service) GetProfile(ctx context.Context) (*web.SiteProfileResp, error) 
 	return &web.SiteProfileResp{
 		UseFriendship:             conf.WebProfileSetting.UseFriendship,
 		EnableTrendsBar:           conf.WebProfileSetting.EnableTrendsBar,
-		EnableWallet:              conf.WebProfileSetting.EnableWallet,
 		AllowTweetAttachment:      conf.WebProfileSetting.AllowTweetAttachment,
-		AllowTweetAttachmentPrice: conf.WebProfileSetting.AllowTweetAttachmentPrice,
 		AllowTweetVideo:           conf.WebProfileSetting.AllowTweetVideo,
 		AllowUserRegister:         conf.WebProfileSetting.AllowUserRegister,
 		AllowPhoneBind:            conf.WebProfileSetting.AllowPhoneBind,
@@ -141,9 +137,7 @@ func (s *Service) UpdateEditableProfile(ctx context.Context, input EditableProfi
 	items := []web.AdminSettingValueInput{
 		{Key: "web_profile.use_friendship", Value: boolRaw(input.UseFriendship)},
 		{Key: "web_profile.enable_trends_bar", Value: boolRaw(input.EnableTrendsBar)},
-		{Key: "web_profile.enable_wallet", Value: boolRaw(input.EnableWallet)},
 		{Key: "web_profile.allow_tweet_attachment", Value: boolRaw(input.AllowTweetAttachment)},
-		{Key: "web_profile.allow_tweet_attachment_price", Value: boolRaw(input.AllowTweetAttachmentPrice)},
 		{Key: "web_profile.allow_tweet_video", Value: boolRaw(input.AllowTweetVideo)},
 		{Key: "web_profile.default_tweet_max_length", Value: intRaw(input.DefaultTweetMaxLength)},
 		{Key: "web_profile.tweet_web_ellipsis_size", Value: intRaw(input.TweetWebEllipsisSize)},
@@ -461,9 +455,7 @@ func EditableFromRequest(req *web.SiteSettingsReq) EditableProfile {
 	return EditableProfile{
 		UseFriendship:             *req.UseFriendship,
 		EnableTrendsBar:           *req.EnableTrendsBar,
-		EnableWallet:              *req.EnableWallet,
 		AllowTweetAttachment:      *req.AllowTweetAttachment,
-		AllowTweetAttachmentPrice: *req.AllowTweetAttachmentPrice,
 		AllowTweetVideo:           *req.AllowTweetVideo,
 		DefaultTweetMaxLength:     *req.DefaultTweetMaxLength,
 		TweetWebEllipsisSize:      *req.TweetWebEllipsisSize,

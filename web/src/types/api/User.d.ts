@@ -22,12 +22,6 @@ declare namespace Api {
                 contacts: (params: NetParams.GetContacts) => Promise<NetReq.GetContacts>;
                 /** 获取用户帖子列表 */
                 posts: (params: NetParams.UserGetUserPosts) => Promise<NetReq.UserGetUserPosts>;
-                wallet: {
-                    /** 获取账单列表 */
-                    bills: (params: NetParams.UserGetBills) => Promise<NetReq.UserGetBills>;
-                }
-                /** 获取充值状态 */
-                recharge: (params: NetParams.UserGetRecharge) => Promise<NetReq.UserGetRecharge>;
                 /** 私信会话 */
                 chat: {
                     /** 会话列表(含系统联系人) */
@@ -55,8 +49,6 @@ declare namespace Api {
                 nickname: (data: NetParams.UserChangeNickname) => Promise<NetReq.UserChangeNickname>;
                 /** 更改头像 */
                 avatar: (data: NetParams.UserChangeAvatar) => Promise<void>;
-                /** 发起充值请求 */
-                recharge: (data: NetParams.UserReqRecharge) => Promise<NetReq.UserReqRecharge>;
             },
             /** 信息相关 */
             message: {
@@ -160,19 +152,6 @@ declare namespace Api {
                 page_size: number;
             }
 
-            interface UserGetBills {
-                page: number;
-                page_size: number;
-            }
-
-            interface UserReqRecharge {
-                amount: number;
-            }
-
-            interface UserGetRecharge {
-                id: number;
-            }
-
         }
 
         namespace NetReq {
@@ -236,21 +215,6 @@ declare namespace Api {
                 list: Item.PostProps[];
                 /** 页码信息 */
                 pager: Item.PagerProps;
-            }
-
-            interface UserGetBills {
-                list: Item.BillProps[];
-                /** 页码信息 */
-                pager: Item.PagerProps;
-            }
-
-            interface UserReqRecharge {
-                id: number;
-                pay: string;
-            }
-
-            interface UserGetRecharge {
-                status: string;
             }
         }
 

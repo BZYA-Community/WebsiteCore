@@ -17,9 +17,7 @@ type VersionResp struct {
 type SiteProfileResp struct {
 	UseFriendship             bool   `json:"use_friendship"`
 	EnableTrendsBar           bool   `json:"enable_trends_bar"`
-	EnableWallet              bool   `json:"enable_wallet"`
 	AllowTweetAttachment      bool   `json:"allow_tweet_attachment"`
-	AllowTweetAttachmentPrice bool   `json:"allow_tweet_attachment_price"`
 	AllowTweetVideo           bool   `json:"allow_tweet_video"`
 	AllowUserRegister         bool   `json:"allow_user_register"`
 	AllowPhoneBind            bool   `json:"allow_phone_bind"`
@@ -40,9 +38,7 @@ type SiteSettingsReq struct {
 
 	UseFriendship             *bool   `json:"use_friendship" binding:"required"`
 	EnableTrendsBar           *bool   `json:"enable_trends_bar" binding:"required"`
-	EnableWallet              *bool   `json:"enable_wallet" binding:"required"`
 	AllowTweetAttachment      *bool   `json:"allow_tweet_attachment" binding:"required"`
-	AllowTweetAttachmentPrice *bool   `json:"allow_tweet_attachment_price" binding:"required"`
 	AllowTweetVideo           *bool   `json:"allow_tweet_video" binding:"required"`
 	DefaultTweetMaxLength     *int    `json:"default_tweet_max_length" binding:"required,gte=1,lte=2000"`
 	TweetWebEllipsisSize      *int    `json:"tweet_web_ellipsis_size" binding:"required,gte=1,lte=2000"`

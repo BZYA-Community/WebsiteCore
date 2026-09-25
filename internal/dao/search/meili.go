@@ -39,7 +39,6 @@ type postInfo struct {
 	LatestRepliedOn int64             `json:"latest_replied_on"`
 	CreatedOn       int64             `json:"created_on"`
 	ModifiedOn      int64             `json:"modified_on"`
-	AttachmentPrice int64             `json:"attachment_price"`
 	IPLoc           string            `json:"ip_loc"`
 }
 
@@ -196,7 +195,6 @@ func (s *meiliTweetSearchServant) postsFrom(resp *meilisearch.SearchResponse) (*
 			LatestRepliedOn: p.LatestRepliedOn,
 			CreatedOn:       p.CreatedOn,
 			ModifiedOn:      p.ModifiedOn,
-			AttachmentPrice: p.AttachmentPrice,
 			IPLoc:           p.IPLoc,
 			// 索引仅收录已过审帖子(待审不入索引/过审推入/拒绝移除)，命中结果必然已过审；
 			// 不落库字段，显式置为已过审避免零值0被前端误标为待审核
@@ -225,7 +223,6 @@ func (s *meiliTweetSearchServant) toDocs(data []core.TsDocItem) []map[string]any
 			"tags":              strings.Split(d.Post.Tags, ","),
 			"ip_loc":            d.Post.IPLoc,
 			"latest_replied_on": d.Post.LatestRepliedOn,
-			"attachment_price":  d.Post.AttachmentPrice,
 			"created_on":        d.Post.CreatedOn,
 			"modified_on":       d.Post.ModifiedOn,
 		})

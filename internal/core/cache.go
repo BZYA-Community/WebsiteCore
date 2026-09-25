@@ -94,8 +94,6 @@ type RedisCache interface {
 	IncrCountLoginErr(ctx context.Context, id int64) error
 	GetCountWhisper(ctx context.Context, uid int64) (int64, error)
 	IncrCountWhisper(ctx context.Context, uid int64) error
-	SetRechargeStatus(ctx context.Context, tradeNo string) error
-	DelRechargeStatus(ctx context.Context, tradeNo string) error
 }
 
 type AppCache interface {

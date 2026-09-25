@@ -47,7 +47,6 @@ type UserProfile struct {
 	Phone       string `json:"phone"`
 	Status      int    `json:"status"`
 	Avatar      string `json:"avatar"`
-	Balance     int64  `json:"balance"`
 	IsAdmin     bool   `json:"is_admin"`
 	Roles       string `json:"roles"`
 	CreatedOn   int64  `json:"created_on"`

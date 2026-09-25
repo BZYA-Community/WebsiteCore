@@ -163,7 +163,11 @@ const submitReply = () => {
   })
     .then((res) => {
       switchReply(false);
-      window.$message.success('评论成功');
+      if (res.audit_status === 0) {
+        window.$message.success('回复已提交，审核通过后对外可见');
+      } else {
+        window.$message.success('评论成功');
+      }
       emit('reload');
     })
     .catch((err) => {

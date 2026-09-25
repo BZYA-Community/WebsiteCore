@@ -37,9 +37,11 @@ type User struct {
 	Salt     string `json:"salt"`
 	Status   int    `json:"status"`
 	Avatar   string `json:"avatar"`
-	Balance  int64  `json:"balance"`
 	IsAdmin  bool   `json:"is_admin"`
 	Roles    string `json:"roles"`
+	// PendingNickname 昵称变更暂存: 提交后先存此处 审核通过才写入Nickname
+	// json:"-" 避免对外泄露未审核内容
+	PendingNickname string `json:"-"`
 }
 
 type UserFormated struct {
@@ -133,6 +135,14 @@ func IdentityOf(roles, phone string) string {
 func SplitRoles(roles string) []string {
 	u := User{Roles: roles}
 	return u.RoleList()
+}
+
+// MaskPhone 手机号脱敏 138****1234，过短则原样返回
+func MaskPhone(phone string) string {
+	if len(phone) < 7 {
+		return phone
+	}
+	return phone[:3] + "****" + phone[len(phone)-4:]
 }
 
 // AddRole 追加管理角色(已持有则幂等) 返回是否发生变化，角色保持 AllRoles 层级排序

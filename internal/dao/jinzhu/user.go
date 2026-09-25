@@ -41,7 +41,6 @@ func newUserManageService(db *gorm.DB, ums core.UserMetricServantA) core.UserMan
 			fmt.Sprintf("%s.phone", _user_),
 			fmt.Sprintf("%s.status", _user_),
 			fmt.Sprintf("%s.avatar", _user_),
-			fmt.Sprintf("%s.balance", _user_),
 			fmt.Sprintf("%s.is_admin", _user_),
 			fmt.Sprintf("%s.roles", _user_),
 			fmt.Sprintf("%s.created_on", _user_),

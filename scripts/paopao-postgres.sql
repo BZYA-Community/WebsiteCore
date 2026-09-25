@@ -185,20 +185,6 @@ CREATE TABLE p_post_metric (
 );
 CREATE INDEX idx_post_metric_post_id_rank_score ON p_post_metric USING btree (post_id, rank_score);
 
-DROP TABLE IF EXISTS p_post_attachment_bill;
-CREATE TABLE p_post_attachment_bill (
-	id BIGSERIAL PRIMARY KEY,
-	post_id BIGINT NOT NULL DEFAULT 0,
-	user_id BIGINT NOT NULL DEFAULT 0,
-	paid_amount BIGINT NOT NULL DEFAULT 0, -- 支付金额
-	created_on BIGINT NOT NULL DEFAULT 0,
-	modified_on BIGINT NOT NULL DEFAULT 0,
-	deleted_on BIGINT NOT NULL DEFAULT 0,
-	is_del SMALLINT NOT NULL DEFAULT 0
-);
-CREATE INDEX idx_post_attachment_bill_post_id ON p_post_attachment_bill USING btree (post_id);
-CREATE INDEX idx_post_attachment_bill_user_id ON p_post_attachment_bill USING btree (user_id);
-
 DROP TABLE IF EXISTS p_post_collection;
 CREATE TABLE p_post_collection (
 	id BIGSERIAL PRIMARY KEY,
@@ -287,7 +273,6 @@ CREATE TABLE p_user (
 	salt VARCHAR(16) NOT NULL DEFAULT '', -- 盐值
 	status SMALLINT NOT NULL DEFAULT 1, -- 状态，1正常，2停用
 	avatar VARCHAR(255) NOT NULL DEFAULT '',
-	balance BIGINT NOT NULL, -- 用户余额（分）
 	is_admin BOOLEAN NOT NULL DEFAULT false, -- 是否管理员
 	created_on BIGINT NOT NULL DEFAULT 0,
 	modified_on BIGINT NOT NULL DEFAULT 0,
@@ -351,37 +336,6 @@ CREATE TABLE p_contact_group (
 	modified_on BIGINT NOT NULL DEFAULT 0,
 	deleted_on BIGINT NOT NULL DEFAULT 0
 );
-
-DROP TABLE IF EXISTS p_wallet_recharge;
-CREATE TABLE p_wallet_recharge (
-	id BIGSERIAL PRIMARY KEY,
-	user_id BIGINT NOT NULL DEFAULT 0,
-	amount BIGINT NOT NULL DEFAULT 0, -- 充值金额
-	trade_no VARCHAR(64) NOT NULL DEFAULT '', -- 支付宝订单号
-	trade_status VARCHAR(32) NOT NULL DEFAULT '', -- 交易状态
-	created_on BIGINT NOT NULL DEFAULT 0,
-	modified_on BIGINT NOT NULL DEFAULT 0,
-	deleted_on BIGINT NOT NULL DEFAULT 0,
-	is_del SMALLINT NOT NULL DEFAULT 0 -- 是否删除 0 为未删除、1 为已删除
-);
-CREATE INDEX idx_wallet_recharge_user_id ON p_wallet_recharge USING btree (user_id);
-CREATE INDEX idx_wallet_recharge_trade_no ON p_wallet_recharge USING btree (trade_no);
-CREATE INDEX idx_wallet_recharge_trade_status ON p_wallet_recharge USING btree (trade_status);
-
-DROP TABLE IF EXISTS p_wallet_statement;
-CREATE TABLE p_wallet_statement (
-	id BIGSERIAL PRIMARY KEY,
-	user_id BIGINT NOT NULL DEFAULT 0,
-	change_amount BIGINT NOT NULL DEFAULT 0, -- 变动金额
-	balance_snapshot BIGINT NOT NULL DEFAULT 0, -- 资金快照
-	reason VARCHAR(255) NOT NULL, -- 变动原因
-	post_id BIGINT NOT NULL DEFAULT 0, -- 关联动态
-	created_on BIGINT NOT NULL DEFAULT 0,
-	modified_on BIGINT NOT NULL DEFAULT 0,
-	deleted_on BIGINT NOT NULL DEFAULT 0,
-	is_del SMALLINT NOT NULL DEFAULT 0
-);
-CREATE INDEX idx_wallet_statement_user_id ON p_wallet_statement USING btree (user_id);
 
 DROP VIEW IF EXISTS p_post_by_media;
 CREATE VIEW p_post_by_media AS 
