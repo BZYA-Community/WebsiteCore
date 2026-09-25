@@ -47,7 +47,7 @@
     * [x] 服务初始化逻辑
 
 #### 数据库:
-* `Gorm` + `MySQL`/`Sqlite3`/`PostgreSQL`
+* `Gorm` + `MySQL`/`PostgreSQL`
 使用[gorm](https://github.com/go-gorm/gorm)作为数据库的ORM，默认使用 `Grom` + `MySQL`组合(目前状态：稳定，默认，推荐使用)； 
     * [ ] 提按文档
     * [x] 接口定义

@@ -75,9 +75,6 @@ func newGormDB() (db *gorm.DB, err error) {
 	} else if cfg.If("Postgres") {
 		logrus.Debugln("use PostgreSQL as db")
 		db, err = gorm.Open(postgres.Open(PostgresSetting.Dsn()), config)
-	} else if cfg.If("Sqlite3") {
-		logrus.Debugf("use Sqlite3 as db path:%s sqlite3InCgoEnabled:%t", Sqlite3Setting.Path, sqlite3InCgoEnabled)
-		db, err = gormOpenSqlite3(config)
 	} else {
 		logrus.Debugln("use default of MySQL as db")
 		db, err = gorm.Open(mysql.Open(MysqlSetting.Dsn()), config)

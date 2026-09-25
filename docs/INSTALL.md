@@ -24,7 +24,9 @@ This guide covers the recommended ways to run PaoPao in development, evaluation,
 
 - `config.yaml.sample` - canonical configuration template (overrides over embedded defaults)
 - `docker-compose.dev.yml` - local PostgreSQL / Redis / Meilisearch dev stack
-- `scripts/migration/{postgres,mysql,sqlite3}/` - versioned migration SQL
+- `scripts/migration/{postgres,mysql}/` - versioned migration SQL
+- `scripts/paopao-mysql.sql` - MySQL bootstrap schema
+- `scripts/paopao-postgres.sql` - PostgreSQL bootstrap schema
 
 <a id="run-from-source"></a>
 
@@ -104,7 +106,7 @@ make build-web
 # 2. Build the release binary (native platform)
 make build TAGS='embed migration'
 
-# Or cross-compile for Linux amd64 (SQLite uses the pure-Go driver, no CGO needed)
+# Or cross-compile for Linux amd64 (pure Go, no CGO needed)
 make linux-amd64 CGO_ENABLED=0 TAGS='embed migration'
 ```
 
@@ -165,7 +167,7 @@ Features:
   Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
   Develop: ["Base", "MySQL", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerMeili", "OSS:Retention"]
   Demo: ["Base", "MySQL", "Option", "Zinc", "Sms", "MinIO", "LoggerZinc", "Migration"]
-  Slim: ["Base", "Sqlite3", "LocalOSS", "LoggerFile", "OSS:TempDir"]
+  Slim: ["Base", "Postgres", "LocalOSS", "LoggerFile", "OSS:TempDir"]
 ```
 
 Useful commands:
@@ -181,7 +183,7 @@ release/paopao serve --no-default-features --features develop
 release/paopao serve --features sms
 
 # Specify features explicitly
-release/paopao serve --no-default-features --features sqlite3,localoss,loggerfile,redis
+release/paopao serve --no-default-features --features postgres,localoss,loggerfile,redis
 ```
 
 For feature maturity and support status, see [features-status.md](features-status.md).

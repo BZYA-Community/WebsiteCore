@@ -27,7 +27,6 @@ require (
 	github.com/grafana/pyroscope-go v1.2.4
 	github.com/huaweicloud/huaweicloud-sdk-go-obs v3.25.4+incompatible
 	github.com/json-iterator/go v1.1.12
-	github.com/livekit/mageutil v0.0.0-20250511045019-0f1ff63f7731
 	github.com/meilisearch/meilisearch-go v0.27.2
 	github.com/minio/minio-go/v7 v7.0.84
 	github.com/onsi/ginkgo/v2 v2.28.0
@@ -36,7 +35,6 @@ require (
 	github.com/redis/rueidis v1.0.64
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sirupsen/logrus v1.9.3
-	github.com/smartwalle/alipay/v3 v3.2.20
 	github.com/sourcegraph/conc v0.3.0
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
@@ -140,9 +138,6 @@ require (
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
-	github.com/smartwalle/ncrypto v1.0.4 // indirect
-	github.com/smartwalle/ngx v1.0.9 // indirect
-	github.com/smartwalle/nsign v1.0.9 // indirect
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect

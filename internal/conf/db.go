@@ -74,8 +74,6 @@ func newSqlDB() (driver string, db *sql.DB, err error) {
 	} else if cfg.If("PostgreSQL") || cfg.If("Postgres") {
 		driver = "pgx"
 		db, err = sql.Open(driver, PostgresSetting.Dsn())
-	} else if cfg.If("Sqlite3") {
-		driver, db, err = OpenSqlite3()
 	} else {
 		driver = "mysql"
 		db, err = sql.Open(driver, MysqlSetting.Dsn())

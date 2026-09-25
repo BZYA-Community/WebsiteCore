@@ -220,10 +220,6 @@ type mysqlConf struct {
 
 type postgresConf map[string]string
 
-type sqlite3Conf struct {
-	Path string
-}
-
 type objectStorageConf struct {
 	RetainInDays int
 	TempDir      string
@@ -363,14 +359,6 @@ func (s postgresConf) Dsn() string {
 		}
 	}
 	return strings.Join(params, " ")
-}
-
-func (s *sqlite3Conf) Dsn(driverName string) string {
-	pragmas := "_foreign_keys=1&_journal_mode=WAL&_synchronous=NORMAL&_busy_timeout=8000"
-	if driverName == "sqlite" {
-		pragmas = "_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(8000)&_pragma=journal_size_limit(100000000)"
-	}
-	return fmt.Sprintf("file:%s?%s", s.Path, pragmas)
 }
 
 func (s *databaseConf) logLevel() logger.LogLevel {

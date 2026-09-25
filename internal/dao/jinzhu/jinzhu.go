@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-// package jinzhu Core service implement base gorm+mysql/postgresql/sqlite3.
+// package jinzhu Core service implement base gorm+mysql/postgresql.
 // Jinzhu is the primary developer of gorm so use his name as
 // package name as a saluter.
 

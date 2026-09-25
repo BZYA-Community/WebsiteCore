@@ -24,7 +24,9 @@
 
 - `config.yaml.sample` - 标准配置模板（叠加在内置默认配置之上）
 - `docker-compose.dev.yml` - 本地 PostgreSQL / Redis / Meilisearch 依赖栈
-- `scripts/migration/{postgres,mysql,sqlite3}/` - 版本化迁移 SQL
+- `scripts/migration/{postgres,mysql}/` - 版本化迁移 SQL
+- `scripts/paopao-mysql.sql` - MySQL 初始化脚本
+- `scripts/paopao-postgres.sql` - PostgreSQL 初始化脚本
 
 <a id="run-from-source"></a>
 
@@ -104,7 +106,7 @@ make build-web
 # 2. 构建发布二进制（本机平台）
 make build TAGS='embed migration'
 
-# 或交叉编译 Linux amd64（SQLite 使用纯 Go 驱动，无需 CGO）
+# 或交叉编译 Linux amd64（纯 Go 驱动，无需 CGO）
 make linux-amd64 CGO_ENABLED=0 TAGS='embed migration'
 ```
 
@@ -165,7 +167,7 @@ Features:
   Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
   Develop: ["Base", "MySQL", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerMeili", "OSS:Retention"]
   Demo: ["Base", "MySQL", "Option", "Zinc", "Sms", "MinIO", "LoggerZinc", "Migration"]
-  Slim: ["Base", "Sqlite3", "LocalOSS", "LoggerFile", "OSS:TempDir"]
+  Slim: ["Base", "Postgres", "LocalOSS", "LoggerFile", "OSS:TempDir"]
 ```
 
 常见命令：
@@ -181,7 +183,7 @@ release/paopao serve --no-default-features --features develop
 release/paopao serve --features sms
 
 # 手动显式指定功能项
-release/paopao serve --no-default-features --features sqlite3,localoss,loggerfile,redis
+release/paopao serve --no-default-features --features postgres,localoss,loggerfile,redis
 ```
 
 功能项成熟度与支持状态请参考 [features-status.md](features-status.md)。

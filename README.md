@@ -28,7 +28,7 @@ WebsiteCore 是一个自托管的微社区/论坛系统：Go 后端（Gin + GORM
 - **系统通知会话**：关注 / 评论 / 回复 / 审核 / 管理通知统一归入「系统通知」会话，可跳转到帖子与用户主页
 - **好友与关注**：好友申请（通讯录内同意/拒绝）、单向关注、好友可见/关注可见等帖子可见性
 - **内容形态**：短动态（图片/视频/附件/收费附件）、Markdown 长文、话题标签、热搜趋势
-- **可插拔特性**：存储（LocalOSS/MinIO/S3）、搜索（Meilisearch/Zinc）、数据库（PostgreSQL/MySQL/SQLite）等均通过 `Features` 开关装配
+- **可插拔特性**：存储（LocalOSS/MinIO/S3）、搜索（Meilisearch/Zinc）、数据库（PostgreSQL/MySQL）等均通过 `Features` 开关装配
 
 ## 技术栈
 
@@ -36,7 +36,7 @@ WebsiteCore 是一个自托管的微社区/论坛系统：Go 后端（Gin + GORM
 | --- | --- |
 | 后端 | Go · Gin · GORM · Redis(rueidis) · go-mir(接口代码生成) · golang-migrate(数据库迁移) |
 | 前端 | Vue 3 · Vite · Naive UI · Pinia · vue-advanced-chat(私信) · md-editor-v3(长文) |
-| 依赖服务 | PostgreSQL / MySQL / SQLite · Redis · Meilisearch(可选) |
+| 依赖服务 | PostgreSQL / MySQL · Redis · Meilisearch(可选) |
 
 ## 快速开始
 
@@ -50,6 +50,8 @@ make deps-up        # 启动并等待健康检查通过
 
 镜像均已 pin（`postgres:18.6` / `redis:7.4.11` / `getmeili/meilisearch:v1.54.0`），端口只绑定 `127.0.0.1`。更多命令见 [docs/deploy/local/001-本地开发依赖环境部署.md](docs/deploy/local/001-本地开发依赖环境部署.md)。
 
+数据库默认 PostgreSQL，也支持 MySQL（自行准备实例并在配置中切换特性名即可）；全文搜索可选 Meilisearch。
+
 ### 2. 配置
 
 ```bash
@@ -59,7 +61,7 @@ cp config.yaml.sample config.yaml
 关键项：
 
 - `JWT.Secret`：**必填**，留空启动会直接退出。生成：`openssl rand -hex 24`
-- `Features.Default`：默认已是 `Postgres`；数据库特性名写 `Postgres` / `MySQL` / `Sqlite3`
+- `Features.Default`：特性开关列表，默认已是 `Postgres`；数据库特性名写 `Postgres` / `MySQL`；启用自动建表迁移需加 `Migration` 特性并用 `migration` tag 编译（或直接用 `make migrate`）
 - `WebServer.HttpPort`：监听端口（默认 8008）
 - 数据库 / Redis / Meili 连接信息已与 `docker-compose.dev.yml` 对齐，无需改动
 
@@ -88,7 +90,7 @@ make test         # 测试
 cd web && npm run dev    # 前端开发服务
 ```
 
-新增 API 的标准流程：在 `mirc/web/v1/` 声明接口签名 → `make gen-mir` 生成路由骨架 → 在 `internal/servants/web/` 实现业务。数据库结构变更在 `scripts/migration/{mysql,postgres,sqlite3}/` 按编号新增 `NNNN_name.{up,down}.sql`（三方言各一份）。
+新增 API 的标准流程：在 `mirc/web/v1/` 声明接口签名 → `make gen-mir` 生成路由骨架 → 在 `internal/servants/web/` 实现业务。数据库结构变更在 `scripts/migration/{mysql,postgres}/` 按编号新增 `NNNN_name.{up,down}.sql`（两方言各一份）。
 
 ## 目录结构
 

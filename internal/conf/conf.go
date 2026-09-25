@@ -27,7 +27,6 @@ var (
 	DatabaseSetting         *databaseConf
 	MysqlSetting            *mysqlConf
 	PostgresSetting         *postgresConf
-	Sqlite3Setting          *sqlite3Conf
 	PprofServerSetting      *httpServerConf
 	MetricsServerSetting    *httpServerConf
 	WebServerSetting        *httpServerConf
@@ -110,7 +109,6 @@ func setupSetting(suite []string, noDefault bool) error {
 		"Database":          &DatabaseSetting,
 		"MySQL":             &MysqlSetting,
 		"Postgres":          &PostgresSetting,
-		"Sqlite3":           &Sqlite3Setting,
 		"TweetSearch":       &TweetSearchSetting,
 		"Zinc":              &ZincSetting,
 		"Meili":             &MeiliSetting,

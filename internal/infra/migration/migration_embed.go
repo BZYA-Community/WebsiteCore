@@ -19,7 +19,6 @@ import (
 	"github.com/golang-migrate/migrate/v4/database"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
-	"github.com/golang-migrate/migrate/v4/database/sqlite3"
 	"github.com/golang-migrate/migrate/v4/source"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/sirupsen/logrus"
@@ -45,8 +44,6 @@ func Run() error {
 	} else if cfg.If("PostgreSQL") || cfg.If("Postgres") {
 		dbName = (*conf.PostgresSetting)["DBName"]
 		db, err = sql.Open("pgx", conf.PostgresSetting.Dsn())
-	} else if cfg.If("Sqlite3") {
-		_, db, err = conf.OpenSqlite3()
 	} else {
 		dbName = conf.MysqlSetting.DBName
 		db, err = sql.Open("mysql", conf.MysqlSetting.Dsn())
@@ -62,9 +59,6 @@ func Run() error {
 	} else if cfg.If("PostgreSQL") || cfg.If("Postgres") {
 		srcDriver, err = iofs.New(migration.Files, "postgres")
 		dbDriver, err2 = postgres.WithInstance(db, &postgres.Config{MigrationsTable: migrationsTable})
-	} else if cfg.If("Sqlite3") {
-		srcDriver, err = iofs.New(migration.Files, "sqlite3")
-		dbDriver, err2 = sqlite3.WithInstance(db, &sqlite3.Config{MigrationsTable: migrationsTable})
 	} else {
 		srcDriver, err = iofs.New(migration.Files, "mysql")
 		dbDriver, err2 = mysql.WithInstance(db, &mysql.Config{MigrationsTable: migrationsTable})

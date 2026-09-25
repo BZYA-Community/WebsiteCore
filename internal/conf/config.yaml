@@ -249,8 +249,6 @@ Postgres: # PostgreSQL数据库
   Port: 5432
   SSLMode: disable
   ApplicationName:
-Sqlite3: # Sqlite3数据库
-  Path: custom/data/sqlite3/paopao-ce.db
 Redis:
   InitAddress:
   - 127.0.0.1:6379
