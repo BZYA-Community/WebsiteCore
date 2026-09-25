@@ -11,7 +11,4 @@ import (
 // AuthorizationManageService 授权管理服务
 type AuthorizationManageService interface {
 	IsAllow(user *ms.User, action *ms.Action) bool
-	BeFriendFilter(userId int64) ms.FriendFilter
-	BeFriendIds(userId int64) ([]int64, error)
-	MyFriendSet(userId int64) ms.FriendSet
 }

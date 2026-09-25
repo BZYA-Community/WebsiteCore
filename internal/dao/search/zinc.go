@@ -18,11 +18,8 @@ import (
 type zincTweetSearchServant struct {
 	tweetSearchFilter
 
-	indexName     string
-	client        *zinc.ZincClient
-	publicFilter  string
-	privateFilter string
-	friendFilter  string
+	indexName string
+	client    *zinc.ZincClient
 }
 
 func (s *zincTweetSearchServant) Name() string {

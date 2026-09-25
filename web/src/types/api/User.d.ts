@@ -18,8 +18,6 @@ declare namespace Api {
                 messages: (params: NetParams.UserGetMessages) => Promise<NetReq.UserGetMessages>;
                 /** 获取收藏列表 */
                 collections: (params: NetParams.UserGetCollections) => Promise<NetReq.UserGetCollections>;
-                /** 获取联系人列表 */
-                contacts: (params: NetParams.GetContacts) => Promise<NetReq.GetContacts>;
                 /** 获取用户帖子列表 */
                 posts: (params: NetParams.UserGetUserPosts) => Promise<NetReq.UserGetUserPosts>;
                 /** 私信会话 */

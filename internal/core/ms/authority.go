@@ -4,10 +4,6 @@
 
 package ms
 
-import (
-	"github.com/BZYA-Community/WebsiteCore/pkg/types"
-)
-
 const (
 	ActRegisterUser act = iota
 	ActCreatePublicTweet
@@ -39,19 +35,11 @@ const (
 type (
 	act uint8
 
-	FriendFilter map[int64]types.Empty
-	FriendSet    map[string]types.Empty
-
 	Action struct {
 		Act    act
 		UserId int64
 	}
 )
-
-func (f FriendFilter) IsFriend(userId int64) bool {
-	_, yeah := f[userId]
-	return yeah
-}
 
 // IsAllow default true if user is admin
 func (a act) IsAllow(user *User, userId int64, isFriend bool, isActivation bool) bool {

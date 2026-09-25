@@ -89,29 +89,6 @@
             {{ message.content }}
           </div>
 
-          <div v-if="message.type === 5" class="requesting-friend-wrap">
-            {{ message.content }}
-            <span v-if="message.reply_id === 1" @click.stop="agreeAddFriend(message)" class="hash-link view-link">
-              <n-icon>
-                <checkmark-outline />
-              </n-icon> 同意
-            </span>
-            <span v-if="message.reply_id === 1" @click.stop="rejectAddFriend(message)" class="hash-link view-link">
-              <n-icon>
-                <close-outline />
-              </n-icon> 拒绝
-            </span>
-            <span v-if="message.reply_id === 2" class="status-info">
-              <n-icon>
-                <checkmark-done-outline />
-              </n-icon> 已同意
-            </span>
-            <span v-if="message.reply_id === 3" class="status-info">
-              <n-icon>
-                <close-outline />
-              </n-icon> 已拒绝
-            </span>
-          </div>
         </n-alert>
       </template>
     </n-thing>
@@ -127,9 +104,6 @@ import { useStoreUser } from '@/store/user';
 import { useRouter } from 'vue-router';
 import {
   ShareOutline,
-  CheckmarkOutline,
-  CloseOutline,
-  CheckmarkDoneOutline,
   PaperPlaneOutline,
   CheckmarkCircle,
   BodyOutline,
@@ -281,34 +255,6 @@ const viewDetail = (message: Item.MessageProps) => {
   }
 };
 
-const agreeAddFriend = (message: Item.MessageProps) => {
-  handleReadMessage(message);
-  Api.v1.friend.post.add({
-    user_id: message.sender_user_id,
-  })
-    .then((res) => {
-      message.reply_id = 2;
-      window.$message.success('已同意添加好友');
-    })
-    .catch((err) => {
-      console.log(err);
-    });
-};
-
-const rejectAddFriend = (message: Item.MessageProps) => {
-  handleReadMessage(message);
-  Api.v1.friend.post.reject({
-    user_id: message.sender_user_id,
-  })
-    .then((res) => {
-      message.reply_id = 3;
-      window.$message.success('已拒绝添加好友');
-    })
-    .catch((err) => {
-      console.log(err);
-    });
-};
-
 const handleReadMessage = (message: Item.MessageProps) => {
   if (props.message.receiver_user_id != userInfo.value.id) {
     return;
@@ -373,10 +319,6 @@ const handleReadMessage = (message: Item.MessageProps) => {
       width: 100%;
     }
 
-    .requesting-friend-wrap {
-      display: flex;
-      width: 100%;
-    }
   }
 
   .view-link {

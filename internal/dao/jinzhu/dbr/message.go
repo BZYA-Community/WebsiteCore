@@ -13,7 +13,6 @@ const (
 	MsgtypeComment
 	MsgTypeReply
 	MsgTypeWhisper
-	MsgTypeRequestingFriend
 	MsgTypeSystem MessageT = 99
 
 	MsgStatusUnread = 0

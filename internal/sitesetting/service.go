@@ -20,7 +20,6 @@ import (
 )
 
 type EditableProfile struct {
-	UseFriendship           bool
 	EnableTrendsBar         bool
 	AllowTweetAttachment    bool
 	AllowTweetVideo         bool
@@ -111,7 +110,6 @@ func (s *Service) ApplyPersistedOverrides(ctx context.Context) error {
 func (s *Service) GetProfile(ctx context.Context) (*web.SiteProfileResp, error) {
 	_ = ctx
 	return &web.SiteProfileResp{
-		UseFriendship:           conf.WebProfileSetting.UseFriendship,
 		EnableTrendsBar:         conf.WebProfileSetting.EnableTrendsBar,
 		AllowTweetAttachment:    conf.WebProfileSetting.AllowTweetAttachment,
 		AllowTweetVideo:         conf.WebProfileSetting.AllowTweetVideo,
@@ -135,7 +133,6 @@ func (s *Service) UpdateEditableProfile(ctx context.Context, input EditableProfi
 		return nil, err
 	}
 	items := []web.AdminSettingValueInput{
-		{Key: "web_profile.use_friendship", Value: boolRaw(input.UseFriendship)},
 		{Key: "web_profile.enable_trends_bar", Value: boolRaw(input.EnableTrendsBar)},
 		{Key: "web_profile.allow_tweet_attachment", Value: boolRaw(input.AllowTweetAttachment)},
 		{Key: "web_profile.allow_tweet_video", Value: boolRaw(input.AllowTweetVideo)},
@@ -453,7 +450,6 @@ func validateProfileInput(input EditableProfile) error {
 
 func EditableFromRequest(req *web.SiteSettingsReq) EditableProfile {
 	return EditableProfile{
-		UseFriendship:           *req.UseFriendship,
 		EnableTrendsBar:         *req.EnableTrendsBar,
 		AllowTweetAttachment:    *req.AllowTweetAttachment,
 		AllowTweetVideo:         *req.AllowTweetVideo,

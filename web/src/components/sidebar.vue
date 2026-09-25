@@ -63,7 +63,6 @@ import {
   BookmarksOutline,
   ChatbubblesOutline,
   LeafOutline,
-  PeopleOutline,
   PeopleCircleOutline,
   ShieldCheckmarkOutline,
   SettingsOutline,
@@ -169,14 +168,6 @@ const menuOptions = computed(() => {
     icon: () => h(BookmarksOutline),
     href: '/collection',
   });
-  if (profile.value.useFriendship) {
-    options.push({
-      label: '好友',
-      key: 'contacts',
-      icon: () => h(PeopleOutline),
-      href: '/contacts',
-    });
-  }
   options.push({
     label: '设置',
     key: 'setting',

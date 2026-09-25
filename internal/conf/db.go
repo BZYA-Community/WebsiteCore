@@ -32,8 +32,6 @@ const (
 	TableCommentContent       = "comment_content"
 	TableCommentReply         = "comment_reply"
 	TableFollowing            = "following"
-	TableContact              = "contact"
-	TableContactGroup         = "contact_group"
 	TableMessage              = "message"
 	TablePost                 = "post"
 	TablePostMetric           = "post_metric"

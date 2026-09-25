@@ -83,14 +83,6 @@ const routes = [
     component: () => import('@/views/Collection.vue'),
   },
   {
-    path: '/contacts',
-    name: 'contacts',
-    meta: {
-      title: '好友',
-    },
-    component: () => import('@/views/Contacts.vue'),
-  },
-  {
     path: '/following',
     name: 'following',
     meta: {

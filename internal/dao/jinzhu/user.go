@@ -124,36 +124,9 @@ func (s *userManageSrv) GetRegisterUserCount() (res int64, err error) {
 	return
 }
 
-func (s *userRelationSrv) MyFriendIds(userId int64) (res []int64, err error) {
-	err = s.db.Table(_contact_).Where("user_id=? AND status=2 AND is_del=0", userId).Select("friend_id").Find(&res).Error
-	return
-}
-
 func (s *userRelationSrv) MyFollowIds(userId int64) (res []int64, err error) {
 	err = s.db.Table(_following_).Where("user_id=? AND is_del=0", userId).Select("follow_id").Find(&res).Error
 	return
-}
-
-func (s *userRelationSrv) IsMyFriend(userId int64, friendIds ...int64) (map[int64]bool, error) {
-	size := len(friendIds)
-	res := make(map[int64]bool, size)
-	if size == 0 {
-		return res, nil
-	}
-	myFriendIds, err := s.MyFriendIds(userId)
-	if err != nil {
-		return nil, err
-	}
-	for _, friendId := range friendIds {
-		res[friendId] = false
-		for _, myFriendId := range myFriendIds {
-			if friendId == myFriendId {
-				res[friendId] = true
-				break
-			}
-		}
-	}
-	return res, nil
 }
 
 func (s *userRelationSrv) IsMyFollow(userId int64, followIds ...int64) (map[int64]bool, error) {

@@ -19,11 +19,9 @@ import (
 type meiliTweetSearchServant struct {
 	tweetSearchFilter
 
-	client        *meilisearch.Client
-	index         *meilisearch.Index
-	publicFilter  string
-	privateFilter string
-	friendFilter  string
+	client       *meilisearch.Client
+	index        *meilisearch.Index
+	publicFilter string
 }
 
 type postInfo struct {
@@ -168,7 +166,8 @@ func (s *meiliTweetSearchServant) filterList(user *ms.User) string {
 		return ""
 	}
 
-	return fmt.Sprintf("%s OR %s OR (%s%d)", s.publicFilter, s.friendFilter, s.privateFilter, user.ID)
+	// 好友功能已移除: 好友可见与私密同口径(仅作者本人可见)
+	return fmt.Sprintf("%s OR ((visibility=%d OR visibility=%d) AND user_id=%d)", s.publicFilter, core.PostVisitPrivate, core.PostVisitFriend, user.ID)
 }
 
 func (s *meiliTweetSearchServant) postsFrom(resp *meilisearch.SearchResponse) (*core.QueryResp, error) {

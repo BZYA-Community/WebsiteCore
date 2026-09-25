@@ -169,11 +169,8 @@ func (s *cacheIndexSrv) handleIndexAction(action *core.IndexAction) {
 func (s *cacheIndexSrv) deleteCacheByUserId(id int64, oneself bool) {
 	var keys []string
 	userId := strconv.FormatInt(id, 10)
-	friendSet := ms.FriendSet{}
-	if !oneself {
-		friendSet = s.ams.MyFriendSet(id)
-	}
-	friendSet[userId] = types.Empty{}
+	// 好友功能已移除: 仅处理本人的缓存键
+	friendSet := map[string]types.Empty{userId: {}}
 
 	// 获取需要删除缓存的key，目前是仅删除自个儿的缓存
 	allKeys, err := s.cache.allKeys()

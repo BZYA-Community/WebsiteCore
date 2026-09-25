@@ -11,7 +11,6 @@ var (
 	_ core.CommentService             = (*commentSrv)(nil)
 	_ core.CommentManageService       = (*commentManageSrv)(nil)
 
-	_ core.ContactManageService   = (*contactManageSrv)(nil)
 	_ core.FollowingManageService = (*followingManageSrv)(nil)
 
 	_ core.MessageService  = (*messageSrv)(nil)

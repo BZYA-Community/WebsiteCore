@@ -1,5 +1,3 @@
-[![work on my machine](https://img.shields.io/badge/work%20on-my%20machine-blue?style=for-the-badge)](https://github.com/BZYA-Community/WebsiteCore)
-
 <div align="center">
   <img src="./.assets/readme/paopao-logo.png" alt="logo" width="88" height="88">
   <h1>WebsiteCore</h1>
@@ -7,9 +5,36 @@
     基于 <a href="https://github.com/rocboss/paopao-ce">paopao-ce</a> 深度定制的微社区系统<br>
     Go + Vue3 全栈 · 身份组权限 · 内容审核 · B站式站内私信
   </p>
+  <a href="https://github.com/BZYA-Community/WebsiteCore/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/BZYA-Community/WebsiteCore/ci.yml?style=flat-square&label=CI" alt="CI">
+  </a>
+  <a href="https://goreportcard.com/report/github.com/BZYA-Community/WebsiteCore">
+    <img src="https://img.shields.io/badge/Go%20Report%20Card-A%2B-brightgreen?style=flat-square" alt="Go Report Card">
+  </a>
+  <a href="https://github.com/BZYA-Community/WebsiteCore">
+    <img src="https://img.shields.io/github/go-mod/go-version/BZYA-Community/WebsiteCore?style=flat-square&label=Go" alt="Go Version">
+  </a>
+  <a href="https://github.com/BZYA-Community/WebsiteCore/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/BZYA-Community/WebsiteCore?style=flat-square" alt="License">
+  </a>
+  <a href="https://github.com/BZYA-Community/WebsiteCore/issues">
+    <img src="https://img.shields.io/github/issues/BZYA-Community/WebsiteCore?style=flat-square" alt="Issues">
+  </a>
+  <a href="https://github.com/BZYA-Community/WebsiteCore/stargazers">
+    <img src="https://img.shields.io/github/stars/BZYA-Community/WebsiteCore?style=flat-square" alt="Stars">
+  </a>
+  <a href="https://github.com/BZYA-Community/WebsiteCore/network/members">
+    <img src="https://img.shields.io/github/forks/BZYA-Community/WebsiteCore?style=flat-square" alt="Forks">
+  </a>
+  <a href="https://github.com/BZYA-Community/WebsiteCore/graphs/contributors">
+    <img src="https://img.shields.io/github/contributors/BZYA-Community/WebsiteCore?style=flat-square" alt="Contributors">
+  </a>
+  <a href="https://github.com/BZYA-Community/WebsiteCore">
+    <img src="https://img.shields.io/badge/work%20on-my%20machine-blue?style=flat-square" alt="Works on My Machine">
+  </a>
 </div>
 
----
+<br>
 
 ## 简介
 

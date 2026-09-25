@@ -464,22 +464,16 @@ func (s *tweetSrv) ListSyncSearchTweets(limit, offset int) (res []*ms.Post, tota
 }
 
 func (s *tweetSrv) ListFollowingTweets(userId int64, limit, offset int) (res []*ms.Post, total int64, err error) {
-	beFriendIds, beFollowIds, xerr := s.getUserRelation(userId)
-	if xerr != nil {
-		return nil, 0, xerr
+	// 好友功能已移除: 仅按关注关系查询(关注可见=60 公开=90 均满足 visibility>=60)
+	var beFollowIds []int64
+	if err = s.db.Table(_following_).Where("user_id=? AND is_del=0", userId).Select("follow_id").Find(&beFollowIds).Error; err != nil {
+		return
 	}
-	beFriendCount, beFollowCount := len(beFriendIds), len(beFollowIds)
 	db := s.db.Model(&dbr.Post{})
-	// 可见性: 0私密 10充电可见 20订阅可见 30保留 40保留 50好友可见 60关注可见 70保留 80保留 90公开',
-	// 私密帖免审仅作者可见 其他可见性(好友/关注/公开)均需过审后才对他人可见
-	switch {
-	case beFriendCount > 0 && beFollowCount > 0:
-		db = db.Where("user_id=? OR ((visibility>=50 AND audit_status=1) AND user_id IN(?)) OR ((visibility>=60 AND audit_status=1) AND user_id IN(?))", userId, beFriendIds, beFollowIds)
-	case beFriendCount > 0 && beFollowCount == 0:
-		db = db.Where("user_id=? OR ((visibility>=50 AND audit_status=1) AND user_id IN(?))", userId, beFriendIds)
-	case beFriendCount == 0 && beFollowCount > 0:
+	// 私密帖免审仅作者可见 关注/公开帖需过审后才对他人可见
+	if len(beFollowIds) > 0 {
 		db = db.Where("user_id=? OR ((visibility>=60 AND audit_status=1) AND user_id IN(?))", userId, beFollowIds)
-	case beFriendCount == 0 && beFollowCount == 0:
+	} else {
 		db = db.Where("user_id = ?", userId)
 	}
 	if err = db.Count(&total).Error; err != nil {
@@ -490,28 +484,6 @@ func (s *tweetSrv) ListFollowingTweets(userId int64, limit, offset int) (res []*
 	}
 	if err = db.Order("is_top DESC, latest_replied_on DESC").Find(&res).Error; err != nil {
 		return
-	}
-	return
-}
-
-func (s *tweetSrv) getUserRelation(userId int64) (beFriendIds []int64, beFollowIds []int64, err error) {
-	if err = s.db.Table(_contact_).Where("friend_id=? AND status=2 AND is_del=0", userId).Select("user_id").Find(&beFriendIds).Error; err != nil {
-		return
-	}
-	if err = s.db.Table(_following_).Where("user_id=? AND is_del=0", userId).Select("follow_id").Find(&beFollowIds).Error; err != nil {
-		return
-	}
-	// 即是好友又是关注者，保留好友去除关注者
-	for _, id := range beFriendIds {
-		for i := 0; i < len(beFollowIds); i++ {
-			// 找到item即删，数据库已经保证唯一性
-			if beFollowIds[i] == id {
-				lastIdx := len(beFollowIds) - 1
-				beFollowIds[i] = beFollowIds[lastIdx]
-				beFollowIds = beFollowIds[:lastIdx]
-				break
-			}
-		}
 	}
 	return
 }
@@ -553,10 +525,9 @@ func (s *tweetSrv) ListUserStarTweets(user *cs.VistUser, limit int, offset int) 
 func (s *tweetSrv) getUserTweets(db *gorm.DB, user *cs.VistUser, limit int, offset int) (res []*ms.Post, total int64, err error) {
 	visibilities := []core.PostVisibleT{core.PostVisitPublic}
 	switch user.RelTyp {
+	// 好友功能已移除: 好友可见按私密口径(仅作者/管理员可见)
 	case cs.RelationAdmin, cs.RelationSelf:
 		visibilities = append(visibilities, core.PostVisitPrivate, core.PostVisitFriend)
-	case cs.RelationFriend:
-		visibilities = append(visibilities, core.PostVisitFriend)
 	case cs.RelationGuest:
 		fallthrough
 	default:

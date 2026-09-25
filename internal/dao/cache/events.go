@@ -58,14 +58,6 @@ type cacheUserInfoEvent struct {
 	expire int64
 }
 
-type cacheMyFriendIdsEvent struct {
-	event.UnimplementedEvent
-	ac      core.AppCache
-	urs     core.UserRelationService
-	userIds []int64
-	expire  int64
-}
-
 type cacheMyFollowIdsEvent struct {
 	event.UnimplementedEvent
 	ac     core.AppCache
@@ -124,18 +116,6 @@ func onCacheObjectEvent(key string, data any, expire int64) {
 		data:   data,
 		ac:     _appCache,
 		expire: expire,
-	})
-}
-
-func OnCacheMyFriendIdsEvent(urs core.UserRelationService, userIds ...int64) {
-	if len(userIds) == 0 {
-		return
-	}
-	events.OnEvent(&cacheMyFriendIdsEvent{
-		userIds: userIds,
-		urs:     urs,
-		ac:      _appCache,
-		expire:  conf.CacheSetting.UserRelationExpire,
 	})
 }
 
@@ -240,30 +220,6 @@ func (e *cacheObjectEvent) Action() (err error) {
 		e.ac.Set(e.key, buffer.Bytes(), e.expire)
 	}
 	return
-}
-
-func (e *cacheMyFriendIdsEvent) Name() string {
-	return "cacheMyFriendIdsEvent"
-}
-
-func (e *cacheMyFriendIdsEvent) Action() error {
-	logrus.Debug("cacheMyFriendIdsEvent action runnging")
-	for _, userId := range e.userIds {
-		myFriendIds, err := e.urs.MyFriendIds(userId)
-		if err != nil {
-			return err
-		}
-		bitmap := roaring64.New()
-		for _, friendId := range myFriendIds {
-			bitmap.Add(uint64(friendId))
-		}
-		data, err := bitmap.MarshalBinary()
-		if err != nil {
-			return err
-		}
-		e.ac.Set(conf.KeyMyFriendIds.Get(userId), data, e.expire)
-	}
-	return nil
 }
 
 func (e *cacheMyFollowIdsEvent) Name() string {

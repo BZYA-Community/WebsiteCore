@@ -72,8 +72,6 @@ func (p *PostStar) List(db *gorm.DB, conditions *ConditionsT, typ cs.RelationTyp
 	switch typ {
 	case cs.RelationAdmin:
 		// admin have all permition to visit all type tweets
-	case cs.RelationFriend:
-		db = db.Where("visibility = ? OR visibility = ?", PostVisitPublic, PostVisitFriend)
 	case cs.RelationSelf:
 		db = db.Where("visibility <> ? OR (visibility = ? AND ? = ?)", PostVisitPrivate, PostVisitPrivate, clause.Column{Table: "Post", Name: "user_id"}, p.UserID)
 	default:
@@ -101,8 +99,6 @@ func (p *PostStar) Count(db *gorm.DB, typ cs.RelationTyp, conditions *Conditions
 	switch typ {
 	case cs.RelationAdmin:
 		// admin have all permition to visit all type tweets
-	case cs.RelationFriend:
-		db = db.Where("visibility = ? OR visibility = ?", PostVisitPublic, PostVisitFriend)
 	case cs.RelationSelf:
 		db = db.Where("visibility <> ? OR (visibility = ? AND ? = ?)", PostVisitPrivate, PostVisitPrivate, clause.Column{Table: "Post", Name: "user_id"}, p.UserID)
 	default:

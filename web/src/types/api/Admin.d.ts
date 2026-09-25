@@ -132,14 +132,13 @@ declare namespace Api {
             }
 
             interface SiteProfileReq {
-                use_friendship: boolean;
                 enable_trends_bar: boolean;
                 allow_tweet_attachment: boolean;
                 allow_tweet_video: boolean;
                 default_tweet_max_length: number;
                 tweet_web_ellipsis_size: number;
                 tweet_mobile_ellipsis_size: number;
-                default_tweet_visibility: 'public' | 'following' | 'friend' | 'private';
+                default_tweet_visibility: 'public' | 'following' | 'private';
                 default_msg_loop_interval: number;
                 copyright_top: string;
                 copyright_left: string;
@@ -349,7 +348,6 @@ declare namespace Api {
             }
 
             interface SiteProfileResp {
-                use_friendship: boolean;
                 enable_trends_bar: boolean;
                 allow_tweet_attachment: boolean;
                 allow_tweet_video: boolean;
@@ -358,7 +356,7 @@ declare namespace Api {
                 default_tweet_max_length: number;
                 tweet_web_ellipsis_size: number;
                 tweet_mobile_ellipsis_size: number;
-                default_tweet_visibility: 'public' | 'following' | 'friend' | 'private';
+                default_tweet_visibility: 'public' | 'following' | 'private';
                 default_msg_loop_interval: number;
                 copyright_top: string;
                 copyright_left: string;

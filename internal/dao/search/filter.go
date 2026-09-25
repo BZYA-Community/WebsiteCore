@@ -7,7 +7,6 @@ package search
 import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
-	"github.com/BZYA-Community/WebsiteCore/pkg/types"
 )
 
 type tweetSearchFilter struct {
@@ -35,14 +34,12 @@ func (s *tweetSearchFilter) filterResp(user *ms.User, resp *core.QueryResp) {
 			}
 		}
 	} else {
-		var cutFriend, cutPrivate bool
-		friendFilter := s.ams.BeFriendFilter(user.ID)
-		friendFilter[user.ID] = types.Empty{}
+		var cutPrivate bool
 		for i := 0; i <= latestIndex; i++ {
 			item = items[i]
-			cutFriend = (item.Visibility == core.PostVisitFriend && !friendFilter.IsFriend(item.UserID))
-			cutPrivate = (item.Visibility == core.PostVisitPrivate && user.ID != item.UserID)
-			if cutFriend || cutPrivate {
+			// 好友功能已移除: 好友可见与私密同口径(仅作者本人可见)
+			cutPrivate = ((item.Visibility == core.PostVisitPrivate || item.Visibility == core.PostVisitFriend) && user.ID != item.UserID)
+			if cutPrivate {
 				items[i] = items[latestIndex]
 				items = items[:latestIndex]
 				resp.Total--

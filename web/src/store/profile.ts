@@ -4,7 +4,6 @@ import { ref } from "vue";
 export const useStoreProfile = defineStore("profile", () => {
 
     const profile = ref({
-        useFriendship: true,
         enableTrendsBar: true,
         allowTweetAttachment: true,
         allowTweetVideo: true,
@@ -13,7 +12,7 @@ export const useStoreProfile = defineStore("profile", () => {
         defaultTweetMaxLength: 2000,
         tweetWebEllipsisSize: 400,
         tweetMobileEllipsisSize: 300,
-        defaultTweetVisibility: 'friend',
+        defaultTweetVisibility: 'public',
         defaultMsgLoopInterval: 5000,
         copyrightTop: '2026 PaoPao',
         copyrightLeft: '',
@@ -23,9 +22,6 @@ export const useStoreProfile = defineStore("profile", () => {
     });
 
     function loadDefaultSiteProfile() {
-        profile.value.useFriendship =
-            import.meta.env.VITE_USE_FRIENDSHIP.toLowerCase() === 'true';
-
         profile.value.enableTrendsBar =
             import.meta.env.VITE_ENABLE_TRENDS_BAR.toLowerCase() === 'true';
 
@@ -71,8 +67,6 @@ export const useStoreProfile = defineStore("profile", () => {
     }
 
     function updateSiteProfile(data: Record<string, any>) {
-        profile.value.useFriendship = data.use_friendship ?? profile.value.useFriendship;
-
         profile.value.enableTrendsBar = data.enable_trends_bar ?? profile.value.enableTrendsBar;
 
         profile.value.allowTweetAttachment =

@@ -22,16 +22,6 @@ type UserManageService interface {
 	GetRegisterUserCount() (int64, error)
 }
 
-// ContactManageService 联系人管理服务
-type ContactManageService interface {
-	RequestingFriend(userId int64, friendId int64, greetings string) error
-	AddFriend(userId int64, friendId int64) error
-	RejectFriend(userId int64, friendId int64) error
-	DeleteFriend(userId int64, friendId int64) error
-	GetContacts(userId int64, offset int, limit int) (*ms.ContactList, error)
-	IsFriend(userID int64, friendID int64) bool
-}
-
 // FollowingManageService 关注管理服务
 type FollowingManageService interface {
 	FollowUser(userId int64, followId int64) error
@@ -44,8 +34,6 @@ type FollowingManageService interface {
 
 // UserRelationService 用户关系服务
 type UserRelationService interface {
-	MyFriendIds(userId int64) ([]int64, error)
 	MyFollowIds(userId int64) ([]int64, error)
-	IsMyFriend(userId int64, friendIds ...int64) (map[int64]bool, error)
 	IsMyFollow(userId int64, followIds ...int64) (map[int64]bool, error)
 }

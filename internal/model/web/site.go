@@ -15,7 +15,6 @@ type VersionResp struct {
 }
 
 type SiteProfileResp struct {
-	UseFriendship           bool   `json:"use_friendship"`
 	EnableTrendsBar         bool   `json:"enable_trends_bar"`
 	AllowTweetAttachment    bool   `json:"allow_tweet_attachment"`
 	AllowTweetVideo         bool   `json:"allow_tweet_video"`
@@ -36,7 +35,6 @@ type SiteProfileResp struct {
 type SiteSettingsReq struct {
 	BaseInfo `json:"-" binding:"-"`
 
-	UseFriendship           *bool   `json:"use_friendship" binding:"required"`
 	EnableTrendsBar         *bool   `json:"enable_trends_bar" binding:"required"`
 	AllowTweetAttachment    *bool   `json:"allow_tweet_attachment" binding:"required"`
 	AllowTweetVideo         *bool   `json:"allow_tweet_video" binding:"required"`

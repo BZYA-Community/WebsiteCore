@@ -47,7 +47,6 @@ func RouteWeb(e *gin.Engine) {
 	api.RegisterPubServant(e, newPubSrv(ds))
 	api.RegisterTrendsServant(e, newTrendsSrv(ds))
 	api.RegisterFollowshipServant(e, newFollowshipSrv(ds))
-	api.RegisterFriendshipServant(e, newFriendshipSrv(ds))
 	api.RegisterSiteServant(e, newSiteSrv(_siteSettings))
 	// shedule jobs if need
 	scheduleJobs()
@@ -58,7 +57,6 @@ func lazyInitial() {
 	_onceInitial.Do(func() {
 		_enablePhoneVerify = cfg.If("Sms")
 		_disallowUserRegister = cfg.If("Web:DisallowUserRegister")
-		_maxWhisperNumDaily = conf.AppSetting.MaxWhisperDaily
 		_maxCaptchaTimes = conf.AppSetting.MaxCaptchaTimes
 		_oss = dao.ObjectStorageService()
 		_ds = dao.DataService()

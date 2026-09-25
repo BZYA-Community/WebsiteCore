@@ -18,8 +18,6 @@ declare namespace Item {
     roles?: string[];
     /** 显示身份 运维/管理员/审核/导师/道友/游客 */
     identity?: string;
-    /** 是否好友 */
-    is_friend: boolean;
     /** 是否关注 */
     is_following: boolean;
     /** 加入时间 */

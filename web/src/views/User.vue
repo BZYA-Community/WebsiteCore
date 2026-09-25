@@ -14,11 +14,6 @@
                             <strong>{{ user.nickname }}</strong>
                             <span> @{{ user.username }} </span>
                             <n-tag
-                                v-if="profile.useFriendship && userInfo.id > 0 && userInfo.username != user.username && user.is_friend"
-                                class="top-tag" type="info" size="small" round>
-                                好友
-                            </n-tag>
-                            <n-tag
                                 v-if="userInfo.id > 0 && userInfo.username != user.username && user.is_following"
                                 class="top-tag" type="success" size="small" round>
                                 已关注
@@ -84,8 +79,6 @@
                     </div>
                 </div>
 
-                <!-- 加好友组件 -->
-                <whisper-add-friend :show="showAddFriendWhisper" :user="user" @success="addFriendWhisperSuccess" />
             
                 <n-tabs v-if="!userLoading" class="profile-tabs-wrap" type="line" animated :value="pageType" @update:value="changeTab">
                     <n-tab-pane name="post"><template #tab>泡泡</template></n-tab-pane>
@@ -133,7 +126,6 @@ import type { Component, Ref } from 'vue';
 import { useStoreMain } from '@/store/main';
 import { useRoute, useRouter } from 'vue-router';
 import { useDialog, DropdownOption } from 'naive-ui';
-import WhisperAddFriend from '../components/whisper-add-friend.vue';
 import { MoreHorizFilled } from '@vicons/material';
 import { formatDate } from '@/utils/formatTime';
 import { identityTagType, showIdentityBadge } from '@/utils/identity';
@@ -141,8 +133,6 @@ import { prettyQuoteNum } from '@/utils/count';
 import {
   SettingsOutline,
   PaperPlaneOutline,
-  PersonAddOutline,
-  PersonRemoveOutline,
   CubeOutline,
   BodyOutline,
   WalkOutline,
@@ -177,7 +167,6 @@ const user = reactive<Item.UserInfo>({
 	username: '',
 	nickname: '',
 	is_admin: false,
-	is_friend: true,
 	is_following: false,
 	created_on: 0,
 	follows: 0,
@@ -186,7 +175,6 @@ const user = reactive<Item.UserInfo>({
 	status: 1,
 });
 const userLoading = ref(false);
-const showAddFriendWhisper = ref(false);
 const list = ref<Item.PostProps[]>([]);
 const postList = ref<Item.PostProps[]>([]);
 const commentList = ref<Item.PostProps[]>([]);
@@ -342,7 +330,6 @@ const loadUser = () => {
       user.nickname = res.nickname;
       user.is_admin = res.is_admin;
       user.identity = res.identity;
-      user.is_friend = res.is_friend;
       user.created_on = res.created_on;
       user.is_following = res.is_following;
       user.follows = res.follows;
@@ -364,12 +351,6 @@ const updatePage = () => {
 };
 const openWhisper = () => {
   goWhisper(user);
-};
-const openAddFriendWhisper = () => {
-  showAddFriendWhisper.value = true;
-};
-const addFriendWhisperSuccess = () => {
-  showAddFriendWhisper.value = false;
 };
 const renderIcon = (icon: Component) => {
   return () => {
@@ -425,43 +406,14 @@ const userOptions = computed(() => {
       icon: renderIcon(BodyOutline),
     });
   }
-  if (profile.value.useFriendship) {
-    if (user.is_friend) {
-      options.push({
-        label: '删除好友',
-        key: 'delete',
-        icon: renderIcon(PersonRemoveOutline),
-      });
-    } else {
-      options.push({
-        label: '添加朋友',
-        key: 'requesting',
-        icon: renderIcon(PersonAddOutline),
-      });
-    }
-  }
   return options;
 });
 const handleUserAction = (
-  item:
-    | 'whisper'
-    | 'follow'
-    | 'unfollow'
-    | 'delete'
-    | 'requesting'
-    | 'banned'
-    | 'deblocking'
-    | 'setting',
+  item: 'whisper' | 'follow' | 'unfollow' | 'banned' | 'deblocking' | 'setting',
 ) => {
   switch (item) {
     case 'whisper':
       openWhisper();
-      break;
-    case 'delete':
-      openDeleteFriend();
-      break;
-    case 'requesting':
-      openAddFriendWhisper();
       break;
     case 'follow':
     case 'unfollow':
@@ -482,32 +434,6 @@ const handleUserAction = (
     default:
       break;
   }
-};
-const openDeleteFriend = () => {
-  dialog.warning({
-    title: '删除好友',
-    content:
-      '将好友 “' +
-      user.nickname +
-      '” 删除，将同时删除 点赞/收藏 列表中关于该朋友的 “好友可见” 推文',
-    positiveText: '确定',
-    negativeText: '取消',
-    onPositiveClick: () => {
-      userLoading.value = true;
-      Api.v1.friend.post.delete({
-        user_id: user.id,
-      })
-        .then((_res) => {
-          userLoading.value = false;
-          user.is_friend = false;
-          loadPostsByStyle('post');
-        })
-        .catch((err) => {
-          userLoading.value = false;
-          console.log(err);
-        });
-    },
-  });
 };
 const handleFollowUser = () => {
 	UserAction.followAction(dialog, user.id, user.username, user.is_following)

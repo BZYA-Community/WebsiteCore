@@ -49,7 +49,7 @@ def main():
             m = measure(page)
             gap = round(m["card"]["top"] - m["lastItem"]["bottom"], 1)
             overlap = m["card"]["top"] < m["lastItem"]["bottom"] - 0.5
-            ok_count = m["count"] == 10
+            ok_count = m["count"] == 10  # 管理员10项: 广场/话题/课程/主页/消息/收藏/设置/系统配置/用户管理/审核队列(好友已移除)
             print("[%s] vh=%d 菜单项=%d %s | 最后菜单(%s) bottom=%.0f 卡片 top=%.0f 间距=%+s %s | 菜单可滚动=%s(溢出%dpx)" % (
                 name, m["vh"], m["count"], "OK" if ok_count else "≠10!",
                 m["labels"][-1] if m["labels"] else "?", m["lastItem"]["bottom"], m["card"]["top"],

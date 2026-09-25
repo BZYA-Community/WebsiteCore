@@ -50,8 +50,6 @@ const (
 	_trendsActionDeleteTweet
 	_trendsActionFollowUser
 	_trendsActionUnfollowUser
-	_trendsActionAddFriend
-	_trendsActionDeleteFriend
 )
 
 type cacheUnreadMsgEvent struct {
@@ -293,13 +291,12 @@ func (e *trendsActionEvent) Action() (err error) {
 	case _trendsActionCreateTweet:
 		logrus.Debug("trigger trendsActionEvent by create tweet ")
 		e.updateUserMetric(cs.MetricActionCreateTweet)
-		e.expireFriendTrends()
+		e.expireMyTrends()
 	case _trendsActionDeleteTweet:
 		logrus.Debug("trigger trendsActionEvent by delete tweet ")
 		e.updateUserMetric(cs.MetricActionDeleteTweet)
-		e.expireFriendTrends()
-	case _trendsActionAddFriend, _trendsActionDeleteFriend,
-		_trendsActionFollowUser, _trendsActionUnfollowUser:
+		e.expireMyTrends()
+	case _trendsActionFollowUser, _trendsActionUnfollowUser:
 		e.expireMyTrends()
 	default:
 		// nothing
@@ -310,16 +307,6 @@ func (e *trendsActionEvent) Action() (err error) {
 func (e *trendsActionEvent) updateUserMetric(action uint8) {
 	for _, userId := range e.userIds {
 		e.ds.UpdateUserMetric(userId, action)
-	}
-}
-
-func (e *trendsActionEvent) expireFriendTrends() {
-	for _, userId := range e.userIds {
-		if friendIds, err := e.ds.MyFriendIds(userId); err == nil {
-			for _, id := range friendIds {
-				e.ac.DelAny(fmt.Sprintf("%s%d:*", conf.PrefixIdxTrends, id))
-			}
-		}
 	}
 }
 

@@ -44,11 +44,9 @@ func NewMeiliTweetSearchService(ams core.AuthorizationManageService) (core.Tweet
 		tweetSearchFilter: tweetSearchFilter{
 			ams: ams,
 		},
-		client:        client,
-		index:         client.Index(s.Index),
-		publicFilter:  fmt.Sprintf("visibility=%d", core.PostVisitPublic),
-		privateFilter: fmt.Sprintf("visibility=%d AND user_id=", core.PostVisitPrivate),
-		friendFilter:  fmt.Sprintf("visibility=%d", core.PostVisitFriend),
+		client:       client,
+		index:        client.Index(s.Index),
+		publicFilter: fmt.Sprintf("visibility=%d", core.PostVisitPublic),
 	}
 	return mts, mts
 }
@@ -59,11 +57,8 @@ func NewZincTweetSearchService(ams core.AuthorizationManageService) (core.TweetS
 		tweetSearchFilter: tweetSearchFilter{
 			ams: ams,
 		},
-		indexName:     s.Index,
-		client:        zinc.NewClient(s.Endpoint(), s.User, s.Password),
-		publicFilter:  fmt.Sprintf("visibility:%d", core.PostVisitPublic),
-		privateFilter: fmt.Sprintf("visibility:%d AND user_id:%%d", core.PostVisitPrivate),
-		friendFilter:  fmt.Sprintf("visibility:%d", core.PostVisitFriend),
+		indexName: s.Index,
+		client:    zinc.NewClient(s.Endpoint(), s.User, s.Password),
 	}
 	zts.createIndex()
 

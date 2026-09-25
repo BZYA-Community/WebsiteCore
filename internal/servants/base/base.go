@@ -239,15 +239,11 @@ func (s *DaoServant) PrepareTweet(user *ms.User, tweet *ms.PostFormated) error {
 	}
 	// 转换一下可见性的值
 	tweet.Visibility = ms.PostVisibleT(tweet.Visibility.ToOutValue())
-	friendMap, err := s.Ds.IsMyFriend(user.ID, tweet.UserID)
-	if err != nil {
-		return err
-	}
 	followMap, err := s.Ds.IsMyFollow(user.ID, tweet.UserID)
 	if err != nil {
 		return err
 	}
-	tweet.User.IsFriend, tweet.User.IsFollowing = friendMap[tweet.UserID], followMap[tweet.UserID]
+	tweet.User.IsFollowing = followMap[tweet.UserID]
 	return nil
 }
 
@@ -288,11 +284,6 @@ func (s *DaoServant) CanViewTweet(user *ms.User, post any) bool {
 	switch visible {
 	case core.PostVisitPublic:
 		return true
-	case core.PostVisitFriend:
-		if user == nil {
-			return false
-		}
-		return s.Ds.IsFriend(userID, user.ID) || s.Ds.IsFriend(user.ID, userID)
 	case core.PostVisitFollowing:
 		// 关注可见: 访问者关注了作者即可见(与TweetDetail的IsFollowing口径一致)
 		return user != nil && s.Ds.IsFollow(user.ID, userID)
@@ -462,11 +453,9 @@ func (s *DaoServant) RelationTypFrom(me *ms.User, username string) (res *cs.Vist
 		res.RelTyp = cs.RelationGuest
 		return
 	}
-	// visit by admin/friend/other
+	// visit by admin/other(好友功能已移除 不存在好友关系)
 	if me.IsAdmin {
 		res.RelTyp = cs.RelationAdmin
-	} else if s.Ds.IsFriend(me.ID, he.ID) {
-		res.RelTyp = cs.RelationFriend
 	} else {
 		res.RelTyp = cs.RelationGuest
 	}

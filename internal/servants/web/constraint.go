@@ -13,7 +13,6 @@ var (
 	_ api.CoursePriv  = (*coursePrivSrv)(nil)
 	_ api.CourseAdmin = (*courseAdminSrv)(nil)
 	_ api.Followship  = (*followshipSrv)(nil)
-	_ api.Friendship  = (*friendshipSrv)(nil)
 	_ api.Loose       = (*looseSrv)(nil)
 	_ api.Pub         = (*pubSrv)(nil)
 	_ api.Relax       = (*relaxSrv)(nil)

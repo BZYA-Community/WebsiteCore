@@ -33,10 +33,9 @@ func (s *shipIndexSrv) IndexPosts(user *ms.User, offset int, limit int) (*ms.Ind
 	if user == nil {
 		predicates["visibility = ?"] = []any{dbr.PostVisitPublic}
 	} else if !user.IsAdmin {
-		friendIds, _ := s.ams.BeFriendIds(user.ID)
-		friendIds = append(friendIds, user.ID)
-		args := []any{dbr.PostVisitPublic, dbr.PostVisitPrivate, user.ID, dbr.PostVisitFriend, friendIds}
-		predicates["visibility = ? OR (visibility = ? AND user_id = ?) OR (visibility = ? AND user_id IN ?)"] = args
+		// 好友功能已移除: 好友可见与私密帖统一仅作者本人可见
+		args := []any{dbr.PostVisitPublic, dbr.PostVisitPrivate, dbr.PostVisitFriend, user.ID}
+		predicates["visibility = ? OR (visibility IN ? AND user_id = ?)"] = args
 	}
 
 	posts, err := (&dbr.Post{}).Fetch(s.db, predicates, offset, limit)

@@ -60,12 +60,9 @@
                         :isMobile="!desktopModelShow"
                         addFollowAction
                         @send-whisper="onSendWhisper"
-                        @post-follow-action="postFollowAction"
-                        @handle-friend-action="onHandleFriendAction" />
+                        @post-follow-action="postFollowAction" />
                 </n-list-item>
             </div>
-            <!-- 加好友组件 -->
-            <whisper-add-friend :show="showAddFriendWhisper" :user="user" @success="addFriendWhisperSuccess" />
         </n-list>
 
         <n-space v-if="totalPage > 0" justify="center">
@@ -158,75 +155,15 @@ const slideBarList = ref<Item.SlideBarItem[]>([
     show: false,
   },
 ]);
-const user = reactive<Item.UserInfo>({
-  id: 0,
-  avatar: '',
-  username: '',
-  nickname: '',
-  is_admin: false,
-  is_friend: false,
-  is_following: false,
-  created_on: 0,
-  follows: 0,
-  followings: 0,
-  status: 1,
-});
-const inActionPost = ref<Item.PostProps | null>(null);
-
 const title = ref<string>('泡泡广场');
 const targetStyle = ref<number>(1);
 const targetUsername = ref<string>('');
 const list = ref<any[]>([]);
-const showAddFriendWhisper = ref(false);
-
 // 使用 usePagination composable
 const { loading, noMore, page, pageSize, totalPage, reset, nextPage } = usePagination(20);
 
 // 私信入口: 跳转消息页会话(原 whisper 弹窗已移除)
 const { goWhisper: onSendWhisper } = useChatJump();
-
-const openAddFriendWhisper = () => {
-  showAddFriendWhisper.value = true;
-};
-
-const openDeleteFriend = (post: Item.PostProps) => {
-  dialog.warning({
-    title: '删除好友',
-    content:
-      '将好友 “' +
-      post.user.nickname +
-      '” 删除，将同时删除 点赞/收藏 列表中关于该朋友的 “好友可见” 推文',
-    positiveText: '确定',
-    negativeText: '取消',
-    onPositiveClick: () => {
-      Api.v1.friend.post.delete({
-        user_id: user.id,
-      })
-        .then((res) => {
-          window.$message.success('操作成功');
-          post.user.is_friend = false;
-        })
-        .catch((_err) => {});
-    },
-  });
-};
-
-const addFriendWhisperSuccess = () => {
-  showAddFriendWhisper.value = false;
-  inActionPost.value = null;
-};
-
-const onHandleFriendAction = (post: Item.PostProps) => {
-  inActionPost.value = post;
-  user.id = post.user.id;
-  user.username = post.user.username;
-  user.nickname = post.user.nickname;
-  if (post.user.is_friend) {
-    openDeleteFriend(post);
-  } else {
-    openAddFriendWhisper();
-  }
-};
 
 function postFollowAction(userId: number, isFollowing: boolean) {
   for (let index in list.value) {

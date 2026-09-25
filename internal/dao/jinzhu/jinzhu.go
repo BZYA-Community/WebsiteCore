@@ -35,7 +35,6 @@ type dataSrv struct {
 	core.TrendsManageServantA
 	core.UserManageService
 	core.UserMetricServantA
-	core.ContactManageService
 	core.FollowingManageService
 	core.UserRelationService
 	core.SiteAdminService
@@ -74,7 +73,6 @@ func NewDataService() (core.DataService, core.VersionInfo) {
 		TrendsManageServantA:   newTrendsManageServentA(db),
 		UserManageService:      newUserManageService(db, ums),
 		SiteAdminService:       newAuditService(db),
-		ContactManageService:   newContactManageService(db),
 		FollowingManageService: newFollowingManageService(db),
 		UserRelationService:    newUserRelationService(db),
 		SecurityService:        newSecurityService(db, pvs),

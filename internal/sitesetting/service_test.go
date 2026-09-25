@@ -37,7 +37,6 @@ func TestUpdateEditableProfilePersistsOnlyEditableKeys(t *testing.T) {
 	svc := newTestService(t)
 
 	profile, err := svc.UpdateEditableProfile(context.Background(), EditableProfile{
-		UseFriendship:           false,
 		EnableTrendsBar:         true,
 		AllowTweetAttachment:    false,
 		AllowTweetVideo:         false,
@@ -180,7 +179,6 @@ func newTestService(t *testing.T) *Service {
 	})
 	conf.Initial(nil, false)
 	conf.WebProfileSetting = &conf.WebProfileConf{
-		UseFriendship:           true,
 		EnableTrendsBar:         false,
 		AllowTweetAttachment:    true,
 		AllowTweetVideo:         true,

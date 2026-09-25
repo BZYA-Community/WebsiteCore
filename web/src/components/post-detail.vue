@@ -34,15 +34,6 @@
                 >
                     私密
                 </n-tag>
-                <n-tag
-                    v-if="post.visibility == VisibilityEnum.FRIEND"
-                    class="top-tag"
-                    type="info"
-                    size="small"
-                    round
-                >
-                    好友可见
-                </n-tag>
             </template>
             <template #header-extra>
                 <div class="options">
@@ -331,9 +322,6 @@ import { Api } from '@/utils/request';
 import UserAction, { canWhisperUser, useChatJump } from '@/composables/useUserAction';
 import { usePostContent } from '@/composables/usePostContent';
 
-const useFriendship =
-  import.meta.env.VITE_USE_FRIENDSHIP.toLowerCase() === 'true';
-
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const { collapsedLeft, theme } = storeToRefs(storeMain);
@@ -486,17 +474,6 @@ const adminOptions = computed(() => {
         { label: '关注可见', key: 'vfollowing', icon: renderIcon(BodyOutline) },
       ],
     };
-  } else if (useFriendship && post.value.visibility === VisibilityEnum.FRIEND) {
-    visitMenu = {
-      label: '好友可见',
-      key: 'vfriend',
-      icon: renderIcon(PersonOutline),
-      children: [
-        { label: '公开', key: 'vpublic', icon: renderIcon(EyeOutline) },
-        { label: '私密', key: 'vprivate', icon: renderIcon(EyeOffOutline) },
-        { label: '关注可见', key: 'vfollowing', icon: renderIcon(BodyOutline) },
-      ],
-    };
   } else {
     visitMenu = {
       label: '关注可见',
@@ -507,13 +484,6 @@ const adminOptions = computed(() => {
         { label: '私密', key: 'vprivate', icon: renderIcon(EyeOffOutline) },
       ],
     };
-  }
-  if (useFriendship && post.value.visibility !== VisibilityEnum.FRIEND) {
-    visitMenu.children?.push({
-      label: '好友可见',
-      key: 'vfriend',
-      icon: renderIcon(PersonOutline),
-    });
   }
   options.push(visitMenu);
   return options;
@@ -636,7 +606,6 @@ const handlePostAction = (
     | 'unhighlight'
     | 'vpublic'
     | 'vprivate'
-    | 'vfriend'
     | 'vfollowing',
 ) => {
   switch (item) {
@@ -668,10 +637,6 @@ const handlePostAction = (
       break;
     case 'vprivate':
       tempVisibility.value = 1;
-      showVisibilityModal.value = true;
-      break;
-    case 'vfriend':
-      tempVisibility.value = 2;
       showVisibilityModal.value = true;
       break;
     case 'vfollowing':

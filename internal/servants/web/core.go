@@ -25,8 +25,7 @@ import (
 
 var (
 	// _MaxWhisperNumDaily 当日单用户私信总数限制（TODO 配置化、积分兑换等）
-	_maxWhisperNumDaily int64 = 200
-	_maxCaptchaTimes    int   = 2
+	_maxCaptchaTimes int = 2
 )
 
 type coreSrv struct {
@@ -105,10 +104,6 @@ func (s *coreSrv) GetMessages(req *web.GetMessagesReq) (res *web.GetMessagesResp
 			if user, err := s.Ds.GetUserByID(mf.ReceiverUserID); err == nil {
 				mf.ReceiverUser = user.Format()
 			}
-		}
-		// 好友申请消息不需要获取其他信息
-		if mf.Type == ms.MsgTypeRequestingFriend {
-			continue
 		}
 		if mf.PostID > 0 {
 			post, err := s.GetTweetBy(mf.PostID)

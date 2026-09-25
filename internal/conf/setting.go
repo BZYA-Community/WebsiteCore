@@ -304,7 +304,6 @@ type OperatorConf struct {
 }
 
 type WebProfileConf struct {
-	UseFriendship           bool   `json:"use_friendship"`
 	EnableTrendsBar         bool   `json:"enable_trends_bar"`
 	AllowTweetAttachment    bool   `json:"allow_tweet_attachment"`
 	AllowTweetVideo         bool   `json:"allow_tweet_video"`
@@ -392,8 +391,6 @@ func (s *databaseConf) TableNames() (res TableNameMap) {
 		TableCommentContent,
 		TableCommentReply,
 		TableFollowing,
-		TableContact,
-		TableContactGroup,
 		TableMessage,
 		TablePost,
 		TablePostMetric,

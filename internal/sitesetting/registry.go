@@ -142,7 +142,6 @@ type confAuditSnapshot struct {
 }
 
 type confWebProfileSnapshot struct {
-	UseFriendship           bool
 	EnableTrendsBar         bool
 	AllowTweetAttachment    bool
 	AllowTweetVideo         bool
@@ -186,7 +185,7 @@ type Definition struct {
 var (
 	ReadonlyFields   = []string{"allow_user_register", "allow_phone_bind"}
 	bootstrapConfig  *bootstrapSnapshot
-	visibilityOption = []Option{{Label: "Public", Value: "public"}, {Label: "Following", Value: "following"}, {Label: "Friend", Value: "friend"}, {Label: "Private", Value: "private"}}
+	visibilityOption = []Option{{Label: "Public", Value: "public"}, {Label: "Following", Value: "following"}, {Label: "Private", Value: "private"}}
 )
 
 func ensureBootstrapSnapshot() {
@@ -241,7 +240,6 @@ func ensureBootstrapSnapshot() {
 	}
 	if conf.WebProfileSetting != nil {
 		bootstrapConfig.WebProfile = confWebProfileSnapshot{
-			UseFriendship:           conf.WebProfileSetting.UseFriendship,
 			EnableTrendsBar:         conf.WebProfileSetting.EnableTrendsBar,
 			AllowTweetAttachment:    conf.WebProfileSetting.AllowTweetAttachment,
 			AllowTweetVideo:         conf.WebProfileSetting.AllowTweetVideo,
@@ -270,7 +268,6 @@ func CloneReadonlyFields() []string {
 func Registry() []Definition {
 	ensureBootstrapSnapshot()
 	return []Definition{
-		boolDef("web_profile.use_friendship", "web", "profile", "Use friendship", "Switch the frontend friendship model.", ApplyModeLive, false, true, func() any { return conf.WebProfileSetting.UseFriendship }, func() any { return bootstrapConfig.WebProfile.UseFriendship }, func(v any) { conf.WebProfileSetting.UseFriendship = v.(bool) }),
 		boolDef("web_profile.enable_trends_bar", "web", "profile", "Enable trends bar", "Show the trends sidebar in the web UI.", ApplyModeLive, false, true, func() any { return conf.WebProfileSetting.EnableTrendsBar }, func() any { return bootstrapConfig.WebProfile.EnableTrendsBar }, func(v any) { conf.WebProfileSetting.EnableTrendsBar = v.(bool) }),
 		boolDef("web_profile.allow_tweet_attachment", "web", "profile", "Allow attachments", "Allow file attachments on posts.", ApplyModeLive, false, true, func() any { return conf.WebProfileSetting.AllowTweetAttachment }, func() any { return bootstrapConfig.WebProfile.AllowTweetAttachment }, func(v any) { conf.WebProfileSetting.AllowTweetAttachment = v.(bool) }),
 		boolDef("web_profile.allow_tweet_video", "web", "profile", "Allow video posts", "Allow video uploads on posts.", ApplyModeLive, false, true, func() any { return conf.WebProfileSetting.AllowTweetVideo }, func() any { return bootstrapConfig.WebProfile.AllowTweetVideo }, func(v any) { conf.WebProfileSetting.AllowTweetVideo = v.(bool) }),
@@ -296,7 +293,6 @@ func Registry() []Definition {
 		intDef("app.max_page_size", "app", "general", "Max page size", "Maximum pagination size.", ApplyModeLive, false, true, func() any { return conf.AppSetting.MaxPageSize }, func() any { return bootstrapConfig.App.MaxPageSize }, func(v int) error {
 			return between(v, maxInt(conf.AppSetting.DefaultPageSize, 1), 1000, "max_page_size")
 		}, func(v any) { conf.AppSetting.MaxPageSize = v.(int) }),
-		int64Def("app.max_whisper_daily", "app", "limits", "Max daily whispers", "Daily whisper send limit. Restart required because servants cache it at startup.", ApplyModeRestartRequired, func() any { return conf.AppSetting.MaxWhisperDaily }, func() any { return bootstrapConfig.App.MaxWhisperDaily }, func(v int64) error { return betweenInt64(v, 1, 1000000, "max_whisper_daily") }, func(v any) { conf.AppSetting.MaxWhisperDaily = v.(int64) }),
 		intDef("app.max_captcha_times", "app", "limits", "Max captcha times", "Max captcha request count cached at startup by web servants.", ApplyModeRestartRequired, false, true, func() any { return conf.AppSetting.MaxCaptchaTimes }, func() any { return bootstrapConfig.App.MaxCaptchaTimes }, func(v int) error { return between(v, 1, 1000, "max_captcha_times") }, func(v any) { conf.AppSetting.MaxCaptchaTimes = v.(int) }),
 
 		intDef("tweet_search.max_update_qps", "search", "bridge", "Search update QPS", "Buffered update throughput for search indexing.", ApplyModeRestartRequired, false, true, func() any { return conf.TweetSearchSetting.MaxUpdateQPS }, func() any { return bootstrapConfig.TweetSearch.MaxUpdateQPS }, func(v int) error { return between(v, 10, 10000, "max_update_qps") }, func(v any) { conf.TweetSearchSetting.MaxUpdateQPS = v.(int) }),
@@ -456,7 +452,7 @@ func validateVisibility(v string) error {
 			return nil
 		}
 	}
-	return xerror.InvalidParams.WithDetails("default_tweet_visibility must be one of public/following/friend/private")
+	return xerror.InvalidParams.WithDetails("default_tweet_visibility must be one of public/following/private")
 }
 
 func validateRequiredTrimmed(name string, max int) func(string) error {

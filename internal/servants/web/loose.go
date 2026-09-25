@@ -338,11 +338,6 @@ func (s *looseSrv) GetUserProfile(req *web.GetUserProfileReq) (*web.GetUserProfi
 		logrus.Errorf("looseSrv.GetUserProfile occurs error[1]: %s", err)
 		return nil, web.ErrNoExistUsername
 	}
-	// 设定自己不是自己的朋友
-	isFriend := !(req.User == nil || req.User.ID == he.ID)
-	if req.User != nil && req.User.ID != he.ID {
-		isFriend = s.Ds.IsFriend(req.User.ID, he.ID)
-	}
 	isFollowing := false
 	if req.User != nil {
 		isFollowing = s.Ds.IsFollow(req.User.ID, he.ID)
@@ -360,7 +355,6 @@ func (s *looseSrv) GetUserProfile(req *web.GetUserProfileReq) (*web.GetUserProfi
 		IsAdmin:     he.IsAdmin,
 		Roles:       dbr.SplitRoles(he.Roles),
 		Identity:    dbr.IdentityOf(he.Roles, he.Phone),
-		IsFriend:    isFriend,
 		IsFollowing: isFollowing,
 		CreatedOn:   he.CreatedOn,
 		Follows:     follows,
@@ -558,8 +552,6 @@ func (s *looseSrv) TweetDetail(req *web.TweetDetailReq) (*web.TweetDetailResp, e
 		// read by self of super admin or auditor
 		break
 	case post.AuditStatus == ms.PostAuditApproved && post.Visibility == core.PostVisitPublic:
-		break
-	case post.AuditStatus == ms.PostAuditApproved && post.Visibility == core.PostVisitFriend && postFormated.User.IsFriend:
 		break
 	case post.AuditStatus == ms.PostAuditApproved && post.Visibility == core.PostVisitFollowing && postFormated.User.IsFollowing:
 		break

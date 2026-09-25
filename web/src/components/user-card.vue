@@ -19,7 +19,7 @@
                 </span>
                 <span class="username-wrap"> @{{ contact.username }} </span>
                 <n-tag
-                    v-if="showFollowingTag && contact.is_following"
+                    v-if="contact.is_following"
                     class="top-tag" type="success" size="small" round>
                     已关注
                 </n-tag>
@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { h, computed } from 'vue';
+import { h } from 'vue';
 import type { Component } from 'vue';
 import { NIcon, useDialog, DropdownOption } from 'naive-ui';
 import { formatDate } from '@/utils/formatTime';
@@ -65,31 +65,22 @@ import {
   PaperPlaneOutline,
   BodyOutline,
   WalkOutline,
-  PersonRemoveOutline,
 } from '@vicons/ionicons5';
 import UserAction, { canWhisperUser } from '@/composables/useUserAction';
-import { Api } from '@/utils/request';
 
 const dialog = useDialog();
 
 const props = withDefaults(
   defineProps<{
     contact: Item.ContactItemProps;
-    type?: 'contact' | 'follow';
   }>(),
-  {
-    type: 'contact',
-  },
+  {},
 );
-
-const showFollowingTag = computed(() => props.type === 'follow');
-const enableFollowAction = computed(() => props.type === 'follow');
 
 const emit = defineEmits<{
   (e: 'send-whisper', user: Item.UserInfo): void;
   (e: 'unfollow-success'): void;
   (e: 'update-following', value: boolean): void;
-  (e: 'delete-success', userId: number): void;
 }>();
 
 const renderIcon = (icon: Component) => {
@@ -127,64 +118,28 @@ const actionOpts = computed(() => {
     });
   }
 
-  if (enableFollowAction.value) {
-    if (props.contact.is_following) {
-      options.push({
-        label: '取消关注 @' + props.contact.username,
-        key: 'unfollow',
-        icon: renderIcon(WalkOutline),
-      });
-    } else {
-      options.push({
-        label: '关注 @' + props.contact.username,
-        key: 'follow',
-        icon: renderIcon(BodyOutline),
-      });
-    }
-  }
-
-  // 好友卡片提供删除好友入口
-  if (props.type === 'contact') {
+  if (props.contact.is_following) {
     options.push({
-      label: '删除好友 @' + props.contact.username,
-      key: 'delete',
-      icon: renderIcon(PersonRemoveOutline),
+      label: '取消关注 @' + props.contact.username,
+      key: 'unfollow',
+      icon: renderIcon(WalkOutline),
+    });
+  } else {
+    options.push({
+      label: '关注 @' + props.contact.username,
+      key: 'follow',
+      icon: renderIcon(BodyOutline),
     });
   }
 
   return options;
 });
 
-const handleDeleteFriend = () => {
-  dialog.warning({
-    title: '删除好友',
-    content:
-      '确定删除好友 ' + props.contact.nickname + '（@' + props.contact.username + '）吗？删除后对方也将不再是您的好友。',
-    positiveText: '删除',
-    negativeText: '取消',
-    onPositiveClick: () => {
-      Api.v1.friend.post.delete({
-        user_id: props.contact.user_id,
-      })
-        .then((_res) => {
-          window.$message.success('已删除好友');
-          emit('delete-success', props.contact.user_id);
-        })
-        .catch((err) => {
-          console.log(err);
-        });
-    },
-  });
-};
-
-const handleAction = (item: 'follow' | 'unfollow' | 'whisper' | 'delete') => {
+const handleAction = (item: 'follow' | 'unfollow' | 'whisper') => {
   switch (item) {
     case 'follow':
     case 'unfollow':
       handleFollowUser();
-      break;
-    case 'delete':
-      handleDeleteFriend();
       break;
     case 'whisper':
       const user: Item.UserInfo = {
@@ -193,7 +148,6 @@ const handleAction = (item: 'follow' | 'unfollow' | 'whisper' | 'delete') => {
         username: props.contact.username,
         nickname: props.contact.nickname,
         is_admin: false,
-        is_friend: true,
         is_following: false,
         created_on: 0,
         follows: 0,

@@ -9,12 +9,11 @@ import (
 )
 
 const (
-	MsgTypePost             = dbr.MsgTypePost
-	MsgtypeComment          = dbr.MsgtypeComment
-	MsgTypeReply            = dbr.MsgTypeReply
-	MsgTypeWhisper          = dbr.MsgTypeWhisper
-	MsgTypeRequestingFriend = dbr.MsgTypeRequestingFriend
-	MsgTypeSystem           = dbr.MsgTypeSystem
+	MsgTypePost    = dbr.MsgTypePost
+	MsgtypeComment = dbr.MsgtypeComment
+	MsgTypeReply   = dbr.MsgTypeReply
+	MsgTypeWhisper = dbr.MsgTypeWhisper
+	MsgTypeSystem  = dbr.MsgTypeSystem
 
 	MsgStatusUnread = dbr.MsgStatusUnread
 	MsgStatusReaded = dbr.MsgStatusReaded

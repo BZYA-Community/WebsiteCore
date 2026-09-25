@@ -5,7 +5,6 @@
 package web
 
 import (
-	"context"
 	"crypto/md5"
 	"fmt"
 	"strings"
@@ -289,16 +288,13 @@ func (s *chatSrv) SendChatMessage(req *web.SendChatMessageReq) (*web.SendChatMes
 	if xerr := s.canWhisper(req.User, receiver); xerr != nil {
 		return nil, xerr
 	}
-	ctx := context.Background()
 	// 防重复发送: 同人同内容10秒窗口去重
 	dedupKey := fmt.Sprintf("paopao:chat:dedup:%d:%d:%x", req.User.ID, receiver.ID, md5.Sum([]byte(content)))
 	if err := s.ac.SetNx(dedupKey, []byte{1}, 10); rueidis.IsRedisNil(err) {
 		return nil, web.ErrDuplicateWhisper
 	}
-	// 今日频次限制
-	if count, _ := s.Redis.GetCountWhisper(ctx, req.User.ID); count >= _maxWhisperNumDaily {
-		return nil, web.ErrTooManyWhisperNum
-	}
+	// 每日频次限制已取消: 高级身份(导师/审核/管理/运维)私信不限量;
+	// 道友未获对方回复前受canWhisper首条限制约束, 获回复后亦不限量
 	// 创建私信
 	msg, err := s.Ds.CreateMessage(&ms.Message{
 		SenderUserID:   req.User.ID,
@@ -313,9 +309,6 @@ func (s *chatSrv) SendChatMessage(req *web.SendChatMessageReq) (*web.SendChatMes
 	}
 	// 缓存处理, 不需要处理错误
 	onMessageActionEvent(_messageActionSendWhisper, req.User.ID, receiver.ID)
-	// 写入当日（自然日）计数缓存
-	s.Redis.IncrCountWhisper(ctx, req.User.ID)
-
 	return &web.SendChatMessageResp{MessageID: msg.ID}, nil
 }
 

@@ -22,7 +22,6 @@ type _render_ interface {
 
 type _default_ interface {
 	Bind(*gin.Context, any) error
-	BindJson(*gin.Context, any) error
 	Render(*gin.Context, any, error)
 }
 

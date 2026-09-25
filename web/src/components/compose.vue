@@ -350,9 +350,6 @@ const visibilities = computed(() => {
     { value: VisibilityEnum.PRIVATE, label: '私密' },
     { value: VisibilityEnum.Following, label: '关注可见' },
   ];
-  if (profile.value.useFriendship) {
-    res.push({ value: VisibilityEnum.FRIEND, label: '好友可见' });
-  }
   return res;
 });
 
@@ -655,9 +652,7 @@ const triggerAuth = (key: string) => {
 };
 onMounted(() => {
   const defaultVisibility = profile.value.defaultTweetVisibility;
-  if (profile.value.useFriendship && defaultVisibility === 'friend') {
-    defaultVisitType.value = VisibilityEnum.FRIEND;
-  } else if (defaultVisibility === 'following') {
+  if (defaultVisibility === 'following') {
     defaultVisitType.value = VisibilityEnum.Following;
   } else if (defaultVisibility === 'public') {
     defaultVisitType.value = VisibilityEnum.PUBLIC;

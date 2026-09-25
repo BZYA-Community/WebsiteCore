@@ -105,7 +105,6 @@ declare namespace NetReq {
   interface PostUnfollowTopic {}
 
   interface SiteProfile {
-    use_friendship?: boolean;
     enable_trends_bar?: boolean;
     allow_tweet_attachment?: boolean;
     allow_tweet_video?: boolean;

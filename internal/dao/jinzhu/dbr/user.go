@@ -53,7 +53,6 @@ type UserFormated struct {
 	IsAdmin     bool     `json:"is_admin"`
 	Roles       []string `json:"roles"`
 	Identity    string   `json:"identity"`
-	IsFriend    bool     `json:"is_friend"`
 	IsFollowing bool     `json:"is_following"`
 }
 
