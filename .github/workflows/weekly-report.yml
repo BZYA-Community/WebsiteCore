@@ -1,0 +1,43 @@
+name: Weekly Report
+
+on:
+  schedule:
+    - cron: '0 12 * * 5'  # UTC 12:00 = 北京时间周五 20:00
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate report
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash scripts/weekly-report.sh
+
+      - name: Archive via PR and publish Issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          D=$(date +%Y-%m-%d)
+          BR="weekly/${D}-$(date +%H%M)"
+          mkdir -p docs/weekly
+          cp /tmp/weekly-report.md "docs/weekly/${D}.md"
+          git config user.name "weekly-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git checkout -b "$BR"
+          git add docs/weekly
+          git commit -m "docs: weekly report ${D}"
+          git push origin "$BR"
+          gh label create weekly-report --color 5319e7 --description "每周自动周报" 2>/dev/null || true
+          gh issue create --title "社区开发周报 ${D}" --body-file /tmp/weekly-report.md --label weekly-report
+          # PR 创建与合并由维护者侧的定时任务完成（GITHUB_TOKEN 建的 PR 不触发 CI，会永久卡在等待检查）
+          echo "branch pushed: $BR（等待维护者侧归档任务处理）"

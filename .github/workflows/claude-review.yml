@@ -1,0 +1,36 @@
+name: Claude AI Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            请按仓库根目录 CLAUDE.md 的《AI 审查员守则》审查本 PR。
+            The PR branch is already checked out in the current working directory.
+            Use `gh pr comment` for the top-level summary (含 🔴/🟡/🟢 分级统计).
+            Use `mcp__github_inline_comment__create_inline_comment` (with `confirmed: true`)
+            to comment on specific lines.
+            Be concise. Do not nitpick style. If the PR looks good, say so briefly.
+            Only post GitHub comments — don't submit review text as messages.
+          claude_args: "--model claude-sonnet-5"
