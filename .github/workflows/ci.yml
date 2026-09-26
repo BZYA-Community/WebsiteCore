@@ -45,6 +45,10 @@ jobs:
       - name: Unit tests
         run: go test ./...
 
+      # scripts/migration/{mysql,postgres} 方言一致性校验(见 scripts/migration/README.md)
+      - name: Migration consistency check
+        run: go test ./internal/infra/migration/ -v
+
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
 

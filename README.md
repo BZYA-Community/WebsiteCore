@@ -109,7 +109,7 @@ make test         # 测试
 cd web && npm run dev    # 前端开发服务
 ```
 
-新增 API 的标准流程：在 `mirc/web/v1/` 声明接口签名 → `make gen-mir` 生成路由骨架 → 在 `internal/servants/web/` 实现业务。数据库结构变更在 `scripts/migration/{mysql,postgres}/` 按编号新增 `NNNN_name.{up,down}.sql`（两方言各一份）。
+新增 API 的标准流程：在 `mirc/web/v1/` 声明接口签名 → `make gen-mir` 生成路由骨架 → 在 `internal/servants/web/` 实现业务。数据库结构变更在 `scripts/migration/{mysql,postgres}/` 按编号新增 `NNNN_name.{up,down}.sql`（两方言各一份，编号规则与映射表见 [scripts/migration/README.md](scripts/migration/README.md)，提交前跑 `go test ./internal/infra/migration/` 校验）。
 
 ## 目录结构
 
