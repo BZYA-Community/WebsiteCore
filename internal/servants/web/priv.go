@@ -837,16 +837,36 @@ func (s *privSrv) createPostPreHandler(commentID int64, userID, atUserID int64) 
 	return post, comment, atUserID, nil
 }
 
+// checkPostActPermission 点赞/收藏等写操作的统一权限校验(收口 #12):
+// 首先复用 CanViewTweet 的统一读口径 —— 作者/管理员/审核员放行, 其余要求已过审且满足可见性
+// (公开 / 关注可见=已关注作者), 修复原先四段近重复的"仅私密帖拒他人"判断漏掉
+// 好友可见/关注可见/未过审帖子的 bug;
+// 其次保留原判断中更严格的口径: 私密帖的写操作仅作者本人, 管理员/审核员不豁免
+// (CanViewTweet 对管理侧放行, 此处不因收口而放宽权限)。
+func (s *privSrv) checkPostActPermission(post *ms.Post, userID int64) error {
+	user, err := s.Ds.GetUserByID(userID)
+	if err != nil {
+		logrus.Errorf("Ds.GetUserByID err: %s", err)
+		return web.ErrNoPermission
+	}
+	if !s.CanViewTweet(user, post) {
+		return web.ErrNoPermission
+	}
+	if post.Visibility == core.PostVisitPrivate && post.UserID != userID {
+		return web.ErrNoPermission
+	}
+	return nil
+}
+
 func (s *privSrv) createPostStar(postID, userID int64) (*ms.PostStar, error) {
 	post, err := s.Ds.GetPostByID(postID)
 	if err != nil {
 		return nil, xerror.ServerError
 	}
 
-	// 私密post不可操作
-	// TODO: 使用统一的permission checker来检查权限问题，这里好友可见post就没处理，是bug
-	if post.Visibility == core.PostVisitPrivate && post.UserID != userID {
-		return nil, web.ErrNoPermission
+	// 私密/好友/关注/未过审post不可操作(统一走 CanViewTweet, 关闭 TODO 是bug)
+	if xerr := s.checkPostActPermission(post, userID); xerr != nil {
+		return nil, xerr
 	}
 
 	star, err := s.Ds.CreatePostStar(postID, userID)
@@ -869,10 +889,9 @@ func (s *privSrv) deletePostStar(star *ms.PostStar) error {
 		return xerror.ServerError
 	}
 
-	// 私密post特殊处理
-	// TODO: 使用统一的permission checker来检查权限问题，这里好友可见post就没处理，是bug
-	if post.Visibility == core.PostVisitPrivate && post.UserID != star.UserID {
-		return web.ErrNoPermission
+	// 私密/好友/关注/未过审post不可操作(统一走 CanViewTweet, 关闭 TODO 是bug)
+	if xerr := s.checkPostActPermission(post, star.UserID); xerr != nil {
+		return xerr
 	}
 
 	if err = s.Ds.DeletePostStar(star); err != nil {
@@ -894,10 +913,9 @@ func (s *privSrv) createPostCollection(postID, userID int64) (*ms.PostCollection
 		return nil, xerror.ServerError
 	}
 
-	// 私密post特殊处理
-	// TODO: 使用统一的permission checker来检查权限问题，这里好友可见post就没处理，是bug
-	if post.Visibility == core.PostVisitPrivate && post.UserID != userID {
-		return nil, web.ErrNoPermission
+	// 私密/好友/关注/未过审post不可操作(统一走 CanViewTweet, 关闭 TODO 是bug)
+	if xerr := s.checkPostActPermission(post, userID); xerr != nil {
+		return nil, xerr
 	}
 
 	collection, err := s.Ds.CreatePostCollection(postID, userID)
@@ -920,10 +938,9 @@ func (s *privSrv) deletePostCollection(collection *ms.PostCollection) error {
 		return xerror.ServerError
 	}
 
-	// 私密post特殊处理
-	// TODO: 使用统一的permission checker来检查权限问题，这里好友可见post就没处理，是bug
-	if post.Visibility == core.PostVisitPrivate && post.UserID != collection.UserID {
-		return web.ErrNoPermission
+	// 私密/好友/关注/未过审post不可操作(统一走 CanViewTweet, 关闭 TODO 是bug)
+	if xerr := s.checkPostActPermission(post, collection.UserID); xerr != nil {
+		return xerr
 	}
 	if err = s.Ds.DeletePostCollection(collection); err != nil {
 		return xerror.ServerError
