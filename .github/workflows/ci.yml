@@ -24,6 +24,20 @@ jobs:
   backend:
     name: Backend Check
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_USER: websitecore_test
+          POSTGRES_PASSWORD: ci-test-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432/tcp
+        options: >-
+          --health-cmd "pg_isready -U websitecore_test -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -43,6 +57,8 @@ jobs:
 
       # 单元测试(干净检出、无 config.yaml 的环境下也必须全绿, 见 #11)
       - name: Unit tests
+        env:
+          WEBSITECORE_TEST_POSTGRES_DSN: host=127.0.0.1 port=${{ job.services.postgres.ports['5432'] }} user=websitecore_test password=ci-test-only dbname=postgres sslmode=disable
         run: go test ./...
 
       - name: Install golangci-lint

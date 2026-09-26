@@ -308,6 +308,8 @@ export WEBSITECORE_TEST_POSTGRES_DSN='host=127.0.0.1 port=5432 user=paopao passw
 go test ./...
 ```
 
+数据库测试要求 PostgreSQL 13 或更新版本，因为清理使用 `DROP DATABASE ... WITH (FORCE)`；推荐使用开发栈固定的 18.6。这是测试要求，不代表应用所有功能都已验证兼容旧版 PostgreSQL。
+
 上述凭据仅适用于本地开发栈。测试账号需要 `CREATEDB` 权限。每个站点设置测试会创建随机命名的 `websitecore_test_*` 数据库，并在清理阶段删除，不使用应用数据库的表。未设置连接信息或数据库不可用时测试会失败，不会跳过。
 
-本次不增加 CI 数据库服务或测试步骤，CI 仍执行原有构建与 lint 检查。
+后端 CI 使用临时 PostgreSQL 18.6 服务，并向现有测试步骤提供 `WEBSITECORE_TEST_POSTGRES_DSN`。测试账号可创建数据库，每个测试仍创建并清理自己的独立数据库。

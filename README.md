@@ -109,7 +109,7 @@ make test         # 测试（需先设置 WEBSITECORE_TEST_POSTGRES_DSN，见下
 cd web && npm run dev    # 前端开发服务
 ```
 
-数据库测试需要独立的 PostgreSQL 测试库；测试账号须有 `CREATEDB` 权限，每个站点设置测试会自动创建并清理自己的数据库。本地开发栈的连接配置：
+数据库测试需要 PostgreSQL 13 或更新版本（清理测试库使用 `DROP DATABASE ... WITH (FORCE)`），推荐使用开发栈固定的 18.6；测试账号须有 `CREATEDB` 权限，每个站点设置测试会自动创建并清理自己的独立数据库。本地开发栈的连接配置：
 
 ```bash
 export WEBSITECORE_TEST_POSTGRES_DSN='host=127.0.0.1 port=5432 user=paopao password=paopao dbname=postgres sslmode=disable'

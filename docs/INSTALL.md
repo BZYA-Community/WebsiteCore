@@ -308,6 +308,8 @@ export WEBSITECORE_TEST_POSTGRES_DSN='host=127.0.0.1 port=5432 user=paopao passw
 go test ./...
 ```
 
+Database tests require PostgreSQL 13 or newer because cleanup uses `DROP DATABASE ... WITH (FORCE)`; the dev stack's pinned 18.6 is recommended. This is a test requirement, not a compatibility guarantee for every application feature on older PostgreSQL releases.
+
 The credentials above are only for the local dev stack. The role must have `CREATEDB` permission. Each site-settings test creates a random `websitecore_test_*` database and drops it during cleanup; application database tables are never used. A missing DSN or unavailable database fails the tests instead of skipping them.
 
-CI database provisioning and test execution are outside the scope of this change; CI still runs its existing build and lint checks.
+The backend CI job provisions an ephemeral PostgreSQL 18.6 service and supplies `WEBSITECORE_TEST_POSTGRES_DSN` to the existing test step. The test role can create databases; each test still creates and cleans up its own database.
