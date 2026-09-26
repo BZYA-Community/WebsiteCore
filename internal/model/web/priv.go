@@ -5,6 +5,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -234,12 +235,48 @@ func (p *PostContentItem) Check(acs core.AttachmentCheckService) error {
 	return nil
 }
 
+const (
+	// uploadFormMemory 单个上传请求multipart表单的内存解析上限(#29),
+	// 超出部分由 net/http 写入临时文件, 而临时文件大小受请求体上限约束
+	uploadFormMemory = 10 << 20
+	// uploadBodyHeadroom 请求体上限相对文件大小上限的开销余量(multipart边界与表单字段)
+	uploadBodyHeadroom int64 = 1 << 20
+	// maxUploadBodySize 附件上传请求体上限: 文件100MB + 开销余量(#29)
+	maxUploadBodySize int64 = 100*1024*1024 + uploadBodyHeadroom
+)
+
+// applyUploadBodyLimit 在读取multipart表单之前为请求体设置大小上限(#29)。
+// 必须在 FormValue/ParseMultipartForm 读取前包装, 否则超大body会先被完整写入
+// 内存/临时文件, 事后按 fileHeader.Size 的100MB校验为时已晚。
+func applyUploadBodyLimit(c *gin.Context, limit int64) {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, limit)
+}
+
+// parseUploadForm 解析上传请求的multipart表单并限定内存占用(#29)。
+// 请求体超限(*http.MaxBytesError)时返回与 fileCheck 一致的"文件过大"错误路径,
+// 其余解析错误(含非multipart请求)按上传失败处理。
+func parseUploadForm(c *gin.Context, tooLargeErr error) error {
+	if err := c.Request.ParseMultipartForm(uploadFormMemory); err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) || strings.Contains(err.Error(), "request body too large") {
+			return tooLargeErr
+		}
+		return ErrFileUploadFailed
+	}
+	return nil
+}
+
 func (r *UploadAttachmentReq) Bind(c *gin.Context) (xerr error) {
 	userId, exist := base.UserIdFrom(c)
 	if !exist {
 		return xerror.UnauthorizedAuthNotExist
 	}
 
+	// 读取前先限制请求体大小, 超限在读取阶段即拒绝(#29)
+	applyUploadBodyLimit(c, maxUploadBodySize)
+	if err := parseUploadForm(c, ErrFileInvalidSize.WithDetails("最大允许100MB")); err != nil {
+		return err
+	}
 	uploadType := c.Request.FormValue("type")
 	file, fileHeader, err := c.Request.FormFile("file")
 	if err != nil {

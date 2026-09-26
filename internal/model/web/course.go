@@ -194,10 +194,18 @@ type UploadCourseVideoResp struct {
 	VideoURL string `json:"video_url"`
 }
 
+// maxCourseVideoBodySize 课程视频上传请求体上限: 文件500MB + 开销余量(#29)
+const maxCourseVideoBodySize int64 = 500*1024*1024 + uploadBodyHeadroom
+
 func (r *UploadCourseVideoReq) Bind(c *gin.Context) (xerr error) {
 	userId, exist := base.UserIdFrom(c)
 	if !exist {
 		return xerror.UnauthorizedAuthNotExist
+	}
+	// 读取前先限制请求体大小, 超限在读取阶段即拒绝(#29)
+	applyUploadBodyLimit(c, maxCourseVideoBodySize)
+	if err := parseUploadForm(c, ErrFileInvalidSize.WithDetails("课程视频最大允许500MB")); err != nil {
+		return err
 	}
 	file, fileHeader, err := c.Request.FormFile("file")
 	if err != nil {

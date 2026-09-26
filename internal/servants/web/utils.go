@@ -8,6 +8,7 @@ import (
 	"image"
 	"math/rand"
 	"strings"
+	"sync"
 	"time"
 	"unicode/utf8"
 
@@ -99,9 +100,64 @@ func encryptPasswordAndSalt(password string) (string, string) {
 	return utils.HashPassword(password), salt
 }
 
-// deleteOssObjects 删除推文的媒体内容, 宽松处理错误(仅告警不中断), 后续完善
+// OSS对象删除的有界并发参数(#29)
+const (
+	// ossDeleteWorkerCount 全局固定删除工作协程数, 不随请求增长
+	ossDeleteWorkerCount = 8
+	// ossDeleteQueueSize 待删除批次队列容量, 队列满时投递方阻塞形成背压
+	ossDeleteQueueSize = 64
+	// ossDeleteBatchSize 单次DeleteObjects调用的键数上限(大列表分批)
+	ossDeleteBatchSize = 100
+)
+
+// ossDeleteJob 一个待删除的对象键批次
+type ossDeleteJob struct {
+	oss  core.ObjectStorageService
+	keys []string
+}
+
+var (
+	ossDeleteOnce  sync.Once
+	ossDeleteQueue chan ossDeleteJob
+)
+
+// ossDeleteBatches 将对象键列表切分为不超过 ossDeleteBatchSize 的批次(#29)。
+// 切片共享底层数组, 不复制键。
+func ossDeleteBatches(objectKeys []string) [][]string {
+	if len(objectKeys) == 0 {
+		return nil
+	}
+	batches := make([][]string, 0, (len(objectKeys)+ossDeleteBatchSize-1)/ossDeleteBatchSize)
+	for start := 0; start < len(objectKeys); start += ossDeleteBatchSize {
+		end := min(start+ossDeleteBatchSize, len(objectKeys))
+		batches = append(batches, objectKeys[start:end])
+	}
+	return batches
+}
+
+// startOssDeleteWorkers 启动固定数量的删除工作协程(sync.Once保证仅启动一次),
+// 消费 ossDeleteQueue 中的批次并调用DeleteObjects, 失败仅告警(#25/#29)
+func startOssDeleteWorkers() {
+	ossDeleteOnce.Do(func() {
+		ossDeleteQueue = make(chan ossDeleteJob, ossDeleteQueueSize)
+		for i := 0; i < ossDeleteWorkerCount; i++ {
+			go func() {
+				for job := range ossDeleteQueue {
+					if err := job.oss.DeleteObjects(job.keys); err != nil {
+						logrus.Warnf("deleteOssObjects: delete objects failed: %s", err)
+					}
+				}
+			}()
+		}
+	})
+}
+
+// deleteOssObjects 删除推文的媒体内容, 宽松处理错误(仅告警不中断)
 // 注: 对象键会经 ObjectKey 剥离域名后交给存储层, LocalOSS 侧由 jailPath 强校验,
 // 越狱键会被拒绝并返回错误, 这里记录告警便于发现攻击尝试(#25)
+// 大列表按 ossDeleteBatchSize 分批投递到有界队列, 由 ossDeleteWorkerCount 个
+// 固定worker协程集中删除, 不再随请求拉起无界协程(#29); 队列满时投递方阻塞
+// (背压), 保证删除最终执行。
 func deleteOssObjects(oss core.ObjectStorageService, mediaContents []string) {
 	mediaContentsSize := len(mediaContents)
 	if mediaContentsSize > 1 {
@@ -109,12 +165,10 @@ func deleteOssObjects(oss core.ObjectStorageService, mediaContents []string) {
 		for _, cUrl := range mediaContents {
 			objectKeys = append(objectKeys, oss.ObjectKey(cUrl))
 		}
-		// TODO: 优化处理尽量使用channel传递objectKeys使用可控数量的Goroutine集中处理object删除动作，后续完善
-		go func() {
-			if err := oss.DeleteObjects(objectKeys); err != nil {
-				logrus.Warnf("deleteOssObjects: delete objects failed: %s", err)
-			}
-		}()
+		startOssDeleteWorkers()
+		for _, batch := range ossDeleteBatches(objectKeys) {
+			ossDeleteQueue <- ossDeleteJob{oss: oss, keys: batch}
+		}
 	} else if mediaContentsSize == 1 {
 		if err := oss.DeleteObject(oss.ObjectKey(mediaContents[0])); err != nil {
 			logrus.Warnf("deleteOssObjects: delete object failed: %s", err)
