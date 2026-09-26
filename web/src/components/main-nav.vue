@@ -64,6 +64,7 @@
 import { onMounted, ref } from 'vue';
 import { useStoreMain } from '@/store/main';
 import { useRouter } from 'vue-router';
+import { initMessage } from '@/utils/message';
 import { useMessage, useOsTheme, DrawerPlacement } from 'naive-ui';
 import {
   LightModeOutlined,
@@ -120,7 +121,7 @@ onMounted(() => {
   }
   // 移动端特殊处理
   if (!desktopModelShow.value) {
-    window.$message = useMessage();
+    initMessage(useMessage());
   }
 });
 </script>

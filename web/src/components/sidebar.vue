@@ -76,6 +76,7 @@ import { useStoreUser } from '@/store/user';
 import { useStoreProfile } from '@/store/profile';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
+import { initMessage } from '@/utils/message';
 
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
@@ -278,7 +279,7 @@ const handleLogout = () => {
   storeMain.doRefresh();
   goHome();
 };
-window.$message = useMessage();
+initMessage(useMessage());
 </script>
 
 <style lang="less">

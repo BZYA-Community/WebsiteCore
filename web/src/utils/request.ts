@@ -1,5 +1,6 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { useStoreMain } from '@/store/main';
+import { message } from '@/utils/message';
 import { TOKEN_KEY } from '@/store/user';
 
 const service = axios.create({
@@ -27,7 +28,7 @@ service.interceptors.response.use(
 		if (+code === 0) {
 			return data || {};
 		} else {
-			Promise.reject(response?.data || {});
+			return Promise.reject(response?.data || {});
 		}
 	},
 	(error = {}) => {
@@ -36,14 +37,14 @@ service.interceptors.response.use(
 		if (+response?.status === 401) {
 			localStorage.removeItem(TOKEN_KEY);
 
-			if (response?.data.code !== 10005) {
-				window.$message.warning(response?.data.msg || '鉴权失败');
+			if (response?.data?.code !== 10005) {
+				message.warning(response?.data?.msg || '鉴权失败');
 			} else {
 				// 打开登录弹窗
 				useStoreMain().triggerAuth(true);
 			}
 		} else {
-			window.$message.error(response?.data?.msg || '请求失败');
+			message.error(response?.data?.msg || '请求失败');
 		}
 		return Promise.reject(response?.data || {});
 	},
