@@ -5,7 +5,7 @@
 package conf
 
 import (
-	"log"
+	"fmt"
 	"sync"
 	"time"
 
@@ -17,18 +17,30 @@ import (
 )
 
 var (
-	_gormdb   *gorm.DB
-	_onceGorm sync.Once
+	_gormdb    *gorm.DB
+	_gormdbErr error
+	_onceGorm  sync.Once
 )
 
-func MustGormDB() *gorm.DB {
+// GormDB 返回共享的 gorm DB，首次调用时创建；失败时返回 error 而不是杀进程。
+func GormDB() (*gorm.DB, error) {
 	_onceGorm.Do(func() {
 		var err error
 		if _gormdb, err = newGormDB(); err != nil {
-			log.Fatalf("new gorm db failed: %s", err)
+			_gormdbErr = fmt.Errorf("new gorm db failed: %w", err)
 		}
 	})
-	return _gormdb
+	return _gormdb, _gormdbErr
+}
+
+// MustGormDB 返回共享的 gorm DB，初始化失败时记录错误并返回 nil。
+// 需要处理初始化错误的调用方（如 cmd 层）请改用 GormDB。
+func MustGormDB() *gorm.DB {
+	db, err := GormDB()
+	if err != nil {
+		logrus.Error(err)
+	}
+	return db
 }
 
 func closeGormDB() {

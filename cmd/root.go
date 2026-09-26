@@ -5,6 +5,8 @@
 package cmd
 
 import (
+	"os"
+
 	"github.com/spf13/cobra"
 )
 
@@ -30,5 +32,7 @@ func Register(cmd *cobra.Command) {
 
 // Execute start application
 func Execute() {
-	rootCmd.Execute()
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
 }

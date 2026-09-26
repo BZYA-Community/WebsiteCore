@@ -169,7 +169,7 @@ func (s *looseSrv) tweetCommentsFromCache(req *web.TweetCommentsReq, limit int, 
 func (s *looseSrv) GetUserTweets(req *web.GetUserTweetsReq) (res *web.GetUserTweetsResp, err error) {
 	user, xerr := s.RelationTypFrom(req.User, req.Username)
 	if xerr != nil {
-		return nil, err
+		return nil, xerr
 	}
 	// 尝试直接从缓存中获取数据
 	key, ok := "", false
@@ -519,6 +519,12 @@ func (s *looseSrv) TweetDetail(req *web.TweetDetailReq) (*web.TweetDetailResp, e
 	if err != nil {
 		return nil, web.ErrGetPostFailed
 	}
+	// 检测访问权限: 统一走 CanViewTweet(关闭手写switch的重复实现, 与其它读入口同口径)
+	// 作者/管理员/审核员直接可见; 其余要求已过审且满足可见性(公开 / 关注可见=已关注作者),
+	// 私密/好友及未知可见性一律拒绝 —— 同时关闭上方 "TODO: 提到最前面去检测"
+	if !s.CanViewTweet(req.User, post) {
+		return nil, web.ErrNoPermission
+	}
 	postContents, err := s.Ds.GetPostContentsByIDs([]int64{post.ID})
 	if err != nil {
 		return nil, web.ErrGetPostFailed
@@ -543,20 +549,6 @@ func (s *looseSrv) TweetDetail(req *web.TweetDetailReq) (*web.TweetDetailResp, e
 	}
 	if err = s.PrepareTweet(req.User, postFormated); err != nil {
 		return nil, web.ErrGetPostFailed
-	}
-	// 检测访问权限
-	// TODO: 提到最前面去检测
-	// 未过审的帖子(待审核/未通过)仅作者本人/管理员/审核可见
-	switch {
-	case req.User != nil && (req.User.ID == postFormated.User.ID || req.User.IsAdmin || req.User.HasRole(ms.RoleAuditor)):
-		// read by self of super admin or auditor
-		break
-	case post.AuditStatus == ms.PostAuditApproved && post.Visibility == core.PostVisitPublic:
-		break
-	case post.AuditStatus == ms.PostAuditApproved && post.Visibility == core.PostVisitFollowing && postFormated.User.IsFollowing:
-		break
-	default:
-		return nil, web.ErrNoPermission
 	}
 	return (*web.TweetDetailResp)(postFormated), nil
 }

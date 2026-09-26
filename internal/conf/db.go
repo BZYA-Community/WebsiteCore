@@ -5,7 +5,7 @@
 package conf
 
 const (
-	TableAnouncement          = "user"
+	TableAnouncement          = "anouncement"
 	TableAnouncementContent   = "anouncement_content"
 	TableAttachment           = "attachment"
 	TableCaptcha              = "captcha"

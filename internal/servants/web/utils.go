@@ -99,7 +99,9 @@ func encryptPasswordAndSalt(password string) (string, string) {
 	return utils.HashPassword(password), salt
 }
 
-// deleteOssObjects 删除推文的媒体内容, 宽松处理错误(就是不处理), 后续完善
+// deleteOssObjects 删除推文的媒体内容, 宽松处理错误(仅告警不中断), 后续完善
+// 注: 对象键会经 ObjectKey 剥离域名后交给存储层, LocalOSS 侧由 jailPath 强校验,
+// 越狱键会被拒绝并返回错误, 这里记录告警便于发现攻击尝试(#25)
 func deleteOssObjects(oss core.ObjectStorageService, mediaContents []string) {
 	mediaContentsSize := len(mediaContents)
 	if mediaContentsSize > 1 {
@@ -108,9 +110,15 @@ func deleteOssObjects(oss core.ObjectStorageService, mediaContents []string) {
 			objectKeys = append(objectKeys, oss.ObjectKey(cUrl))
 		}
 		// TODO: 优化处理尽量使用channel传递objectKeys使用可控数量的Goroutine集中处理object删除动作，后续完善
-		go oss.DeleteObjects(objectKeys)
+		go func() {
+			if err := oss.DeleteObjects(objectKeys); err != nil {
+				logrus.Warnf("deleteOssObjects: delete objects failed: %s", err)
+			}
+		}()
 	} else if mediaContentsSize == 1 {
-		oss.DeleteObject(oss.ObjectKey(mediaContents[0]))
+		if err := oss.DeleteObject(oss.ObjectKey(mediaContents[0])); err != nil {
+			logrus.Warnf("deleteOssObjects: delete object failed: %s", err)
+		}
 	}
 }
 

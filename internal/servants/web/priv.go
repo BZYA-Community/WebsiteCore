@@ -240,7 +240,18 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 		}
 	}()
 
-	contents, err := persistMediaContents(s.oss, req.Contents)
+	// 校验前移(#25): 先校验全部内容项, 未通过校验的项不落OSS、不进回滚删除列表
+	validContents := make([]*web.PostContentItem, 0, len(req.Contents))
+	for _, item := range req.Contents {
+		if err := item.Check(s.Ds); err != nil {
+			// 属性非法
+			logrus.Infof("contents check err: %s", err)
+			continue
+		}
+		validContents = append(validContents, item)
+	}
+
+	contents, err := persistMediaContents(s.oss, validContents)
 	if err != nil {
 		return nil, web.ErrCreatePostFailed
 	}
@@ -267,13 +278,8 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 		return nil, web.ErrCreatePostFailed
 	}
 
-	// 创建推文内容
-	for _, item := range req.Contents {
-		if err := item.Check(s.Ds); err != nil {
-			// 属性非法
-			logrus.Infof("contents check err: %s", err)
-			continue
-		}
+	// 创建推文内容(内容项已在持久化前通过 Check 校验)
+	for _, item := range validContents {
 		postContent := &ms.PostContent{
 			PostID:  post.ID,
 			UserID:  req.User.ID,
@@ -345,7 +351,7 @@ func (s *privSrv) DeleteTweet(req *web.DeleteTweetReq) error {
 	// 删除推文的媒体内容
 	deleteOssObjects(s.oss, mediaContents)
 	// 删除索引
-	s.DeleteSearchPost(post)
+	err = s.DeleteSearchPost(post)
 	if err != nil {
 		logrus.Errorf("s.DeleteSearchPost failed: %s", err)
 		return web.ErrDeletePostFailed
@@ -538,7 +544,18 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 		}
 	}()
 
-	if mediaContents, err = persistMediaContents(s.oss, req.Contents); err != nil {
+	// 校验前移(#25): 先校验全部内容项再持久化, 未通过校验的项不落OSS、不入库、
+	// 也不进入回滚删除列表, 避免失败路径拿着客户端原始字符串执行删除
+	validContents := make([]*web.PostContentItem, 0, len(req.Contents))
+	for _, item := range req.Contents {
+		if err := item.Check(s.Ds); err != nil {
+			logrus.Infof("comment contents check err: %s", err)
+			continue
+		}
+		validContents = append(validContents, item)
+	}
+
+	if mediaContents, err = persistMediaContents(s.oss, validContents); err != nil {
 		return nil, xerror.ServerError
 	}
 
@@ -583,13 +600,8 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 		return nil, web.ErrCreateCommentFailed
 	}
 
-	for _, item := range req.Contents {
-		// 检查附件是否是本站资源
-		if item.Type == ms.ContentTypeImage || item.Type == ms.ContentTypeVideo || item.Type == ms.ContentTypeAttachment {
-			if err := s.Ds.CheckAttachment(item.Content); err != nil {
-				continue
-			}
-		}
+	for _, item := range validContents {
+		// 内容项已在持久化前通过 Check 校验(含附件是否本站资源)
 		postContent := &ms.CommentContent{
 			CommentID: comment.ID,
 			UserID:    req.Uid,
@@ -597,7 +609,9 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 			Type:      item.Type,
 			Sort:      item.Sort,
 		}
-		s.Ds.CreateCommentContent(postContent)
+		if _, err := s.Ds.CreateCommentContent(postContent); err != nil {
+			logrus.Errorf("Ds.CreateCommentContent err:%s", err)
+		}
 	}
 
 	if comment.AuditStatus == ms.PostAuditApproved {
@@ -837,16 +851,36 @@ func (s *privSrv) createPostPreHandler(commentID int64, userID, atUserID int64) 
 	return post, comment, atUserID, nil
 }
 
+// checkPostActPermission 点赞/收藏等写操作的统一权限校验(收口 #12):
+// 首先复用 CanViewTweet 的统一读口径 —— 作者/管理员/审核员放行, 其余要求已过审且满足可见性
+// (公开 / 关注可见=已关注作者), 修复原先四段近重复的"仅私密帖拒他人"判断漏掉
+// 好友可见/关注可见/未过审帖子的 bug;
+// 其次保留原判断中更严格的口径: 私密帖的写操作仅作者本人, 管理员/审核员不豁免
+// (CanViewTweet 对管理侧放行, 此处不因收口而放宽权限)。
+func (s *privSrv) checkPostActPermission(post *ms.Post, userID int64) error {
+	user, err := s.Ds.GetUserByID(userID)
+	if err != nil {
+		logrus.Errorf("Ds.GetUserByID err: %s", err)
+		return web.ErrNoPermission
+	}
+	if !s.CanViewTweet(user, post) {
+		return web.ErrNoPermission
+	}
+	if post.Visibility == core.PostVisitPrivate && post.UserID != userID {
+		return web.ErrNoPermission
+	}
+	return nil
+}
+
 func (s *privSrv) createPostStar(postID, userID int64) (*ms.PostStar, error) {
 	post, err := s.Ds.GetPostByID(postID)
 	if err != nil {
 		return nil, xerror.ServerError
 	}
 
-	// 私密post不可操作
-	// TODO: 使用统一的permission checker来检查权限问题，这里好友可见post就没处理，是bug
-	if post.Visibility == core.PostVisitPrivate && post.UserID != userID {
-		return nil, web.ErrNoPermission
+	// 私密/好友/关注/未过审post不可操作(统一走 CanViewTweet, 关闭 TODO 是bug)
+	if xerr := s.checkPostActPermission(post, userID); xerr != nil {
+		return nil, xerr
 	}
 
 	star, err := s.Ds.CreatePostStar(postID, userID)
@@ -869,10 +903,9 @@ func (s *privSrv) deletePostStar(star *ms.PostStar) error {
 		return xerror.ServerError
 	}
 
-	// 私密post特殊处理
-	// TODO: 使用统一的permission checker来检查权限问题，这里好友可见post就没处理，是bug
-	if post.Visibility == core.PostVisitPrivate && post.UserID != star.UserID {
-		return web.ErrNoPermission
+	// 私密/好友/关注/未过审post不可操作(统一走 CanViewTweet, 关闭 TODO 是bug)
+	if xerr := s.checkPostActPermission(post, star.UserID); xerr != nil {
+		return xerr
 	}
 
 	if err = s.Ds.DeletePostStar(star); err != nil {
@@ -894,10 +927,9 @@ func (s *privSrv) createPostCollection(postID, userID int64) (*ms.PostCollection
 		return nil, xerror.ServerError
 	}
 
-	// 私密post特殊处理
-	// TODO: 使用统一的permission checker来检查权限问题，这里好友可见post就没处理，是bug
-	if post.Visibility == core.PostVisitPrivate && post.UserID != userID {
-		return nil, web.ErrNoPermission
+	// 私密/好友/关注/未过审post不可操作(统一走 CanViewTweet, 关闭 TODO 是bug)
+	if xerr := s.checkPostActPermission(post, userID); xerr != nil {
+		return nil, xerr
 	}
 
 	collection, err := s.Ds.CreatePostCollection(postID, userID)
@@ -920,10 +952,9 @@ func (s *privSrv) deletePostCollection(collection *ms.PostCollection) error {
 		return xerror.ServerError
 	}
 
-	// 私密post特殊处理
-	// TODO: 使用统一的permission checker来检查权限问题，这里好友可见post就没处理，是bug
-	if post.Visibility == core.PostVisitPrivate && post.UserID != collection.UserID {
-		return web.ErrNoPermission
+	// 私密/好友/关注/未过审post不可操作(统一走 CanViewTweet, 关闭 TODO 是bug)
+	if xerr := s.checkPostActPermission(post, collection.UserID); xerr != nil {
+		return xerr
 	}
 	if err = s.Ds.DeletePostCollection(collection); err != nil {
 		return xerror.ServerError

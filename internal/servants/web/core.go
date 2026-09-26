@@ -330,16 +330,18 @@ func (s *coreSrv) ChangeNickname(req *web.ChangeNicknameReq) error {
 }
 
 func (s *coreSrv) ChangeAvatar(req *web.ChangeAvatarReq) (xerr error) {
+	// 校验前移(#25): 先确认是本站合法附件, 校验通过后才注册失败回滚删除,
+	// 避免把客户端提交的原始字符串交给删除路径
+	if err := s.Ds.CheckAttachment(req.Avatar); err != nil {
+		logrus.Errorf("Ds.CheckAttachment failed: %s", err)
+		return xerror.InvalidParams
+	}
 	defer func() {
 		if xerr != nil {
 			deleteOssObjects(s.oss, []string{req.Avatar})
 		}
 	}()
 
-	if err := s.Ds.CheckAttachment(req.Avatar); err != nil {
-		logrus.Errorf("Ds.CheckAttachment failed: %s", err)
-		return xerror.InvalidParams
-	}
 	if err := s.oss.PersistObject(s.oss.ObjectKey(req.Avatar)); err != nil {
 		logrus.Errorf("Ds.ChangeUserAvatar persist object failed: %s", err)
 		return xerror.ServerError

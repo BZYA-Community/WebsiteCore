@@ -41,6 +41,7 @@ func (s *chatSrv) Chain() gin.HandlersChain {
 // 游客(未绑手机)禁止发送; 道友↔道友绝对禁止(好友不豁免);
 // 道友→高级身份(导师/审核/管理/运维)B站式首条限制——对方回复前只能发一条;
 // 高级身份→任何人 自由。返回 nil 表示允许, 否则为具体拒绝原因(msg 即提示文案)
+// 依赖存储的判定查询出错时 fail-closed 返回错误(拒绝), 不静默放行(#15)
 func (s *chatSrv) canWhisper(sender, receiver *ms.User) *xerror.Error {
 	if sender.Phone == "" {
 		return web.ErrWhisperGuestNeedPhone
@@ -50,11 +51,22 @@ func (s *chatSrv) canWhisper(sender, receiver *ms.User) *xerror.Error {
 	}
 	// 发送方为道友
 	if receiver.HasAnyRole() {
-		if has, _ := s.Ds.HasWhispered(receiver.ID, sender.ID); has {
+		// 首条限制依赖存储查询, 查询出错时无法判定 → fail-closed 拒绝, 禁止吞错放行
+		has, err := s.Ds.HasWhispered(receiver.ID, sender.ID)
+		if err != nil {
+			logrus.Errorf("Ds.HasWhispered(%d, %d) err: %s", receiver.ID, sender.ID, err)
+			return web.ErrSendWhisperFailed
+		}
+		if has {
 			// 对方回复过, 解除限制
 			return nil
 		}
-		if has, _ := s.Ds.HasWhispered(sender.ID, receiver.ID); has {
+		has, err = s.Ds.HasWhispered(sender.ID, receiver.ID)
+		if err != nil {
+			logrus.Errorf("Ds.HasWhispered(%d, %d) err: %s", sender.ID, receiver.ID, err)
+			return web.ErrSendWhisperFailed
+		}
+		if has {
 			return web.ErrWhisperOnePending
 		}
 		return nil
@@ -290,8 +302,14 @@ func (s *chatSrv) SendChatMessage(req *web.SendChatMessageReq) (*web.SendChatMes
 	}
 	// 防重复发送: 同人同内容10秒窗口去重
 	dedupKey := fmt.Sprintf("paopao:chat:dedup:%d:%d:%x", req.User.ID, receiver.ID, md5.Sum([]byte(content)))
-	if err := s.ac.SetNx(dedupKey, []byte{1}, 10); rueidis.IsRedisNil(err) {
-		return nil, web.ErrDuplicateWhisper
+	if err := s.ac.SetNx(dedupKey, []byte{1}, 10); err != nil {
+		// IsRedisNil 表示键已存在(SET NX 未生效), 即10秒内重复提交
+		if rueidis.IsRedisNil(err) {
+			return nil, web.ErrDuplicateWhisper
+		}
+		// 其余错误为 Redis 异常, 去重不可用 → fail-closed 拒绝发送(#15)
+		logrus.Errorf("ac.SetNx(whisper dedup) err: %s", err)
+		return nil, web.ErrSendWhisperFailed
 	}
 	// 每日频次限制已取消: 高级身份(导师/审核/管理/运维)私信不限量;
 	// 道友未获对方回复前受canWhisper首条限制约束, 获回复后亦不限量
