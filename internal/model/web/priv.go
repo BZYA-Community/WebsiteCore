@@ -217,8 +217,10 @@ type UnfollowTopicReq struct {
 
 // Check 检查PostContentItem属性
 func (p *PostContentItem) Check(acs core.AttachmentCheckService) error {
-	// 检查附件是否是本站资源
-	if p.Type == ms.ContentTypeImage || p.Type == ms.ContentTypeVideo || p.Type == ms.ContentTypeAttachment {
+	// 检查附件是否是本站资源(含可持久化的 audio/charge_attachment, #25)
+	if p.Type == ms.ContentTypeImage || p.Type == ms.ContentTypeVideo ||
+		p.Type == ms.ContentTypeAudio || p.Type == ms.ContentTypeAttachment ||
+		p.Type == ms.ContentTypeChargeAttachment {
 		if err := acs.CheckAttachment(p.Content); err != nil {
 			return err
 		}
