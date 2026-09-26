@@ -22,7 +22,9 @@ type TweetService interface {
 	GetUserPostCollectionCount(userID int64) (int64, error)
 	GetPostContentsByIDs(ids []int64) ([]*ms.PostContent, error)
 	GetPostContentByID(id int64) (*ms.PostContent, error)
-	ListUserStarTweets(user *cs.VistUser, limit int, offset int) ([]*ms.PostStar, int64, error)
+	// ListUserStarTweets 列出 user(资料页所有者)的星标推文;
+	// viewer 为当前访问者(游客传 nil), 可见性/审核过滤按 CanViewTweet 口径逐帖判定
+	ListUserStarTweets(user *cs.VistUser, viewer *ms.User, limit int, offset int) ([]*ms.PostStar, int64, error)
 	ListUserMediaTweets(user *cs.VistUser, limit int, offset int) ([]*ms.Post, int64, error)
 	ListUserCommentTweets(user *cs.VistUser, limit int, offset int) ([]*ms.Post, int64, error)
 	ListUserTweets(userId int64, style uint8, justEssence bool, limit, offset int) ([]*ms.Post, int64, error)

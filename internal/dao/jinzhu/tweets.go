@@ -506,20 +506,35 @@ func (s *tweetSrv) GetUserPostStars(userID int64, limit int, offset int) ([]*ms.
 	}
 	return star.List(s.db, &dbr.ConditionsT{
 		"ORDER": s.db.NamingStrategy.TableName("PostStar") + ".id DESC",
-	}, cs.RelationSelf, limit, offset)
+	}, s.starListViewer(userID), limit, offset)
 }
 
-func (s *tweetSrv) ListUserStarTweets(user *cs.VistUser, limit int, offset int) (res []*ms.PostStar, total int64, err error) {
+func (s *tweetSrv) ListUserStarTweets(user *cs.VistUser, viewer *ms.User, limit int, offset int) (res []*ms.PostStar, total int64, err error) {
 	star := &dbr.PostStar{
 		UserID: user.UserId,
 	}
-	if total, err = star.Count(s.db, user.RelTyp, &dbr.ConditionsT{}); err != nil {
+	if total, err = star.Count(s.db, viewer, &dbr.ConditionsT{}); err != nil {
 		return
 	}
 	res, err = star.List(s.db, &dbr.ConditionsT{
 		"ORDER": s.db.NamingStrategy.TableName("PostStar") + ".id DESC",
-	}, user.RelTyp, limit, offset)
+	}, viewer, limit, offset)
 	return
+}
+
+// starListViewer 为"我的星标"自查路径构造访问者身份(该入口只拿得到 uid):
+// 补查 is_admin/roles 以复用 CanViewTweet 的管理员/审核员豁免口径;
+// 查询失败时降级为仅按帖子作者维度判定(更严格, 不会放宽可见性)。
+func (s *tweetSrv) starListViewer(userID int64) *dbr.User {
+	viewer := &dbr.User{Model: &dbr.Model{ID: userID}}
+	if userID <= 0 {
+		return viewer
+	}
+	var me dbr.User
+	if err := s.db.Where("id = ?", userID).First(&me).Error; err == nil {
+		viewer.IsAdmin, viewer.Roles = me.IsAdmin, me.Roles
+	}
+	return viewer
 }
 
 func (s *tweetSrv) getUserTweets(db *gorm.DB, user *cs.VistUser, limit int, offset int) (res []*ms.Post, total int64, err error) {
@@ -563,7 +578,7 @@ func (s *tweetSrv) GetUserPostStarCount(userID int64) (int64, error) {
 	star := &dbr.PostStar{
 		UserID: userID,
 	}
-	return star.Count(s.db, cs.RelationSelf, &dbr.ConditionsT{})
+	return star.Count(s.db, s.starListViewer(userID), &dbr.ConditionsT{})
 }
 
 func (s *tweetSrv) GetUserPostCollection(postID, userID int64) (*ms.PostCollection, error) {
