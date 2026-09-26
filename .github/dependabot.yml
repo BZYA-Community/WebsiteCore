@@ -1,17 +1,82 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+# Dependabot version updates
+# 文档: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# 变更说明(见 #37):
+#   - 修正 target-branch: 原为 "dev"，本仓库不存在该分支 → 更新从未生效
+#   - 修正 reviewers: 原为上游 paopao-ce 维护者(rocboss/alimy)，无本仓库权限 → 换成本仓库 maintainer
+#   - 新增 npm(/web) 与 github-actions 两个生态
+#   - 增加分组(group)、标签、PR 上限与统一的 commit 前缀，减少 PR 噪音
 
 version: 2
 updates:
+  # ---------- Go modules ----------
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: "weekly"
-    target-branch: "dev"
+      day: "monday"
+      timezone: "Asia/Shanghai"
+    # target-branch 省略 = 默认分支 main（原 "dev" 分支不存在，导致从未产出 PR）
+    open-pull-requests-limit: 10
     reviewers:
-      - "rocboss"
-      - "alimy"
+      - "QQSHI13"
+      - "Alumin-Hydro"
+    labels:
+      - "dependencies"
+      - "go"
     commit-message:
-      prefix: "mod:"
+      prefix: "mod"
+    groups:
+      # minor/patch 打包成一个 PR；major 单独开，便于单独评估破坏性变更
+      go-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ---------- 前端 (yarn/npm，package.json 在 /web) ----------
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "QQSHI13"
+      - "Alumin-Hydro"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "web"
+    # 仓库未提交 lockfile(#36)，用 increase 确保 package.json 的 ^ 范围真的被抬升
+    versioning-strategy: "increase"
+    groups:
+      web-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ---------- GitHub Actions ----------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "QQSHI13"
+      - "Alumin-Hydro"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "ci"
+    groups:
+      # actions 全部打包为一个 PR（与 #37 的“钉 SHA”改造配套维护）
+      github-actions:
+        patterns:
+          - "*"
