@@ -1,0 +1,87 @@
+{
+  "title": "System Settings",
+  "alert": {
+    "pendingRestart": "Some settings have been saved but require a service restart to take effect. Settings marked with \"Pending Restart\" are still using their previous values."
+  },
+  "empty": "No settings to display",
+  "itemCount": "{count} settings",
+  "sectionCount": "{count} items",
+  "inactiveTitle": "Inactive Settings ({count})",
+  "tag": {
+    "secret": "Secret",
+    "pendingRestart": "Pending Restart",
+    "readonly": "Read-only",
+    "inactive": "Inactive"
+  },
+  "label": {
+    "currentStatus": "Current Status: ",
+    "bootstrapBaseline": "Bootstrap Baseline: ",
+    "currentEffective": "Currently Effective: "
+  },
+  "group": {
+    "web": "Web Site",
+    "app": "App Behavior",
+    "search": "Search Capabilities",
+    "storage": "Object Storage",
+    "notifications": "Notification Services",
+    "payments": "Payment Services"
+  },
+  "section": {
+    "profile": "Site Profile",
+    "general": "General Settings",
+    "limits": "Limits & Thresholds",
+    "bridge": "Index Bridge",
+    "meili": "Meilisearch",
+    "zinc": "Zinc",
+    "common": "Common Storage",
+    "localOss": "Local OSS",
+    "minio": "MinIO",
+    "s3": "Amazon S3",
+    "alioss": "AliOSS",
+    "cos": "Tencent COS",
+    "huaweiObs": "Huawei OBS",
+    "smsJuhe": "Juhe SMS",
+    "alipay": "Alipay"
+  },
+  "mode": {
+    "live": "Live",
+    "restartRequired": "Restart Required",
+    "bootstrapOnly": "Bootstrap Only"
+  },
+  "source": {
+    "override": "Admin Override",
+    "bootstrap": "Bootstrap Config"
+  },
+  "status": {
+    "configured": "Configured",
+    "notConfigured": "Not Configured"
+  },
+  "value": {
+    "notSet": "Not Set",
+    "enabled": "Enabled",
+    "disabled": "Disabled"
+  },
+  "placeholder": {
+    "secretInput": "Leave empty to keep current value, enter to replace",
+    "inputValue": "Enter configuration value"
+  },
+  "hint": {
+    "inactiveItem": "This feature is not enabled, so this setting does not affect current runtime behavior.",
+    "secretReadonly": "The current value is not displayed for security reasons. This item only shows whether it is configured.",
+    "secretEditable": "The current value is not echoed for security reasons. Leave empty to keep the original value; entering new content will securely replace it.",
+    "bootstrapOnly": "This item is controlled by bootstrap configuration and is view-only on this page.",
+    "pendingRestart": "New settings have been saved, but the service is still using the old values. A restart will apply the saved configuration.",
+    "restartRequired": "Changes will be written to admin override values but require a service restart to take effect.",
+    "live": "Changes will immediately refresh the configuration state in the current service.",
+    "inactiveSection": "This feature or capability is not enabled, so this setting does not participate in current runtime behavior."
+  },
+  "action": {
+    "resetUnsaved": "Reset Unsaved Changes",
+    "saveConfig": "Save Configuration"
+  },
+  "msg": {
+    "invalidNumber": "{label}: Please enter a valid value",
+    "noChanges": "No changes to save",
+    "saveSuccess": "Saved {count} settings"
+  }
+}

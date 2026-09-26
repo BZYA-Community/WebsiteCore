@@ -4,7 +4,7 @@
             <n-input
                 round
                 clearable
-                placeholder="搜一搜..."
+                :placeholder="t('user.searchPlaceholder')"
                 v-model:value="keyword"
                 @keyup.enter.prevent="handleSearch"
             >
@@ -13,7 +13,7 @@
                 </template>
             </n-input>
         </div>
-        <n-card v-if="showFollowTopics" class="hottopic-wrap" title="关注话题" embedded :bordered="false" size="small">
+        <n-card v-if="showFollowTopics" class="hottopic-wrap" :title="t('user.followTopics')" embedded :bordered="false" size="small">
             <n-spin :show="loading">
                 <div class="hot-tag-item" v-for="tag in followTags" :key="tag.id">
                     <router-link
@@ -35,7 +35,7 @@
                 </div>
             </n-spin>
         </n-card>
-        <n-card class="hottopic-wrap" title="热门话题" embedded :bordered="false" size="small">
+        <n-card class="hottopic-wrap" :title="t('user.hotTopics')" embedded :bordered="false" size="small">
             <n-spin :show="loading">
                 <div class="hot-tag-item" v-for="tag in hotTags" :key="tag.id">
                     <router-link
@@ -79,13 +79,14 @@
             </div>
         </n-card>
         <div class="site-info" v-if="userInfo.is_admin" ref="userInfoElement">
-            <span class="site-info-item">{{ registerUserCount }} 注册用户，{{ onlineUserCount }} 人在线，最高在线 {{ historyMaxOnline }} 人，站点上线于 {{ formatRelativeTime(serverUpTime) }}</span>
+            <span class="site-info-item">{{ t('user.siteInfo', { registered: registerUserCount, online: onlineUserCount, maxOnline: historyMaxOnline, uptime: formatRelativeTime(serverUpTime) }) }}</span>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { useRouter } from 'vue-router';
 import { getTags } from '@/api/post';
@@ -96,6 +97,7 @@ import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
 import { useStoreUser } from '@/store/user';
 
+const { t } = useI18n();
 const hotTags = ref<Item.TagProps[]>([]);
 const followTags = ref<Item.TagProps[]>([]);
 const loading = ref(false);

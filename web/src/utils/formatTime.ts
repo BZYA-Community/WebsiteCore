@@ -4,7 +4,14 @@
 
 import moment from 'moment';
 import 'moment/dist/locale/zh-cn';
-moment.locale('zh-cn');
+
+/** moment 语言切换, 由 @/locales/index.ts 在初始化与 setLocale 时统一调用 */
+export function setMomentLocale(locale: string) {
+  moment.locale(locale === 'en' ? 'en' : 'zh-cn');
+}
+
+// 默认 zh-cn
+setMomentLocale('zh-CN');
 
 export const formatTime = (time: number) => {
   return moment.unix(time).utc(true).format('YYYY-MM-DD HH:mm');
@@ -41,5 +48,6 @@ export const formatPrettyDate = (time: number) => {
 };
 
 export const formatDate = (time: number) => {
-  return moment.unix(time).utc(true).format('YYYY年MM月');
+  // 'LL' 随 moment.locale 输出本地化年月 (zh-cn: 2026年9月 / en: September 2026)
+  return moment.unix(time).utc(true).format('LL');
 };

@@ -1,0 +1,73 @@
+{
+  "title": "设置",
+  "base": {
+    "title": "基本信息",
+    "changeAvatar": "更改头像",
+    "nickname": "昵称",
+    "nicknamePlaceholder": "请输入昵称",
+    "username": "用户名"
+  },
+  "phone": {
+    "title": "手机号",
+    "rebind": "换绑手机",
+    "alertTitle": "手机绑定提示",
+    "alertContent": "成功绑定手机后，才能进行换头像、发动态、回复等交互~",
+    "bindNow": "立即绑定",
+    "label": "手机号",
+    "placeholder": "请输入中国大陆手机号",
+    "imgCaptchaLabel": "图形验证码",
+    "imgCaptchaPlaceholder": "请输入图形验证码后获取验证码",
+    "smsLabel": "短信验证码",
+    "smsPlaceholder": "请输入收到的短信验证码",
+    "resend": "{seconds}s后重新发送",
+    "send": "发送验证码",
+    "bind": "绑定",
+    "bindSuccess": "绑定成功"
+  },
+  "activation": {
+    "title": "激活码",
+    "reActivate": "重新激活",
+    "alertTitle": "激活码激活提示",
+    "alertContent": "成功激活后后，才能发（公开/好友可见）动态、回复~",
+    "activateNow": "立即激活",
+    "label": "激活码",
+    "placeholder": "请输入激活码",
+    "activate": "激活",
+    "activateSuccess": "激活成功"
+  },
+  "password": {
+    "title": "账户安全",
+    "hasSet": "您已设置密码",
+    "reset": "重置密码",
+    "oldLabel": "旧密码",
+    "oldPlaceholder": "请输入当前密码",
+    "newLabel": "新密码",
+    "newPlaceholder": "请输入新密码",
+    "repeatLabel": "重复密码",
+    "repeatPlaceholder": "请再次输入密码",
+    "update": "更新",
+    "resetSuccess": "密码重置成功"
+  },
+  "avatar": {
+    "formatError": "头像仅允许 png/jpg 格式",
+    "sizeError": "头像大小不能超过1MB",
+    "updateSuccess": "头像更新成功",
+    "uploadFailed": "上传失败"
+  },
+  "nickname": {
+    "changeSuccess": "昵称修改成功",
+    "auditPending": "昵称修改已提交，审核通过后生效",
+    "submitted": "昵称修改已提交"
+  },
+  "rule": {
+    "phoneRequired": "请输入手机号",
+    "smsRequired": "请输入手机验证码",
+    "activationRequired": "请输入激活码",
+    "newPasswordRequired": "请输入新密码",
+    "oldPasswordRequired": "请输入旧密码",
+    "repeatRequired": "请再次输入密码",
+    "passwordMismatch": "两次密码输入不一致"
+  },
+  "imgCaptchaRequired": "请输入图片验证码",
+  "sendSuccess": "发送成功"
+}

@@ -1,0 +1,16 @@
+{
+  "confirm": "确定",
+  "cancel": "取消",
+  "delete": "删除",
+  "edit": "编辑",
+  "save": "保存",
+  "search": "搜索",
+  "all": "全部",
+  "noMore": "没有更多了",
+  "noData": "暂无数据",
+  "thousand": "{n}千",
+  "tenThousand": "{n}万",
+  "tip": "提示",
+  "operationSuccess": "操作成功",
+  "siteName": "泡泡 - 一个清新文艺的微社区"
+}

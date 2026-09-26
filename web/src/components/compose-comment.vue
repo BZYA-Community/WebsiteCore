@@ -24,8 +24,8 @@
                     @focus="focusComment"
                     :placeholder="
                         props.lock === 1
-                            ? '泡泡已被锁定，回复功能已关闭'
-                            : '快来评论两句吧...'
+                            ? t('comment.compose.placeholderLocked')
+                            : t('comment.compose.placeholder')
                     "
                 />
             </div>
@@ -105,7 +105,7 @@
                             size="small"
                             @click="cancelComment"
                         >
-                            取消
+                            {{ t('common.cancel') }}
                         </n-button>
                         <n-button
                             :loading="submitting"
@@ -115,7 +115,7 @@
                             size="small"
                             round
                         >
-                            发布
+                            {{ t('comment.action.publish') }}
                         </n-button>
                     </div>
                 </div>
@@ -128,7 +128,7 @@
 
         <div class="compose-wrap" v-else>
             <div class="login-wrap">
-                <span class="login-banner"> 登录后，精彩更多</span>
+                <span class="login-banner">{{ t('comment.compose.loginBanner') }}</span>
             </div>
             <div v-if="!allowUserRegister" class="login-only-wrap">
                 <n-button
@@ -138,7 +138,7 @@
                     type="primary"
                     @click="triggerAuth('signin')"
                 >
-                    登录
+                    {{ t('comment.action.login') }}
                 </n-button>
             </div>
             <div v-if="allowUserRegister" class="login-wrap">
@@ -149,7 +149,7 @@
                     type="primary"
                     @click="triggerAuth('signin')"
                 >
-                    登录
+                    {{ t('comment.action.login') }}
                 </n-button>
                 <n-button
                     strong
@@ -158,7 +158,7 @@
                     type="info"
                     @click="triggerAuth('signup')"
                 >
-                    注册
+                    {{ t('comment.action.register') }}
                 </n-button>
             </div>
         </div>
@@ -177,6 +177,9 @@ import { parsePostTag } from '@/utils/content';
 import type { MentionOption, UploadFileInfo, UploadInst } from 'naive-ui';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const emit = defineEmits<{
   (e: 'post-success'): void;
@@ -279,7 +282,7 @@ const beforeUpload = async (data: any) => {
       (data.file as any).file?.type,
     )
   ) {
-    window.$message.warning('图片仅允许 png/jpg/gif 格式');
+    window.$message.warning(t('comment.upload.imageFormatError'));
     return false;
   }
 
@@ -287,7 +290,7 @@ const beforeUpload = async (data: any) => {
     uploadType.value === 'image' &&
     (data.file as any).file?.size > 10485760
   ) {
-    window.$message.warning('图片大小不能超过10MB');
+    window.$message.warning(t('comment.upload.imageSizeError'));
     return false;
   }
 
@@ -306,7 +309,7 @@ const finishUpload = ({ file, event }: any): any => {
       }
     }
   } catch (error) {
-    window.$message.error('上传失败');
+    window.$message.error(t('comment.upload.uploadFailed'));
   }
 };
 const failUpload = ({ file, event }: any): any => {
@@ -314,7 +317,7 @@ const failUpload = ({ file, event }: any): any => {
     let data = JSON.parse(event.target?.response);
 
     if (data.code !== 0) {
-      let errMsg = data.msg || '上传失败';
+      let errMsg = data.msg || t('comment.upload.uploadFailed');
       if (data.details && data.details.length > 0) {
         data.details.map((detail: string) => {
           errMsg += ':' + detail;
@@ -323,7 +326,7 @@ const failUpload = ({ file, event }: any): any => {
       window.$message.error(errMsg);
     }
   } catch (error) {
-    window.$message.error('上传失败');
+    window.$message.error(t('comment.upload.uploadFailed'));
   }
 };
 const removeUpload = ({ file }: any) => {
@@ -348,7 +351,7 @@ const cancelComment = () => {
 // 发布动态
 const submitPost = () => {
   if (content.value.trim().length === 0) {
-    window.$message.warning('请输入内容哦');
+    window.$message.warning(t('comment.msg.contentRequired'));
     return;
   }
 
@@ -380,9 +383,9 @@ const submitPost = () => {
   })
     .then((res) => {
       if (res.audit_status === 0) {
-        window.$message.success('评论已提交，审核通过后对外可见');
+        window.$message.success(t('comment.msg.commentPendingAudit'));
       } else {
-        window.$message.success('发布成功');
+        window.$message.success(t('comment.msg.publishSuccess'));
       }
       submitting.value = false;
       emit('post-success');

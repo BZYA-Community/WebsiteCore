@@ -2,13 +2,13 @@
     <n-space v-if="totalPage > 0" justify="center">
         <InfiniteLoading
             class="load-more"
-            :slots="{ complete: completeText, error: '加载出错' }"
+            :slots="{ complete: displayCompleteText, error: loadErrorText }"
             @infinite="handleInfinite"
         >
             <template #spinner>
                 <div class="load-more-wrap">
                     <n-spin :size="14" v-if="!noMore" />
-                    <span class="load-more-spinner">{{ noMore ? completeText : '加载更多' }}</span>
+                    <span class="load-more-spinner">{{ noMore ? displayCompleteText : loadMoreText }}</span>
                 </div>
             </template>
         </InfiniteLoading>
@@ -16,15 +16,23 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import InfiniteLoading from 'v3-infinite-loading';
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
     totalPage: number;
     noMore: boolean;
     completeText?: string;
 }>(), {
-    completeText: '没有更多了',
+    completeText: '',
 });
+
+const { t } = useI18n();
+
+const displayCompleteText = computed(() => props.completeText || t('common.noMore'));
+const loadMoreText = computed(() => t('message.loadMore'));
+const loadErrorText = computed(() => t('message.loadError'));
 
 const emit = defineEmits<{
     (e: 'load-more'): void;

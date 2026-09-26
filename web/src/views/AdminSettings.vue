@@ -1,8 +1,8 @@
 <template>
     <div>
-        <main-nav title="系统配置" />
+        <main-nav :title="t('adminSettings.title')" />
 
-        <n-card title="系统配置" size="small" class="setting-card">
+        <n-card :title="t('adminSettings.title')" size="small" class="setting-card">
             <n-spin :show="loading">
                 <n-space vertical size="large" class="settings-layout">
                     <n-alert
@@ -10,11 +10,11 @@
                         type="warning"
                         class="setting-alert"
                     >
-                        检测到部分配置已经保存，但需要重启服务后才会切换到新值。带有“待重启”标记的配置当前仍在使用旧的生效值。
+                        {{ t('adminSettings.alert.pendingRestart') }}
                     </n-alert>
 
                     <div v-if="activeDomains.length === 0" class="empty-wrap">
-                        <n-empty size="large" description="暂无可显示的配置项" />
+                        <n-empty size="large" :description="t('adminSettings.empty')" />
                     </div>
 
                     <div
@@ -26,7 +26,7 @@
                             <div>
                                 <div class="domain-title">{{ group.label }}</div>
                                 <div class="domain-subtitle">
-                                    {{ group.itemCount }} 项配置
+                                    {{ t('adminSettings.itemCount', { count: group.itemCount }) }}
                                 </div>
                             </div>
                             <n-tag round size="small">{{ group.key }}</n-tag>
@@ -44,7 +44,7 @@
                                 <div class="section-header">
                                     <div class="section-title">{{ section.label }}</div>
                                     <div class="section-subtitle">
-                                        {{ section.items.length }} 项
+                                        {{ t('adminSettings.sectionCount', { count: section.items.length }) }}
                                     </div>
                                 </div>
                             </template>
@@ -85,7 +85,7 @@
                                             round
                                             size="small"
                                         >
-                                            机密
+                                            {{ t('adminSettings.tag.secret') }}
                                         </n-tag>
                                         <n-tag
                                             v-if="entry.value?.pending_restart"
@@ -93,7 +93,7 @@
                                             size="small"
                                             type="warning"
                                         >
-                                            待重启
+                                            {{ t('adminSettings.tag.pendingRestart') }}
                                         </n-tag>
                                         <n-tag
                                             v-if="
@@ -105,7 +105,7 @@
                                             size="small"
                                             type="default"
                                         >
-                                            只读
+                                            {{ t('adminSettings.tag.readonly') }}
                                         </n-tag>
                                     </n-space>
                                 </div>
@@ -116,16 +116,16 @@
 
                                 <div class="setting-meta">
                                     <span class="meta-item">
-                                        当前状态：{{ currentStatusText(entry) }}
+                                        {{ t('adminSettings.label.currentStatus') }}{{ currentStatusText(entry) }}
                                     </span>
                                     <span class="meta-item">
-                                        启动基线：{{ bootstrapStatusText(entry.schema) }}
+                                        {{ t('adminSettings.label.bootstrapBaseline') }}{{ bootstrapStatusText(entry.schema) }}
                                     </span>
                                     <span
                                         v-if="showEffectiveValue(entry)"
                                         class="meta-item"
                                     >
-                                        当前生效：{{
+                                        {{ t('adminSettings.label.currentEffective') }}{{
                                             formatValue(
                                                 entry.value?.effective_value,
                                                 entry.schema
@@ -143,7 +143,7 @@
                                             type="password"
                                             show-password-on="click"
                                             :disabled="!isEditable(entry.schema)"
-                                            placeholder="留空表示保持当前配置，输入后将替换"
+                                            :placeholder="t('adminSettings.placeholder.secretInput')"
                                         />
                                     </template>
                                     <template v-else-if="entry.schema.type === 'bool'">
@@ -191,7 +191,7 @@
                                                     : undefined
                                             "
                                             :disabled="!isEditable(entry.schema)"
-                                            placeholder="请输入配置值"
+                                            :placeholder="t('adminSettings.placeholder.inputValue')"
                                         />
                                     </template>
                                 </div>
@@ -208,7 +208,7 @@
                         class="inactive-collapse"
                     >
                         <n-collapse-item
-                            :title="`未激活配置 (${inactiveItemCount})`"
+                            :title="t('adminSettings.inactiveTitle', { count: inactiveItemCount })"
                             name="inactive"
                         >
                             <div
@@ -241,7 +241,7 @@
                                             </div>
                                             <n-space size="small">
                                                 <n-tag round size="small" type="default"
-                                                    >未激活</n-tag
+                                                    >{{ t('adminSettings.tag.inactive') }}</n-tag
                                                 >
                                                 <n-tag
                                                     round
@@ -262,7 +262,7 @@
                                                     v-if="entry.schema.secret"
                                                     round
                                                     size="small"
-                                                    >机密</n-tag
+                                                    >{{ t('adminSettings.tag.secret') }}</n-tag
                                                 >
                                             </n-space>
                                         </div>
@@ -271,16 +271,16 @@
                                         </div>
                                         <div class="setting-meta inactive-meta">
                                             <span class="meta-item">
-                                                当前状态：{{ currentStatusText(entry) }}
+                                                {{ t('adminSettings.label.currentStatus') }}{{ currentStatusText(entry) }}
                                             </span>
                                             <span class="meta-item">
-                                                启动基线：{{
+                                                {{ t('adminSettings.label.bootstrapBaseline') }}{{
                                                     bootstrapStatusText(entry.schema)
                                                 }}
                                             </span>
                                         </div>
                                         <div class="setting-hint">
-                                            当前功能或能力未启用，所以该配置暂不参与当前运行时行为。
+                                            {{ t('adminSettings.hint.inactiveSection') }}
                                         </div>
                                     </div>
                                 </div>
@@ -295,7 +295,7 @@
                             :disabled="saving || loading"
                             @click="handleReset"
                         >
-                            重置未保存更改
+                            {{ t('adminSettings.action.resetUnsaved') }}
                         </n-button>
                         <n-button
                             round
@@ -304,7 +304,7 @@
                             :loading="saving"
                             @click="handleSave"
                         >
-                            保存配置
+                            {{ t('adminSettings.action.saveConfig') }}
                         </n-button>
                     </div>
                 </n-space>
@@ -323,6 +323,8 @@ import { useStoreMain } from "@/store/main";
 import { useStoreProfile } from "@/store/profile";
 import { TOKEN_KEY, useStoreUser } from "@/store/user";
 import { Api } from "@/utils/request";
+import { useI18n } from 'vue-i18n';
+const { t } = useI18n();
 
 type SettingPrimitive = string | number | boolean | null;
 type SchemaItem = Api.Admin.NetReq.SettingsSchemaItem;
@@ -343,32 +345,32 @@ type GroupedDomain = {
     itemCount: number;
 };
 
-const groupLabelMap: Record<string, string> = {
-    web: "Web 站点",
-    app: "应用行为",
-    search: "搜索能力",
-    storage: "对象存储",
-    notifications: "通知服务",
-    payments: "支付服务",
-};
+const groupLabelMap = computed<Record<string, string>>(() => ({
+    web: t('adminSettings.group.web'),
+    app: t('adminSettings.group.app'),
+    search: t('adminSettings.group.search'),
+    storage: t('adminSettings.group.storage'),
+    notifications: t('adminSettings.group.notifications'),
+    payments: t('adminSettings.group.payments'),
+}));
 
-const sectionLabelMap: Record<string, string> = {
-    profile: "站点资料",
-    general: "常规设置",
-    limits: "限制与阈值",
-    bridge: "索引桥接",
-    meili: "Meilisearch",
-    zinc: "Zinc",
-    common: "通用存储",
-    local_oss: "本地 OSS",
-    minio: "MinIO",
-    s3: "Amazon S3",
-    alioss: "AliOSS",
-    cos: "腾讯 COS",
-    huawei_obs: "华为 OBS",
-    sms_juhe: "聚合短信",
-    alipay: "支付宝",
-};
+const sectionLabelMap = computed<Record<string, string>>(() => ({
+    profile: t('adminSettings.section.profile'),
+    general: t('adminSettings.section.general'),
+    limits: t('adminSettings.section.limits'),
+    bridge: t('adminSettings.section.bridge'),
+    meili: t('adminSettings.section.meili'),
+    zinc: t('adminSettings.section.zinc'),
+    common: t('adminSettings.section.common'),
+    local_oss: t('adminSettings.section.localOss'),
+    minio: t('adminSettings.section.minio'),
+    s3: t('adminSettings.section.s3'),
+    alioss: t('adminSettings.section.alioss'),
+    cos: t('adminSettings.section.cos'),
+    huawei_obs: t('adminSettings.section.huaweiObs'),
+    sms_juhe: t('adminSettings.section.smsJuhe'),
+    alipay: t('adminSettings.section.alipay'),
+}));
 
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
@@ -476,7 +478,7 @@ const settingOptions = (schema: SchemaItem) => {
 };
 
 const sourceLabel = (source?: string) => {
-    return source === "override" ? "管理覆盖" : "启动配置";
+    return source === "override" ? t('adminSettings.source.override') : t('adminSettings.source.bootstrap');
 };
 
 const sourceTagType = (source?: string) => {
@@ -486,11 +488,11 @@ const sourceTagType = (source?: string) => {
 const applyModeLabel = (applyMode: SchemaItem["apply_mode"]) => {
     switch (applyMode) {
         case "live":
-            return "即时生效";
+            return t('adminSettings.mode.live');
         case "restart_required":
-            return "重启后生效";
+            return t('adminSettings.mode.restartRequired');
         case "bootstrap_only":
-            return "仅启动配置";
+            return t('adminSettings.mode.bootstrapOnly');
         default:
             return applyMode;
     }
@@ -583,10 +585,10 @@ const rebuildDraftState = () => {
 
 const formatValue = (value: unknown, schema?: SchemaItem) => {
     if (value === null || value === undefined) {
-        return "未设置";
+        return t('adminSettings.value.notSet');
     }
     if (typeof value === "boolean") {
-        return value ? "已开启" : "已关闭";
+        return value ? t('adminSettings.value.enabled') : t('adminSettings.value.disabled');
     }
     if (typeof value === "number") {
         if (schema?.type === "float") {
@@ -595,11 +597,11 @@ const formatValue = (value: unknown, schema?: SchemaItem) => {
         return `${value}`;
     }
     const text = String(value).trim();
-    return text.length > 0 ? text : "未设置";
+    return text.length > 0 ? text : t('adminSettings.value.notSet');
 };
 
 const configuredText = (configured?: boolean) => {
-    return configured ? "已配置" : "未配置";
+    return configured ? t('adminSettings.status.configured') : t('adminSettings.status.notConfigured');
 };
 
 const currentConfiguredValue = (entry: ViewItem) => {
@@ -647,24 +649,24 @@ const useTextarea = (schema: SchemaItem) => {
 
 const editorHintText = (entry: ViewItem) => {
     if (!entry.schema.active) {
-        return "当前功能未启用，所以这项配置暂不参与当前运行行为。";
+        return t('adminSettings.hint.inactiveItem');
     }
     if (entry.schema.secret) {
         if (!isEditable(entry.schema)) {
-            return "为安全起见不会显示当前明文，当前项仅展示是否已配置。";
+            return t('adminSettings.hint.secretReadonly');
         }
-        return "为安全起见不会回显当前明文。留空表示保持原值，输入新内容后会安全替换。";
+        return t('adminSettings.hint.secretEditable');
     }
     if (entry.schema.apply_mode === "bootstrap_only" || entry.schema.readonly) {
-        return "该项由启动配置控制，当前页面仅提供查看，不允许直接覆盖。";
+        return t('adminSettings.hint.bootstrapOnly');
     }
     if (entry.value?.pending_restart) {
-        return "新配置已保存，但当前服务仍在使用旧值；重启后会切换到已保存的配置。";
+        return t('adminSettings.hint.pendingRestart');
     }
     if (entry.schema.apply_mode === "restart_required") {
-        return "保存后会写入管理覆盖值，但需要服务重启后才会切换。";
+        return t('adminSettings.hint.restartRequired');
     }
-    return "保存后会立即刷新当前服务中的配置状态。";
+    return t('adminSettings.hint.live');
 };
 
 const refreshPublicSiteProfile = async (updatedKeys: string[]) => {
@@ -759,7 +761,7 @@ const collectChangedItems = (): Api.Admin.NetParams.SettingValueInput[] | null =
             (schema.type === "int" || schema.type === "float") &&
             (nextValue === null || Number.isNaN(nextValue))
         ) {
-            window.$message.warning(`${schema.label} 请输入有效数值`);
+            window.$message.warning(t('adminSettings.msg.invalidNumber', { label: schema.label }));
             return null;
         }
 
@@ -837,7 +839,7 @@ const handleSave = async (e: MouseEvent) => {
         return;
     }
     if (items.length === 0) {
-        window.$message.info("没有需要保存的变更");
+        window.$message.info(t('adminSettings.msg.noChanges'));
         return;
     }
 
@@ -848,7 +850,7 @@ const handleSave = async (e: MouseEvent) => {
         hasPendingRestart.value = resp.has_pending_restart;
         rebuildDraftState();
         await refreshPublicSiteProfile(resp.updated_keys);
-        window.$message.success(`已保存 ${resp.updated_keys.length} 项配置`);
+        window.$message.success(t('adminSettings.msg.saveSuccess', { count: resp.updated_keys.length }));
     } catch (_err) {
         // do nothing
     } finally {

@@ -1,13 +1,13 @@
 <template>
     <div>
-        <main-nav title="话题" />
+        <main-nav :title="t('post.topic.title')" />
 
         <n-list class="main-content-wrap tags-wrap" bordered>
             <n-tabs type="line" animated @update:value="changeTab">
-                <n-tab-pane name="hot"><template #tab>热门</template></n-tab-pane>
-                <n-tab-pane name="new"><template #tab>最新</template></n-tab-pane>
-                <n-tab-pane name="follow" v-if="userLogined"><template #tab>关注</template></n-tab-pane>
-                <n-tab-pane name="pin" v-if="userLogined"><template #tab>钉住</template></n-tab-pane>
+                <n-tab-pane name="hot"><template #tab>{{ t('post.topic.tabHot') }}</template></n-tab-pane>
+                <n-tab-pane name="new"><template #tab>{{ t('post.topic.tabNew') }}</template></n-tab-pane>
+                <n-tab-pane name="follow" v-if="userLogined"><template #tab>{{ t('post.topic.tabFollow') }}</template></n-tab-pane>
+                <n-tab-pane name="pin" v-if="userLogined"><template #tab>{{ t('post.topic.tabPin') }}</template></n-tab-pane>
                 <template v-if="userLogined" #suffix>
                     <n-tag v-model:checked="tagsChecked" checkable>
                         {{tagsEditText}}
@@ -28,7 +28,7 @@
                     </tag-item>
                 </n-space>
                 <div class="empty-wrap" v-if="tags.length === 0">
-                    <n-empty size="large" description="暂无数据" />
+                    <n-empty size="large" :description="t('common.noData')" />
                 </div>
             </n-spin>
         </n-list>
@@ -37,6 +37,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { getTags } from '@/api/post';
 import { useStoreMain } from '@/store/main';
 import { useStoreUser } from '@/store/user';
@@ -45,6 +46,7 @@ import { storeToRefs } from 'pinia';
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const { userLogined } = storeToRefs(storeUser);
+const { t } = useI18n();
 
 const tags = ref<Item.TagProps[]>([]);
 const tagType = ref<'hot' | 'new' | 'follow' | 'pin'>('hot');
@@ -55,15 +57,15 @@ const inPinTab = ref(false);
 
 watch(tagsChecked, () => {
   if (!tagsChecked.value) {
-    window.$message.success('保存成功');
+    window.$message.success(t('post.topic.saveSuccess'));
     storeMain.doRefreshTopicFollow();
   }
 });
 const tagsEditText = computed({
   get: () => {
-    let text = '编辑';
+    let text = t('common.edit');
     if (tagsChecked.value) {
-      text = '保存';
+      text = t('common.save');
     }
     return text;
   },

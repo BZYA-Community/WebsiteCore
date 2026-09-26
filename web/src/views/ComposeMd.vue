@@ -1,6 +1,6 @@
 <template>
     <div>
-        <main-nav title="发布长文" :back="true" />
+        <main-nav :title="t('compose.md.pageTitle')" :back="true" />
 
         <n-card size="small" class="main-content-wrap compose-md-card">
             <div class="compose-md-editor-wrap">
@@ -9,13 +9,13 @@
                     :model-value="content"
                     :theme="editorTheme"
                     language="zh-CN"
-                    placeholder="支持 Markdown：井号后加空格是标题，#话题# 或 #话题 加空格是话题标签"
+                    :placeholder="t('compose.md.editorPlaceholder')"
                     :toolbars-exclude="mdToolbarsExclude"
                     no-mermaid
                     no-katex
                     @update:model-value="changeContent"
                 />
-                <div class="draft-tip">草稿自动保存，仅保留最近一次未发布的内容</div>
+                <div class="draft-tip">{{ t('compose.md.draftTip') }}</div>
             </div>
 
             <n-upload
@@ -170,7 +170,7 @@
                                     "
                                 />
                             </template>
-                            已输入{{ content.length }}字
+                            {{ t('compose.charCount', { count: content.length }) }}
                         </n-tooltip>
 
                         <n-button
@@ -180,7 +180,7 @@
                             secondary
                             round
                         >
-                            发布
+                            {{ t('compose.publish') }}
                         </n-button>
                     </div>
                 </div>
@@ -206,11 +206,11 @@
             <div class="link-wrap" v-if="showLinkSet">
                 <n-dynamic-input
                     v-model:value="links"
-                    placeholder="请输入以http(s)://开头的链接"
+                    :placeholder="t('compose.linkPlaceholder')"
                     :min="0"
                     :max="3"
                 >
-                    <template #create-button-default> 创建链接 </template>
+                    <template #create-button-default> {{ t('compose.createLink') }} </template>
                 </n-dynamic-input>
             </div>
         </n-card>
@@ -222,6 +222,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { debounce } from 'lodash';
+import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { useStoreProfile } from '@/store/profile';
@@ -243,6 +244,8 @@ import { userInfo as fetchUserInfo } from '@/api/auth';
 import { isZipFile } from '@/utils/isZipFile';
 import type { UploadFileInfo, UploadInst } from 'naive-ui';
 import { VisibilityEnum, PostItemTypeEnum } from '@/utils/IEnum';
+
+const { t } = useI18n();
 
 const MD_DRAFT_KEY = 'paopao-md-draft';
 
@@ -291,9 +294,9 @@ const uploadToken = computed(() => {
 
 const visibilities = computed(() => {
   let res = [
-    { value: VisibilityEnum.PUBLIC, label: '公开' },
-    { value: VisibilityEnum.PRIVATE, label: '私密' },
-    { value: VisibilityEnum.Following, label: '关注可见' },
+    { value: VisibilityEnum.PUBLIC, label: t('compose.visibilityPublic') },
+    { value: VisibilityEnum.PRIVATE, label: t('compose.visibilityPrivate') },
+    { value: VisibilityEnum.Following, label: t('compose.visibilityFollowing') },
   ];
   return res;
 });
@@ -362,12 +365,12 @@ const beforeUpload = async (data: any) => {
       'image/gif',
     ].includes(data.file.file?.type)
   ) {
-    window.$message.warning('图片仅允许 webp/png/jpg/gif 格式');
+    window.$message.warning(t('compose.imageFormatError'));
     return false;
   }
 
   if (uploadType.value === 'image' && data.file.file?.size > 10485760) {
-    window.$message.warning('图片大小不能超过10MB');
+    window.$message.warning(t('compose.imageSizeError'));
     return false;
   }
 
@@ -376,22 +379,22 @@ const beforeUpload = async (data: any) => {
     uploadType.value === 'public/video' &&
     !['video/mp4', 'video/quicktime'].includes(data.file.file?.type)
   ) {
-    window.$message.warning('视频仅允许 mp4/mov 格式');
+    window.$message.warning(t('compose.videoFormatError'));
     return false;
   }
 
   if (uploadType.value === 'public/video' && data.file.file?.size > 104857600) {
-    window.$message.warning('视频大小不能超过100MB');
+    window.$message.warning(t('compose.videoSizeError'));
     return false;
   }
   // 附件类型校验
   if (uploadType.value === 'attachment' && !(await isZipFile(data.file.file))) {
-    window.$message.warning('附件仅允许 zip 格式');
+    window.$message.warning(t('compose.attachmentFormatError'));
     return false;
   }
 
   if (uploadType.value === 'attachment' && data.file.file?.size > 104857600) {
-    window.$message.warning('附件大小不能超过100MB');
+    window.$message.warning(t('compose.attachmentSizeError'));
     return false;
   }
 
@@ -422,7 +425,7 @@ const finishUpload = ({ file, event }: any): any => {
       }
     }
   } catch (error) {
-    window.$message.error('上传失败');
+    window.$message.error(t('compose.uploadFailed'));
   }
 };
 const failUpload = ({ file, event }: any): any => {
@@ -430,7 +433,7 @@ const failUpload = ({ file, event }: any): any => {
     let data = JSON.parse(event.target?.response);
 
     if (data.code !== 0) {
-      let errMsg = data.msg || '上传失败';
+      let errMsg = data.msg || t('compose.uploadFailed');
       if (data.details && data.details.length > 0) {
         data.details.map((detail: string) => {
           errMsg += ':' + detail;
@@ -439,7 +442,7 @@ const failUpload = ({ file, event }: any): any => {
       window.$message.error(errMsg);
     }
   } catch (error) {
-    window.$message.error('上传失败');
+    window.$message.error(t('compose.uploadFailed'));
   }
 };
 const removeUpload = ({ file }: any) => {
@@ -460,7 +463,7 @@ const removeUpload = ({ file }: any) => {
 // 发布Markdown长文
 const submitPost = () => {
   if (content.value.trim().length === 0) {
-    window.$message.warning('请输入内容哦');
+    window.$message.warning(t('compose.contentRequired'));
     return;
   }
 
@@ -520,9 +523,9 @@ const submitPost = () => {
   })
     .then((res) => {
       if (res.audit_status === 0) {
-        window.$message.success('发布成功，内容审核通过后对他人可见');
+        window.$message.success(t('compose.publishSuccessAudit'));
       } else {
-        window.$message.success('发布成功');
+        window.$message.success(t('compose.publishSuccess'));
       }
       submitting.value = false;
 
@@ -596,7 +599,7 @@ onMounted(async () => {
   const draft = localStorage.getItem(MD_DRAFT_KEY);
   if (draft && draft.trim().length > 0) {
     content.value = draft;
-    window.$message.info('已恢复上次未发布的草稿');
+    window.$message.info(t('compose.md.draftRecovered'));
   }
 });
 </script>

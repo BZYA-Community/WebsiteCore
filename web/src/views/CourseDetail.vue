@@ -1,6 +1,6 @@
 <template>
     <div>
-        <main-nav :title="course?.title || '课程详情'" :back="true" />
+        <main-nav :title="course?.title || t('course.detail.title')" :back="true" />
 
         <div v-if="loading" class="detail-loading">
             <n-spin size="large" />
@@ -24,8 +24,8 @@
             <div class="course-head">
                 <div class="course-title">{{ course.title }}</div>
                 <div class="course-meta">
-                    <span>{{ course.play_count }} 次播放</span>
-                    <span>{{ course.comment_count }} 条评论</span>
+                    <span>{{ t('course.detail.playCount', { count: course.play_count }) }}</span>
+                    <span>{{ t('course.detail.commentCount', { count: course.comment_count }) }}</span>
                     <span>{{ formatPrettyTime(course.created_on) }}</span>
                     <n-tag v-if="course.group_name" size="small" round>{{ course.group_name }}</n-tag>
                 </div>
@@ -43,13 +43,13 @@
                         <div class="teacher-username">@{{ course.teacher.username }}</div>
                     </div>
                 </router-link>
-                <n-tag size="small" type="warning" round>讲师</n-tag>
+                <n-tag size="small" type="warning" round>{{ t('course.detail.teacher') }}</n-tag>
             </div>
             <div class="course-intro" v-if="course.intro">{{ course.intro }}</div>
 
             <!-- 评论区 -->
             <div class="comment-section">
-                <div class="comment-title">{{ course.comment_count }} 条评论</div>
+                <div class="comment-title">{{ t('course.detail.commentCount', { count: course.comment_count }) }}</div>
                 <n-list bordered>
                     <n-list-item>
                         <course-compose-comment
@@ -64,21 +64,22 @@
                         />
                     </n-list-item>
                 </n-list>
-                <n-empty v-if="comments.length === 0" description="暂无评论" />
+                <n-empty v-if="comments.length === 0" :description="t('course.detail.noComments')" />
                 <InfiniteLoading :key="commentsLoadKey" @infinite="onCommentsInfinite">
-                    <template #complete><span class="load-end">没有更多评论了</span></template>
+                    <template #complete><span class="load-end">{{ t('course.detail.noMoreComments') }}</span></template>
                 </InfiniteLoading>
             </div>
         </template>
 
         <div v-else class="detail-loading">
-            <n-empty size="large" description="课程不存在或已删除" />
+            <n-empty size="large" :description="t('course.detail.notFound')" />
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import InfiniteLoading from 'v3-infinite-loading';
 import VideoPlayer from '@/components/video-player.vue';
@@ -92,6 +93,7 @@ import {
   type CourseComment,
 } from '@/api/course';
 
+const { t } = useI18n();
 const route = useRoute();
 const courseId = Number(route.query.id || 0);
 
@@ -125,7 +127,7 @@ const loadVideoUrl = async () => {
     const res = await getCourseVideo({ id: courseId });
     videoUrl.value = res.signed_url;
   } catch (_err) {
-    window.$message.error('获取播放地址失败');
+    window.$message.error(t('course.detail.loadVideoFailed'));
   }
 };
 

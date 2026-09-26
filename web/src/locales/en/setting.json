@@ -1,0 +1,73 @@
+{
+  "title": "Settings",
+  "base": {
+    "title": "Basic Info",
+    "changeAvatar": "Change Avatar",
+    "nickname": "Nickname",
+    "nicknamePlaceholder": "Enter nickname",
+    "username": "Username"
+  },
+  "phone": {
+    "title": "Phone Number",
+    "rebind": "Rebind Phone",
+    "alertTitle": "Phone Binding Notice",
+    "alertContent": "After binding your phone, you can change your avatar, post updates, reply, and more~",
+    "bindNow": "Bind Now",
+    "label": "Phone Number",
+    "placeholder": "Enter mainland China phone number",
+    "imgCaptchaLabel": "Image Captcha",
+    "imgCaptchaPlaceholder": "Enter image captcha to get SMS code",
+    "smsLabel": "SMS Code",
+    "smsPlaceholder": "Enter the SMS code you received",
+    "resend": "Resend in {seconds}s",
+    "send": "Send Code",
+    "bind": "Bind",
+    "bindSuccess": "Bound successfully"
+  },
+  "activation": {
+    "title": "Activation Code",
+    "reActivate": "Re-activate",
+    "alertTitle": "Activation Notice",
+    "alertContent": "After activation, you can post (public/friends-visible) updates and reply~",
+    "activateNow": "Activate Now",
+    "label": "Activation Code",
+    "placeholder": "Enter activation code",
+    "activate": "Activate",
+    "activateSuccess": "Activated successfully"
+  },
+  "password": {
+    "title": "Account Security",
+    "hasSet": "You have set a password",
+    "reset": "Reset Password",
+    "oldLabel": "Old Password",
+    "oldPlaceholder": "Enter current password",
+    "newLabel": "New Password",
+    "newPlaceholder": "Enter new password",
+    "repeatLabel": "Confirm Password",
+    "repeatPlaceholder": "Re-enter password",
+    "update": "Update",
+    "resetSuccess": "Password reset successfully"
+  },
+  "avatar": {
+    "formatError": "Avatar only allows png/jpg format",
+    "sizeError": "Avatar size cannot exceed 1MB",
+    "updateSuccess": "Avatar updated successfully",
+    "uploadFailed": "Upload failed"
+  },
+  "nickname": {
+    "changeSuccess": "Nickname changed successfully",
+    "auditPending": "Nickname change submitted, will take effect after review",
+    "submitted": "Nickname change submitted"
+  },
+  "rule": {
+    "phoneRequired": "Please enter phone number",
+    "smsRequired": "Please enter SMS code",
+    "activationRequired": "Please enter activation code",
+    "newPasswordRequired": "Please enter new password",
+    "oldPasswordRequired": "Please enter old password",
+    "repeatRequired": "Please re-enter password",
+    "passwordMismatch": "Passwords do not match"
+  },
+  "imgCaptchaRequired": "Please enter image captcha",
+  "sendSuccess": "Sent successfully"
+}

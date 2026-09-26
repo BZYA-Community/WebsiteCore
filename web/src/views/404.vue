@@ -5,11 +5,11 @@
         <n-list class="main-content-wrap wrap404" bordered>
             <n-result
                 status="404"
-                title="404 资源不存在"
-                description="再看看其他的吧"
+                :title="t('post.notFound.resourceNotFound')"
+                :description="t('post.notFound.description')"
             >
                 <template #footer>
-                    <n-button @click="goHome">回主页</n-button>
+                    <n-button @click="goHome">{{ t('post.notFound.backHome') }}</n-button>
                 </template>
             </n-result>
         </n-list>
@@ -18,8 +18,10 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 
 const router = useRouter();
+const { t } = useI18n();
 const goHome = () => {
   router.push({
     path: '/',

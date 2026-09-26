@@ -2,6 +2,7 @@ import { useRouter } from 'vue-router';
 import { useDialog } from "naive-ui";
 import { Api } from "../utils/request";
 import { useStoreUser } from '@/store/user';
+import i18n from '@/locales';
 
 /**
  * 私信入口可见性引导(仅前端引导, 后端仍强制校验):
@@ -47,21 +48,20 @@ export default class UserAction {
     static followAction(dialog: ReturnType<typeof useDialog>, userId: number, userName: string, isFollowing: boolean) {
         return new Promise<boolean>((resolve, reject) => {
             dialog.success({
-                title: '提示',
-                content:
-                    '确定' +
-                    (isFollowing ? '取消关注 @' : '关注 @') +
-                    userName +
-                    ' 吗？',
-                positiveText: '确定',
-                negativeText: '取消',
+                title: i18n.global.t('common.tip'),
+                content: i18n.global.t('user.followDialogConfirm', {
+                    action: isFollowing ? i18n.global.t('user.unfollowAction') : i18n.global.t('user.followAction'),
+                    username: userName,
+                }),
+                positiveText: i18n.global.t('common.confirm'),
+                negativeText: i18n.global.t('common.cancel'),
                 onPositiveClick: () => {
                     if (isFollowing) {
                         Api.v1.user.post.unfollow({
                             user_id: userId,
                         })
                         .then((_res) => {
-                            window.$message.success('操作成功');
+                            window.$message.success(i18n.global.t('common.operationSuccess'));
                             resolve(false);
                         })
                         .catch((_err) => {
@@ -72,7 +72,7 @@ export default class UserAction {
                             user_id: userId,
                         })
                         .then((_res) => {
-                            window.$message.success('关注成功');
+                            window.$message.success(i18n.global.t('user.followSuccess'));
                             resolve(true);
                         })
                         .catch((_err) => {

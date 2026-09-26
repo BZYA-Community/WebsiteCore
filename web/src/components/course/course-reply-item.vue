@@ -9,7 +9,7 @@
                     {{ props.reply.user.username }}
                 </router-link>
                 <span class="reply-name">
-                    {{ props.reply.at_user_id > 0 ? '回复' : ':' }}
+                    {{ props.reply.at_user_id > 0 ? t('course.reply.label') : ':' }}
                 </span>
 
                 <router-link class="user-link" :to="{
@@ -25,7 +25,7 @@
                     size="small"
                     round
                 >
-                    审核中
+                    {{ t('course.comment.auditing') }}
                 </n-tag>
                 <n-tag
                     v-else-if="props.reply.audit_status === AuditStatusEnum.REJECTED"
@@ -34,7 +34,7 @@
                     size="small"
                     round
                 >
-                    未通过审核
+                    {{ t('course.comment.auditRejected') }}
                 </n-tag>
             </div>
             <div class="timestamp">
@@ -42,7 +42,7 @@
                 <n-popconfirm v-if="
                     userInfo.is_admin ||
                     userInfo.id === props.reply.user.id
-                " negative-text="取消" positive-text="确认" @positive-click="execDelAction">
+                " :negative-text="t('common.cancel')" :positive-text="t('common.confirm')" @positive-click="execDelAction">
                     <template #trigger>
                         <n-button quaternary circle size="tiny" class="del-btn">
                             <template #icon>
@@ -52,7 +52,7 @@
                             </template>
                         </n-button>
                     </template>
-                    是否删除这条回复？
+                    {{ t('course.reply.deleteConfirm') }}
                 </n-popconfirm>
             </div>
         </div>
@@ -69,7 +69,7 @@
                 </span>
 
                 <div class="actions">
-                    <span v-if="userLogined" class="show opacity-item reply-btn" @click="focusReply"> 回复 </span>
+                    <span v-if="userLogined" class="show opacity-item reply-btn" @click="focusReply"> {{ t('course.action.reply') }} </span>
                 </div>
             </div>
         </div>
@@ -83,6 +83,9 @@ import { deleteCourseCommentReply, type CourseReply } from '@/api/course';
 import { AuditStatusEnum } from '@/utils/IEnum';
 import { useStoreUser } from '@/store/user';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -107,7 +110,7 @@ const execDelAction = () => {
     id: props.reply.id,
   })
     .then(() => {
-      window.$message.success('删除成功');
+      window.$message.success(t('course.deleteSuccess'));
 
       setTimeout(() => {
         emit('reload');

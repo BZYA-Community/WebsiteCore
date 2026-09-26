@@ -1,5 +1,5 @@
 <template>
-    <n-config-provider :theme="iTheme">
+    <n-config-provider :theme="iTheme" :locale="naiveLocale" :date-locale="naiveDateLocale">
         <n-message-provider>
             <n-dialog-provider>
                 <div
@@ -45,16 +45,21 @@
 <script setup lang="ts">
 import { onMounted, computed } from 'vue';
 import { useStoreMain } from '@/store/main';
-import { darkTheme } from 'naive-ui';
+import { darkTheme, zhCN, enUS, dateZhCN, dateEnUS } from 'naive-ui';
 import { getSiteProfile } from '@/api/site';
 import { useStoreProfile } from '@/store/profile';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
 
 const storeMain = useStoreMain();
 const storeProfile = useStoreProfile();
 const { theme, desktopModelShow } = storeToRefs(storeMain);
+const { locale } = useI18n();
 
 const iTheme = computed(() => (theme.value === 'dark' ? darkTheme : null));
+// naive-ui 组件内置文案/日期本地化, 随 vue-i18n 语言切换联动
+const naiveLocale = computed(() => (locale.value === 'en' ? enUS : zhCN));
+const naiveDateLocale = computed(() => (locale.value === 'en' ? dateEnUS : dateZhCN));
 
 function loadSiteProfile() {
     storeProfile.loadDefaultSiteProfile();

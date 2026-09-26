@@ -1,6 +1,6 @@
 <template>
     <div>
-        <main-nav title="主页" />
+        <main-nav :title="t('user.profile.title')" />
 
         <n-list
             class="main-content-wrap profile-wrap"
@@ -18,12 +18,12 @@
                         <strong>{{ userInfo.nickname }}</strong>
                         <span> @{{ userInfo.username }} </span>
                         <n-tag v-if="showIdentityBadge(userInfo.identity)" class="top-tag" :type="identityTagType(userInfo.identity)" size="small" round>
-                            {{ userInfo.identity }}
+                            {{ identityLabel(userInfo.identity) }}
                         </n-tag>
                     </div>
                     <div class="userinfo">
                         <span class="info-item">UID. {{ userInfo.id }} </span>
-                        <span class="info-item">{{ formatDate(userInfo.created_on) }}&nbsp;加入</span>
+                        <span class="info-item">{{ t('user.profile.joinedDate', { date: formatDate(userInfo.created_on) }) }}</span>
                     </div>
                     <div class="userinfo">
                         <span class="info-item">
@@ -39,7 +39,7 @@
                                     },
                                 }"
                             >
-                                关注&nbsp;&nbsp;{{ prettyQuoteNum(userInfo.follows) }}
+                                {{ t('user.profile.follows') }}&nbsp;&nbsp;{{ prettyQuoteNum(userInfo.follows) }}
                             </router-link>
                         </span>
                         <span class="info-item">
@@ -55,11 +55,11 @@
                                     },
                                 }"
                             >
-                                粉丝&nbsp;&nbsp;{{ prettyQuoteNum(userInfo.followings) }}
+                                {{ t('user.profile.followers') }}&nbsp;&nbsp;{{ prettyQuoteNum(userInfo.followings) }}
                             </router-link>
                         </span>
                         <span class="info-item">
-                            泡泡&nbsp;&nbsp;{{ prettyQuoteNum(userInfo.tweets_count) }}
+                            {{ t('user.profile.tweets') }}&nbsp;&nbsp;{{ prettyQuoteNum(userInfo.tweets_count) }}
                         </span>
                     </div>
                 </div>
@@ -79,18 +79,18 @@
             </div>
             <!-- </n-spin> -->
             <n-tabs class="profile-tabs-wrap" type="line" animated @update:value="changeTab">
-                <n-tab-pane name="post"><template #tab>泡泡</template></n-tab-pane>
-                <n-tab-pane name="comment"><template #tab>评论</template></n-tab-pane>
-                <n-tab-pane name="highlight"><template #tab>亮点</template></n-tab-pane>
-                <n-tab-pane name="media"><template #tab>图文</template></n-tab-pane>
-                <n-tab-pane name="star"><template #tab>喜欢</template></n-tab-pane>
+                <n-tab-pane name="post"><template #tab>{{ t('user.profile.tabPost') }}</template></n-tab-pane>
+                <n-tab-pane name="comment"><template #tab>{{ t('user.profile.tabComment') }}</template></n-tab-pane>
+                <n-tab-pane name="highlight"><template #tab>{{ t('user.profile.tabHighlight') }}</template></n-tab-pane>
+                <n-tab-pane name="media"><template #tab>{{ t('user.profile.tabMedia') }}</template></n-tab-pane>
+                <n-tab-pane name="star"><template #tab>{{ t('user.profile.tabStar') }}</template></n-tab-pane>
             </n-tabs>
             <div v-if="loading && list.length === 0" class="skeleton-wrap">
                 <post-skeleton :num="pageSize" />
             </div>
             <div v-else>
                 <div class="empty-wrap" v-if="list.length === 0">
-                    <n-empty size="large" description="暂无数据" />
+                    <n-empty size="large" :description="t('common.noData')" />
                 </div>
                   <n-list-item v-for="post in listData" :key="post.id">
                       <post-item :post="post"
@@ -104,11 +104,11 @@
         </n-list>
 
         <n-space v-if="totalPage > 0" justify="center">
-            <InfiniteLoading class="load-more" :slots="{ complete: '没有更多泡泡了', error: '加载出错' }" @infinite="nextPage()">
+            <InfiniteLoading class="load-more" :slots="{ complete: t('user.profile.noMorePosts'), error: t('user.profile.loadError') }" @infinite="nextPage()">
                 <template #spinner>
                     <div class="load-more-wrap">
                         <n-spin :size="14" v-if="!noMore" />
-                        <span class="load-more-spinner">{{ noMore ? '没有更多泡泡了' : '加载更多' }}</span>
+                        <span class="load-more-spinner">{{ noMore ? t('user.profile.noMorePosts') : t('user.profile.loadMore') }}</span>
                     </div>
                 </template>
             </InfiniteLoading>
@@ -119,12 +119,13 @@
 <script setup lang="ts">
 import { h, ref, Component, onMounted, computed, watch } from 'vue';
 import { NIcon } from 'naive-ui';
+import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { useRoute, useRouter } from 'vue-router';
 import { useDialog, DropdownOption } from 'naive-ui';
 import { formatDate } from '@/utils/formatTime';
 import { useChatJump } from '@/composables/useUserAction';
-import { identityTagType, showIdentityBadge } from '@/utils/identity';
+import { identityTagType, showIdentityBadge, identityLabel } from '@/utils/identity';
 import { prettyQuoteNum } from '@/utils/count';
 import InfiniteLoading from 'v3-infinite-loading';
 import { SettingsOutline } from '@vicons/ionicons5';
@@ -135,6 +136,7 @@ import { Api } from '@/utils/request';
 
 type PageType = 'post' | 'comment' | 'highlight' | 'media' | 'star';
 
+const { t } = useI18n();
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const { refresh, desktopModelShow } = storeToRefs(storeMain);
@@ -194,7 +196,7 @@ const renderIcon = (icon: Component) => {
 const userOptions = computed(() => {
   let options: DropdownOption[] = [
     {
-      label: '设置',
+      label: t('user.profile.actionSetting'),
       key: 'setting',
       icon: renderIcon(SettingsOutline),
     },

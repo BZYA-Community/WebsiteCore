@@ -1,7 +1,7 @@
 <template>
     <div>
-        <main-nav title="设置" theme />
-        <n-card title="基本信息" size="small" class="setting-card">
+        <main-nav :title="t('setting.title')" theme />
+        <n-card :title="t('setting.base.title')" size="small" class="setting-card">
             <div class="base-line avatar">
                 <n-avatar
                     class="avatar-img"
@@ -25,11 +25,11 @@
                     @before-upload="beforeUpload"
                     @finish="finishUpload"
                 >
-                    <n-button size="small">更改头像</n-button>
+                    <n-button size="small">{{ t('setting.base.changeAvatar') }}</n-button>
                 </n-upload>
             </div>
             <div class="base-line">
-                <span class="base-label">昵称</span>
+                <span class="base-label">{{ t('setting.base.nickname') }}</span>
                 <div v-if="!showNicknameEdit">
                     {{ userInfo.nickname }}
                 </div>
@@ -40,7 +40,7 @@
                     v-model:value="userInfo.nickname"
                     type="text"
                     size="small"
-                    placeholder="请输入昵称"
+                    :placeholder="t('setting.base.nicknamePlaceholder')"
                     @blur="handleNicknameChange"
                     :maxlength="16"
                 />
@@ -66,13 +66,13 @@
                 </n-button>
             </div>
             <div class="base-line">
-                <span class="base-label">用户名</span> @{{
+                <span class="base-label">{{ t('setting.base.username') }}</span> @{{
                     userInfo.username
                 }}
             </div>
         </n-card>
 
-        <n-card v-if="profile.allowPhoneBind" title="手机号" size="small" class="setting-card">
+        <n-card v-if="profile.allowPhoneBind" :title="t('setting.phone.title')" size="small" class="setting-card">
             <div
                 v-if="
                     userInfo.phone &&
@@ -88,18 +88,18 @@
                     v-if="!showPhoneBind && userInfo.status == 1"
                     @click="showPhoneBind = true"
                 >
-                    换绑手机
+                    {{ t('setting.phone.rebind') }}
                 </n-button>
             </div>
             <div v-else>
-                <n-alert title="手机绑定提示" type="warning">
-                    成功绑定手机后，才能进行换头像、发动态、回复等交互~<br />
+                <n-alert :title="t('setting.phone.alertTitle')" type="warning">
+                    {{ t('setting.phone.alertContent') }}<br />
                     <a
                         class="hash-link"
                         @click="showPhoneBind = true"
                         v-if="!showPhoneBind"
                     >
-                        立即绑定
+                        {{ t('setting.phone.bindNow') }}
                     </a>
                 </n-alert>
             </div>
@@ -110,19 +110,19 @@
                     :model="modelData"
                     :rules="bindRules"
                 >
-                    <n-form-item path="phone" label="手机号">
+                    <n-form-item path="phone" :label="t('setting.phone.label')">
                         <n-input
                             :value="modelData.phone"
                             @update:value="(v: string) => (modelData.phone = v.trim())"
-                            placeholder="请输入中国大陆手机号"
+                            :placeholder="t('setting.phone.placeholder')"
                             @keydown.enter.prevent
                         />
                     </n-form-item>
-                    <n-form-item path="img_captcha" label="图形验证码">
+                    <n-form-item path="img_captcha" :label="t('setting.phone.imgCaptchaLabel')">
                         <div class="captcha-img-wrap">
                             <n-input
                                 v-model:value="modelData.imgCaptcha"
-                                placeholder="请输入图形验证码后获取验证码"
+                                :placeholder="t('setting.phone.imgCaptchaPlaceholder')"
                             />
                             <div class="captcha-img">
                                 <img
@@ -133,11 +133,11 @@
                             </div>
                         </div>
                     </n-form-item>
-                    <n-form-item path="phone_captcha" label="短信验证码">
+                    <n-form-item path="phone_captcha" :label="t('setting.phone.smsLabel')">
                         <n-input-group>
                             <n-input
                                 v-model:value="modelData.phone_captcha"
-                                placeholder="请输入收到的短信验证码"
+                                :placeholder="t('setting.phone.smsPlaceholder')"
                             />
                             <n-button
                                 type="primary"
@@ -148,8 +148,8 @@
                             >
                                 {{
                                     smsCounter > 0 && smsDisabled
-                                        ? smsCounter + 's后重新发送'
-                                        : '发送验证码'
+                                        ? t('setting.phone.resend', { seconds: smsCounter })
+                                        : t('setting.phone.send')
                                 }}
                             </n-button>
                         </n-input-group>
@@ -162,7 +162,7 @@
                                     round
                                     @click="showPhoneBind = false"
                                 >
-                                    取消
+                                    {{ t('common.cancel') }}
                                 </n-button>
                                 <n-button
                                     secondary
@@ -171,7 +171,7 @@
                                     :loading="binding"
                                     @click="handlePhoneBind"
                                 >
-                                    绑定
+                                    {{ t('setting.phone.bind') }}
                                 </n-button>
                             </div>
                         </n-col>
@@ -180,7 +180,7 @@
             </div>
         </n-card>
 
-        <n-card v-if="allowActivation" title="激活码" size="small" class="setting-card">
+        <n-card v-if="allowActivation" :title="t('setting.activation.title')" size="small" class="setting-card">
             <div
                 v-if="
                     userInfo.activation &&
@@ -196,18 +196,18 @@
                     v-if="!showActivation"
                     @click="showActivation = true"
                 >
-                    重新激活
+                    {{ t('setting.activation.reActivate') }}
                 </n-button>
             </div>
             <div v-else>
-                <n-alert title="激活码激活提示" type="warning">
-                    成功激活后后，才能发（公开/好友可见）动态、回复~<br />
+                <n-alert :title="t('setting.activation.alertTitle')" type="warning">
+                    {{ t('setting.activation.alertContent') }}<br />
                     <a
                         class="hash-link"
                         @click="showActivation = true"
                         v-if="!showActivation"
                     >
-                    立即激活
+                    {{ t('setting.activation.activateNow') }}
                     </a>
                 </n-alert>
             </div>
@@ -218,19 +218,19 @@
                     :model="activateData"
                     :rules="activateRules"
                 >
-                    <n-form-item path="activate_code" label="激活码">
+                    <n-form-item path="activate_code" :label="t('setting.activation.label')">
                         <n-input
                             :value="activateData.activate_code"
                             @update:value="(v: string) => (activateData.activate_code = v.trim())"
-                            placeholder="请输入激活码"
+                            :placeholder="t('setting.activation.placeholder')"
                             @keydown.enter.prevent
                         />
                     </n-form-item>
-                    <n-form-item path="img_captcha" label="图形验证码">
+                    <n-form-item path="img_captcha" :label="t('setting.phone.imgCaptchaLabel')">
                         <div class="captcha-img-wrap">
                             <n-input
                                 v-model:value="activateData.imgCaptcha"
-                                placeholder="请输入图形验证码后获取验证码"
+                                :placeholder="t('setting.phone.imgCaptchaPlaceholder')"
                             />
                             <div class="captcha-img">
                                 <img
@@ -249,7 +249,7 @@
                                     round
                                     @click="showActivation = false"
                                 >
-                                    取消
+                                    {{ t('common.cancel') }}
                                 </n-button>
                                 <n-button
                                     secondary
@@ -258,7 +258,7 @@
                                     :loading="activating"
                                     @click="handleActivation"
                                 >
-                                    激活
+                                    {{ t('setting.activation.activate') }}
                                 </n-button>
                             </div>
                         </n-col>
@@ -267,8 +267,8 @@
             </div>
         </n-card>
 
-        <n-card title="账户安全" size="small" class="setting-card">
-            您已设置密码
+        <n-card :title="t('setting.password.title')" size="small" class="setting-card">
+            {{ t('setting.password.hasSet') }}
             <n-button
                 quaternary
                 round
@@ -276,23 +276,23 @@
                 v-if="!showPasswordSetting"
                 @click="showPasswordSetting = true"
             >
-                重置密码
+                {{ t('setting.password.reset') }}
             </n-button>
             <div class="phone-bind-wrap" v-if="showPasswordSetting">
                 <n-form ref="formRef" :model="modelData" :rules="passwordRules">
-                    <n-form-item path="old_password" label="旧密码">
+                    <n-form-item path="old_password" :label="t('setting.password.oldLabel')">
                         <n-input
                             v-model:value="modelData.old_password"
                             type="password"
-                            placeholder="请输入当前密码"
+                            :placeholder="t('setting.password.oldPlaceholder')"
                             @keydown.enter.prevent
                         />
                     </n-form-item>
-                    <n-form-item path="password" label="新密码">
+                    <n-form-item path="password" :label="t('setting.password.newLabel')">
                         <n-input
                             v-model:value="modelData.password"
                             type="password"
-                            placeholder="请输入新密码"
+                            :placeholder="t('setting.password.newPlaceholder')"
                             @input="handlePasswordInput"
                             @keydown.enter.prevent
                         />
@@ -301,13 +301,13 @@
                         ref="rPasswordFormItemRef"
                         first
                         path="reenteredPassword"
-                        label="重复密码"
+                        :label="t('setting.password.repeatLabel')"
                     >
                         <n-input
                             v-model:value="modelData.reenteredPassword"
                             :disabled="!modelData.password"
                             type="password"
-                            placeholder="请再次输入密码"
+                            :placeholder="t('setting.password.repeatPlaceholder')"
                             @keydown.enter.prevent
                         />
                     </n-form-item>
@@ -319,7 +319,7 @@
                                     round
                                     @click="showPasswordSetting = false"
                                 >
-                                    取消
+                                    {{ t('common.cancel') }}
                                 </n-button>
                                 <n-button
                                     secondary
@@ -328,7 +328,7 @@
                                     :loading="passwordSetting"
                                     @click="handleValidateButtonClick"
                                 >
-                                    更新
+                                    {{ t('setting.password.update') }}
                                 </n-button>
                             </div>
                         </n-col>
@@ -340,7 +340,8 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, reactive } from 'vue';
+import { onMounted, ref, reactive, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { Edit } from '@vicons/tabler';
 import type {
@@ -355,6 +356,8 @@ import { useStoreProfile } from '@/store/profile';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
 import { userInfo as fetchUserInfo } from '@/api/auth';
+
+const { t } = useI18n();
 
 const uploadGateway = import.meta.env.VITE_HOST + '/v1/attachment';
 const uploadToken = 'Bearer ' + localStorage.getItem(TOKEN_KEY);
@@ -408,12 +411,12 @@ const beforeUpload = async (data: any) => {
     uploadType.value === 'public/avatar' &&
     !['image/png', 'image/jpg', 'image/jpeg'].includes(data.file.file?.type)
   ) {
-    window.$message.warning('头像仅允许 png/jpg 格式');
+    window.$message.warning(t('setting.avatar.formatError'));
     return false;
   }
 
   if (uploadType.value === 'image' && data.file.file?.size > 1048576) {
-    window.$message.warning('头像大小不能超过1MB');
+    window.$message.warning(t('setting.avatar.sizeError'));
     return false;
   }
 
@@ -430,7 +433,7 @@ const finishUpload = ({ file, event }: any): any => {
           avatar: data.data.content,
         })
           .then((res) => {
-            window.$message.success('头像更新成功');
+            window.$message.success(t('setting.avatar.updateSuccess'));
             avatarRef.value?.clear();
 
             storeUser.updateUserinfo({
@@ -444,7 +447,7 @@ const finishUpload = ({ file, event }: any): any => {
       }
     }
   } catch (error) {
-    window.$message.error('上传失败');
+    window.$message.error(t('setting.avatar.uploadFailed'));
   }
 };
 
@@ -478,7 +481,7 @@ const handleValidateButtonClick = (e: MouseEvent) => {
         .then((res) => {
           passwordSetting.value = false;
           showPasswordSetting.value = false;
-          window.$message.success('密码重置成功');
+          window.$message.success(t('setting.password.resetSuccess'));
 
           // 用户退出登录
           storeUser.userLogout();
@@ -504,7 +507,7 @@ const handlePhoneBind = (e: MouseEvent) => {
         .then((res) => {
           binding.value = false;
           showPhoneBind.value = false;
-          window.$message.success('绑定成功');
+          window.$message.success(t('setting.phone.bindSuccess'));
 
           storeUser.updateUserinfo({
             ...userInfo.value,
@@ -528,7 +531,7 @@ const handleActivation = (e: MouseEvent) => {
   e.preventDefault();
   activateFormRef.value?.validate((errors) => {
     if (activateData.imgCaptcha === '') {
-      window.$message.warning('请输入图片验证码');
+      window.$message.warning(t('setting.imgCaptchaRequired'));
       return;
     }
     sending.value = true;
@@ -542,7 +545,7 @@ const handleActivation = (e: MouseEvent) => {
         .then((res) => {
           activating.value = false;
           showActivation.value = false;
-          window.$message.success('激活成功');
+          window.$message.success(t('setting.activation.activateSuccess'));
 
           storeUser.updateUserinfo({
             ...userInfo.value,
@@ -599,12 +602,12 @@ const handleNicknameChange = () => {
         const fresh = await fetchUserInfo();
         storeUser.updateUserinfo(fresh);
         if ((fresh.nickname || '') === submitted) {
-          window.$message.success('昵称修改成功');
+          window.$message.success(t('setting.nickname.changeSuccess'));
         } else {
-          window.$message.info('昵称修改已提交，审核通过后生效');
+          window.$message.info(t('setting.nickname.auditPending'));
         }
       } catch (_err) {
-        window.$message.success('昵称修改已提交');
+        window.$message.success(t('setting.nickname.submitted'));
       }
     })
     .catch((err) => {
@@ -617,7 +620,7 @@ const sendPhoneCaptcha = () => {
     return;
   }
   if (modelData.imgCaptcha === '') {
-    window.$message.warning('请输入图片验证码');
+    window.$message.warning(t('setting.imgCaptchaRequired'));
     return;
   }
   sending.value = true;
@@ -629,7 +632,7 @@ const sendPhoneCaptcha = () => {
     .then((res) => {
       smsDisabled.value = true;
       sending.value = false;
-      window.$message.success('发送成功');
+      window.$message.success(t('setting.sendSuccess'));
 
       let s = setInterval(() => {
         smsCounter.value--;
@@ -649,11 +652,11 @@ const sendPhoneCaptcha = () => {
     });
 };
 
-const bindRules = {
+const bindRules = computed(() => ({
   phone: [
     {
       required: true,
-      message: '请输入手机号',
+      message: t('setting.rule.phoneRequired'),
       trigger: ['input'],
       validator: (rule: FormItemRule, value: any) => {
         return /^[1]+[3-9]{1}\d{9}$/.test(value);
@@ -663,53 +666,56 @@ const bindRules = {
   phone_captcha: [
     {
       required: true,
-      message: '请输入手机验证码',
+      message: t('setting.rule.smsRequired'),
     },
   ],
-};
-const activateRules = {
+}));
+
+const activateRules = computed(() => ({
   activate_code: [
     {
       required: true,
-      message: '请输入激活码',
+      message: t('setting.rule.activationRequired'),
       trigger: ['input'],
       validator: (rule: FormItemRule, value: any) => {
         return /\d{6}$/.test(value);
       },
     },
   ],
-};
-const passwordRules = {
+}));
+
+const passwordRules = computed(() => ({
   password: [
     {
       required: true,
-      message: '请输入新密码',
+      message: t('setting.rule.newPasswordRequired'),
     },
   ],
   old_password: [
     {
       required: true,
-      message: '请输入旧密码',
+      message: t('setting.rule.oldPasswordRequired'),
     },
   ],
   reenteredPassword: [
     {
       required: true,
-      message: '请再次输入密码',
+      message: t('setting.rule.repeatRequired'),
       trigger: ['input', 'blur'],
     },
     {
       validator: validatePasswordStartWith,
-      message: '两次密码输入不一致',
+      message: t('setting.rule.passwordMismatch'),
       trigger: 'input',
     },
     {
       validator: validatePasswordSame,
-      message: '两次密码输入不一致',
+      message: t('setting.rule.passwordMismatch'),
       trigger: ['blur', 'password-input'],
     },
   ],
-};
+}));
+
 const handleNicknameShow = () => {
   showNicknameEdit.value = true;
   setTimeout(() => {

@@ -13,21 +13,21 @@
         <div class="info">
             <div class="title" :title="course.title">{{ course.title }}</div>
             <div class="meta">
-                <span class="teacher">{{ course.teacher?.nickname || '未知老师' }}</span>
-                <span class="comments">{{ course.comment_count }} 评论</span>
+                <span class="teacher">{{ course.teacher?.nickname || t('course.card.unknownTeacher') }}</span>
+                <span class="comments">{{ t('course.card.commentCount', { count: course.comment_count }) }}</span>
             </div>
         </div>
         <div v-if="isAdmin" class="admin-ops" @click.stop>
-            <n-button text size="tiny" @click="emit('edit')">编辑</n-button>
+            <n-button text size="tiny" @click="emit('edit')">{{ t('common.edit') }}</n-button>
             <n-popconfirm
-                negative-text="取消"
-                positive-text="删除"
+                :negative-text="t('common.cancel')"
+                :positive-text="t('common.delete')"
                 @positive-click="emit('delete')"
             >
                 <template #trigger>
-                    <n-button text size="tiny" type="error">删除</n-button>
+                    <n-button text size="tiny" type="error">{{ t('common.delete') }}</n-button>
                 </template>
-                确定删除课程「{{ course.title }}」？将同时删除其全部评论，不可恢复。
+                {{ t('course.card.deleteConfirm', { title: course.title }) }}
             </n-popconfirm>
         </div>
     </div>
@@ -37,6 +37,9 @@
 import { useRouter } from 'vue-router';
 import { PlayCircleOutline, PlayOutline } from '@vicons/ionicons5';
 import type { CourseItem } from '@/api/course';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{

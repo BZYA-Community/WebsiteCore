@@ -4,15 +4,15 @@
 
         <n-list class="main-content-wrap" bordered>
             <n-tabs type="line" animated :default-value="tabler" @update:value="changeTab">
-                <n-tab-pane name="follows"><template #tab>正在关注</template></n-tab-pane>
-                <n-tab-pane name="followings"><template #tab>我的粉丝</template></n-tab-pane>
+                <n-tab-pane name="follows"><template #tab>{{ t('user.following.tabFollowing') }}</template></n-tab-pane>
+                <n-tab-pane name="followings"><template #tab>{{ t('user.following.tabFollowers') }}</template></n-tab-pane>
             </n-tabs>
             <div v-if="loading && list.length === 0" class="skeleton-wrap">
                 <post-skeleton :num="pageSize" />
             </div>
             <div v-else>
                 <div class="empty-wrap" v-if="list.length === 0">
-                    <n-empty size="large" description="暂无数据" />
+                    <n-empty size="large" :description="t('common.noData')" />
                 </div>
 
                 <n-list-item v-for="contact in list" :key="contact.user_id">
@@ -22,11 +22,11 @@
         </n-list>
     </div>
     <n-space v-if="totalPage > 0" justify="center">
-		<InfiniteLoading class="load-more" :slots="{ complete: completeStr, error: '加载出错' }" @infinite="handleNextPage">
+		<InfiniteLoading class="load-more" :slots="{ complete: completeStr, error: t('user.following.loadError') }" @infinite="handleNextPage">
 			<template #spinner>
 				<div class="load-more-wrap">
 					<n-spin :size="14" v-if="!noMore" />
-					<span class="load-more-spinner">{{ noMore ? completeStr : '加载更多' }}</span>
+					<span class="load-more-spinner">{{ noMore ? completeStr : t('user.following.loadMore') }}</span>
 				</div>
 			</template>
 		</InfiniteLoading>
@@ -35,6 +35,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import InfiniteLoading from 'v3-infinite-loading';
 import { useRoute } from 'vue-router';
 import { Api } from '@/utils/request';
@@ -43,9 +44,10 @@ import { useChatJump } from '@/composables/useUserAction';
 import UserCard from '@/components/user-card.vue';
 
 const route = useRoute();
+const { t } = useI18n();
 
 const list = ref<Item.ContactItemProps[]>([]);
-const nickname = (route.query.n as string) || '粉丝详情';
+const nickname = computed(() => (route.query.n as string) || t('user.following.titleDefault'));
 const username = (route.query.s as string) || '';
 const tabler = ref((route.query.t as string) || 'follows');
 const showAddFriendWhisper = ref(false);
@@ -64,9 +66,9 @@ function resetPage(tab: 'follows' | 'followings') {
 
 const completeStr = computed(() => {
   if (tabler.value == 'follows') {
-    return '没有更多关注了';
+    return t('user.following.noMoreFollowing');
   } else {
-    return '没有更多粉丝了';
+    return t('user.following.noMoreFollowers');
   }
 });
 

@@ -53,7 +53,7 @@ WebsiteCore is a self-hosted micro-community / forum system: a Go backend (Gin +
 | Layer | Technology |
 | --- | --- |
 | Backend | Go · Gin · GORM · Redis (rueidis) · go-mir (API codegen) · golang-migrate |
-| Frontend | Vue 3 · Vite · Naive UI · Pinia · vue-advanced-chat · md-editor-v3 · Artplayer |
+| Frontend | Vue 3 · Vite · Naive UI · Pinia · vue-i18n (i18n) · vue-advanced-chat · md-editor-v3 · Artplayer |
 | Infrastructure | PostgreSQL / MySQL · Redis · Meilisearch (optional) |
 
 ## Quick start
@@ -106,13 +106,16 @@ make gen-mir           # regenerate API code: mirc/ -> auto/ (never hand-edit ge
 make gen-enum          # regenerate enums
 make test              # go test ./...
 cd web && npm run dev  # frontend dev server
+cd web && npm run i18n:check  # locale pack validation (missing/unused/zh-CN-en parity)
 ```
 
 Standard flow for a new API: declare it in `mirc/web/v1/` → `make gen-mir` generates the routing skeleton → implement it in `internal/servants/web/`. Schema changes go into `scripts/migration/{mysql,postgres}/` as numbered `NNNN_name.{up,down}.sql` pairs (one per dialect). Full guide: [docs/development.md](docs/development.md).
 
+The frontend is internationalized with **vue-i18n** (`zh-CN` source + `en`; language picker in the bottom-left sidebar). Locale packs live in `web/src/locales/<locale>/<namespace>.json` — plain nested JSON, ready for Crowdin/Weblate/Tolgee so the community can maintain more languages. Never hardcode UI copy: add keys to both locales and render with `t()`. Details: the Internationalization section in [web/README.md](web/README.md).
+
 ## Contributing
 
-Every PR must pass CI, the AI review, and the **BVT** (Build Verification Test): backend syntax/build/lint/test checks, and — for frontend changes — layout checks ensuring no overlapping content at the standard viewports. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full process, role/promotion system, and review rules.
+Every PR must pass CI, the AI review, and the **BVT** (Build Verification Test): backend syntax/build/lint/test checks, and — for frontend changes — the locale-pack check (`npm run i18n:check`: missing keys / unused keys / zh-CN-en parity) plus layout checks ensuring no overlapping content at the standard viewports. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full process, role/promotion system, and review rules.
 
 This repository is maintained by a student community; contributions are recorded in the weekly report published every Friday.
 

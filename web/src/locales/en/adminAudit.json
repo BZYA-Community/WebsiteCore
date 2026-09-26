@@ -1,0 +1,83 @@
+{
+  "pageTitle": "Audit Queue",
+  "cardTitle": "Content Audit",
+  "tab": {
+    "post": "Posts",
+    "comment": "Comments",
+    "nickname": "Nicknames",
+    "logs": "Audit Logs"
+  },
+  "status": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "action": {
+    "viewPost": "View Post",
+    "viewType": "View {type}",
+    "viewHome": "View Profile",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approveAction": "Approve",
+    "rejectAction": "Reject",
+    "deleteAction": "Delete",
+    "commentApprove": "Comment Approved",
+    "commentReject": "Comment Rejected",
+    "replyApprove": "Reply Approved",
+    "replyReject": "Reply Rejected",
+    "nicknameApprove": "Nickname Approved",
+    "nicknameReject": "Nickname Rejected",
+    "courseCommentApprove": "Course Comment Approved",
+    "courseCommentReject": "Course Comment Rejected",
+    "courseReplyApprove": "Course Reply Approved",
+    "courseReplyReject": "Course Reply Rejected",
+    "courseDelete": "Course Deleted"
+  },
+  "contentType": {
+    "title": "Title",
+    "text": "Text",
+    "image": "Image",
+    "video": "Video",
+    "audio": "Audio",
+    "link": "Link",
+    "attachment": "Attachment",
+    "paidAttachment": "Paid Attachment",
+    "markdownLong": "Markdown Article",
+    "typeN": "Type {n}"
+  },
+  "visibility": {
+    "private": "Private",
+    "friendsOnly": "Friends Only",
+    "followOnly": "Followers Only",
+    "public": "Public"
+  },
+  "table": {
+    "postId": "Post ID",
+    "operator": "Operator",
+    "action": "Action",
+    "statusChange": "Status Change",
+    "reason": "Reason",
+    "time": "Time"
+  },
+  "commentType": {
+    "reply": "Reply",
+    "courseComment": "Course Comment",
+    "courseReply": "Course Reply",
+    "comment": "Comment"
+  },
+  "rejectTitle": "Rejection Reason",
+  "confirmReject": "Confirm Rejection",
+  "rejectPlaceholder": "Enter rejection reason (required)",
+  "emptyText": "(empty)",
+  "noTextContent": "(no text content)",
+  "noContent": "(no content)",
+  "mediaCount": "({count} {kinds} items)",
+  "paginationPrefix": "{count} total",
+  "nicknameChangeRequest": "Nickname Change Request",
+  "msg": {
+    "approved": "Approved successfully",
+    "nicknameApproved": "Nickname change approved",
+    "fillRejectReason": "Please enter a rejection reason",
+    "rejected": "Rejected"
+  }
+}

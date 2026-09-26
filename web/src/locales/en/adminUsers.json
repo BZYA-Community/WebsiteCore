@@ -1,0 +1,70 @@
+{
+  "pageTitle": "User Management",
+  "table": {
+    "id": "ID",
+    "nickname": "Nickname",
+    "username": "Username",
+    "phone": "Phone",
+    "identity": "Identity",
+    "role": "Role",
+    "status": "Status",
+    "createdOn": "Registered",
+    "actions": "Actions",
+    "user": "User",
+    "operator": "Operator",
+    "change": "Change",
+    "action": "Action",
+    "time": "Time"
+  },
+  "searchPlaceholder": "Search ID / username / nickname / phone",
+  "statusNormal": "Normal",
+  "statusBanned": "Banned",
+  "actionDetail": "Details",
+  "actionBan": "Ban",
+  "actionUnban": "Unban",
+  "actionGrant": "Grant",
+  "actionRevoke": "Revoke",
+  "drawer": {
+    "labelUid": "UID",
+    "labelNickname": "Nickname",
+    "labelUsername": "Username",
+    "labelPhone": "Phone",
+    "labelIdentity": "Identity",
+    "labelStatus": "Status",
+    "labelCreatedOn": "Registered",
+    "roleManagement": "Role Management",
+    "roleTip": "Operators can manage all roles; admins can manage mentors, auditors, and admins, but cannot modify operator accounts.",
+    "roleChangeLog": "Role Change Log",
+    "granted": "Granted",
+    "notGranted": "Not Granted"
+  },
+  "role": {
+    "mentor": "Mentor",
+    "auditor": "Auditor",
+    "admin": "Admin",
+    "operator": "Operator"
+  },
+  "pagination": {
+    "userCount": "{count} users",
+    "itemCount": "{count} records"
+  },
+  "detailTitle": "User Details - {name}",
+  "noRoles": "None",
+  "userFallback": "#{id}",
+  "operatorFallback": "#{id}",
+  "roleChangeArrow": "{old} → {new}",
+  "dialog": {
+    "changeRoleTitle": "Change User Role",
+    "changeRoleContent": "Are you sure you want to {action} the \"{role}\" role for {username}?",
+    "roleUpdated": "Role updated",
+    "banTitle": "Ban User",
+    "unbanTitle": "Unban User",
+    "banContent": "Are you sure you want to {action} {username}? {warning}",
+    "banWarning": "Banned users cannot log in.",
+    "banned": "Banned",
+    "unbanned": "Unbanned",
+    "deleteTitle": "Delete User",
+    "deleteContent": "Are you sure you want to delete user {username}? Deleted users cannot log in and will no longer appear in lists or the front-end. Historical data is retained (recoverable from the database).",
+    "deleted": "Deleted"
+  }
+}

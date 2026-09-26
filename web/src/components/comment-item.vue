@@ -27,7 +27,7 @@
                     size="small"
                     round
                 >
-                    精选
+                    {{ t('comment.tag.featured') }}
                 </n-tag>
                 <n-tag
                     v-if="comment.audit_status === AuditStatusEnum.PENDING"
@@ -36,7 +36,7 @@
                     size="small"
                     round
                 >
-                    审核中
+                    {{ t('comment.tag.pending') }}
                 </n-tag>
                 <n-tag
                     v-else-if="comment.audit_status === AuditStatusEnum.REJECTED"
@@ -45,7 +45,7 @@
                     size="small"
                     round
                 >
-                    未通过审核
+                    {{ t('comment.tag.rejected') }}
                 </n-tag>
             </template>
             <template #header-extra>
@@ -55,8 +55,8 @@
                     </span>
                     <n-popconfirm
                         v-if="userInfo.id === postUserId"
-                        negative-text="取消"
-                        positive-text="确认"
+                        :negative-text="t('common.cancel')"
+                        :positive-text="t('common.confirm')"
                         @positive-click="execHightlightAction"
                     >
                         <template #trigger>
@@ -76,15 +76,15 @@
                                 </template>
                             </n-button>
                         </template>
-                        {{ comment.is_essence == YesNoEnum.NO ? "是否精选这条评论" : "是否取消精选"}}
+                        {{ comment.is_essence == YesNoEnum.NO ? t('comment.confirm.highlightComment') : t('comment.confirm.unhighlightComment')}}
                     </n-popconfirm>
                     <n-popconfirm
                         v-if="
                             userInfo.is_admin ||
                             userInfo.id === comment.user.id
                         "
-                        negative-text="取消"
-                        positive-text="确认"
+                        :negative-text="t('common.cancel')"
+                        :positive-text="t('common.confirm')"
                         @positive-click="execDelAction"
                     >
                         <template #trigger>
@@ -101,7 +101,7 @@
                                 </template>
                             </n-button>
                         </template>
-                        是否删除这条评论？
+                        {{ t('comment.confirm.deleteComment') }}
                     </n-popconfirm>
                 </div>
             </template>
@@ -155,6 +155,9 @@ import { deleteComment, highlightComment } from '@/api/post';
 import { YesNoEnum } from '@/utils/IEnum';
 import { AuditStatusEnum } from '@/utils/IEnum';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const router = useRouter();
 const replyAtUserID = ref(0);
@@ -202,7 +205,7 @@ const doClickText = (e: MouseEvent, id: number | string) => {
     if (d.length === 2) {
       storeMain.doRefresh();
       if (d[0] === 'tag') {
-        window.$message.warning('评论内的无效话题');
+        window.$message.warning(t('comment.msg.invalidTopic'));
       } else {
         router.push({
           name: 'user',
@@ -233,7 +236,7 @@ const execDelAction = () => {
     id: comment.value.id,
   })
     .then((_res) => {
-      window.$message.success('删除成功');
+      window.$message.success(t('comment.msg.deleteSuccess'));
       setTimeout(() => {
         reload();
       }, 50);
@@ -247,7 +250,7 @@ const execHightlightAction = () => {
   })
     .then((res) => {
       comment.value.is_essence = res.highlight_status;
-      window.$message.success('操作成功');
+      window.$message.success(t('comment.msg.operateSuccess'));
       setTimeout(() => {
         reload();
       }, 50);

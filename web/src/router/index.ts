@@ -1,11 +1,13 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
+import { watch } from 'vue';
+import i18n from '@/locales';
 
 const routes = [
   {
     path: '/',
     name: 'home',
     meta: {
-      title: '广场',
+      titleKey: 'nav.home',
       keepAlive: true,
     },
     component: () => import('@/views/Home.vue'),
@@ -14,7 +16,7 @@ const routes = [
     path: '/post',
     name: 'post',
     meta: {
-      title: '泡泡详情',
+      titleKey: 'nav.postDetail',
     },
     component: () => import('@/views/Post.vue'),
   },
@@ -22,7 +24,7 @@ const routes = [
     path: '/compose-md',
     name: 'compose-md',
     meta: {
-      title: '发布长文',
+      titleKey: 'nav.composeMd',
     },
     component: () => import('@/views/ComposeMd.vue'),
   },
@@ -30,7 +32,7 @@ const routes = [
     path: '/courses',
     name: 'courses',
     meta: {
-      title: '课程',
+      titleKey: 'nav.courses',
     },
     component: () => import('@/views/Courses.vue'),
   },
@@ -38,7 +40,7 @@ const routes = [
     path: '/course',
     name: 'course',
     meta: {
-      title: '课程详情',
+      titleKey: 'nav.courseDetail',
     },
     component: () => import('@/views/CourseDetail.vue'),
   },
@@ -46,7 +48,7 @@ const routes = [
     path: '/topic',
     name: 'topic',
     meta: {
-      title: '话题',
+      titleKey: 'nav.topic',
     },
     component: () => import('@/views/Topic.vue'),
   },
@@ -54,7 +56,7 @@ const routes = [
     path: '/profile',
     name: 'profile',
     meta: {
-      title: '主页',
+      titleKey: 'nav.profile',
     },
     component: () => import('@/views/Profile.vue'),
   },
@@ -62,7 +64,7 @@ const routes = [
     path: '/u',
     name: 'user',
     meta: {
-      title: '用户详情',
+      titleKey: 'nav.userDetail',
     },
     component: () => import('@/views/User.vue'),
   },
@@ -70,7 +72,7 @@ const routes = [
     path: '/messages',
     name: 'messages',
     meta: {
-      title: '消息',
+      titleKey: 'nav.messages',
     },
     component: () => import('@/views/Chat.vue'),
   },
@@ -78,7 +80,7 @@ const routes = [
     path: '/collection',
     name: 'collection',
     meta: {
-      title: '收藏',
+      titleKey: 'nav.collection',
     },
     component: () => import('@/views/Collection.vue'),
   },
@@ -86,7 +88,7 @@ const routes = [
     path: '/following',
     name: 'following',
     meta: {
-      title: '关注',
+      titleKey: 'nav.following',
     },
     component: () => import('@/views/Following.vue'),
   },
@@ -94,7 +96,7 @@ const routes = [
     path: '/setting',
     name: 'setting',
     meta: {
-      title: '设置',
+      titleKey: 'nav.setting',
     },
     component: () => import('@/views/Setting.vue'),
   },
@@ -102,7 +104,7 @@ const routes = [
     path: '/admin/settings',
     name: 'admin-settings',
     meta: {
-      title: '系统配置',
+      titleKey: 'nav.adminSettings',
     },
     component: () => import('@/views/AdminSettings.vue'),
   },
@@ -110,7 +112,7 @@ const routes = [
     path: '/admin/users',
     name: 'admin-users',
     meta: {
-      title: '用户管理',
+      titleKey: 'nav.adminUsers',
     },
     component: () => import('@/views/AdminUsers.vue'),
   },
@@ -118,7 +120,7 @@ const routes = [
     path: '/admin/audit',
     name: 'admin-audit',
     meta: {
-      title: '审核队列',
+      titleKey: 'nav.adminAudit',
     },
     component: () => import('@/views/AdminAudit.vue'),
   },
@@ -126,7 +128,7 @@ const routes = [
     path: '/404',
     name: '404',
     meta: {
-      title: '404',
+      titleKey: 'nav.pageNotFound',
     },
     component: () => import('@/views/404.vue'),
   },
@@ -141,9 +143,22 @@ const router = createRouter({
   routes,
 });
 
+function updateDocumentTitle(titleKey?: unknown) {
+  const title = titleKey ? i18n.global.t(titleKey as string) : '';
+  document.title = title
+    ? `${title} | ${i18n.global.t('common.siteName')}`
+    : i18n.global.t('common.siteName');
+}
+
 router.beforeEach((to, from, next) => {
-  document.title = `${to.meta.title} | 泡泡 - 一个清新文艺的微社区`;
+  updateDocumentTitle(to.meta.titleKey);
   next();
 });
+
+// 语言切换时刷新当前路由标题
+watch(
+  () => i18n.global.locale.value,
+  () => updateDocumentTitle(router.currentRoute.value.meta.titleKey),
+);
 
 export default router;

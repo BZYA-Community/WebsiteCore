@@ -1,0 +1,45 @@
+{
+  "tag": {
+    "featured": "精选",
+    "pending": "审核中",
+    "rejected": "未通过审核"
+  },
+  "action": {
+    "reply": "回复",
+    "login": "登录",
+    "register": "注册",
+    "publish": "发布"
+  },
+  "confirm": {
+    "highlightComment": "是否精选这条评论",
+    "unhighlightComment": "是否取消精选",
+    "deleteComment": "是否删除这条评论？",
+    "deleteReply": "是否删除这条回复？"
+  },
+  "msg": {
+    "deleteSuccess": "删除成功",
+    "operateSuccess": "操作成功",
+    "invalidTopic": "评论内的无效话题",
+    "contentRequired": "请输入内容哦",
+    "commentPendingAudit": "评论已提交，审核通过后对外可见",
+    "publishSuccess": "发布成功",
+    "replyPendingAudit": "回复已提交，审核通过后对外可见",
+    "replySuccess": "评论成功"
+  },
+  "reply": {
+    "placeholder": "请输入回复内容.."
+  },
+  "compose": {
+    "placeholderLocked": "泡泡已被锁定，回复功能已关闭",
+    "placeholder": "快来评论两句吧...",
+    "loginBanner": "登录后，精彩更多"
+  },
+  "label": {
+    "like": "赞"
+  },
+  "upload": {
+    "imageFormatError": "图片仅允许 png/jpg/gif 格式",
+    "imageSizeError": "图片大小不能超过10MB",
+    "uploadFailed": "上传失败"
+  }
+}

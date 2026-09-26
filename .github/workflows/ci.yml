@@ -73,5 +73,8 @@ jobs:
       - name: Code quality (ESLint)
         run: npm run lint
 
+      - name: i18n locale packs (missing/unused/parity)
+        run: npm run i18n:check
+
       - name: Syntax check (build)
         run: npm run build

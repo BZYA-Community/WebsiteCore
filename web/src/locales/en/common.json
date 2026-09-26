@@ -1,0 +1,16 @@
+{
+  "confirm": "OK",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "edit": "Edit",
+  "save": "Save",
+  "search": "Search",
+  "all": "All",
+  "noMore": "No more data",
+  "noData": "No data",
+  "thousand": "{n}K",
+  "tenThousand": "{n}0K",
+  "tip": "Notice",
+  "operationSuccess": "Operation successful",
+  "siteName": "Paopao - A fresh and literary micro-community"
+}

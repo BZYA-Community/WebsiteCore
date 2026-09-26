@@ -20,7 +20,7 @@
                     :options="optionsRef"
                     @search="handleSearch"
                     @update:value="changeContent"
-                    placeholder="说说您的新鲜事..."
+                    :placeholder="t('compose.placeholder')"
                 />
             </div>
 
@@ -181,7 +181,7 @@
                                     </template>
                                 </n-button>
                             </template>
-                            进入Markdown编辑器
+                            {{ t('compose.enterMarkdownEditor') }}
                         </n-tooltip>
 
                         <n-tooltip trigger="hover" placement="bottom">
@@ -195,7 +195,7 @@
                                     :percentage="(content.length / maxInputLength) * 100"
                                 />
                             </template>
-                            已输入{{ content.length }}字
+                            {{ t('compose.charCount', { count: content.length }) }}
                         </n-tooltip>
 
                         <n-button
@@ -205,7 +205,7 @@
                             secondary
                             round
                         >
-                            发布
+                            {{ t('compose.publish') }}
                         </n-button>
                     </div>
                 </div>
@@ -231,18 +231,18 @@
             <div class="link-wrap" v-if="showLinkSet">
                 <n-dynamic-input
                     v-model:value="links"
-                    placeholder="请输入以http(s)://开头的链接"
+                    :placeholder="t('compose.linkPlaceholder')"
                     :min="0"
                     :max="3"
                 >
-                    <template #create-button-default> 创建链接 </template>
+                    <template #create-button-default> {{ t('compose.createLink') }} </template>
                 </n-dynamic-input>
             </div>
         </div>
 
         <div class="compose-wrap" v-else>
             <div class="login-wrap">
-                <span class="login-banner"> 登录后，精彩更多</span>
+                <span class="login-banner"> {{ t('compose.loginBanner') }}</span>
             </div>
             <div v-if="!profile.allowUserRegister" class="login-only-wrap">
                 <n-button
@@ -252,7 +252,7 @@
                     type="primary"
                     @click="triggerAuth('signin')"
                 >
-                    登录
+                    {{ t('compose.login') }}
                 </n-button>
             </div>
             <div v-if="profile.allowUserRegister" class="login-wrap">
@@ -263,7 +263,7 @@
                     type="primary"
                     @click="triggerAuth('signin')"
                 >
-                    登录
+                    {{ t('compose.login') }}
                 </n-button>
                 <n-button
                     strong
@@ -272,7 +272,7 @@
                     type="info"
                     @click="triggerAuth('signup')"
                 >
-                    注册
+                    {{ t('compose.register') }}
                 </n-button>
             </div>
         </div>
@@ -281,6 +281,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { useStoreProfile } from '@/store/profile';
@@ -307,6 +308,7 @@ const emit = defineEmits<{
   (e: 'post-success', post: Item.PostProps): void;
 }>();
 
+const { t } = useI18n();
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const storeProfile = useStoreProfile();
@@ -346,9 +348,9 @@ const uploadToken = computed(() => {
 
 const visibilities = computed(() => {
   let res = [
-    { value: VisibilityEnum.PUBLIC, label: '公开' },
-    { value: VisibilityEnum.PRIVATE, label: '私密' },
-    { value: VisibilityEnum.Following, label: '关注可见' },
+    { value: VisibilityEnum.PUBLIC, label: t('compose.visibilityPublic') },
+    { value: VisibilityEnum.PRIVATE, label: t('compose.visibilityPrivate') },
+    { value: VisibilityEnum.Following, label: t('compose.visibilityFollowing') },
   ];
   return res;
 });
@@ -465,12 +467,12 @@ const beforeUpload = async (data: any) => {
       'image/gif',
     ].includes(data.file.file?.type)
   ) {
-    window.$message.warning('图片仅允许 webp/png/jpg/gif 格式');
+    window.$message.warning(t('compose.imageFormatError'));
     return false;
   }
 
   if (uploadType.value === 'image' && data.file.file?.size > 10485760) {
-    window.$message.warning('图片大小不能超过10MB');
+    window.$message.warning(t('compose.imageSizeError'));
     return false;
   }
 
@@ -479,22 +481,22 @@ const beforeUpload = async (data: any) => {
     uploadType.value === 'public/video' &&
     !['video/mp4', 'video/quicktime'].includes(data.file.file?.type)
   ) {
-    window.$message.warning('视频仅允许 mp4/mov 格式');
+    window.$message.warning(t('compose.videoFormatError'));
     return false;
   }
 
   if (uploadType.value === 'public/video' && data.file.file?.size > 104857600) {
-    window.$message.warning('视频大小不能超过100MB');
+    window.$message.warning(t('compose.videoSizeError'));
     return false;
   }
   // 附件类型校验
   if (uploadType.value === 'attachment' && !(await isZipFile(data.file.file))) {
-    window.$message.warning('附件仅允许 zip 格式');
+    window.$message.warning(t('compose.attachmentFormatError'));
     return false;
   }
 
   if (uploadType.value === 'attachment' && data.file.file?.size > 104857600) {
-    window.$message.warning('附件大小不能超过100MB');
+    window.$message.warning(t('compose.attachmentSizeError'));
     return false;
   }
 
@@ -525,7 +527,7 @@ const finishUpload = ({ file, event }: any): any => {
       }
     }
   } catch (error) {
-    window.$message.error('上传失败');
+    window.$message.error(t('compose.uploadFailed'));
   }
 };
 const failUpload = ({ file, event }: any): any => {
@@ -533,7 +535,7 @@ const failUpload = ({ file, event }: any): any => {
     let data = JSON.parse(event.target?.response);
 
     if (data.code !== 0) {
-      let errMsg = data.msg || '上传失败';
+      let errMsg = data.msg || t('compose.uploadFailed');
       if (data.details && data.details.length > 0) {
         data.details.map((detail: string) => {
           errMsg += ':' + detail;
@@ -542,7 +544,7 @@ const failUpload = ({ file, event }: any): any => {
       window.$message.error(errMsg);
     }
   } catch (error) {
-    window.$message.error('上传失败');
+    window.$message.error(t('compose.uploadFailed'));
   }
 };
 const removeUpload = ({ file }: any) => {
@@ -563,7 +565,7 @@ const removeUpload = ({ file }: any) => {
 // 发布动态
 const submitPost = () => {
   if (content.value.trim().length === 0) {
-    window.$message.warning('请输入内容哦');
+    window.$message.warning(t('compose.contentRequired'));
     return;
   }
 
@@ -623,9 +625,9 @@ const submitPost = () => {
   })
     .then((res) => {
       if (res.audit_status === 0) {
-        window.$message.success('发布成功，内容审核通过后对他人可见');
+        window.$message.success(t('compose.publishSuccessAudit'));
       } else {
-        window.$message.success('发布成功');
+        window.$message.success(t('compose.publishSuccess'));
       }
       submitting.value = false;
       emit('post-success', res);

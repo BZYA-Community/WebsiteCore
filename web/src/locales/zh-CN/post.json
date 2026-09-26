@@ -1,0 +1,113 @@
+{
+  "status": {
+    "pinned": "置顶",
+    "private": "私密",
+    "pendingAudit": "待审核",
+    "auditRejected": "审核未通过",
+    "notPassed": "未通过",
+    "friendVisible": "好友可见",
+    "followingVisible": "关注可见",
+    "public": "公开"
+  },
+  "action": {
+    "delete": "删除",
+    "lock": "锁定",
+    "unlock": "解锁",
+    "stick": "置顶",
+    "unstick": "取消置顶",
+    "highlight": "设为亮点",
+    "unhighlight": "取消亮点",
+    "approve": "通过",
+    "reject": "拒绝",
+    "confirmReject": "确定拒绝",
+    "confirmDownload": "确认下载",
+    "copyLink": "复制链接",
+    "expand": "展开",
+    "collapse": "收起",
+    "readFull": "阅读全文",
+    "follow": "关注",
+    "unfollow": "取消关注",
+    "pin": "钉住",
+    "unpin": "取消钉住"
+  },
+  "dialog": {
+    "tipTitle": "提示",
+    "deleteContent": "确定删除该泡泡动态吗？",
+    "lockContent": "确定{action}该泡泡动态吗？",
+    "stickContent": "确定{action}该泡泡动态吗？",
+    "highlightContent": "确定将该泡泡动态{action}吗？",
+    "visibilityContent": "确定将该泡泡动态可见度修改为{visibility}吗？",
+    "rejectTitle": "拒绝原因",
+    "rejectTip": "拒绝后该帖子将转为私密并标记「未通过」（作者可见），作者可将可见性重新设为非私密后再次提交审核。",
+    "rejectPlaceholder": "请填写拒绝原因（必填）",
+    "auditApproveTitle": "通过审核",
+    "auditApproveContent": "确定通过该帖子？通过后将公开出现在广场与搜索中。"
+  },
+  "audit": {
+    "barTip": "该内容尚未公开，仅作者与审核人员可见",
+    "rejectReasonRequired": "请填写拒绝原因"
+  },
+  "publishAt": "发布于",
+  "lastReply": "最后回复",
+  "attachment": "附件",
+  "downloadTipTitle": "下载提示",
+  "downloadTipContent": "这是一个免费附件，您可以直接下载？",
+  "msg": {
+    "deleteSuccess": "删除成功",
+    "lockSuccess": "锁定成功",
+    "unlockSuccess": "解锁成功",
+    "stickSuccess": "置顶成功",
+    "unstickSuccess": "取消置顶成功",
+    "highlightSuccess": "设为亮点成功",
+    "unhighlightSuccess": "取消亮点成功",
+    "visibilitySuccess": "修改可见性成功",
+    "linkCopied": "链接已复制到剪贴板",
+    "auditApproved": "已通过审核",
+    "auditRejected": "已拒绝该帖子",
+    "followSuccess": "关注成功",
+    "unfollowSuccess": "取消关注",
+    "pinSuccess": "钉住成功",
+    "unpinSuccess": "取消钉住",
+    "stickSuccess": "置顶成功",
+    "unstickSuccess": "取消置顶"
+  },
+  "menu": {
+    "whisper": "私信 {'@'}{user}",
+    "followUser": "关注 {'@'}{user}",
+    "unfollowUser": "取消关注 {'@'}{user}"
+  },
+  "home": {
+    "filterHot": "热门推荐",
+    "filterFollowing": "正在关注",
+    "latest": "最新动态",
+    "noMoreBubbles": "没有更多泡泡了",
+    "loadError": "加载出错",
+    "loadMore": "加载更多",
+    "squareTitle": "泡泡广场",
+    "searchPrefix": "搜索: "
+  },
+  "topic": {
+    "title": "话题",
+    "tabHot": "热门",
+    "tabNew": "最新",
+    "tabFollow": "关注",
+    "tabPin": "钉住",
+    "saveSuccess": "保存成功"
+  },
+  "postDetail": {
+    "title": "泡泡详情",
+    "commentTitle": "评论",
+    "sortRecommended": "推荐",
+    "sortHot": "热门",
+    "sortNewest": "最新",
+    "emptyComments": "暂无评论，快来抢沙发",
+    "noMoreData": "没有更多数据了",
+    "loadError": "加载出错",
+    "loadComments": "加载评论"
+  },
+  "notFound": {
+    "resourceNotFound": "404 资源不存在",
+    "description": "再看看其他的吧",
+    "backHome": "回主页"
+  }
+}

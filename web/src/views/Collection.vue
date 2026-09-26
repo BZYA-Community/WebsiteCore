@@ -1,6 +1,6 @@
 <template>
     <div>
-        <main-nav title="收藏" />
+        <main-nav :title="t('user.collection.title')" />
 
         <n-list class="main-content-wrap" bordered>
             <div v-if="loading && list.length === 0" class="skeleton-wrap">
@@ -8,7 +8,7 @@
             </div>
             <div v-else>
                 <div class="empty-wrap" v-if="list.length === 0">
-                    <n-empty size="large" description="暂无数据" />
+                    <n-empty size="large" :description="t('common.noData')" />
                 </div>
 
                 <n-list-item v-for="post in list" :key="post.id">
@@ -22,11 +22,11 @@
             </div>
         </n-list>
         <n-space v-if="totalPage > 0" justify="center">
-            <InfiniteLoading class="load-more" :slots="{ complete: '没有更多收藏了', error: '加载出错' }" @infinite="nextPage">
+            <InfiniteLoading class="load-more" :slots="{ complete: t('user.collection.noMore'), error: t('user.collection.loadError') }" @infinite="nextPage">
                 <template #spinner>
                     <div class="load-more-wrap">
                         <n-spin :size="14" v-if="!noMore" />
-                        <span class="load-more-spinner">{{ noMore ? '没有更多收藏了' : '加载更多' }}</span>
+                        <span class="load-more-spinner">{{ noMore ? t('user.collection.noMore') : t('user.collection.loadMore') }}</span>
                     </div>
                 </template>
             </InfiniteLoading>
@@ -36,6 +36,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { useStoreUser } from '@/store/user';
 import { useRoute } from 'vue-router';
@@ -45,6 +46,7 @@ import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
 import { useChatJump } from '@/composables/useUserAction';
 
+const { t } = useI18n();
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const { collapsedRight, desktopModelShow } = storeToRefs(storeMain);

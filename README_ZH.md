@@ -53,7 +53,7 @@ WebsiteCore 是一个自托管的微社区/论坛系统：Go 后端（Gin + GORM
 | 层 | 技术 |
 | --- | --- |
 | 后端 | Go · Gin · GORM · Redis(rueidis) · go-mir(接口代码生成) · golang-migrate(数据库迁移) |
-| 前端 | Vue 3 · Vite · Naive UI · Pinia · vue-advanced-chat(私信) · md-editor-v3(长文) · Artplayer |
+| 前端 | Vue 3 · Vite · Naive UI · Pinia · vue-i18n(国际化) · vue-advanced-chat(私信) · md-editor-v3(长文) · Artplayer |
 | 依赖服务 | PostgreSQL / MySQL · Redis · Meilisearch(可选) |
 
 ## 快速开始
@@ -106,13 +106,26 @@ make gen-mir      # 接口代码再生成: mirc/ -> auto/(勿手改生成物)
 make gen-enum     # 枚举代码再生成
 make test         # 测试
 cd web && npm run dev    # 前端开发服务
+cd web && npm run i18n:check   # 语言包校验(缺失/未使用/中英结构一致性)
 ```
 
 新增 API 的标准流程：在 `mirc/web/v1/` 声明接口签名 → `make gen-mir` 生成路由骨架 → 在 `internal/servants/web/` 实现业务。数据库结构变更在 `scripts/migration/{mysql,postgres}/` 按编号新增 `NNNN_name.{up,down}.sql`（两方言各一份）。完整开发指南见 [docs/development.md](docs/development.md)。
 
+### 前端国际化 (i18n)
+
+前端基于 **vue-i18n v11**，当前支持 `zh-CN`（源语言）与 `en`，切换入口在侧边栏左下角用户区的地球图标按钮（登录/未登录均可用），选择持久化在 `localStorage`（`PAOPAO_LOCALE`），首次访问跟随浏览器语言。
+
+- **语言包结构**：`web/src/locales/<语言>/<namespace>.json`，文件名即 namespace，key 形如 `post.action.delete`。纯嵌套 JSON，可直接导入 **Crowdin / Weblate / Tolgee** 等翻译平台，由社区译者按模块认领维护其他语言。
+- **新增语言**：创建 `web/src/locales/<lang>/` 并保持与 zh-CN 相同的文件与 key 结构，然后在 `web/src/locales/index.ts` 的 `SUPPORTED_LOCALES` 与 `localeOptions` 中登记。
+- **后端错误码**：后端仍返回中文错误消息，前端按错误码映射 `errors.codes.E<code>`（`web/src/locales/errorCodes.ts` + `utils/request.ts`），未映射的错误码回退后端原文。
+- **编写规范**：组件内用 `const { t } = useI18n()`，纯 `.ts` 模块用 `i18n.global.t()`（必须在运行时调用，不要在模块顶层固化结果）；setup 顶层的静态 label 数组/映射必须用 `computed` 包裹；插值只用命名参数 `{count}`；文案中字面 `@`/`|`/`{`/`}` 需转义（`{'@'}` 等）。
+- **禁止硬编码**：UI 文案不允许直接写中文，必须同时往 `zh-CN` 与 `en` 的对应 namespace JSON 添加 key 后用 `t()` 渲染，提交前跑 `npm run i18n:check`（CI 也会检查）。
+
+详细说明见 [web/README.md](web/README.md) 的 Internationalization 章节。
+
 ## 贡献
 
-每个 PR 必须通过 CI、AI 审查与 **BVT（构建验证测试）**：后端语法/构建/lint/测试检查；前端改动还须通过标准视口下的页面重叠检查。完整流程、角色晋升制度与审查规则见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+每个 PR 必须通过 CI、AI 审查与 **BVT（构建验证测试）**：后端语法/构建/lint/测试检查；前端改动还须通过语言包校验（`npm run i18n:check`：缺失 key / 未使用 key / 中英结构一致性）与标准视口下的页面重叠检查。完整流程、角色晋升制度与审查规则见 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 本仓库由学生社区自主维护，所有贡献都会记录在每周五自动生成的周报中。
 

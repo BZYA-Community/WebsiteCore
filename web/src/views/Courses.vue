@@ -8,7 +8,7 @@
                 <n-input
                     v-model:value="keyword"
                     class="search-input"
-                    placeholder="搜索课程标题 / 简介"
+                    :placeholder="t('course.list.searchPlaceholder')"
                     clearable
                     @keyup.enter="doSearch"
                     @clear="clearSearch"
@@ -17,18 +17,18 @@
                         <n-icon><search-outline /></n-icon>
                     </template>
                 </n-input>
-                <n-button type="primary" secondary round @click="doSearch">搜索</n-button>
+                <n-button type="primary" secondary round @click="doSearch">{{ t('common.search') }}</n-button>
                 <template v-if="userInfo.is_admin">
-                    <n-button secondary round @click="openGroupModal()">新建分组</n-button>
-                    <n-button secondary round type="info" @click="openCourseModal()">新建课程</n-button>
+                    <n-button secondary round @click="openGroupModal()">{{ t('course.list.createGroup') }}</n-button>
+                    <n-button secondary round type="info" @click="openCourseModal()">{{ t('course.list.createCourse') }}</n-button>
                 </template>
             </div>
 
             <!-- 搜索结果(扁平分页) -->
             <template v-if="searching">
                 <div class="section-header">
-                    <span class="section-title">搜索「{{ searchKeyword }}」的结果</span>
-                    <n-button text size="small" @click="clearSearch">返回分组</n-button>
+                    <span class="section-title">{{ t('course.list.searchResultTitle', { keyword: searchKeyword }) }}</span>
+                    <n-button text size="small" @click="clearSearch">{{ t('course.list.backToGroups') }}</n-button>
                 </div>
                 <div class="course-grid">
                     <course-card
@@ -40,22 +40,22 @@
                         @delete="execDeleteCourse(course)"
                     />
                 </div>
-                <n-empty v-if="!searchLoading && searchList.length === 0" description="没有找到相关课程" />
+                <n-empty v-if="!searchLoading && searchList.length === 0" :description="t('course.list.noSearchResult')" />
                 <InfiniteLoading :key="'search-' + searchLoadKey" @infinite="onSearchInfinite">
-                    <template #complete><span class="load-end">我是有底线的</span></template>
+                    <template #complete><span class="load-end">{{ t('course.list.bottomLine') }}</span></template>
                 </InfiniteLoading>
             </template>
 
             <!-- 分组浏览 -->
             <template v-else>
                 <div v-if="groups.length === 0 && !loadingGroups" class="empty-wrap">
-                    <n-empty size="large" description="暂无课程分组" />
+                    <n-empty size="large" :description="t('course.list.noGroups')" />
                 </div>
                 <div v-for="group in groups" :key="group.id" class="group-section">
                     <div class="section-header">
                         <span class="section-title">
                             {{ group.name }}
-                            <span class="section-count">{{ group.course_count }} 门课程</span>
+                            <span class="section-count">{{ t('course.list.courseCount', { count: group.course_count }) }}</span>
                         </span>
                         <div class="section-ops">
                             <n-button
@@ -65,19 +65,19 @@
                                 type="primary"
                                 @click="enterGroup(group.id)"
                             >
-                                查看全部
+                                {{ t('course.list.viewAll') }}
                             </n-button>
                             <template v-if="userInfo.is_admin">
-                                <n-button text size="small" @click="openGroupModal(group)">编辑</n-button>
+                                <n-button text size="small" @click="openGroupModal(group)">{{ t('common.edit') }}</n-button>
                                 <n-popconfirm
-                                    negative-text="取消"
-                                    positive-text="删除"
+                                    :negative-text="t('common.cancel')"
+                                    :positive-text="t('common.delete')"
                                     @positive-click="execDeleteGroup(group)"
                                 >
                                     <template #trigger>
-                                        <n-button text size="small" type="error">删除</n-button>
+                                        <n-button text size="small" type="error">{{ t('common.delete') }}</n-button>
                                     </template>
-                                    删除分组「{{ group.name }}」？(分组下有课程时不可删除)
+                                    {{ t('course.list.deleteGroupConfirm', { name: group.name }) }}
                                 </n-popconfirm>
                             </template>
                         </div>
@@ -92,7 +92,7 @@
                             @delete="execDeleteCourse(course)"
                         />
                         <div v-if="(groupCourses[group.id] || []).length === 0" class="group-empty">
-                            该分组暂无课程
+                            {{ t('course.list.groupEmpty') }}
                         </div>
                     </div>
                 </div>
@@ -112,64 +112,64 @@
                         @delete="execDeleteCourse(course)"
                     />
                 </div>
-                <n-empty v-if="!drawerLoading && drawerList.length === 0" description="该分组暂无课程" />
+                <n-empty v-if="!drawerLoading && drawerList.length === 0" :description="t('course.list.groupEmpty')" />
                 <InfiniteLoading :key="'group-' + drawerLoadKey" @infinite="onDrawerInfinite">
-                    <template #complete><span class="load-end">我是有底线的</span></template>
+                    <template #complete><span class="load-end">{{ t('course.list.bottomLine') }}</span></template>
                 </InfiniteLoading>
             </n-drawer-content>
         </n-drawer>
 
         <!-- 分组编辑弹窗 -->
-        <n-modal v-model:show="groupModalShow" preset="card" :title="groupForm.id > 0 ? '编辑分组' : '新建分组'" style="width: 420px">
+        <n-modal v-model:show="groupModalShow" preset="card" :title="groupForm.id > 0 ? t('course.list.editGroup') : t('course.list.createGroup')" style="width: 420px">
             <n-form label-placement="left" label-width="80">
-                <n-form-item label="分组名称" required>
-                    <n-input v-model:value="groupForm.name" maxlength="64" show-count placeholder="分组名称" />
+                <n-form-item :label="t('course.list.groupName')" required>
+                    <n-input v-model:value="groupForm.name" maxlength="64" show-count :placeholder="t('course.list.groupNamePlaceholder')" />
                 </n-form-item>
-                <n-form-item label="排序">
-                    <n-input-number v-model:value="groupForm.sort" :min="0" placeholder="越小越靠前" />
+                <n-form-item :label="t('course.list.sortOrder')">
+                    <n-input-number v-model:value="groupForm.sort" :min="0" :placeholder="t('course.list.sortHint')" />
                 </n-form-item>
             </n-form>
             <template #footer>
-                <n-button type="primary" :loading="groupSaving" @click="saveGroup">保存</n-button>
+                <n-button type="primary" :loading="groupSaving" @click="saveGroup">{{ t('common.save') }}</n-button>
             </template>
         </n-modal>
 
         <!-- 课程编辑弹窗 -->
-        <n-modal v-model:show="courseModalShow" preset="card" :title="courseForm.id > 0 ? '编辑课程' : '新建课程'" style="width: 640px">
+        <n-modal v-model:show="courseModalShow" preset="card" :title="courseForm.id > 0 ? t('course.list.editCourse') : t('course.list.createCourse')" style="width: 640px">
             <n-form label-placement="left" label-width="80">
-                <n-form-item label="所属分组" required>
+                <n-form-item :label="t('course.list.belongGroup')" required>
                     <n-select
                         v-model:value="courseForm.group_id"
                         :options="groupOptions"
-                        placeholder="选择分组"
+                        :placeholder="t('course.list.selectGroup')"
                     />
                 </n-form-item>
-                <n-form-item label="课程标题" required>
-                    <n-input v-model:value="courseForm.title" maxlength="128" show-count placeholder="课程标题" />
+                <n-form-item :label="t('course.list.courseTitle')" required>
+                    <n-input v-model:value="courseForm.title" maxlength="128" show-count :placeholder="t('course.list.courseTitlePlaceholder')" />
                 </n-form-item>
-                <n-form-item label="课程简介">
+                <n-form-item :label="t('course.list.courseIntro')">
                     <n-input
                         v-model:value="courseForm.intro"
                         type="textarea"
                         maxlength="2000"
                         show-count
                         :autosize="{ minRows: 3, maxRows: 8 }"
-                        placeholder="课程简介(搜索时可被检索)"
+                        :placeholder="t('course.list.courseIntroPlaceholder')"
                     />
                 </n-form-item>
-                <n-form-item label="课程老师" required>
+                <n-form-item :label="t('course.list.courseTeacher')" required>
                     <n-select
                         v-model:value="courseForm.teacher_id"
                         filterable
                         remote
                         :options="teacherOptions"
                         :loading="teacherLoading"
-                        placeholder="输入用户名/昵称搜索"
+                        :placeholder="t('course.list.teacherSearchPlaceholder')"
                         @search="searchTeachers"
                         @focus="searchTeachers('')"
                     />
                 </n-form-item>
-                <n-form-item :label="courseForm.id > 0 ? '更换视频' : '课程视频'" :required="courseForm.id === 0">
+                <n-form-item :label="courseForm.id > 0 ? t('course.list.changeVideo') : t('course.list.courseVideo')" :required="courseForm.id === 0">
                     <div class="video-upload-wrap">
                         <n-upload
                             :show-file-list="false"
@@ -177,7 +177,7 @@
                             @before-upload="beforeVideoPick"
                         >
                             <n-button secondary>
-                                {{ videoName || '选择视频文件(mp4/mov, ≤500MB)' }}
+                                {{ videoName || t('course.list.selectVideoHint') }}
                             </n-button>
                         </n-upload>
                         <n-progress
@@ -186,18 +186,18 @@
                             :percentage="videoProgress"
                             :show-indicator="true"
                         />
-                        <span v-if="videoReady" class="video-ready">✓ 视频已{{ courseForm.id > 0 ? '更换' : '上传' }}</span>
+                        <span v-if="videoReady" class="video-ready">{{ courseForm.id > 0 ? t('course.list.videoReadyChanged') : t('course.list.videoReadyUploaded') }}</span>
                     </div>
                 </n-form-item>
-                <n-form-item label="课程封面">
+                <n-form-item :label="t('course.list.courseCover')">
                     <div class="cover-wrap">
-                        <img v-if="coverPreview" :src="coverPreview" class="cover-preview" alt="封面预览" />
-                        <span class="cover-hint">封面自动截取视频画面生成，重新选择视频会重新截取</span>
+                        <img v-if="coverPreview" :src="coverPreview" class="cover-preview" :alt="t('course.list.coverPreview')" />
+                        <span class="cover-hint">{{ t('course.list.coverHint') }}</span>
                     </div>
                 </n-form-item>
             </n-form>
             <template #footer>
-                <n-button type="primary" :loading="courseSaving" :disabled="videoUploading" @click="saveCourse">保存</n-button>
+                <n-button type="primary" :loading="courseSaving" :disabled="videoUploading" @click="saveCourse">{{ t('common.save') }}</n-button>
             </template>
         </n-modal>
     </div>
@@ -205,6 +205,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStoreUser } from '@/store/user';
 import { storeToRefs } from 'pinia';
 import axios from 'axios';
@@ -228,7 +229,8 @@ import { TOKEN_KEY } from '@/store/user';
 import InfiniteLoading from 'v3-infinite-loading';
 import type { UploadCustomRequestOptions } from 'naive-ui';
 
-const title = '课程';
+const { t } = useI18n();
+const title = computed(() => t('course.list.title'));
 const storeUser = useStoreUser();
 const { userInfo } = storeToRefs(storeUser);
 
@@ -386,7 +388,7 @@ const openGroupModal = (group?: CourseGroup) => {
 };
 const saveGroup = async () => {
   if (!groupForm.name.trim()) {
-    window.$message.warning('请输入分组名称');
+    window.$message.warning(t('course.list.inputGroupName'));
     return;
   }
   groupSaving.value = true;
@@ -396,7 +398,7 @@ const saveGroup = async () => {
     } else {
       await createCourseGroup({ name: groupForm.name.trim(), sort: groupForm.sort });
     }
-    window.$message.success('保存成功');
+    window.$message.success(t('course.list.saveSuccess'));
     groupModalShow.value = false;
     loadGroups();
   } catch (_err) {
@@ -408,7 +410,7 @@ const saveGroup = async () => {
 const execDeleteGroup = async (group: CourseGroup) => {
   try {
     await deleteCourseGroup({ id: group.id });
-    window.$message.success('删除成功');
+    window.$message.success(t('course.deleteSuccess'));
     loadGroups();
   } catch (_err) {
     // do nothing
@@ -468,11 +470,11 @@ const beforeVideoPick = async (data: any) => {
   if (!file) return false;
   const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
   if (!['.mp4', '.mov'].includes(ext)) {
-    window.$message.warning('课程视频仅允许 mp4/mov 格式');
+    window.$message.warning(t('course.list.videoFormatError'));
     return false;
   }
   if (file.size > 1024 * 1024 * 500) {
-    window.$message.warning('课程视频最大允许500MB');
+    window.$message.warning(t('course.list.videoSizeError'));
     return false;
   }
   videoName.value = file.name;
@@ -532,7 +534,7 @@ const uploadCover = async (blob: Blob) => {
       coverUrl.value = res.data.data.content;
     }
   } catch (_err) {
-    window.$message.warning('封面生成失败, 可稍后重试或编辑课程更换');
+    window.$message.warning(t('course.list.coverGenFailed'));
   }
 };
 
@@ -569,15 +571,15 @@ const uploadVideo = async (file: File, ext: string) => {
         },
       );
       if (res.data?.code !== 0) {
-        throw new Error(res.data?.msg || '上传失败');
+        throw new Error(res.data?.msg || t('course.upload.failed'));
       }
       videoKeyOrUrl.value = res.data.data.video_url;
     }
     videoReady.value = true;
-    window.$message.success('视频上传完成');
+    window.$message.success(t('course.list.videoUploadDone'));
   } catch (err: any) {
     videoName.value = '';
-    window.$message.error(err?.message || '视频上传失败');
+    window.$message.error(err?.message || t('course.list.videoUploadFailed'));
   } finally {
     videoUploading.value = false;
   }
@@ -611,19 +613,19 @@ const openCourseModal = (course?: CourseItem) => {
 
 const saveCourse = async () => {
   if (!courseForm.group_id) {
-    window.$message.warning('请选择分组');
+    window.$message.warning(t('course.list.selectGroupRequired'));
     return;
   }
   if (!courseForm.title.trim()) {
-    window.$message.warning('请输入课程标题');
+    window.$message.warning(t('course.list.inputCourseTitle'));
     return;
   }
   if (!courseForm.teacher_id) {
-    window.$message.warning('请选择课程老师');
+    window.$message.warning(t('course.list.selectTeacherRequired'));
     return;
   }
   if (courseForm.id === 0 && !videoKeyOrUrl.value) {
-    window.$message.warning('请上传课程视频');
+    window.$message.warning(t('course.list.uploadVideoRequired'));
     return;
   }
   courseSaving.value = true;
@@ -648,7 +650,7 @@ const saveCourse = async () => {
         cover: coverUrl.value,
       });
     }
-    window.$message.success('保存成功');
+    window.$message.success(t('course.list.saveSuccess'));
     courseModalShow.value = false;
     loadGroups();
     if (searching.value) doSearch();
@@ -662,7 +664,7 @@ const saveCourse = async () => {
 const execDeleteCourse = async (course: CourseItem) => {
   try {
     await deleteCourse({ id: course.id });
-    window.$message.success('删除成功');
+    window.$message.success(t('course.deleteSuccess'));
     loadGroups();
     if (searching.value) doSearch();
   } catch (_err) {
