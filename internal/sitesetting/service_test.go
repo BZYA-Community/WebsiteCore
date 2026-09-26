@@ -2,6 +2,8 @@ package sitesetting
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,10 +11,9 @@ import (
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
-	_ "modernc.org/sqlite"
 )
 
 func TestGetProfileUsesBootstrapDefaultsWhenNoOverride(t *testing.T) {
@@ -206,13 +207,31 @@ func newTestService(t *testing.T) *Service {
 		CopyrightRightLink:      "https://fallback.example.com",
 	}
 	bootstrapConfig = nil
-	db, err := gorm.Open(&sqlite.Dialector{DriverName: "sqlite", DSN: "file::memory:?cache=shared"}, &gorm.Config{NamingStrategy: schema.NamingStrategy{TablePrefix: "p_", SingularTable: true}})
+	// 项目仅支持 PostgreSQL: 持久化测试需要一个真实 PG 实例，
+	// 通过 TEST_POSTGRES_DSN 提供(本地可指向 docker-compose.dev.yml 的 postgres)，
+	// 未设置时跳过这些用例。
+	dsn := os.Getenv("TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("TEST_POSTGRES_DSN not set, skip sitesetting persistence test")
+	}
+	// 随机表前缀隔离并发/重复运行的测试数据
+	buf := make([]byte, 4)
+	if _, err := rand.Read(buf); err != nil {
+		t.Fatalf("rand.Read() error = %v", err)
+	}
+	tablePrefix := "ut_" + hex.EncodeToString(buf) + "_"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{NamingStrategy: schema.NamingStrategy{TablePrefix: tablePrefix, SingularTable: true}})
 	if err != nil {
 		t.Fatalf("gorm.Open() error = %v", err)
 	}
 	if err := db.AutoMigrate(&settingRecord{}); err != nil {
 		t.Fatalf("AutoMigrate() error = %v", err)
 	}
+	t.Cleanup(func() {
+		if err := db.Migrator().DropTable(&settingRecord{}); err != nil {
+			t.Logf("DropTable() error = %v", err)
+		}
+	})
 	return NewService(db)
 }
 

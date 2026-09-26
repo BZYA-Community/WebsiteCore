@@ -46,7 +46,7 @@ WebsiteCore is a self-hosted micro-community / forum system: a Go backend (Gin +
 - **System notification session**: follow / comment / reply / moderation / management notices unified into one conversation, with jump links to posts and profiles
 - **Courses and long-form content**: course groups, play counts, signed playback, Markdown long-form posts, topics, trending searches
 - **Follow and visibility**: one-way following, post visibility levels (public / following / private)
-- **Pluggable capabilities**: storage (LocalOSS / MinIO / S3 / AliOSS / COS / HuaweiOBS), search (Meilisearch / Zinc), database (PostgreSQL / MySQL) and more, assembled via `Features` flags
+- **Pluggable capabilities**: storage (LocalOSS / AliOSS), search (Meilisearch or SQL fallback), database (PostgreSQL) and more, assembled via `Features` flags
 
 ## Tech stack
 
@@ -54,7 +54,7 @@ WebsiteCore is a self-hosted micro-community / forum system: a Go backend (Gin +
 | --- | --- |
 | Backend | Go · Gin · GORM · Redis (rueidis) · go-mir (API codegen) · golang-migrate |
 | Frontend | Vue 3 · Vite · Naive UI · Pinia · vue-i18n (i18n) · vue-advanced-chat · md-editor-v3 · Artplayer |
-| Infrastructure | PostgreSQL / MySQL · Redis · Meilisearch (optional) |
+| Infrastructure | PostgreSQL · Redis · Meilisearch (optional) |
 
 ## Quick start
 
@@ -68,7 +68,7 @@ make deps-up        # starts and waits for health checks
 
 Images are pinned (`postgres:18.6` / `redis:7.4.11` / `getmeili/meilisearch:v1.54.0`) and ports bind to `127.0.0.1` only. Details: [docs/deploy/local.md](docs/deploy/local.md).
 
-PostgreSQL is the default database; MySQL is also supported. Full-text search uses Meilisearch (optional).
+PostgreSQL is the only supported database. Full-text search uses Meilisearch (optional); without it, search falls back to PostgreSQL `ILIKE` fuzzy matching.
 
 ### 2. Configure
 
@@ -109,7 +109,7 @@ cd web && npm run dev  # frontend dev server
 cd web && npm run i18n:check  # locale pack validation (missing/unused/zh-CN-en parity)
 ```
 
-Standard flow for a new API: declare it in `mirc/web/v1/` → `make gen-mir` generates the routing skeleton → implement it in `internal/servants/web/`. Schema changes go into `scripts/migration/{mysql,postgres}/` as numbered `NNNN_name.{up,down}.sql` pairs (one per dialect). Full guide: [docs/development.md](docs/development.md).
+Standard flow for a new API: declare it in `mirc/web/v1/` → `make gen-mir` generates the routing skeleton → implement it in `internal/servants/web/`. Schema changes go into `scripts/migration/postgres/` as numbered `NNNN_name.{up,down}.sql` pairs. Full guide: [docs/development.md](docs/development.md).
 
 The frontend is internationalized with **vue-i18n** (`zh-CN` source + `en`; language picker in the bottom-left sidebar). Locale packs live in `web/src/locales/<locale>/<namespace>.json` — plain nested JSON, ready for Crowdin/Weblate/Tolgee so the community can maintain more languages. Never hardcode UI copy: add keys to both locales and render with `t()`. Details: the Internationalization section in [web/README.md](web/README.md).
 

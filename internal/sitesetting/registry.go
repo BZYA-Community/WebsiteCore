@@ -34,14 +34,9 @@ const (
 type bootstrapSnapshot struct {
 	App           confAppSnapshot
 	TweetSearch   confTweetSearchSnapshot
-	Zinc          confZincSnapshot
 	Meili         confMeiliSnapshot
 	ObjectStorage confObjectStorageSnapshot
 	AliOSS        confAliOSSSnapshot
-	COS           confCOSSnapshot
-	HuaweiOBS     confHuaweiOBSSnapshot
-	MinIO         confMinIOSnapshot
-	S3            confS3Snapshot
 	LocalOSS      confLocalOSSSnapshot
 	SmsJuhe       confSmsJuheSnapshot
 	WebProfile    confWebProfileSnapshot
@@ -59,14 +54,6 @@ type confAppSnapshot struct {
 type confTweetSearchSnapshot struct {
 	MaxUpdateQPS int
 	MinWorker    int
-}
-
-type confZincSnapshot struct {
-	Host     string
-	Index    string
-	User     string
-	Password string
-	Secure   bool
 }
 
 type confMeiliSnapshot struct {
@@ -87,40 +74,6 @@ type confAliOSSSnapshot struct {
 	AccessKeySecret string
 	Bucket          string
 	Domain          string
-}
-
-type confCOSSnapshot struct {
-	SecretID  string
-	SecretKey string
-	Region    string
-	Bucket    string
-	Domain    string
-}
-
-type confHuaweiOBSSnapshot struct {
-	AccessKey string
-	SecretKey string
-	Endpoint  string
-	Bucket    string
-	Domain    string
-}
-
-type confMinIOSnapshot struct {
-	AccessKey string
-	SecretKey string
-	Secure    bool
-	Endpoint  string
-	Bucket    string
-	Domain    string
-}
-
-type confS3Snapshot struct {
-	AccessKey string
-	SecretKey string
-	Secure    bool
-	Endpoint  string
-	Bucket    string
-	Domain    string
 }
 
 type confLocalOSSSnapshot struct {
@@ -205,9 +158,6 @@ func ensureBootstrapSnapshot() {
 	if conf.TweetSearchSetting != nil {
 		bootstrapConfig.TweetSearch = confTweetSearchSnapshot{MaxUpdateQPS: conf.TweetSearchSetting.MaxUpdateQPS, MinWorker: conf.TweetSearchSetting.MinWorker}
 	}
-	if conf.ZincSetting != nil {
-		bootstrapConfig.Zinc = confZincSnapshot{Host: conf.ZincSetting.Host, Index: conf.ZincSetting.Index, User: conf.ZincSetting.User, Password: conf.ZincSetting.Password, Secure: conf.ZincSetting.Secure}
-	}
 	if conf.MeiliSetting != nil {
 		bootstrapConfig.Meili = confMeiliSnapshot{Host: conf.MeiliSetting.Host, Index: conf.MeiliSetting.Index, ApiKey: conf.MeiliSetting.ApiKey, Secure: conf.MeiliSetting.Secure}
 	}
@@ -216,18 +166,6 @@ func ensureBootstrapSnapshot() {
 	}
 	if conf.AliOSSSetting != nil {
 		bootstrapConfig.AliOSS = confAliOSSSnapshot{Endpoint: conf.AliOSSSetting.Endpoint, AccessKeyID: conf.AliOSSSetting.AccessKeyID, AccessKeySecret: conf.AliOSSSetting.AccessKeySecret, Bucket: conf.AliOSSSetting.Bucket, Domain: conf.AliOSSSetting.Domain}
-	}
-	if conf.COSSetting != nil {
-		bootstrapConfig.COS = confCOSSnapshot{SecretID: conf.COSSetting.SecretID, SecretKey: conf.COSSetting.SecretKey, Region: conf.COSSetting.Region, Bucket: conf.COSSetting.Bucket, Domain: conf.COSSetting.Domain}
-	}
-	if conf.HuaweiOBSSetting != nil {
-		bootstrapConfig.HuaweiOBS = confHuaweiOBSSnapshot{AccessKey: conf.HuaweiOBSSetting.AccessKey, SecretKey: conf.HuaweiOBSSetting.SecretKey, Endpoint: conf.HuaweiOBSSetting.Endpoint, Bucket: conf.HuaweiOBSSetting.Bucket, Domain: conf.HuaweiOBSSetting.Domain}
-	}
-	if conf.MinIOSetting != nil {
-		bootstrapConfig.MinIO = confMinIOSnapshot{AccessKey: conf.MinIOSetting.AccessKey, SecretKey: conf.MinIOSetting.SecretKey, Secure: conf.MinIOSetting.Secure, Endpoint: conf.MinIOSetting.Endpoint, Bucket: conf.MinIOSetting.Bucket, Domain: conf.MinIOSetting.Domain}
-	}
-	if conf.S3Setting != nil {
-		bootstrapConfig.S3 = confS3Snapshot{AccessKey: conf.S3Setting.AccessKey, SecretKey: conf.S3Setting.SecretKey, Secure: conf.S3Setting.Secure, Endpoint: conf.S3Setting.Endpoint, Bucket: conf.S3Setting.Bucket, Domain: conf.S3Setting.Domain}
 	}
 	if conf.LocalOSSSetting != nil {
 		bootstrapConfig.LocalOSS = confLocalOSSSnapshot{SavePath: conf.LocalOSSSetting.SavePath, Secure: conf.LocalOSSSetting.Secure, Bucket: conf.LocalOSSSetting.Bucket, Domain: conf.LocalOSSSetting.Domain}
@@ -303,12 +241,6 @@ func Registry() []Definition {
 		stringDefWithActive("meili.api_key", "search", "meili", "Meili API key", "Meilisearch API key.", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("Meili") }, func() any { return conf.MeiliSetting.ApiKey }, func() any { return bootstrapConfig.Meili.ApiKey }, validateTrimmedMax("meili.api_key", 512), func(v any) { conf.MeiliSetting.ApiKey = v.(string) }),
 		boolDefWithActive("meili.secure", "search", "meili", "Meili secure", "Use HTTPS for Meilisearch.", ApplyModeRestartRequired, false, true, func() bool { return cfg.If("Meili") }, func() any { return conf.MeiliSetting.Secure }, func() any { return bootstrapConfig.Meili.Secure }, func(v any) { conf.MeiliSetting.Secure = v.(bool) }),
 
-		stringDefWithActive("zinc.host", "search", "zinc", "Zinc host", "Zinc host.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Zinc") }, func() any { return conf.ZincSetting.Host }, func() any { return bootstrapConfig.Zinc.Host }, validateTrimmedMax("zinc.host", 255), func(v any) { conf.ZincSetting.Host = v.(string) }),
-		stringDefWithActive("zinc.index", "search", "zinc", "Zinc index", "Zinc index name.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Zinc") }, func() any { return conf.ZincSetting.Index }, func() any { return bootstrapConfig.Zinc.Index }, validateTrimmedMax("zinc.index", 255), func(v any) { conf.ZincSetting.Index = v.(string) }),
-		stringDefWithActive("zinc.user", "search", "zinc", "Zinc user", "Zinc username.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Zinc") }, func() any { return conf.ZincSetting.User }, func() any { return bootstrapConfig.Zinc.User }, validateTrimmedMax("zinc.user", 255), func(v any) { conf.ZincSetting.User = v.(string) }),
-		stringDefWithActive("zinc.password", "search", "zinc", "Zinc password", "Zinc password.", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("Zinc") }, func() any { return conf.ZincSetting.Password }, func() any { return bootstrapConfig.Zinc.Password }, validateTrimmedMax("zinc.password", 512), func(v any) { conf.ZincSetting.Password = v.(string) }),
-		boolDefWithActive("zinc.secure", "search", "zinc", "Zinc secure", "Use HTTPS for Zinc.", ApplyModeRestartRequired, false, true, func() bool { return cfg.If("Zinc") }, func() any { return conf.ZincSetting.Secure }, func() any { return bootstrapConfig.Zinc.Secure }, func(v any) { conf.ZincSetting.Secure = v.(bool) }),
-
 		intDef("object_storage.retain_in_days", "storage", "common", "Object retention days", "Retention window for temporary objects.", ApplyModeRestartRequired, false, true, func() any { return conf.ObjectStorage.RetainInDays }, func() any { return bootstrapConfig.ObjectStorage.RetainInDays }, func(v int) error { return between(v, 0, 3650, "retain_in_days") }, func(v any) { conf.ObjectStorage.RetainInDays = v.(int) }),
 		stringDef("object_storage.temp_dir", "storage", "common", "Object temp dir", "Temporary directory/prefix for objects.", ApplyModeRestartRequired, false, true, nil, func() any { return conf.ObjectStorage.TempDir }, func() any { return bootstrapConfig.ObjectStorage.TempDir }, validateTrimmedMax("temp_dir", 255), func(v any) { conf.ObjectStorage.TempDir = v.(string) }),
 
@@ -317,37 +249,11 @@ func Registry() []Definition {
 		stringDefWithActive("local_oss.bucket", "storage", "local_oss", "Local OSS bucket", "Bucket folder name for local storage.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("LocalOSS") }, func() any { return conf.LocalOSSSetting.Bucket }, func() any { return bootstrapConfig.LocalOSS.Bucket }, validateTrimmedMax("local_oss.bucket", 255), func(v any) { conf.LocalOSSSetting.Bucket = v.(string) }),
 		stringDefWithActive("local_oss.domain", "storage", "local_oss", "Local OSS domain", "Public domain for local object storage.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("LocalOSS") }, func() any { return conf.LocalOSSSetting.Domain }, func() any { return bootstrapConfig.LocalOSS.Domain }, validateTrimmedMax("local_oss.domain", 255), func(v any) { conf.LocalOSSSetting.Domain = v.(string) }),
 
-		stringDefWithActive("minio.access_key", "storage", "minio", "MinIO access key", "MinIO access key.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("MinIO") }, func() any { return conf.MinIOSetting.AccessKey }, func() any { return bootstrapConfig.MinIO.AccessKey }, validateTrimmedMax("minio.access_key", 255), func(v any) { conf.MinIOSetting.AccessKey = v.(string) }),
-		stringDefWithActive("minio.secret_key", "storage", "minio", "MinIO secret key", "MinIO secret key.", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("MinIO") }, func() any { return conf.MinIOSetting.SecretKey }, func() any { return bootstrapConfig.MinIO.SecretKey }, validateTrimmedMax("minio.secret_key", 512), func(v any) { conf.MinIOSetting.SecretKey = v.(string) }),
-		boolDefWithActive("minio.secure", "storage", "minio", "MinIO secure", "Use HTTPS for MinIO.", ApplyModeRestartRequired, false, true, func() bool { return cfg.If("MinIO") }, func() any { return conf.MinIOSetting.Secure }, func() any { return bootstrapConfig.MinIO.Secure }, func(v any) { conf.MinIOSetting.Secure = v.(bool) }),
-		stringDefWithActive("minio.endpoint", "storage", "minio", "MinIO endpoint", "MinIO endpoint.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("MinIO") }, func() any { return conf.MinIOSetting.Endpoint }, func() any { return bootstrapConfig.MinIO.Endpoint }, validateTrimmedMax("minio.endpoint", 255), func(v any) { conf.MinIOSetting.Endpoint = v.(string) }),
-		stringDefWithActive("minio.bucket", "storage", "minio", "MinIO bucket", "MinIO bucket name.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("MinIO") }, func() any { return conf.MinIOSetting.Bucket }, func() any { return bootstrapConfig.MinIO.Bucket }, validateTrimmedMax("minio.bucket", 255), func(v any) { conf.MinIOSetting.Bucket = v.(string) }),
-		stringDefWithActive("minio.domain", "storage", "minio", "MinIO domain", "MinIO public domain.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("MinIO") }, func() any { return conf.MinIOSetting.Domain }, func() any { return bootstrapConfig.MinIO.Domain }, validateTrimmedMax("minio.domain", 255), func(v any) { conf.MinIOSetting.Domain = v.(string) }),
-
-		stringDefWithActive("s3.access_key", "storage", "s3", "S3 access key", "Amazon S3 access key.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("S3") }, func() any { return conf.S3Setting.AccessKey }, func() any { return bootstrapConfig.S3.AccessKey }, validateTrimmedMax("s3.access_key", 255), func(v any) { conf.S3Setting.AccessKey = v.(string) }),
-		stringDefWithActive("s3.secret_key", "storage", "s3", "S3 secret key", "Amazon S3 secret key.", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("S3") }, func() any { return conf.S3Setting.SecretKey }, func() any { return bootstrapConfig.S3.SecretKey }, validateTrimmedMax("s3.secret_key", 512), func(v any) { conf.S3Setting.SecretKey = v.(string) }),
-		boolDefWithActive("s3.secure", "storage", "s3", "S3 secure", "Use HTTPS for S3.", ApplyModeRestartRequired, false, true, func() bool { return cfg.If("S3") }, func() any { return conf.S3Setting.Secure }, func() any { return bootstrapConfig.S3.Secure }, func(v any) { conf.S3Setting.Secure = v.(bool) }),
-		stringDefWithActive("s3.endpoint", "storage", "s3", "S3 endpoint", "Amazon S3 endpoint.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("S3") }, func() any { return conf.S3Setting.Endpoint }, func() any { return bootstrapConfig.S3.Endpoint }, validateTrimmedMax("s3.endpoint", 255), func(v any) { conf.S3Setting.Endpoint = v.(string) }),
-		stringDefWithActive("s3.bucket", "storage", "s3", "S3 bucket", "Amazon S3 bucket name.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("S3") }, func() any { return conf.S3Setting.Bucket }, func() any { return bootstrapConfig.S3.Bucket }, validateTrimmedMax("s3.bucket", 255), func(v any) { conf.S3Setting.Bucket = v.(string) }),
-		stringDefWithActive("s3.domain", "storage", "s3", "S3 domain", "Amazon S3 public domain.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("S3") }, func() any { return conf.S3Setting.Domain }, func() any { return bootstrapConfig.S3.Domain }, validateTrimmedMax("s3.domain", 255), func(v any) { conf.S3Setting.Domain = v.(string) }),
-
 		stringDefWithActive("alioss.endpoint", "storage", "alioss", "AliOSS endpoint", "AliOSS endpoint.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("AliOSS") }, func() any { return conf.AliOSSSetting.Endpoint }, func() any { return bootstrapConfig.AliOSS.Endpoint }, validateTrimmedMax("alioss.endpoint", 255), func(v any) { conf.AliOSSSetting.Endpoint = v.(string) }),
 		stringDefWithActive("alioss.access_key_id", "storage", "alioss", "AliOSS access key ID", "AliOSS access key ID.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("AliOSS") }, func() any { return conf.AliOSSSetting.AccessKeyID }, func() any { return bootstrapConfig.AliOSS.AccessKeyID }, validateTrimmedMax("alioss.access_key_id", 255), func(v any) { conf.AliOSSSetting.AccessKeyID = v.(string) }),
 		stringDefWithActive("alioss.access_key_secret", "storage", "alioss", "AliOSS access key secret", "AliOSS secret key.", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("AliOSS") }, func() any { return conf.AliOSSSetting.AccessKeySecret }, func() any { return bootstrapConfig.AliOSS.AccessKeySecret }, validateTrimmedMax("alioss.access_key_secret", 512), func(v any) { conf.AliOSSSetting.AccessKeySecret = v.(string) }),
 		stringDefWithActive("alioss.bucket", "storage", "alioss", "AliOSS bucket", "AliOSS bucket name.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("AliOSS") }, func() any { return conf.AliOSSSetting.Bucket }, func() any { return bootstrapConfig.AliOSS.Bucket }, validateTrimmedMax("alioss.bucket", 255), func(v any) { conf.AliOSSSetting.Bucket = v.(string) }),
 		stringDefWithActive("alioss.domain", "storage", "alioss", "AliOSS domain", "AliOSS public domain.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("AliOSS") }, func() any { return conf.AliOSSSetting.Domain }, func() any { return bootstrapConfig.AliOSS.Domain }, validateTrimmedMax("alioss.domain", 255), func(v any) { conf.AliOSSSetting.Domain = v.(string) }),
-
-		stringDefWithActive("cos.secret_id", "storage", "cos", "COS secret ID", "Tencent COS secret ID.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("COS") }, func() any { return conf.COSSetting.SecretID }, func() any { return bootstrapConfig.COS.SecretID }, validateTrimmedMax("cos.secret_id", 255), func(v any) { conf.COSSetting.SecretID = v.(string) }),
-		stringDefWithActive("cos.secret_key", "storage", "cos", "COS secret key", "Tencent COS secret key.", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("COS") }, func() any { return conf.COSSetting.SecretKey }, func() any { return bootstrapConfig.COS.SecretKey }, validateTrimmedMax("cos.secret_key", 512), func(v any) { conf.COSSetting.SecretKey = v.(string) }),
-		stringDefWithActive("cos.region", "storage", "cos", "COS region", "Tencent COS region.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("COS") }, func() any { return conf.COSSetting.Region }, func() any { return bootstrapConfig.COS.Region }, validateTrimmedMax("cos.region", 255), func(v any) { conf.COSSetting.Region = v.(string) }),
-		stringDefWithActive("cos.bucket", "storage", "cos", "COS bucket", "Tencent COS bucket.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("COS") }, func() any { return conf.COSSetting.Bucket }, func() any { return bootstrapConfig.COS.Bucket }, validateTrimmedMax("cos.bucket", 255), func(v any) { conf.COSSetting.Bucket = v.(string) }),
-		stringDefWithActive("cos.domain", "storage", "cos", "COS domain", "Tencent COS public domain.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("COS") }, func() any { return conf.COSSetting.Domain }, func() any { return bootstrapConfig.COS.Domain }, validateTrimmedMax("cos.domain", 255), func(v any) { conf.COSSetting.Domain = v.(string) }),
-
-		stringDefWithActive("huawei_obs.access_key", "storage", "huawei_obs", "Huawei OBS access key", "Huawei OBS access key.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("HuaweiOBS") }, func() any { return conf.HuaweiOBSSetting.AccessKey }, func() any { return bootstrapConfig.HuaweiOBS.AccessKey }, validateTrimmedMax("huawei_obs.access_key", 255), func(v any) { conf.HuaweiOBSSetting.AccessKey = v.(string) }),
-		stringDefWithActive("huawei_obs.secret_key", "storage", "huawei_obs", "Huawei OBS secret key", "Huawei OBS secret key.", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("HuaweiOBS") }, func() any { return conf.HuaweiOBSSetting.SecretKey }, func() any { return bootstrapConfig.HuaweiOBS.SecretKey }, validateTrimmedMax("huawei_obs.secret_key", 512), func(v any) { conf.HuaweiOBSSetting.SecretKey = v.(string) }),
-		stringDefWithActive("huawei_obs.endpoint", "storage", "huawei_obs", "Huawei OBS endpoint", "Huawei OBS endpoint.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("HuaweiOBS") }, func() any { return conf.HuaweiOBSSetting.Endpoint }, func() any { return bootstrapConfig.HuaweiOBS.Endpoint }, validateTrimmedMax("huawei_obs.endpoint", 255), func(v any) { conf.HuaweiOBSSetting.Endpoint = v.(string) }),
-		stringDefWithActive("huawei_obs.bucket", "storage", "huawei_obs", "Huawei OBS bucket", "Huawei OBS bucket.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("HuaweiOBS") }, func() any { return conf.HuaweiOBSSetting.Bucket }, func() any { return bootstrapConfig.HuaweiOBS.Bucket }, validateTrimmedMax("huawei_obs.bucket", 255), func(v any) { conf.HuaweiOBSSetting.Bucket = v.(string) }),
-		stringDefWithActive("huawei_obs.domain", "storage", "huawei_obs", "Huawei OBS domain", "Huawei OBS public domain.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("HuaweiOBS") }, func() any { return conf.HuaweiOBSSetting.Domain }, func() any { return bootstrapConfig.HuaweiOBS.Domain }, validateTrimmedMax("huawei_obs.domain", 255), func(v any) { conf.HuaweiOBSSetting.Domain = v.(string) }),
 
 		stringDefWithActive("sms_juhe.gateway", "notifications", "sms_juhe", "SMS gateway", "Juhe SMS gateway URL.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsJuheSetting.Gateway }, func() any { return bootstrapConfig.SmsJuhe.Gateway }, validateTrimmedMax("sms_juhe.gateway", 255), func(v any) { conf.SmsJuheSetting.Gateway = v.(string) }),
 		stringDefWithActive("sms_juhe.key", "notifications", "sms_juhe", "SMS key", "Juhe SMS key.", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsJuheSetting.Key }, func() any { return bootstrapConfig.SmsJuhe.Key }, validateTrimmedMax("sms_juhe.key", 255), func(v any) { conf.SmsJuheSetting.Key = v.(string) }),

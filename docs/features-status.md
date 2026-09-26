@@ -22,12 +22,7 @@ Features:
 | `Web` | 8008 | stable | Main REST API; the core of every deployment |
 | `Frontend:EmbedWeb` | (via Web) | stable | Serves the Vue SPA compiled into the binary (`embed` build tag) |
 | `Frontend:Web` | 8006 | works | Standalone static frontend server |
-| `Admin` | 8014 | works | Admin backend service |
 | `Docs` | 8011 | works | OpenAPI docs (`docs` build tag); spec still partially reflects upstream |
-| `SpaceX` | 8012 | legacy | Upstream experimental service |
-| `Bot` | 8016 | legacy | Upstream bot service |
-| `NativeOBS` | 8018 | legacy | Direct object-storage upload service |
-| `Mobile` | 8020 (gRPC) | legacy | Mobile API; no mobile client in this fork |
 | `Pprof` | 6060 | works | Profiling; internal networks only |
 | `Metrics` | 6080 | works | Prometheus endpoint; internal networks only |
 
@@ -35,17 +30,16 @@ Features:
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| `Postgres` | stable | Default and recommended; dev stack pins PostgreSQL 18.6 |
-| `MySQL` | stable | Fully supported alternative; migrations maintained for both dialects |
+| `Postgres` | stable | Default and only supported database; dev stack pins PostgreSQL 18.6 |
 
-SQLite support was removed in this fork (2026-09-25).
+MySQL and SQLite support were removed in this fork (2026-09-25).
 
 ## Search
 
 | Feature | Status | Notes |
 | --- | --- | --- |
 | `Meili` | stable | Meilisearch; recommended, in the default suite and dev stack (v1.54.0) |
-| `Zinc` | legacy | Still functional; no longer the default path |
+| SQL fallback | stable | When `Meili` is not enabled, search falls back to PostgreSQL `ILIKE` fuzzy matching — no external service required |
 
 Indexing goes through an async bridge tuned by `TweetSearch` (`MaxUpdateQPS`, `MinWorker`).
 
@@ -61,16 +55,12 @@ Indexing goes through an async bridge tuned by `TweetSearch` (`MaxUpdateQPS`, `M
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| `LocalOSS` | stable | Local disk under `custom/`; default choice |
-| `MinIO` | works | S3-compatible self-hosted |
-| `S3` | works | Amazon S3 |
+| `LocalOSS` | stable | Local disk under `custom/`; default fallback |
 | `AliOSS` | works | Alibaba Cloud OSS |
-| `COS` | works | Tencent Cloud COS |
-| `HuaweiOBS` | works | Huawei Cloud OBS |
 | `OSS:TempDir` | works | Stage uploads in a temp directory first |
 | `OSS:Retention` | works | Set retain-until metadata on objects |
 
-Enable exactly one backend. All backends are configurable from the admin UI (storage group).
+Enable exactly one backend. When no storage feature is enabled, `LocalOSS` is used automatically. All backends are configurable from the admin UI (storage group).
 
 ## Messaging
 
@@ -83,10 +73,7 @@ Enable exactly one backend. All backends are configurable from the admin UI (sto
 | Feature | Status | Notes |
 | --- | --- | --- |
 | `LoggerFile` | stable | File logs under `custom/`; default choice |
-| `LoggerMeili` | works | Logs into Meilisearch |
-| `LoggerZinc` | legacy | Logs into Zinc |
-| `LoggerOpenObserve` | works | Logs into OpenObserve |
-| `loggerOtlp` | works | OpenTelemetry Protocol export (logs/traces/metrics) |
+| `LoggerOtlp` | works | OpenTelemetry Protocol export (logs/traces/metrics) |
 
 ## Observability
 
@@ -106,7 +93,16 @@ Enable exactly one backend. All backends are configurable from the admin UI (sto
 
 | Former feature | Reason |
 | --- | --- |
-| `Sqlite3` | Removed 2026-09-25 to slim the binary; PostgreSQL/MySQL cover all deployments |
+| `Sqlite3` | Removed 2026-09-25 to slim the binary |
+| `MySQL` | Removed 2026-09-27; PostgreSQL is the sole database |
+| `Zinc` | Removed 2026-09-27; Meilisearch or SQL fallback cover all search needs |
+| `Admin` (standalone 8014) | Removed 2026-09-27; Web 内的 `/v1/admin` 管理面板仍保留 |
+| `SpaceX` (8012) | Removed 2026-09-27; upstream experimental service |
+| `Bot` (8016) | Removed 2026-09-27; upstream bot service |
+| `NativeOBS` (8018) | Removed 2026-09-27; direct upload service |
+| `Mobile` (8020 gRPC) | Removed 2026-09-27; no mobile client in this fork |
+| `MinIO`, `S3`, `COS`, `HuaweiOBS` | Removed 2026-09-27; LocalOSS 与 AliOSS 覆盖存储需求 |
+| `LoggerZinc`, `LoggerMeili`, `LoggerOpenObserve` | Removed 2026-09-27; LoggerFile 与 LoggerOtlp 覆盖日志需求 |
 | `Lightship` (open mode) | Deprecated upstream |
 | `Alipay` / wallet | Platform is non-commercial (2026-09-25) |
 | `Friendship` | Replaced by identity-group messaging rules (2026-09-26) |

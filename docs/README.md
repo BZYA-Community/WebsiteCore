@@ -17,7 +17,7 @@ Start here if you are looking for anything beyond the project overview in the [r
 | --- | --- |
 | [deploy/README.md](deploy/README.md) | Deployment overview and path selection |
 | [deploy/configuration.md](deploy/configuration.md) | Full `config.yaml` reference, feature flags, admin-managed settings |
-| [deploy/database.md](deploy/database.md) | PostgreSQL/MySQL setup, migrations, backup and restore |
+| [deploy/database.md](deploy/database.md) | PostgreSQL setup, migrations, backup and restore |
 | [deploy/sms.md](deploy/sms.md) | SMS provider (Juhe) and phone-binding configuration |
 | [deploy/production.md](deploy/production.md) | Recommended production layout: native binary + Dockerized dependencies + Nginx |
 | [deploy/docker-compose.md](deploy/docker-compose.md) | Fully containerized alternative |

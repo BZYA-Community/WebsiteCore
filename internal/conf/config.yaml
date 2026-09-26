@@ -43,30 +43,6 @@ WebServer: # Web服务
   HttpPort: 8008
   ReadTimeout: 60
   WriteTimeout: 60
-AdminServer: # Admin后台运维服务
-  RunMode: debug
-  HttpIp: 0.0.0.0
-  HttpPort: 8014
-  ReadTimeout: 60
-  WriteTimeout: 60
-SpaceXServer: # SpaceX服务
-  RunMode: debug
-  HttpIp: 0.0.0.0
-  HttpPort: 8012
-  ReadTimeout: 60
-  WriteTimeout: 60
-BotServer: # Bot服务
-  RunMode: debug
-  HttpIp: 0.0.0.0
-  HttpPort: 8016
-  ReadTimeout: 60
-  WriteTimeout: 60
-LocalossServer: # Localoss服务
-  RunMode: debug
-  HttpIp: 0.0.0.0
-  HttpPort: 8018
-  ReadTimeout: 60
-  WriteTimeout: 60
 PprofServer: # Pprof服务
   RunMode: debug
   HttpIp: 0.0.0.0
@@ -91,9 +67,6 @@ DocsServer: # 开发文档服务
   HttpPort: 8011
   ReadTimeout: 60
   WriteTimeout: 60
-MobileServer: # 移动端grpc api服务
-  Host: 0.0.0.0
-  Port: 8020
 SmsJuhe:
   Gateway: https://v.juhe.cn/sms/send
   Key:
@@ -138,28 +111,6 @@ LoggerFile: # 使用File写日志
   SavePath: custom/data/paopao-ce/logs
   FileName: app
   FileExt: .log
-LoggerZinc: # 使用Zinc写日志
-  Host: 127.0.0.1:4080
-  Index: paopao-log
-  User: admin
-  Password: ""  # REQUIRED: Set Zinc password
-  Secure: False
-LoggerMeili: # 使用Meili写日志
-  Host: 127.0.0.1:7700
-  Index: paopao-log
-  ApiKey: ""  # REQUIRED: Set Meilisearch API key
-  Secure: False
-  MinWorker: 5               # 最小后台工作者, 设置范围[5, 100], 默认5
-  MaxLogBuffer: 100          # 最大log缓存条数, 设置范围[10, 10000], 默认100
-LoggerOpenObserve: # 使用OpenObserve写日志
-  Host: 127.0.0.1:5080
-  Organization: paopao-ce
-  Stream: default
-  User: root@paopao.info
-  Password: ""  # REQUIRED: Set OpenObserve password
-  Secure: False
-  MinWorker: 5               # 最小后台工作者, 设置范围[5, 100], 默认5
-  MaxLogBuffer: 100          # 最大log缓存条数, 设置范围[10, 10000], 默认100
 LoggerOtlp: # 使用OpenTelemetry写日志
   Endpoint: 127.0.0.1:5081
   Authorization: ""  # REQUIRED: Set OTLP auth token
@@ -177,12 +128,6 @@ AdminSettings:
 TweetSearch: # 推文关键字搜索相关配置
   MaxUpdateQPS: 100            # 最大添加/删除/更新Post的QPS，设置范围[10, 10000], 默认100
   MinWorker: 10                # 最小后台更新工作者, 设置范围[5, 1000], 默认10
-Zinc: # Zinc搜索配置
-  Host: 127.0.0.1:4080
-  Index: paopao-data
-  User: admin
-  Password: ""  # REQUIRED: Set Zinc admin password
-  Secure: False
 Meili: # Meili搜索配置
   Host: 127.0.0.1:7700
   Index: paopao-data
@@ -197,32 +142,6 @@ AliOSS: # 阿里云OSS存储配置
   AccessKeySecret: 
   Bucket: 
   Domain: 
-COS: # 腾讯云COS存储配置
-  SecretID: 
-  SecretKey: 
-  Region: ap-shanghai
-  Bucket: demo-1888888888
-  Domain: 
-HuaweiOBS: # 华为云OBS存储配置
-  AccessKey: 
-  SecretKey: 
-  Endpoint: 
-  Bucket: paopao
-  Domain: 
-MinIO: # MinIO 存储配置
-  AccessKey: ""  # REQUIRED: Set MinIO access key
-  SecretKey: ""  # REQUIRED: Set MinIO secret key
-  Secure: False
-  Endpoint: minio:9000
-  Bucket: paopao
-  Domain: 127.0.0.1:9000
-S3: # Amazon S3 存储配置
-  AccessKey: ""  # REQUIRED: Set AWS access key
-  SecretKey: ""  # REQUIRED: Set AWS secret key
-  Secure: True
-  Endpoint: s3.amazonaws.com
-  Bucket: paopao
-  Domain: 
 LocalOSS: # 本地文件OSS存储配置
   SavePath: custom/data/paopao-ce/oss
   Secure: False
@@ -231,15 +150,6 @@ LocalOSS: # 本地文件OSS存储配置
 Database: # Database通用配置
   LogLevel: error   # 日志级别 silent|error|warn|info
   TablePrefix: p_   # 表名前缀
-MySQL: # MySQL数据库
-  Username: paopao
-  Password: ""  # REQUIRED: Set the MySQL password
-  Host: 127.0.0.1:3306
-  DBName: paopao
-  Charset: utf8mb4
-  ParseTime: True
-  MaxIdleConns: 10
-  MaxOpenConns: 30
 Postgres: # PostgreSQL数据库
   User: paopao
   Password: ""  # REQUIRED: Set the Postgres password

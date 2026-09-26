@@ -1,1 +1,0 @@
-ALTER TABLE `p_post` ADD COLUMN `share_count` BIGINT unsigned NOT NULL DEFAULT 0;

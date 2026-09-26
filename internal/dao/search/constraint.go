@@ -10,6 +10,6 @@ var (
 	_ core.TweetSearchService = (*meiliTweetSearchServant)(nil)
 	_ core.VersionInfo        = (*meiliTweetSearchServant)(nil)
 
-	_ core.TweetSearchService = (*zincTweetSearchServant)(nil)
-	_ core.VersionInfo        = (*zincTweetSearchServant)(nil)
+	_ core.TweetSearchService = (*sqlTweetSearchServant)(nil)
+	_ core.VersionInfo        = (*sqlTweetSearchServant)(nil)
 )

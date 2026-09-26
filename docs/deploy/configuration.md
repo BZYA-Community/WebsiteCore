@@ -42,14 +42,14 @@ Feature names are case-insensitive. Every feature recognized by the codebase, gr
 
 | Domain | Feature names | Notes |
 | --- | --- | --- |
-| Sub-services | `Web`, `Admin`, `SpaceX`, `Bot`, `NativeOBS`, `Mobile`, `Docs`, `Pprof`, `Metrics` | `Web` (port 8008) is the main API and serves the SPA |
+| Sub-services | `Web`, `Docs`, `Pprof`, `Metrics` | `Web` (port 8008) is the main API and serves the SPA |
 | Frontend | `Frontend:Web`, `Frontend:EmbedWeb` | `EmbedWeb` serves the frontend compiled into the binary (`embed` build tag) |
-| Database | `Postgres`, `MySQL` | enable exactly one |
-| Search | `Meili`, `Zinc` | Meilisearch is the recommended engine; Zinc is legacy |
+| Database | `Postgres` | the only supported database |
+| Search | `Meili` | Meilisearch is the recommended engine; without it, search falls back to PostgreSQL `ILIKE` |
 | Cache index | `BigCacheIndex`, `SimpleCacheIndex`, `RedisCacheIndex` | timeline caching strategy |
-| Object storage | `LocalOSS`, `MinIO`, `S3`, `AliOSS`, `COS`, `HuaweiOBS` | enable exactly one; sub-features `OSS:TempDir`, `OSS:Retention` control upload staging |
+| Object storage | `LocalOSS`, `AliOSS` | enable exactly one (defaults to `LocalOSS`); sub-features `OSS:TempDir`, `OSS:Retention` control upload staging |
 | SMS | `Sms` | enables phone verification via Juhe SMS; see [sms.md](sms.md) |
-| Logging | `LoggerFile`, `LoggerZinc`, `LoggerMeili`, `LoggerOpenObserve`, `loggerOtlp` | |
+| Logging | `LoggerFile`, `LoggerOtlp` | |
 | Observability | `Sentry`, `Pyroscope` | |
 | Migration | `Migration` | auto-migrate schema at startup; requires a binary built with the `migration` tag |
 | Registration | `Web:DisallowUserRegister` | closes public registration |
@@ -67,15 +67,10 @@ Each sub-service has its own HTTP server block (`RunMode`, `HttpIp`, `HttpPort`,
 | Section | Default port | Purpose |
 | --- | --- | --- |
 | `WebServer` | 8008 | main API + SPA (the only port users need) |
-| `AdminServer` | 8014 | admin backend service |
-| `SpaceXServer` | 8012 | SpaceX service |
-| `BotServer` | 8016 | Bot service |
-| `LocalossServer` | 8018 | NativeOBS local object storage service |
 | `FrontendWebServer` | 8006 | standalone frontend static server (`Frontend:Web`) |
 | `DocsServer` | 8011 | OpenAPI docs (`docs` build tag) |
 | `PprofServer` | 6060 | pprof (`Pprof` feature) |
 | `MetricsServer` | 6080 | Prometheus metrics (`Metrics` feature) |
-| `MobileServer` | 8020 (gRPC) | mobile API (`Mobile` feature) |
 
 Keep every port except `WebServer` bound to `127.0.0.1` or an internal interface in production.
 
@@ -83,7 +78,7 @@ Keep every port except `WebServer` bound to `127.0.0.1` or an internal interface
 
 `RunMode` (`debug`/`release`), `MaxCommentCount`, `MaxWhisperDaily` (daily private-message cap), `MaxCaptchaTimes`, `DefaultContextTimeout`, `DefaultPageSize`, `MaxPageSize`.
 
-### Database (`Database`, `Postgres`, `MySQL`)
+### Database (`Database`, `Postgres`)
 
 `Database` holds shared settings: `LogLevel` (`silent|error|warn|info`) and `TablePrefix` (default `p_`).
 
@@ -96,18 +91,6 @@ Postgres:
   Host: 127.0.0.1
   Port: 5432
   SSLMode: disable    # use require/verify-full in production when available
-```
-
-```yaml
-MySQL:
-  Username: paopao
-  Password: ""        # required
-  Host: 127.0.0.1:3306
-  DBName: paopao
-  Charset: utf8mb4
-  ParseTime: True
-  MaxIdleConns: 10
-  MaxOpenConns: 30
 ```
 
 See [database.md](database.md) for deployment, migration, and backup.
@@ -128,7 +111,7 @@ Redis:
 
 `Secret` (required), `Issuer`, `Expire` (seconds, default 86400).
 
-### Search (`Meili`, `Zinc`, `TweetSearch`)
+### Search (`Meili`, `TweetSearch`)
 
 ```yaml
 Meili:
@@ -138,21 +121,18 @@ Meili:
   Secure: false       # true = https
 ```
 
-`TweetSearch` tunes the async indexing bridge: `MaxUpdateQPS` (10-10000, default 100) and `MinWorker` (5-1000, default 10). The `Meili`/`Zinc` values are also editable in the admin UI (search group).
+`TweetSearch` tunes the async indexing bridge: `MaxUpdateQPS` (10-10000, default 100) and `MinWorker` (5-1000, default 10). The `Meili` values are also editable in the admin UI (search group). When the `Meili` feature is not enabled, search falls back to direct PostgreSQL `ILIKE` fuzzy matching — no external search service required.
 
-### Object storage (`ObjectStorage`, `LocalOSS`, `MinIO`, `S3`, `AliOSS`, `COS`, `HuaweiOBS`)
+### Object storage (`ObjectStorage`, `LocalOSS`, `AliOSS`)
 
 `ObjectStorage` is shared: `RetainInDays` (temp object expiry) and `TempDir`. Then one backend:
 
 | Section | Keys |
 | --- | --- |
 | `LocalOSS` | `SavePath`, `Secure`, `Bucket`, `Domain` |
-| `MinIO` / `S3` | `AccessKey`, `SecretKey`, `Secure`, `Endpoint`, `Bucket`, `Domain` |
 | `AliOSS` | `Endpoint`, `AccessKeyID`, `AccessKeySecret`, `Bucket`, `Domain` |
-| `COS` | `SecretID`, `SecretKey`, `Region`, `Bucket`, `Domain` |
-| `HuaweiOBS` | `AccessKey`, `SecretKey`, `Endpoint`, `Bucket`, `Domain` |
 
-All of these are also manageable from the admin UI (storage group). `LocalOSS.SavePath` defaults to `custom/data/paopao-ce/oss` relative to the working directory — back this directory up.
+All of these are also manageable from the admin UI (storage group). `LocalOSS.SavePath` defaults to `custom/data/paopao-ce/oss` relative to the working directory — back this directory up. When no storage feature is enabled, `LocalOSS` is used automatically.
 
 ### SMS (`SmsJuhe`)
 
@@ -166,7 +146,7 @@ See [sms.md](sms.md). Keys: `Gateway`, `Key`, `TplID`, `TplVal`.
 
 Worker pool sizes and buffer limits; `JobManager` holds cron expressions (`MaxOnlineInterval`, `UpdateMetricsInterval`, both default `@every 5m`).
 
-### Logging and observability (`Logger`, `LoggerFile`, `LoggerZinc`, `LoggerMeili`, `LoggerOpenObserve`, `LoggerOtlp`, `Sentry`, `Pyroscope`)
+### Logging and observability (`Logger`, `LoggerFile`, `LoggerOtlp`, `Sentry`, `Pyroscope`)
 
 `Logger.Level` accepts `panic|fatal|error|warn|info|debug|trace`. Each sink section carries its own connection settings; use `release` + `error` level in production.
 
@@ -195,7 +175,7 @@ Site-level UI knobs: trends bar, attachments/videos allowed, registration allowe
 
 ## Admin-managed settings (`/#/admin/settings`)
 
-Settings registered in `internal/sitesetting/registry.go` are grouped in the admin UI as: web/profile, app (general, limits), search (bridge, meili, zinc), storage (common + each backend), notifications/sms_juhe, and audit.
+Settings registered in `internal/sitesetting/registry.go` are grouped in the admin UI as: web/profile, app (general, limits), search (bridge, meili), storage (common + each backend), notifications/sms_juhe, and audit.
 
 Each setting has an apply mode:
 

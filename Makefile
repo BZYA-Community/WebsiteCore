@@ -106,7 +106,7 @@ windows-x64:
 	@CGO_ENABLED=$(CGO_ENABLED) GOOS=windows GOARCH=amd64 go build -pgo=auto -trimpath  -tags '$(TAGS)' -ldflags '$(LDFLAGS)' -o $(RELEASE_WINDOWS_AMD64)/$(TARGET_BIN).exe
 
 .PHONY: generate
-generate: gen-mir gen-rpc gen-enum
+generate: gen-mir gen-enum
 
 .PHONY: gen-mir
 gen-mir:

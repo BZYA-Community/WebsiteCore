@@ -7,8 +7,8 @@ Everything that must be true before a WebsiteCore instance accepts traffic from 
 - [ ] The firewall / cloud security group allows inbound traffic on **80 and 443 only** (plus SSH from known addresses).
 - [ ] `WebServer.HttpIp` is `127.0.0.1` and Nginx is the only public entry point.
 - [ ] PostgreSQL, Redis, Meilisearch have **no published ports** beyond `127.0.0.1` (or none at all in a compose network). Verify from outside the server:
-      `nmap -Pn -p 5432,6379,7700,8008,6060,6080,8011,8012,8014,8016,8018,8020 your-server-ip`
-- [ ] Auxiliary servers stay disabled or internal: `Pprof` (6060), `Metrics` (6080), `Docs` (8011), `Admin`/`SpaceX`/`Bot`/`Localoss`/`Mobile` services are not reachable from the internet. Pprof in particular allows arbitrary profiling of the live process.
+      `nmap -Pn -p 5432,6379,7700,8008,6060,6080,8011 your-server-ip`
+- [ ] Auxiliary servers stay disabled or internal: `Pprof` (6060), `Metrics` (6080), `Docs` (8011) are not reachable from the internet. Pprof in particular allows arbitrary profiling of the live process.
 - [ ] HTTPS is enforced: valid certificate, HTTP redirects to HTTPS, `LocalOSS.Secure: true` and `LocalOSS.Domain` set to the public domain so attachment URLs are https.
 
 ## Secrets (blocking)
@@ -40,7 +40,7 @@ Everything that must be true before a WebsiteCore instance accepts traffic from 
 
 ## Data durability
 
-- [ ] Daily automated database backups (cron + `pg_dump`/`mysqldump`, see [database.md](database.md)), stored off-box, mode 600.
+- [ ] Daily automated database backups (cron + `pg_dump`, see [database.md](database.md)), stored off-box, mode 600.
 - [ ] `custom/` directory (LocalOSS uploads, logs) or the object storage bucket is in the backup scope.
 - [ ] **A restore has been rehearsed** into a scratch database, and the application was verified to start against it.
 - [ ] Rollback procedure written down: previous binary + pre-migration dump (see [production.md](production.md), Upgrades).

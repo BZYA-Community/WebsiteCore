@@ -34,21 +34,6 @@ func setupLogger() {
 			out := newFileLogger()
 			logrus.SetOutput(out)
 		},
-		"LoggerZinc": func() {
-			hook := newZincLogHook()
-			logrus.SetOutput(io.Discard)
-			logrus.AddHook(hook)
-		},
-		"LoggerMeili": func() {
-			hook := newMeiliLogHook()
-			logrus.SetOutput(io.Discard)
-			logrus.AddHook(hook)
-		},
-		"LoggerOpenObserve": func() {
-			hook := newObserveLogHook()
-			logrus.SetOutput(io.Discard)
-			logrus.AddHook(hook)
-		},
 		"LoggerOtlp": func() {
 			hook := otellogrus.NewHook("main")
 			logrus.AddHook(hook)

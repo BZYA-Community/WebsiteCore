@@ -6,11 +6,7 @@ This directory is the single source of truth for all RESTful API routes. Files h
 
 | Service | Directory | API series | URL prefix | Purpose |
 | --- | --- | --- | --- | --- |
-| Web | `web/` | `/` | `/` | Main site API (posts, comments, messaging, users, courses) |
-| Admin | `admin/` | `m` | `/m/` | Admin backend operations |
-| SpaceX | `space/` | `x` | `/x/` | SpaceX service (legacy from upstream) |
-| NativeOBS | `localoss/` | `s` | `/s/` | Direct object-storage uploads |
-| Bot | `bot/` | `r` | `/r/` | Bot service (legacy from upstream) |
+| Web | `web/` | `/` | `/` | Main site API (posts, comments, messaging, users, courses, admin panel) |
 
 ## Workflow
 

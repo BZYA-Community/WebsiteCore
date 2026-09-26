@@ -7,7 +7,6 @@ package conf
 import (
 	"bytes"
 	_ "embed"
-	"fmt"
 	"strings"
 	"time"
 
@@ -46,34 +45,6 @@ type loggerFileConf struct {
 	FileExt  string
 }
 
-type loggerZincConf struct {
-	Host     string
-	Index    string
-	User     string
-	Password string
-	Secure   bool
-}
-
-type loggerMeiliConf struct {
-	Host         string
-	Index        string
-	ApiKey       string
-	Secure       bool
-	MaxLogBuffer int
-	MinWorker    int
-}
-
-type loggerOpenObserveConf struct {
-	Host         string
-	Organization string
-	Stream       string
-	User         string
-	Password     string
-	Secure       bool
-	MaxLogBuffer int
-	MinWorker    int
-}
-
 type loggerOtlponf struct {
 	Endpoint      string
 	Authorization string
@@ -90,11 +61,6 @@ type httpServerConf struct {
 	HttpPort     string
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
-}
-
-type grpcServerConf struct {
-	Host string
-	Port string
 }
 
 type appConf struct {
@@ -187,14 +153,6 @@ type tweetSearchConf struct {
 	MinWorker    int
 }
 
-type zincConf struct {
-	Host     string
-	Index    string
-	User     string
-	Password string
-	Secure   bool
-}
-
 type meiliConf struct {
 	Host   string
 	Index  string
@@ -203,19 +161,26 @@ type meiliConf struct {
 }
 
 type databaseConf struct {
-	TablePrefix string
-	LogLevel    string
-}
-
-type mysqlConf struct {
-	UserName     string
-	Password     string
-	Host         string
-	DBName       string
-	Charset      string
-	ParseTime    bool
+	TablePrefix  string
+	LogLevel     string
 	MaxIdleConns int
 	MaxOpenConns int
+}
+
+// GetMaxIdleConns 连接池最大空闲连接数，缺省 10
+func (s *databaseConf) GetMaxIdleConns() int {
+	if s.MaxIdleConns <= 0 {
+		return 10
+	}
+	return s.MaxIdleConns
+}
+
+// GetMaxOpenConns 连接池最大打开连接数，缺省 100
+func (s *databaseConf) GetMaxOpenConns() int {
+	if s.MaxOpenConns <= 0 {
+		return 100
+	}
+	return s.MaxOpenConns
 }
 
 type postgresConf map[string]string
@@ -225,46 +190,12 @@ type objectStorageConf struct {
 	TempDir      string
 }
 
-type minioConf struct {
-	AccessKey string
-	SecretKey string
-	Secure    bool
-	Endpoint  string
-	Bucket    string
-	Domain    string
-}
-
-type s3Conf struct {
-	AccessKey string
-	SecretKey string
-	Secure    bool
-	Endpoint  string
-	Bucket    string
-	Domain    string
-}
-
 type aliOSSConf struct {
 	AccessKeyID     string
 	AccessKeySecret string
 	Endpoint        string
 	Bucket          string
 	Domain          string
-}
-
-type cosConf struct {
-	SecretID  string
-	SecretKey string
-	Region    string
-	Bucket    string
-	Domain    string
-}
-
-type huaweiOBSConf struct {
-	AccessKey string
-	SecretKey string
-	Endpoint  string
-	Bucket    string
-	Domain    string
 }
 
 type localossConf struct {
@@ -327,17 +258,6 @@ func (s *httpServerConf) GetReadTimeout() time.Duration {
 
 func (s *httpServerConf) GetWriteTimeout() time.Duration {
 	return s.WriteTimeout * time.Second
-}
-
-func (s *mysqlConf) Dsn() string {
-	return fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s&parseTime=%t&loc=Local",
-		s.UserName,
-		s.Password,
-		s.Host,
-		s.DBName,
-		s.Charset,
-		s.ParseTime,
-	)
 }
 
 func (s postgresConf) Dsn() string {
@@ -432,38 +352,8 @@ func (s *loggerConf) logLevel() logrus.Level {
 	}
 }
 
-func (s *loggerZincConf) Endpoint() string {
-	return endpoint(s.Host, s.Secure)
-}
-
-func (s *loggerMeiliConf) Endpoint() string {
-	return endpoint(s.Host, s.Secure)
-}
-
-func (s *loggerMeiliConf) minWork() int {
-	if s.MinWorker < 5 {
-		return 5
-	} else if s.MinWorker > 100 {
-		return 100
-	}
-	return s.MinWorker
-}
-
-func (s *loggerMeiliConf) maxLogBuffer() int {
-	if s.MaxLogBuffer < 10 {
-		return 10
-	} else if s.MaxLogBuffer > 1000 {
-		return 1000
-	}
-	return s.MaxLogBuffer
-}
-
 func (s *objectStorageConf) TempDirSlash() string {
 	return strings.Trim(s.TempDir, " /") + "/"
-}
-
-func (s *zincConf) Endpoint() string {
-	return endpoint(s.Host, s.Secure)
 }
 
 func (s *meiliConf) Endpoint() string {
