@@ -43,6 +43,9 @@ func (s *chatSrv) Chain() gin.HandlersChain {
 // 高级身份→任何人 自由。返回 nil 表示允许, 否则为具体拒绝原因(msg 即提示文案)
 // 依赖存储的判定查询出错时 fail-closed 返回错误(拒绝), 不静默放行(#15)
 func (s *chatSrv) canWhisper(sender, receiver *ms.User) *xerror.Error {
+	// #27: Sms 未启用时手机号绑定入口已整体拒绝, 无号者无法自助补号;
+	// 此处仍信任存量手机号(决策同 chain/priv.go), 否则 Sms 关闭部署上
+	// 私信对全员永久不可用。
 	if sender.Phone == "" {
 		return web.ErrWhisperGuestNeedPhone
 	}

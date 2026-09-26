@@ -198,30 +198,34 @@ func (s *coreSrv) GetCollections(req *web.GetCollectionsReq) (*web.GetCollection
 }
 
 func (s *coreSrv) UserPhoneBind(req *web.UserPhoneBindReq) error {
+	// Sms 特性未启用时无法通过短信验证码证明号码所有权，
+	// 直接拒绝绑定，杜绝零校验绑定任意号码（#27）
+	if !_enablePhoneVerify {
+		return web.ErrPhoneVerifyDisabled
+	}
+
 	// 手机重复性检查
 	u, err := s.Ds.GetUserByPhone(req.Phone)
 	if err == nil && u.Model != nil && u.ID != 0 && u.ID != req.User.ID {
 		return web.ErrExistedUserPhone
 	}
 
-	// 如果禁止phone verify 则允许通过任意验证码
-	if _enablePhoneVerify {
-		c, err := s.Ds.GetLatestPhoneCaptcha(req.Phone)
-		if err != nil {
-			return web.ErrErrorPhoneCaptcha
-		}
-		if c.Captcha != req.Captcha {
-			return web.ErrErrorPhoneCaptcha
-		}
-		if c.ExpiredOn < time.Now().Unix() {
-			return web.ErrErrorPhoneCaptcha
-		}
-		if c.UseTimes >= _maxCaptchaTimes {
-			return web.ErrMaxPhoneCaptchaUseTimes
-		}
-		// 更新检测次数
-		s.Ds.UsePhoneCaptcha(c)
+	// 验证码校验: 必须通过才能落库
+	c, err := s.Ds.GetLatestPhoneCaptcha(req.Phone)
+	if err != nil {
+		return web.ErrErrorPhoneCaptcha
 	}
+	if c.Captcha != req.Captcha {
+		return web.ErrErrorPhoneCaptcha
+	}
+	if c.ExpiredOn < time.Now().Unix() {
+		return web.ErrErrorPhoneCaptcha
+	}
+	if c.UseTimes >= _maxCaptchaTimes {
+		return web.ErrMaxPhoneCaptchaUseTimes
+	}
+	// 更新检测次数
+	s.Ds.UsePhoneCaptcha(c)
 
 	// 执行绑定
 	user := req.User
