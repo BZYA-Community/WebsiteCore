@@ -187,7 +187,9 @@ func newTestService(t *testing.T) *Service {
 	if err := os.WriteFile("config.yaml", []byte("JWT:\n  Secret: sitesetting-test-only\n"), 0600); err != nil {
 		t.Fatalf("write test config: %v", err)
 	}
-	conf.Initial(nil, false)
+	if err := conf.Initial(nil, false); err != nil {
+		t.Fatalf("conf.Initial(nil, false) error = %v", err)
+	}
 	conf.WebProfileSetting = &conf.WebProfileConf{
 		EnableTrendsBar:         false,
 		AllowTweetAttachment:    true,
