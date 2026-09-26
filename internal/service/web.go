@@ -10,6 +10,7 @@ import (
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants"
+	web "github.com/BZYA-Community/WebsiteCore/internal/servants/web"
 	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
 	sentrygin "github.com/getsentry/sentry-go/gin"
@@ -55,6 +56,11 @@ func newWebEngine() *gin.Engine {
 			Repanic: true,
 		}))
 	}
+
+	// 全局限流(#28): 按IP的两级令牌桶, 登录/注册/验证码等敏感路径更严格
+	e.Use(web.RateLimit())
+	// 登录失败锁定(#28): (账号×来源IP)复合键, 防止任意账号被远程锁死
+	e.Use(web.LoginLockout())
 
 	// 默认404
 	e.NoRoute(func(c *gin.Context) {

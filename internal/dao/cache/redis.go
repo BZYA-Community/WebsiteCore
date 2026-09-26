@@ -18,9 +18,11 @@ const (
 	_cacheIndexKeyPattern = _cacheIndexKey + "*"
 	_pushToSearchJobKey   = "paopao_push_to_search_job"
 	_countLoginErrKey     = "paopao_count_login_err"
-	_imgCaptchaKey        = "paopao_img_captcha:"
-	_smsCaptchaKey        = "paopao_sms_captcha"
-	_countWhisperKey      = "paopao_whisper_key"
+	// 登录失败复合键(账号×IP)计数前缀(#28)
+	_countLoginErrAccountIPKey = "paopao_count_login_err_acctip"
+	_imgCaptchaKey             = "paopao_img_captcha:"
+	_smsCaptchaKey             = "paopao_sms_captcha"
+	_countWhisperKey           = "paopao_whisper_key"
 )
 
 type redisCache struct {
@@ -130,6 +132,28 @@ func (r *redisCache) IncrCountLoginErr(ctx context.Context, id int64) error {
 	err := r.c.Do(ctx, r.c.B().Incr().Key(fmt.Sprintf("%s:%d", _countLoginErrKey, id)).Build()).Error()
 	if err == nil {
 		err = r.c.Do(ctx, r.c.B().Expire().Key(fmt.Sprintf("%s:%d", _countLoginErrKey, id)).Seconds(3600).Build()).Error()
+	}
+	return err
+}
+
+// countLoginErrAccountIPKey 复合键构造(#28): 长度前缀消歧账号/IP中的分隔符
+func countLoginErrAccountIPKey(account string, ip string) string {
+	return fmt.Sprintf("%s:%d:%s:%s", _countLoginErrAccountIPKey, len(account), account, ip)
+}
+
+func (r *redisCache) GetCountLoginErrAccountIP(ctx context.Context, account string, ip string) (int64, error) {
+	return r.c.Do(ctx, r.c.B().Get().Key(countLoginErrAccountIPKey(account, ip)).Build()).AsInt64()
+}
+
+func (r *redisCache) DelCountLoginErrAccountIP(ctx context.Context, account string, ip string) error {
+	return r.c.Do(ctx, r.c.B().Del().Key(countLoginErrAccountIPKey(account, ip)).Build()).Error()
+}
+
+func (r *redisCache) IncrCountLoginErrAccountIP(ctx context.Context, account string, ip string) error {
+	key := countLoginErrAccountIPKey(account, ip)
+	err := r.c.Do(ctx, r.c.B().Incr().Key(key).Build()).Error()
+	if err == nil {
+		err = r.c.Do(ctx, r.c.B().Expire().Key(key).Seconds(3600).Build()).Error()
 	}
 	return err
 }
