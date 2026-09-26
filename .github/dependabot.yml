@@ -9,9 +9,53 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    target-branch: "dev"
     reviewers:
-      - "rocboss"
-      - "alimy"
+      - "Alumin-Hydro"
+    labels:
+      - "enhancement"  # TODO: 创建 dependencies 标签后改为 ["dependencies", "go"]
+      - "go"
     commit-message:
-      prefix: "mod:"
+      prefix: "mod"
+    groups:
+      go-minor-patch:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "QQSHI13"
+      - "Alumin-Hydro"
+    labels:
+      - "enhancement"  # TODO: 创建 dependencies 标签后改为 ["dependencies"]
+    commit-message:
+      prefix: "web"
+    versioning-strategy: "increase"
+    groups:
+      web-minor-patch:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "QQSHI13"
+      - "Alumin-Hydro"
+    labels:
+      - "enhancement"  # TODO: 创建 dependencies 标签后改为 ["dependencies"]
+    commit-message:
+      prefix: "ci"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
