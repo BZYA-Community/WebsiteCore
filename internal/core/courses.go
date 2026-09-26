@@ -21,6 +21,9 @@ type CourseService interface {
 	GetCourseComments(courseId, viewerId int64, viewerIsAuditor bool, limit, offset int) ([]*ms.CourseComment, int64, error)
 	GetCourseCommentByID(id int64) (*ms.CourseComment, error)
 	GetCourseCommentReplyByID(id int64) (*ms.CourseCommentReply, error)
+	// GetCourseCommentRepliesByReplyIDs 批量按回复id取课程回复(供列表场景一次取回避免逐行查询)
+	// 软删除的不返回 查询失败返回错误 缺失的id不在返回中
+	GetCourseCommentRepliesByReplyIDs(ids []int64) ([]*ms.CourseCommentReply, error)
 	GetCourseCommentContentsByIDs(ids []int64) ([]*ms.CourseCommentContent, error)
 	GetCourseCommentRepliesByID(ids []int64, viewerId int64, viewerIsAuditor bool) ([]*ms.CourseCommentReplyFormated, error)
 }

@@ -191,13 +191,20 @@ func (s *auditSrv) ListAuditComments(req *web.AdminAuditCommentsReq) (*web.Admin
 	}
 	userIds := make([]int64, 0, len(rows))
 	commentIds := make([]int64, 0, len(rows))
+	replyIds := make([]int64, 0, len(rows))
 	courseCommentIds := make([]int64, 0, len(rows))
+	courseReplyIds := make([]int64, 0, len(rows))
 	for _, row := range rows {
 		userIds = append(userIds, row.UserID)
-		if row.CommentType == 0 {
+		switch row.CommentType {
+		case 0:
 			commentIds = append(commentIds, row.ID)
-		} else if row.CommentType == 2 {
+		case 1:
+			replyIds = append(replyIds, row.ID)
+		case 2:
 			courseCommentIds = append(courseCommentIds, row.ID)
+		case 3:
+			courseReplyIds = append(courseReplyIds, row.ID)
 		}
 	}
 	users, _ := s.Ds.GetUsersByIDs(userIds)
@@ -240,6 +247,25 @@ func (s *auditSrv) ListAuditComments(req *web.AdminAuditCommentsReq) (*web.Admin
 			}
 		}
 	}
+	// 回复内容(comment_type=1/3) 批量取回 取代循环内逐行GetCommentReplyByID/GetCourseCommentReplyByID
+	// 与评论内容分开映射 以免评论/回复为不同表而id数值相同时互相串内容
+	// 查询失败或回复缺失时映射无该id 展示兜底"(无文字内容)" 与原逐行失败路径一致
+	replyContentMap := make(map[int64]string, len(replyIds))
+	if len(replyIds) > 0 {
+		if replies, err := s.Ds.GetCommentRepliesByReplyIDs(replyIds); err == nil {
+			for _, r := range replies {
+				replyContentMap[r.ID] = r.Content
+			}
+		}
+	}
+	courseReplyContentMap := make(map[int64]string, len(courseReplyIds))
+	if len(courseReplyIds) > 0 {
+		if replies, err := s.Ds.GetCourseCommentRepliesByReplyIDs(courseReplyIds); err == nil {
+			for _, r := range replies {
+				courseReplyContentMap[r.ID] = r.Content
+			}
+		}
+	}
 	items := make([]*web.AdminAuditCommentItem, 0, len(rows))
 	for _, row := range rows {
 		item := &web.AdminAuditCommentItem{
@@ -252,17 +278,13 @@ func (s *auditSrv) ListAuditComments(req *web.AdminAuditCommentsReq) (*web.Admin
 			CreatedOn:   row.CreatedOn,
 		}
 		if row.CommentType == 1 {
-			if reply, err := s.Ds.GetCommentReplyByID(row.ID); err == nil {
-				item.Content = auditBriefText(reply.Content)
-			}
+			item.Content = auditBriefText(replyContentMap[row.ID])
 		}
 		if row.CommentType == 2 {
 			item.Content = auditBriefText(courseContentMap[row.ID])
 		}
 		if row.CommentType == 3 {
-			if reply, err := s.Ds.GetCourseCommentReplyByID(row.ID); err == nil {
-				item.Content = auditBriefText(reply.Content)
-			}
+			item.Content = auditBriefText(courseReplyContentMap[row.ID])
 		}
 		if u, exist := userMap[row.UserID]; exist {
 			item.User = &web.AdminAuditUserBrief{ID: u.ID, Nickname: u.Nickname, Username: u.Username}
@@ -389,19 +411,17 @@ func (s *auditSrv) applyCommentAuditEffects(commentId int64, oldStatus, newStatu
 	switch {
 	case newStatus == int(ms.PostAuditApproved):
 		// 过审: 补记评论数/索引 并补发创建时被延迟的通知
-		post.CommentCount++
-		post.LatestRepliedOn = comment.CreatedOn
-		if err := s.Ds.UpdatePost(post); err != nil {
-			logrus.Errorf("Ds.UpdatePost err: %s", err)
+		// 计数改为原子自增(同时写latest_replied_on) 不再全行UpdatePost
+		if xerr := s.Ds.IncPostCounter(post, "comment_count", 1, comment.CreatedOn); xerr != nil {
+			logrus.Errorf("Ds.IncPostCounter err: %s", xerr)
 		}
 		s.PushPostToSearch(post)
 		s.notifyCommentApproved(post, comment)
 		s.notifyCommentAuditResult(comment.UserID, false, post.ID, commentBrief(s.Ds, comment), "", true)
 	case oldStatus == int(ms.PostAuditApproved):
 		// 由过审转为拒绝: 回减评论数
-		post.CommentCount--
-		if err := s.Ds.UpdatePost(post); err != nil {
-			logrus.Errorf("Ds.UpdatePost err: %s", err)
+		if xerr := s.Ds.IncPostCounter(post, "comment_count", -1, 0); xerr != nil {
+			logrus.Errorf("Ds.IncPostCounter err: %s", xerr)
 		}
 		s.notifyCommentAuditResult(comment.UserID, false, post.ID, commentBrief(s.Ds, comment), reason, false)
 	default:
@@ -432,18 +452,16 @@ func (s *auditSrv) applyReplyAuditEffects(replyId int64, oldStatus, newStatus in
 	}
 	switch {
 	case newStatus == int(ms.PostAuditApproved):
-		post.CommentCount++
-		post.LatestRepliedOn = reply.CreatedOn
-		if err := s.Ds.UpdatePost(post); err != nil {
-			logrus.Errorf("Ds.UpdatePost err: %s", err)
+		// 计数改为原子自增(同时写latest_replied_on) 不再全行UpdatePost
+		if xerr := s.Ds.IncPostCounter(post, "comment_count", 1, reply.CreatedOn); xerr != nil {
+			logrus.Errorf("Ds.IncPostCounter err: %s", xerr)
 		}
 		s.PushPostToSearch(post)
 		s.notifyReplyApproved(post, comment, reply)
 		s.notifyCommentAuditResult(reply.UserID, true, post.ID, auditBriefText(reply.Content), "", true)
 	case oldStatus == int(ms.PostAuditApproved):
-		post.CommentCount--
-		if err := s.Ds.UpdatePost(post); err != nil {
-			logrus.Errorf("Ds.UpdatePost err: %s", err)
+		if xerr := s.Ds.IncPostCounter(post, "comment_count", -1, 0); xerr != nil {
+			logrus.Errorf("Ds.IncPostCounter err: %s", xerr)
 		}
 		s.notifyCommentAuditResult(reply.UserID, true, post.ID, auditBriefText(reply.Content), reason, false)
 	default:
@@ -749,17 +767,28 @@ func (s *auditSrv) ListAuditLogs(req *web.AdminAuditLogsReq) (*web.AdminAuditLog
 }
 
 // usernamesOf 批量获取用户名(宽松处理失败 缺失的用户名显示空)
+// 一次 WHERE id IN (?) 批量取回 取代逐id的GetUserByID
 func usernamesOf(ds core.DataService, ids []int64) map[int64]string {
-	res := make(map[int64]string, len(ids))
+	unique := make([]int64, 0, len(ids))
+	seen := make(map[int64]bool, len(ids))
 	for _, id := range ids {
-		if id <= 0 {
+		if id <= 0 || seen[id] {
 			continue
 		}
-		if _, exist := res[id]; exist {
-			continue
-		}
-		if user, err := ds.GetUserByID(id); err == nil && user != nil {
-			res[id] = user.Username
+		seen[id] = true
+		unique = append(unique, id)
+	}
+	res := make(map[int64]string, len(unique))
+	if len(unique) == 0 {
+		return res
+	}
+	users, err := ds.GetUsersByIDs(unique)
+	if err != nil {
+		return res
+	}
+	for _, user := range users {
+		if user != nil {
+			res[user.ID] = user.Username
 		}
 	}
 	return res

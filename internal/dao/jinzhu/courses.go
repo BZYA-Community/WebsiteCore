@@ -127,6 +127,15 @@ func (s *courseSrv) GetCourseCommentReplyByID(id int64) (*ms.CourseCommentReply,
 	return reply.Get(s.db)
 }
 
+// GetCourseCommentRepliesByReplyIDs 批量按回复id取课程回复(软删除的不返回 缺失的id不在返回中)
+func (s *courseSrv) GetCourseCommentRepliesByReplyIDs(ids []int64) (res []*ms.CourseCommentReply, err error) {
+	if len(ids) == 0 {
+		return
+	}
+	err = s.db.Where("id IN ? AND is_del = ?", ids, 0).Find(&res).Error
+	return
+}
+
 func (s *courseSrv) GetCourseCommentContentsByIDs(ids []int64) (res []*ms.CourseCommentContent, err error) {
 	err = s.db.Where("comment_id IN ? AND is_del = ?", ids, 0).Find(&res).Error
 	return

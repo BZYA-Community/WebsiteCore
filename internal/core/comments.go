@@ -18,6 +18,9 @@ type CommentService interface {
 	GetComments(tweetId int64, style cs.StyleCommentType, viewerId int64, viewerIsAuditor bool, limit int, offset int) ([]*ms.Comment, int64, error)
 	GetCommentByID(id int64) (*ms.Comment, error)
 	GetCommentReplyByID(id int64) (*ms.CommentReply, error)
+	// GetCommentRepliesByReplyIDs 批量按回复id取回复(供列表场景一次取回避免逐行查询)
+	// 软删除的不返回 查询失败返回错误 缺失的id不在返回中
+	GetCommentRepliesByReplyIDs(ids []int64) ([]*ms.CommentReply, error)
 	GetCommentContentsByIDs(ids []int64) ([]*ms.CommentContent, error)
 	GetCommentRepliesByID(ids []int64, viewerId int64, viewerIsAuditor bool) ([]*ms.CommentReplyFormated, error)
 	GetCommentThumbsMap(userId int64, tweetId int64) (cs.CommentThumbsMap, cs.CommentThumbsMap, error)
