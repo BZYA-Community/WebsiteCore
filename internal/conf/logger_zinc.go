@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/BZYA-Community/WebsiteCore/pkg/json"
+	"github.com/go-resty/resty/v2"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/resty.v1"
 )
 
 type zincLogData struct {

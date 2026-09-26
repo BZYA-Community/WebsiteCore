@@ -8,7 +8,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/pkg/json"
 	"github.com/cockroachdb/errors"
-	"gopkg.in/resty.v1"
+	"github.com/go-resty/resty/v2"
 )
 
 type juhePhoneCaptchaRsp struct {
