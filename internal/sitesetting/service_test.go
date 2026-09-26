@@ -170,9 +170,17 @@ func newTestService(t *testing.T) *Service {
 	if err != nil {
 		t.Fatalf("os.Getwd() error = %v", err)
 	}
-	root := filepath.Clean(filepath.Join(wd, "..", ".."))
-	if err := os.Chdir(root); err != nil {
-		t.Fatalf("os.Chdir(%q) error = %v", root, err)
+	// 测试不依赖仓库根目录的 config.yaml(干净检出/CI 上没有该文件):
+	// 切到临时目录并放置一份最小配置, 未覆盖的配置项与内嵌默认配置合并。
+	dir := t.TempDir()
+	minimalConf := "# 单元测试最小配置, 其余项取内嵌默认值\n" +
+		"App:\n  RunMode: test\n" +
+		"JWT:\n  Secret: \"unit-test-only-secret\"\n"
+	if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(minimalConf), 0o644); err != nil {
+		t.Fatalf("os.WriteFile(%q) error = %v", filepath.Join(dir, "config.yaml"), err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("os.Chdir(%q) error = %v", dir, err)
 	}
 	t.Cleanup(func() {
 		_ = os.Chdir(wd)

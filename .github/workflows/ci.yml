@@ -41,6 +41,10 @@ jobs:
       - name: Syntax check (build)
         run: go build ./...
 
+      # 单元测试(干净检出、无 config.yaml 的环境下也必须全绿, 见 #11)
+      - name: Unit tests
+        run: go test ./...
+
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
 
