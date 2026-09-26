@@ -18,7 +18,7 @@ If you are looking for the main project entry points, start from:
 | [features-status.md](features-status.md) | Feature maturity and support status |
 | [openapi/](openapi/) | Exported API documentation assets, including generated OpenAPI files and static docs artifacts |
 | [proposal/](proposal/) | Product ideas, design proposals, and implementation notes |
-| [deploy/](deploy/) | Deployment references for local, cloud, and Kubernetes environments |
+| [deploy/](deploy/) | Deployment references for local and cloud environments (Kubernetes section is a placeholder) |
 | [discuss/](discuss/) | Discussion-oriented documents, notes, and related references |
 
 ## Recommended Reading Paths

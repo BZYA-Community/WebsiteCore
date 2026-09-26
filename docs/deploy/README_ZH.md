@@ -2,6 +2,8 @@
 
 [English](README.md) | 简体中文
 
+> **说明：当前仓库未提供 `Dockerfile`**，以下文档描述的是裸机部署方式（静态二进制 + 进程守护 + Nginx 反向代理），`docker-compose.dev.yml` 仅用于本地开发依赖。容器化部署需自行编写 `Dockerfile`（可参考上游 [paopao-ce](https://github.com/rocboss/paopao-ce) 的 Dockerfile）；`k8s/` 目录目前也是占位文档，暂无 Kubernetes 清单。
+
 本目录汇总了 PaoPao 在本地环境、云平台以及 Kubernetes 场景下的部署文档。
 
 如果你需要先了解完整安装流程，建议先阅读：
@@ -18,7 +20,7 @@
 | [aliyun/](aliyun/) | 阿里云部署文档 |
 | [huawei/](huawei/) | 华为云部署文档 |
 | [tencent/](tencent/) | 腾讯云部署文档 |
-| [k8s/](k8s/) | Kubernetes 部署参考 |
+| [k8s/](k8s/) | Kubernetes 部署参考（占位 / TODO：暂无清单） |
 
 ## 推荐阅读顺序
 
@@ -37,11 +39,11 @@
    - [huawei/README.md](huawei/README.md)
    - [tencent/README.md](tencent/README.md)
 
-### Kubernetes 部署
+### Kubernetes 部署（占位 / TODO）
 
 1. 先阅读 [../INSTALL_ZH.md](../INSTALL_ZH.md)
 2. 再查看 [core/](core/)
-3. 最后阅读 [k8s/README.md](k8s/README.md)
+3. 最后阅读 [k8s/README.md](k8s/README.md)（占位 / TODO，暂无清单）
 
 ## 说明
 

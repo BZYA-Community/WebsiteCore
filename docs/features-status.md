@@ -48,7 +48,7 @@
 
 #### 数据库:
 * `Gorm` + `MySQL`/`PostgreSQL`
-使用[gorm](https://github.com/go-gorm/gorm)作为数据库的ORM，默认使用 `Grom` + `MySQL`组合(目前状态：稳定，默认，推荐使用)； 
+使用[gorm](https://github.com/go-gorm/gorm)作为数据库的ORM，当前默认 ORM，与 `PostgreSQL`/`MySQL` 组合使用（`config.yaml.sample` 默认数据库为 `PostgreSQL`）(目前状态：稳定，默认，推荐使用)； 
     * [ ] 提按文档
     * [x] 接口定义
     * [x] 业务逻辑实现  
@@ -79,7 +79,7 @@
     * [ ] 提按文档  
     * [x] 接口定义
     * [x] 业务逻辑实现     
-* `LocalOSS` 提供使用本地目录文件作为对象存储的功能，仅用于开发调试环境；
+* `LocalOSS` 提供使用本地目录文件作为对象存储的功能（`config.yaml.sample` 默认套件使用它；上云部署建议改用对象存储服务）；
     * [ ] 提按文档  
     * [x] 接口定义
     * [x] 业务逻辑实现 
@@ -149,21 +149,21 @@
 
 #### 监控:
 * `Sentry` 使用Sentry进行错误跟踪与性能监控(目前状态: 内测); 
-    * [x] [提按文档](docs/proposal/23040412-关于使用sentry用于错误追踪与性能检测的设计.md)  
+    * [x] [提按文档](proposal/23040412-关于使用sentry用于错误追踪与性能检测的设计.md)  
     * [x] 接口定义
     * [x] 业务逻辑实现   
 
 #### 关系模式:    
 * `Friendship` 弱关系好友模式，类似微信朋友圈(目前状态: 内置Builtin); 
-    * [x] [提按文档](docs/proposal/22110410-关于Friendship功能项的设计.md)
+    * [x] [提按文档](proposal/22110410-关于Friendship功能项的设计.md)
     * [x] 接口定义
     * [x] 业务逻辑实现     
 * `Followship` 关注者模式，类似Twitter的Follow模式(目前状态: 内置Builtin);  
-    * [ ] [提按文档](docs/proposal/22110409-关于Followship功能项的设计.md)
+    * [ ] [提按文档](proposal/22110409-关于Followship功能项的设计.md)
     * [ ] 接口定义
     * [ ] 业务逻辑实现   
 * `Lightship` 开放模式，所有推文都公开可见(目前状态: 已弃，不可用);  
-    * [x] [提按文档](docs/proposal/22121409-关于Lightship功能项的设计.md)
+    * [x] [提按文档](proposal/22121409-关于Lightship功能项的设计.md)
     * [x] 接口定义
     * [x] 业务逻辑实现 
 
@@ -190,10 +190,10 @@
     * [x] 业务逻辑实现   
 
 ### 性能优化
-* [`Pyroscope`](docs/proposal/23021510-关于使用pyroscope用于性能调试的设计.md) 开启Pyroscope功能用于性能调试(目前状态: 内测);  
+* [`Pyroscope`](proposal/23021510-关于使用pyroscope用于性能调试的设计.md) 开启Pyroscope功能用于性能调试(目前状态: 内测);  
     * [x] 提按文档  
     * [x] 业务逻辑实现  
-* [`Pprof`](docs/proposal/23062905-添加Pprof功能特性用于获取Profile.md) 开启Pprof功能收集Profile信息(目前状态: 内测);  
+* [`Pprof`](proposal/23062905-添加Pprof功能特性用于获取Profile.md) 开启Pprof功能收集Profile信息(目前状态: 内测);  
     * [x] 提按文档  
     * [x] 业务逻辑实现  
 

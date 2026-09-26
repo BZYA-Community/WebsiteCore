@@ -18,7 +18,7 @@
 | [features-status.md](features-status.md) | 功能项成熟度与支持状态 |
 | [openapi/](openapi/) | 导出的 API 文档资源，包含生成的 OpenAPI 文件与静态文档产物 |
 | [proposal/](proposal/) | 产品设计、功能提案与实现思路说明 |
-| [deploy/](deploy/) | 本地、云平台与 Kubernetes 等部署参考文档 |
+| [deploy/](deploy/) | 本地、云平台部署参考文档（Kubernetes 部分为占位） |
 | [discuss/](discuss/) | 偏讨论性质的文档、记录与相关资料 |
 
 ## 推荐阅读路径

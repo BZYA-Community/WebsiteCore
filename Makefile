@@ -143,12 +143,10 @@ install-tools:
 
 help:
 	@echo "make: make"
-	@echo "make run: start api server"
-	@echo "make build: build executable"
-	@echo "make release: build release executables"
-	@echo "make run TAGS='embed': start api server and serve embed web frontend"
-	@echo "make build TAGS='embed': build executable with embed web frontend"
-	@echo "make release TAGS='embed': build release executables with embed web frontend"
+	@echo "make run: start api server (web frontend embedded by default; TAGS='embed' is a no-op)"
+	@echo "make build: build executable (web frontend embedded by default)"
+	@echo "make build TAGS='slim embed': build executable WITHOUT the embedded web frontend"
+	@echo "make release: build release executables (web frontend embedded by default)"
 	@echo "make migrate: run database migrations"
 	@echo "make deps-up: start dev dependency stack"
 	@echo "make deps-down: stop dev dependency stack, keeping data volumes"

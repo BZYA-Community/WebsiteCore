@@ -44,7 +44,7 @@ This guide covers the recommended ways to run PaoPao in development, evaluation,
 
    ```sh
    cp config.yaml.sample config.yaml
-   openssl rand -hex 24   # put the output into JWT.Secret
+   openssl rand -base64 32   # put the output into JWT.Secret
    ```
 
 3. Create the database schema from the embedded migrations:
@@ -56,7 +56,7 @@ This guide covers the recommended ways to run PaoPao in development, evaluation,
 4. Run or build the backend:
 
    ```sh
-   make run               # or: make build-web && make run TAGS='embed' to serve the frontend
+   make run               # web assets are embedded by default; run `make build-web` first so web/dist is not empty
    ```
 
 The dev stack pins `postgres:18.6`, `redis:7.4.11` and `getmeili/meilisearch:v1.54.0`, binds every port to `127.0.0.1`, and keeps data in named volumes (`make deps-reset` wipes them). `config.yaml.sample` already targets this stack: PostgreSQL, database `websitecore`, user/password `paopao`.
@@ -86,28 +86,31 @@ yarn build
 
 ### Embedded web UI
 
-If you want the Go service to serve the web frontend directly, build the frontend assets first and then run with the `embed` tag:
+The frontend is embedded **by default** — `web/embed.go` carries the build constraint `//go:build !(slim && embed)`, so a build with no tags (or with `embed` alone) packs `web/dist` into the binary. The `embed` tag by itself is a no-op; only the combination `slim embed` excludes the assets. Build the assets first (a fresh clone only has `web/dist/.gitkeep`), then run:
 
 ```sh
 make build-web
-make run TAGS='embed'
+make run                 # serves the embedded frontend (requires the `Frontend:EmbedWeb` feature)
+make run TAGS='embed'    # identical result: `embed` alone changes nothing
 ```
+
+With `make build TAGS='slim embed'` the assets are left out and no static routes are registered; in that case serve `web/dist` yourself (e.g. from Nginx).
 
 <a id="deploy-release-binary"></a>
 
 ## Deploy the Release Binary to a Server
 
-The recommended build uses the `embed` + `migration` tags so the web assets and database migrations are embedded in the binary. The server only needs the binary itself and a `config.yaml`.
+The recommended build uses the `migration` tag so database migrations are embedded in the binary; web assets are already embedded by default (see above), so the `embed` tag is optional and does not change what the binary serves. The server only needs the binary itself and a `config.yaml`.
 
 ```sh
 # 1. Build the web assets
 make build-web
 
 # 2. Build the release binary (native platform)
-make build TAGS='embed migration'
+make build TAGS='migration'        # TAGS='embed migration' is equivalent
 
 # Or cross-compile for Linux amd64 (pure Go, no CGO needed)
-make linux-amd64 CGO_ENABLED=0 TAGS='embed migration'
+make linux-amd64 CGO_ENABLED=0 TAGS='migration'
 ```
 
 The artifact is written to `release/`. Deployment steps:
@@ -130,7 +133,8 @@ Notes:
 
 | Tag | Purpose |
 | --- | --- |
-| `embed` | Serve the built web frontend from the Go binary |
+| `embed` | No-op on its own: web assets are embedded unless **both** `slim` and `embed` are set. Together with `slim` (`TAGS='slim embed'`) it strips the embedded frontend |
+| `slim` | Only meaningful together with `embed` — see above |
 | `migration` | Include migration support in the backend binary |
 | `docs` | Enable the developer docs / OpenAPI service |
 
@@ -139,17 +143,18 @@ Examples:
 ```sh
 make build TAGS='migration'
 make run TAGS='docs'
-make run TAGS='embed'
+make run                       # frontend is embedded by default
+make build TAGS='slim embed'   # build without the embedded frontend
 ```
 
 ## Configuration Basics
 
 At startup, PaoPao reads either:
 
-1. `./custom/config.yaml`
-2. `./config.yaml`
+1. `./config.yaml`
+2. `./custom/config.yaml`
 
-The first file found is used.
+The first file found is used (search order defined by `newViper` in `internal/conf/setting.go`).
 
 Important: the external file is no longer expected to carry every runtime knob. PaoPao loads embedded defaults first, then overlays your local config file.
 
@@ -280,17 +285,28 @@ Then visit:
 
 - `http://127.0.0.1:8011/docs/openapi`
 
+## Security Recommendations
+
+Hardening checklist for a public deployment (vulnerability reporting: see [SECURITY.md](../SECURITY.md)):
+
+- **`JWT.Secret` is mandatory.** The process prints an error and exits at startup when it is empty. Generate a random value (`openssl rand -base64 32`) and keep it in `config.yaml` / `custom/config.yaml`, never in a public repository. Rotating it invalidates all existing sessions.
+- **Replace the shipped defaults.** `config.yaml.sample` uses `App.RunMode: debug` and `AdminSettings.EncryptionKey: CHANGE-ME-TO-A-LONG-RANDOM-SECRET` — set `RunMode: release` and generate your own key (it seeds the encryption of settings persisted by the admin UI).
+- **Do not expose the API port directly.** Keep `WebServer.HttpIp`/`HttpPort` reachable only from your reverse proxy, and keep PostgreSQL, Redis and Meilisearch on a private network: the sample binds them to `127.0.0.1` with development credentials (`paopao`/`paopao`) that must be changed in production.
+- **Uploads are validated server-side**: only the `public/image`, `public/video`, `public/avatar` and `attachment` upload types, a `Content-Type` allow-list (`webp/png/jpg/gif/mp4/mov/zip`) and a 100 MB per-file limit. Keep your reverse proxy's body-size limit aligned with it, and don't expose the `LocalOSS` storage directory through a permissive file server.
+- **Terminate TLS at a reverse proxy.** The Go service speaks plain HTTP only; put Nginx/Caddy in front with HTTPS (and rate limiting), and only publish that endpoint.
+- **Protect the data directory.** `config.yaml` and the `custom/` directory (attachments and local data) hold secrets and user content — restrict filesystem permissions and back them up.
+
 ## Additional Deployment Docs
 
 For platform-specific or production-oriented deployment references, see:
 
 - [docs/deploy/README.md](deploy/README.md)
-- [docs/deploy/core/](docs/deploy/core/)
-- [docs/deploy/local/](docs/deploy/local/)
-- [docs/deploy/k8s/](docs/deploy/k8s/)
-- [docs/deploy/aliyun/](docs/deploy/aliyun/)
-- [docs/deploy/huawei/](docs/deploy/huawei/)
-- [docs/deploy/tencent/](docs/deploy/tencent/)
+- [docs/deploy/core/](deploy/core/)
+- [docs/deploy/local/](deploy/local/)
+- [docs/deploy/k8s/](deploy/k8s/)
+- [docs/deploy/aliyun/](deploy/aliyun/)
+- [docs/deploy/huawei/](deploy/huawei/)
+- [docs/deploy/tencent/](deploy/tencent/)
 
 ## Operational Notes
 

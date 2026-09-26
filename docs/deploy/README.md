@@ -4,6 +4,8 @@ English | [简体中文](README_ZH.md)
 
 This directory collects deployment-oriented documentation for PaoPao across local environments, cloud platforms, and Kubernetes-based setups.
 
+> **Note: this repository ships no `Dockerfile`.** The documents below describe bare-metal deployment (a static binary behind a process supervisor and an Nginx reverse proxy); `docker-compose.dev.yml` is only for local development dependencies. For containerized deployment write your own `Dockerfile` (see upstream [paopao-ce](https://github.com/rocboss/paopao-ce)); the `k8s/` directory is likewise a placeholder with no Kubernetes manifests.
+
 For the higher-level setup flow, start with:
 
 - [../INSTALL.md](../INSTALL.md) - installation and runtime setup guide
@@ -18,7 +20,7 @@ For the higher-level setup flow, start with:
 | [aliyun/](aliyun/) | Alibaba Cloud deployment documentation |
 | [huawei/](huawei/) | Huawei Cloud deployment documentation |
 | [tencent/](tencent/) | Tencent Cloud deployment documentation |
-| [k8s/](k8s/) | Kubernetes deployment references |
+| [k8s/](k8s/) | Kubernetes deployment notes (**placeholder / TODO**: no manifests) |
 
 ## Suggested Reading Order
 
@@ -37,11 +39,11 @@ For the higher-level setup flow, start with:
    - [huawei/README.md](huawei/README.md)
    - [tencent/README.md](tencent/README.md)
 
-### For Kubernetes-based deployment
+### For Kubernetes-based deployment (placeholder / TODO)
 
 1. Read [../INSTALL.md](../INSTALL.md)
 2. Review [core/](core/)
-3. Continue with [k8s/README.md](k8s/README.md)
+3. Continue with [k8s/README.md](k8s/README.md) — currently a placeholder with no manifests
 
 ## Notes
 

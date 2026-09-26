@@ -3,7 +3,7 @@
 | 22121409 | 北野 | 2022-12-14 | 2023-08-16 | v1.2 | 提议 |
 
 ### 关于Lightship功能项的设计
-Lightship(开放模式)功能提供完全公开的推文分享服务，有别于[Friendship](22110410-关于Friendship功能项的设计.md "关于Friendship功能项的设计")、[Followship](22110410-关于Followship功能项的设计.md "关于Followship功能项的设计")，使用Lightship用户模式部署paopao-ce，用户发布的所有推文都是公开可访问的，广场推文列表展示的是全站所有公开推文的Timeline Tweets。
+Lightship(开放模式)功能提供完全公开的推文分享服务，有别于[Friendship](22110410-关于Friendship功能项的设计.md "关于Friendship功能项的设计")、[Followship](22110409-关于Followship功能项的设计.md "关于Followship功能项的设计")，使用Lightship用户模式部署paopao-ce，用户发布的所有推文都是公开可访问的，广场推文列表展示的是全站所有公开推文的Timeline Tweets。
 
 ### 场景
 一般用于非常小的站点，或者推文更新不频繁的站点。

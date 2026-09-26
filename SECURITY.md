@@ -27,4 +27,4 @@
 
 - 报告被接受后，我们会在修复发布时在提交说明中致谢报告者（除非你要求匿名）。
 - 报告被拒绝时，我们会说明原因（例如：属于上游 paopao-ce 的问题、影响范围仅限本地开发环境、或无法复现）。
-- 与私有部署配置相关的弱口令、错误配置类问题不属于代码漏洞，请自行加固（参见 `docs/INSTALL.md` 中的安全建议）。
+- 与私有部署配置相关的弱口令、错误配置类问题不属于代码漏洞，请自行加固（参见 [`docs/INSTALL_ZH.md`](docs/INSTALL_ZH.md) 中的「安全建议」一节，英文版见 [`docs/INSTALL.md`](docs/INSTALL.md) 的 “Security Recommendations”）。

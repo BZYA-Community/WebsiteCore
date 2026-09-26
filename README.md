@@ -79,7 +79,7 @@ cp config.yaml.sample config.yaml
 
 关键项：
 
-- `JWT.Secret`：**必填**，留空启动会直接退出。生成：`openssl rand -hex 24`
+- `JWT.Secret`：**必填**，留空启动会直接退出。生成：`openssl rand -base64 32`
 - `Features.Default`：特性开关列表，默认已是 `Postgres`；数据库特性名写 `Postgres` / `MySQL`；启用自动建表迁移需加 `Migration` 特性并用 `migration` tag 编译（或直接用 `make migrate`）
 - `WebServer.HttpPort`：监听端口（默认 8008）
 - 数据库 / Redis / Meili 连接信息已与 `docker-compose.dev.yml` 对齐，无需改动
@@ -93,8 +93,8 @@ make migrate        # 用内嵌迁移脚本建出完整 schema
 ### 4. 构建前端并运行
 
 ```bash
-make build-web          # 构建前端产物(供 embed 内嵌)
-make run TAGS='embed'   # 启动后端并内嵌前端
+make build-web          # 构建前端产物到 web/dist（默认内嵌进二进制）
+make run                # 启动后端；前端默认已内嵌（TAGS='embed' 是等价写法，可省略）
 ```
 
 访问 `http://127.0.0.1:8008`。更多安装/部署细节见 [docs/INSTALL_ZH.md](docs/INSTALL_ZH.md)。
@@ -130,13 +130,15 @@ cd web && npm run dev    # 前端开发服务
 | 文档 | 说明 |
 | --- | --- |
 | [docs/INSTALL_ZH.md](docs/INSTALL_ZH.md) | 安装与本地部署指南 |
-| [docs/deploy/](docs/deploy/) | 本地/云平台/K8s 部署参考 |
+| [docs/deploy/](docs/deploy/) | 本地/云平台部署参考（K8s 章节为占位） |
 | [docs/features-status.md](docs/features-status.md) | 功能项成熟度与状态 |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | 版本变更记录 |
 | [docs/proposal/](docs/proposal/) | 设计提案与实现笔记 |
 | [docs/openapi/](docs/openapi/) | OpenAPI 文档资源（运行时由 `/docs/openapi` 提供） |
 
 完整索引见 [docs/README_ZH.md](docs/README_ZH.md)。
+
+> 注：当前仓库未提供 `Dockerfile`，部署文档描述的是裸机方式（静态二进制 + 进程守护 + Nginx 反向代理）；`docker-compose.dev.yml` 仅用于本地开发依赖，`docs/deploy/k8s/` 为占位文档。
 
 ## 致谢
 
