@@ -184,7 +184,7 @@ func newTestService(t *testing.T) *Service {
 	t.Helper()
 	db := newTestDB(t)
 	t.Chdir(t.TempDir())
-	if err := os.WriteFile("config.yaml", []byte("JWT:\n  Secret: sitesetting-test-only\n"), 0600); err != nil {
+	if err := os.WriteFile("config.yaml", []byte("App:\n  RunMode: test\nJWT:\n  Secret: sitesetting-test-only\n"), 0600); err != nil {
 		t.Fatalf("write test config: %v", err)
 	}
 	if err := conf.Initial(nil, false); err != nil {
