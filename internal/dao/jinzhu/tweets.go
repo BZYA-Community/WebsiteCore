@@ -304,21 +304,21 @@ func (s *tweetManageSrv) StickPost(post *ms.Post) error {
 
 func (s *tweetManageSrv) HighlightPost(userId int64, postId int64) (res int, err error) {
 	var post dbr.Post
-	tx := s.db.Begin()
-	defer tx.Rollback()
-	post.Get(tx)
-	if err = tx.Where("id = ? AND is_del = 0", postId).First(&post).Error; err != nil {
-		return
-	}
-	if post.UserID != userId {
-		return 0, cs.ErrNoPermission
-	}
-	post.IsEssence = 1 - post.IsEssence
-	if err = post.Update(tx); err != nil {
-		return
-	}
-	tx.Commit()
-	return post.IsEssence, nil
+	err = s.db.Transaction(func(tx *gorm.DB) error {
+		if xerr := tx.Where("id = ? AND is_del = 0", postId).First(&post).Error; xerr != nil {
+			return xerr
+		}
+		if post.UserID != userId {
+			return cs.ErrNoPermission
+		}
+		post.IsEssence = 1 - post.IsEssence
+		if xerr := post.Update(tx); xerr != nil {
+			return xerr
+		}
+		res = post.IsEssence
+		return nil
+	})
+	return
 }
 
 func (s *tweetManageSrv) VisiblePost(post *ms.Post, visibility cs.TweetVisibleType) (err error) {
@@ -334,22 +334,25 @@ func (s *tweetManageSrv) VisiblePost(post *ms.Post, visibility cs.TweetVisibleTy
 		// TODO: 置顶推文用户是否有权设置成私密？ 后续完善
 		post.IsTop = 0
 	}
-	tx := s.db.Begin()
-	defer tx.Rollback()
-	if err = post.Update(tx); err != nil {
+	err = s.db.Transaction(func(tx *gorm.DB) error {
+		if xerr := post.Update(tx); xerr != nil {
+			return xerr
+		}
+		// tag处理
+		tags := strings.Split(post.Tags, ",")
+		// TODO: 暂时宽松不处理错误，这里或许可以有优化，后续完善
+		if oldVisibility == dbr.PostVisitPrivate {
+			// 从私密转为非私密才需要重新创建tag
+			createTags(tx, post.UserID, tags)
+		} else if visibility == cs.TweetVisitPrivate {
+			// 从非私密转为私密才需要删除tag
+			deleteTags(tx, tags)
+		}
+		return nil
+	})
+	if err != nil {
 		return
 	}
-	// tag处理
-	tags := strings.Split(post.Tags, ",")
-	// TODO: 暂时宽松不处理错误，这里或许可以有优化，后续完善
-	if oldVisibility == dbr.PostVisitPrivate {
-		// 从私密转为非私密才需要重新创建tag
-		createTags(tx, post.UserID, tags)
-	} else if visibility == cs.TweetVisitPrivate {
-		// 从非私密转为私密才需要删除tag
-		deleteTags(tx, tags)
-	}
-	tx.Commit()
 	s.cacheIndex.SendAction(core.IdxActVisiblePost, post)
 	return
 }
@@ -360,6 +363,52 @@ func (s *tweetManageSrv) UpdatePost(post *ms.Post) (err error) {
 	}
 	s.cacheIndex.SendAction(core.IdxActUpdatePost, post)
 	return
+}
+
+// postCounterColumns 帖子计数列白名单 仅允许对计数列做原子自增/自减
+var postCounterColumns = map[string]struct{}{
+	"comment_count":    {},
+	"upvote_count":     {},
+	"collection_count": {},
+	"share_count":      {},
+}
+
+// IncPostCounter 原子自增/自减帖子计数列 使用SQL表达式就地更新
+// 避免"读→改→写"在并发下丢计数 同时只写计数列与latest_replied_on 不会覆盖其它列的并发修改
+func (s *tweetManageSrv) IncPostCounter(post *ms.Post, column string, delta int, latestRepliedOn int64) error {
+	if post == nil || post.Model == nil {
+		return fmt.Errorf("jinzhu: IncPostCounter requires a loaded post")
+	}
+	if _, ok := postCounterColumns[column]; !ok {
+		return fmt.Errorf("jinzhu: unsupport post counter column %s", column)
+	}
+	updates := map[string]any{
+		column:        gorm.Expr(column+" + ?", delta),
+		"modified_on": time.Now().Unix(),
+	}
+	if latestRepliedOn > 0 {
+		updates["latest_replied_on"] = latestRepliedOn
+	}
+	// Model+Updates 由GORM软删除插件自动附加 is_del=0 过滤条件
+	if err := s.db.Model(&dbr.Post{}).Where("id = ?", post.ID).Updates(updates).Error; err != nil {
+		return err
+	}
+	// 同步内存值 保证后续索引推送与度量更新使用最新计数
+	switch column {
+	case "comment_count":
+		post.CommentCount += int64(delta)
+	case "upvote_count":
+		post.UpvoteCount += int64(delta)
+	case "collection_count":
+		post.CollectionCount += int64(delta)
+	case "share_count":
+		post.ShareCount += int64(delta)
+	}
+	if latestRepliedOn > 0 {
+		post.LatestRepliedOn = latestRepliedOn
+	}
+	s.cacheIndex.SendAction(core.IdxActUpdatePost, post)
+	return nil
 }
 
 func (s *tweetManageSrv) CreatePostStar(postID, userID int64) (*ms.PostStar, error) {

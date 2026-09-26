@@ -61,19 +61,37 @@ func (s *commentMetricSrvA) DeleteCommentMetric(commentId int64) (err error) {
 	return (&dbr.CommentMetric{CommentId: commentId}).Delete(s.db)
 }
 
+// UpdateUserMetric 原子更新用户动态指标 使用SQL表达式就地增减
+// 避免"读→改→写"在并发下丢计数
 func (s *userMetricSrvA) UpdateUserMetric(userId int64, action uint8) error {
-	metric := &dbr.UserMetric{UserId: userId}
-	s.db.Model(metric).Where("user_id=?", userId).First(metric)
-	metric.LatestTrendsOn = time.Now().Unix()
-	switch action {
-	case cs.MetricActionCreateTweet:
-		metric.TweetsCount++
-	case cs.MetricActionDeleteTweet:
-		if metric.TweetsCount > 0 {
-			metric.TweetsCount--
+	now := time.Now().Unix()
+	// 先查记录是否存在 仅用于决定补建与否 计数增减本身由SQL表达式原子完成
+	metric := &dbr.UserMetric{}
+	if err := s.db.Model(&dbr.UserMetric{}).Where("user_id = ?", userId).First(metric).Error; err == nil {
+		updates := map[string]any{
+			"latest_trends_on": now,
+			"modified_on":      now,
 		}
+		switch action {
+		case cs.MetricActionCreateTweet:
+			updates["tweets_count"] = gorm.Expr("tweets_count + 1")
+		case cs.MetricActionDeleteTweet:
+			// 减到0为止 避免并发下减成负数
+			updates["tweets_count"] = gorm.Expr("CASE WHEN tweets_count > 0 THEN tweets_count - 1 ELSE 0 END")
+		}
+		// Model+Updates 由GORM软删除插件自动附加 is_del=0 过滤条件
+		return s.db.Model(&dbr.UserMetric{}).Where("user_id = ?", userId).Updates(updates).Error
 	}
-	return s.db.Save(metric).Error
+	// 记录不存在时补建一条(与原实现 Save 的语义一致)
+	metric = &dbr.UserMetric{
+		Model:          &dbr.Model{},
+		UserId:         userId,
+		LatestTrendsOn: now,
+	}
+	if action == cs.MetricActionCreateTweet {
+		metric.TweetsCount = 1
+	}
+	return s.db.Create(metric).Error
 }
 
 func (s *userMetricSrvA) AddUserMetric(userId int64) (err error) {

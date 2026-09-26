@@ -41,6 +41,10 @@ type TweetManageService interface {
 	HighlightPost(userId, postId int64) (int, error)
 	VisiblePost(post *ms.Post, visibility cs.TweetVisibleType) error
 	UpdatePost(post *ms.Post) error
+	// IncPostCounter 原子自增/自减帖子计数列 避免"读→改→写"在并发下丢计数
+	// column 仅支持 comment_count、upvote_count、collection_count、share_count
+	// latestRepliedOn > 0 时一并原子更新 latest_replied_on 并同步内存值
+	IncPostCounter(post *ms.Post, column string, delta int, latestRepliedOn int64) error
 	CreatePostStar(postID, userID int64) (*ms.PostStar, error)
 	DeletePostStar(p *ms.PostStar) error
 	CreatePostCollection(postID, userID int64) (*ms.PostCollection, error)

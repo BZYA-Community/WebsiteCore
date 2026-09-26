@@ -192,21 +192,16 @@ func (s *commentManageSrv) HighlightComment(userId, commentId int64) (isEssence 
 	return
 }
 
-func (s *commentManageSrv) DeleteComment(comment *ms.Comment) (err error) {
-	db := s.db.Begin()
-	defer db.Rollback()
-	if err = comment.Delete(db); err != nil {
-		return
-	}
-	err = db.Model(&dbr.TweetCommentThumbs{}).Where("user_id=? AND tweet_id=? AND comment_id=?", comment.UserID, comment.PostID, comment.ID).Updates(map[string]any{
-		"deleted_on": time.Now().Unix(),
-		"is_del":     1,
-	}).Error
-	if err != nil {
-		return
-	}
-	db.Commit()
-	return
+func (s *commentManageSrv) DeleteComment(comment *ms.Comment) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		if err := comment.Delete(tx); err != nil {
+			return err
+		}
+		return tx.Model(&dbr.TweetCommentThumbs{}).Where("user_id=? AND tweet_id=? AND comment_id=?", comment.UserID, comment.PostID, comment.ID).Updates(map[string]any{
+			"deleted_on": time.Now().Unix(),
+			"is_del":     1,
+		}).Error
+	})
 }
 
 func (s *commentManageSrv) CreateComment(comment *ms.Comment) (*ms.Comment, error) {
@@ -222,28 +217,25 @@ func (s *commentManageSrv) CreateCommentReply(reply *ms.CommentReply) (res *ms.C
 	return
 }
 
-func (s *commentManageSrv) DeleteCommentReply(reply *ms.CommentReply) (err error) {
-	db := s.db.Begin()
-	defer db.Rollback()
-	err = reply.Delete(db)
-	if err != nil {
-		return
-	}
-	err = db.Model(&dbr.TweetCommentThumbs{}).
-		Where("user_id=? AND comment_id=? AND reply_id=?", reply.UserID, reply.CommentID, reply.ID).Updates(map[string]any{
-		"deleted_on": time.Now().Unix(),
-		"is_del":     1,
-	}).Error
-	if err != nil {
-		return
-	}
-	// 仅已过审回复曾计入reply_count 待审/未过审回复删除时不回减
-	if reply.AuditStatus == dbr.PostAuditApproved {
-		// 宽松处理错误
-		db.Table(_comment_).Where("id=?", reply.CommentID).Update("reply_count", gorm.Expr("reply_count-1"))
-	}
-	db.Commit()
-	return
+func (s *commentManageSrv) DeleteCommentReply(reply *ms.CommentReply) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		if err := reply.Delete(tx); err != nil {
+			return err
+		}
+		if err := tx.Model(&dbr.TweetCommentThumbs{}).
+			Where("user_id=? AND comment_id=? AND reply_id=?", reply.UserID, reply.CommentID, reply.ID).Updates(map[string]any{
+			"deleted_on": time.Now().Unix(),
+			"is_del":     1,
+		}).Error; err != nil {
+			return err
+		}
+		// 仅已过审回复曾计入reply_count 待审/未过审回复删除时不回减
+		if reply.AuditStatus == dbr.PostAuditApproved {
+			// 宽松处理错误
+			tx.Table(_comment_).Where("id=?", reply.CommentID).Update("reply_count", gorm.Expr("reply_count-1"))
+		}
+		return nil
+	})
 }
 
 func (s *commentManageSrv) CreateCommentContent(content *ms.CommentContent) (*ms.CommentContent, error) {
@@ -251,202 +243,182 @@ func (s *commentManageSrv) CreateCommentContent(content *ms.CommentContent) (*ms
 }
 
 func (s *commentManageSrv) ThumbsUpComment(userId int64, tweetId, commentId int64) error {
-	db := s.db.Begin()
-	defer db.Rollback()
-
-	var (
-		thumbsUpCount   int32
-		thumbsDownCount int32
-	)
-	commentThumbs := &dbr.TweetCommentThumbs{}
-	// 检查thumbs状态
-	err := db.Where("user_id=? AND tweet_id=? AND comment_id=? AND comment_type=0", userId, tweetId, commentId).Take(commentThumbs).Error
-	if err == nil {
-		switch {
-		case commentThumbs.IsThumbsUp == types.Yes && commentThumbs.IsThumbsDown == types.No:
-			thumbsUpCount, thumbsDownCount = -1, 0
-		case commentThumbs.IsThumbsUp == types.No && commentThumbs.IsThumbsDown == types.No:
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		var (
+			thumbsUpCount   int32
+			thumbsDownCount int32
+		)
+		commentThumbs := &dbr.TweetCommentThumbs{}
+		// 检查thumbs状态
+		err := tx.Where("user_id=? AND tweet_id=? AND comment_id=? AND comment_type=0", userId, tweetId, commentId).Take(commentThumbs).Error
+		if err == nil {
+			switch {
+			case commentThumbs.IsThumbsUp == types.Yes && commentThumbs.IsThumbsDown == types.No:
+				thumbsUpCount, thumbsDownCount = -1, 0
+			case commentThumbs.IsThumbsUp == types.No && commentThumbs.IsThumbsDown == types.No:
+				thumbsUpCount, thumbsDownCount = 1, 0
+			default:
+				thumbsUpCount, thumbsDownCount = 1, -1
+				commentThumbs.IsThumbsDown = types.No
+			}
+			commentThumbs.IsThumbsUp = 1 - commentThumbs.IsThumbsUp
+			commentThumbs.ModifiedOn = time.Now().Unix()
+		} else {
+			commentThumbs = &dbr.TweetCommentThumbs{
+				UserID:       userId,
+				TweetID:      tweetId,
+				CommentID:    commentId,
+				IsThumbsUp:   types.Yes,
+				IsThumbsDown: types.No,
+				CommentType:  0,
+				Model: &dbr.Model{
+					CreatedOn: time.Now().Unix(),
+				},
+			}
 			thumbsUpCount, thumbsDownCount = 1, 0
-		default:
-			thumbsUpCount, thumbsDownCount = 1, -1
-			commentThumbs.IsThumbsDown = types.No
 		}
-		commentThumbs.IsThumbsUp = 1 - commentThumbs.IsThumbsUp
-		commentThumbs.ModifiedOn = time.Now().Unix()
-	} else {
-		commentThumbs = &dbr.TweetCommentThumbs{
-			UserID:       userId,
-			TweetID:      tweetId,
-			CommentID:    commentId,
-			IsThumbsUp:   types.Yes,
-			IsThumbsDown: types.No,
-			CommentType:  0,
-			Model: &dbr.Model{
-				CreatedOn: time.Now().Unix(),
-			},
+		// 更新thumbs状态
+		if err = tx.Save(commentThumbs).Error; err != nil {
+			return err
 		}
-		thumbsUpCount, thumbsDownCount = 1, 0
-	}
-	// 更新thumbs状态
-	if err = db.Save(commentThumbs).Error; err != nil {
-		return err
-	}
-	// 更新thumbsUpCount
-	if err = updateCommentThumbsUpCount(db, &dbr.Comment{}, commentId, thumbsUpCount, thumbsDownCount); err != nil {
-		return err
-	}
-	db.Commit()
-	return nil
+		// 更新thumbsUpCount
+		return updateCommentThumbsUpCount(tx, &dbr.Comment{}, commentId, thumbsUpCount, thumbsDownCount)
+	})
 }
 
 func (s *commentManageSrv) ThumbsDownComment(userId int64, tweetId, commentId int64) error {
-	db := s.db.Begin()
-	defer db.Rollback()
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		var (
+			thumbsUpCount   int32
+			thumbsDownCount int32
+		)
+		commentThumbs := &dbr.TweetCommentThumbs{}
+		// 检查thumbs状态
+		err := tx.Where("user_id=? AND tweet_id=? AND comment_id=? AND comment_type=0", userId, tweetId, commentId).Take(commentThumbs).Error
+		if err == nil {
+			switch {
+			case commentThumbs.IsThumbsDown == types.Yes:
+				thumbsUpCount, thumbsDownCount = 0, -1
+			case commentThumbs.IsThumbsDown == types.No && commentThumbs.IsThumbsUp == types.No:
+				thumbsUpCount, thumbsDownCount = 0, 1
+			default:
+				thumbsUpCount, thumbsDownCount = -1, 1
+				commentThumbs.IsThumbsUp = types.No
 
-	var (
-		thumbsUpCount   int32
-		thumbsDownCount int32
-	)
-	commentThumbs := &dbr.TweetCommentThumbs{}
-	// 检查thumbs状态
-	err := db.Where("user_id=? AND tweet_id=? AND comment_id=? AND comment_type=0", userId, tweetId, commentId).Take(commentThumbs).Error
-	if err == nil {
-		switch {
-		case commentThumbs.IsThumbsDown == types.Yes:
-			thumbsUpCount, thumbsDownCount = 0, -1
-		case commentThumbs.IsThumbsDown == types.No && commentThumbs.IsThumbsUp == types.No:
+			}
+			commentThumbs.IsThumbsDown = 1 - commentThumbs.IsThumbsDown
+			commentThumbs.ModifiedOn = time.Now().Unix()
+		} else {
+			commentThumbs = &dbr.TweetCommentThumbs{
+				UserID:       userId,
+				TweetID:      tweetId,
+				CommentID:    commentId,
+				IsThumbsUp:   types.No,
+				IsThumbsDown: types.Yes,
+				CommentType:  0,
+				Model: &dbr.Model{
+					CreatedOn: time.Now().Unix(),
+				},
+			}
 			thumbsUpCount, thumbsDownCount = 0, 1
-		default:
-			thumbsUpCount, thumbsDownCount = -1, 1
-			commentThumbs.IsThumbsUp = types.No
-
 		}
-		commentThumbs.IsThumbsDown = 1 - commentThumbs.IsThumbsDown
-		commentThumbs.ModifiedOn = time.Now().Unix()
-	} else {
-		commentThumbs = &dbr.TweetCommentThumbs{
-			UserID:       userId,
-			TweetID:      tweetId,
-			CommentID:    commentId,
-			IsThumbsUp:   types.No,
-			IsThumbsDown: types.Yes,
-			CommentType:  0,
-			Model: &dbr.Model{
-				CreatedOn: time.Now().Unix(),
-			},
+		// 更新thumbs状态
+		if err = tx.Save(commentThumbs).Error; err != nil {
+			return err
 		}
-		thumbsUpCount, thumbsDownCount = 0, 1
-	}
-	// 更新thumbs状态
-	if err = db.Save(commentThumbs).Error; err != nil {
-		return err
-	}
-	// 更新thumbsUpCount
-	if err = updateCommentThumbsUpCount(db, &dbr.Comment{}, commentId, thumbsUpCount, thumbsDownCount); err != nil {
-		return err
-	}
-	db.Commit()
-	return nil
+		// 更新thumbsUpCount
+		return updateCommentThumbsUpCount(tx, &dbr.Comment{}, commentId, thumbsUpCount, thumbsDownCount)
+	})
 }
 
 func (s *commentManageSrv) ThumbsUpReply(userId int64, tweetId, commentId, replyId int64) error {
-	db := s.db.Begin()
-	defer db.Rollback()
-
-	var (
-		thumbsUpCount   int32
-		thumbsDownCount int32
-	)
-	commentThumbs := &dbr.TweetCommentThumbs{}
-	// 检查thumbs状态
-	err := db.Where("user_id=? AND tweet_id=? AND comment_id=? AND reply_id=? AND comment_type=1", userId, tweetId, commentId, replyId).Take(commentThumbs).Error
-	if err == nil {
-		switch {
-		case commentThumbs.IsThumbsUp == types.Yes:
-			thumbsUpCount, thumbsDownCount = -1, 0
-		case commentThumbs.IsThumbsUp == types.No && commentThumbs.IsThumbsDown == types.No:
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		var (
+			thumbsUpCount   int32
+			thumbsDownCount int32
+		)
+		commentThumbs := &dbr.TweetCommentThumbs{}
+		// 检查thumbs状态
+		err := tx.Where("user_id=? AND tweet_id=? AND comment_id=? AND reply_id=? AND comment_type=1", userId, tweetId, commentId, replyId).Take(commentThumbs).Error
+		if err == nil {
+			switch {
+			case commentThumbs.IsThumbsUp == types.Yes:
+				thumbsUpCount, thumbsDownCount = -1, 0
+			case commentThumbs.IsThumbsUp == types.No && commentThumbs.IsThumbsDown == types.No:
+				thumbsUpCount, thumbsDownCount = 1, 0
+			default:
+				thumbsUpCount, thumbsDownCount = 1, -1
+				commentThumbs.IsThumbsDown = types.No
+			}
+			commentThumbs.IsThumbsUp = 1 - commentThumbs.IsThumbsUp
+			commentThumbs.ModifiedOn = time.Now().Unix()
+		} else {
+			commentThumbs = &dbr.TweetCommentThumbs{
+				UserID:       userId,
+				TweetID:      tweetId,
+				CommentID:    commentId,
+				ReplyID:      replyId,
+				IsThumbsUp:   types.Yes,
+				IsThumbsDown: types.No,
+				CommentType:  1,
+				Model: &dbr.Model{
+					CreatedOn: time.Now().Unix(),
+				},
+			}
 			thumbsUpCount, thumbsDownCount = 1, 0
-		default:
-			thumbsUpCount, thumbsDownCount = 1, -1
-			commentThumbs.IsThumbsDown = types.No
 		}
-		commentThumbs.IsThumbsUp = 1 - commentThumbs.IsThumbsUp
-		commentThumbs.ModifiedOn = time.Now().Unix()
-	} else {
-		commentThumbs = &dbr.TweetCommentThumbs{
-			UserID:       userId,
-			TweetID:      tweetId,
-			CommentID:    commentId,
-			ReplyID:      replyId,
-			IsThumbsUp:   types.Yes,
-			IsThumbsDown: types.No,
-			CommentType:  1,
-			Model: &dbr.Model{
-				CreatedOn: time.Now().Unix(),
-			},
+		// 更新thumbs状态
+		if err = tx.Save(commentThumbs).Error; err != nil {
+			return err
 		}
-		thumbsUpCount, thumbsDownCount = 1, 0
-	}
-	// 更新thumbs状态
-	if err = db.Save(commentThumbs).Error; err != nil {
-		return err
-	}
-	// 更新thumbsUpCount
-	if err = updateCommentThumbsUpCount(db, &dbr.CommentReply{}, replyId, thumbsUpCount, thumbsDownCount); err != nil {
-		return err
-	}
-	db.Commit()
-	return nil
+		// 更新thumbsUpCount
+		return updateCommentThumbsUpCount(tx, &dbr.CommentReply{}, replyId, thumbsUpCount, thumbsDownCount)
+	})
 }
 
 func (s *commentManageSrv) ThumbsDownReply(userId int64, tweetId, commentId, replyId int64) error {
-	db := s.db.Begin()
-	defer db.Rollback()
-
-	var (
-		thumbsUpCount   int32
-		thumbsDownCount int32
-	)
-	commentThumbs := &dbr.TweetCommentThumbs{}
-	// 检查thumbs状态
-	err := db.Where("user_id=? AND tweet_id=? AND comment_id=? AND reply_id=? AND comment_type=1", userId, tweetId, commentId, replyId).Take(commentThumbs).Error
-	if err == nil {
-		switch {
-		case commentThumbs.IsThumbsDown == types.Yes:
-			thumbsUpCount, thumbsDownCount = 0, -1
-		case commentThumbs.IsThumbsUp == types.No && commentThumbs.IsThumbsDown == types.No:
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		var (
+			thumbsUpCount   int32
+			thumbsDownCount int32
+		)
+		commentThumbs := &dbr.TweetCommentThumbs{}
+		// 检查thumbs状态
+		err := tx.Where("user_id=? AND tweet_id=? AND comment_id=? AND reply_id=? AND comment_type=1", userId, tweetId, commentId, replyId).Take(commentThumbs).Error
+		if err == nil {
+			switch {
+			case commentThumbs.IsThumbsDown == types.Yes:
+				thumbsUpCount, thumbsDownCount = 0, -1
+			case commentThumbs.IsThumbsUp == types.No && commentThumbs.IsThumbsDown == types.No:
+				thumbsUpCount, thumbsDownCount = 0, 1
+			default:
+				thumbsUpCount, thumbsDownCount = -1, 1
+				commentThumbs.IsThumbsUp = types.No
+			}
+			commentThumbs.IsThumbsDown = 1 - commentThumbs.IsThumbsDown
+			commentThumbs.ModifiedOn = time.Now().Unix()
+		} else {
+			commentThumbs = &dbr.TweetCommentThumbs{
+				UserID:       userId,
+				TweetID:      tweetId,
+				CommentID:    commentId,
+				ReplyID:      replyId,
+				IsThumbsUp:   types.No,
+				IsThumbsDown: types.Yes,
+				CommentType:  1,
+				Model: &dbr.Model{
+					CreatedOn: time.Now().Unix(),
+				},
+			}
 			thumbsUpCount, thumbsDownCount = 0, 1
-		default:
-			thumbsUpCount, thumbsDownCount = -1, 1
-			commentThumbs.IsThumbsUp = types.No
 		}
-		commentThumbs.IsThumbsDown = 1 - commentThumbs.IsThumbsDown
-		commentThumbs.ModifiedOn = time.Now().Unix()
-	} else {
-		commentThumbs = &dbr.TweetCommentThumbs{
-			UserID:       userId,
-			TweetID:      tweetId,
-			CommentID:    commentId,
-			ReplyID:      replyId,
-			IsThumbsUp:   types.No,
-			IsThumbsDown: types.Yes,
-			CommentType:  1,
-			Model: &dbr.Model{
-				CreatedOn: time.Now().Unix(),
-			},
+		// 更新thumbs状态
+		if err = tx.Save(commentThumbs).Error; err != nil {
+			return err
 		}
-		thumbsUpCount, thumbsDownCount = 0, 1
-	}
-	// 更新thumbs状态
-	if err = db.Save(commentThumbs).Error; err != nil {
-		return err
-	}
-	// 更新thumbsUpCount
-	if err = updateCommentThumbsUpCount(db, &dbr.CommentReply{}, replyId, thumbsUpCount, thumbsDownCount); err != nil {
-		return err
-	}
-	db.Commit()
-	return nil
+		// 更新thumbsUpCount
+		return updateCommentThumbsUpCount(tx, &dbr.CommentReply{}, replyId, thumbsUpCount, thumbsDownCount)
+	})
 }
 
 func (s *commentManageSrv) updateCommentThumbsUpCount(obj any, id int64, thumbsUpCount, thumbsDownCount int32) error {

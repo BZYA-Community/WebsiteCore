@@ -426,10 +426,10 @@ func (s *privSrv) CreateCommentReply(req *web.CreateCommentReplyReq) (_ *web.Cre
 	}
 
 	if reply.AuditStatus == ms.PostAuditApproved {
-		// 更新Post回复数
-		post.CommentCount++
-		post.LatestRepliedOn = time.Now().Unix()
-		s.Ds.UpdatePost(post)
+		// 更新Post回复数(原子自增 避免并发丢计数)
+		if xerr := s.Ds.IncPostCounter(post, "comment_count", 1, time.Now().Unix()); xerr != nil {
+			logrus.Errorf("Ds.IncPostCounter err: %s", xerr)
+		}
 
 		// 更新索引
 		s.PushPostToSearch(post)
@@ -496,11 +496,11 @@ func (s *privSrv) DeleteComment(req *web.DeleteCommentReq) error {
 	}
 	// 更新post回复数(仅已过审评论曾计入 待审/未过审评论删除不回减)
 	if comment.AuditStatus == ms.PostAuditApproved {
-		post.CommentCount--
-	}
-	if err := s.Ds.UpdatePost(post); err != nil {
-		logrus.Errorf("Ds.UpdatePost err: %s", err)
-		return web.ErrDeleteCommentFailed
+		// 原子自减 避免并发丢计数
+		if err := s.Ds.IncPostCounter(post, "comment_count", -1, 0); err != nil {
+			logrus.Errorf("Ds.IncPostCounter err: %s", err)
+			return web.ErrDeleteCommentFailed
+		}
 	}
 	// TODO: 优化删除逻辑，事务化删除comment
 	if err := s.Ds.DeleteComment(comment); err != nil {
@@ -601,10 +601,10 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 	}
 
 	if comment.AuditStatus == ms.PostAuditApproved {
-		// 更新Post回复数
-		post.CommentCount++
-		post.LatestRepliedOn = time.Now().Unix()
-		s.Ds.UpdatePost(post)
+		// 更新Post回复数(原子自增 避免并发丢计数)
+		if xerr := s.Ds.IncPostCounter(post, "comment_count", 1, time.Now().Unix()); xerr != nil {
+			logrus.Errorf("Ds.IncPostCounter err: %s", xerr)
+		}
 
 		// 更新索引
 		s.PushPostToSearch(post)
@@ -794,10 +794,11 @@ func (s *privSrv) deletePostCommentReply(reply *ms.CommentReply) error {
 	}
 	// 更新Post回复数(仅已过审回复曾计入 待审/未过审回复删除不回减)
 	if reply.AuditStatus == ms.PostAuditApproved {
-		post.CommentCount--
-		post.LatestRepliedOn = time.Now().Unix()
+		// 原子自减 避免并发丢计数
+		if xerr := s.Ds.IncPostCounter(post, "comment_count", -1, time.Now().Unix()); xerr != nil {
+			logrus.Errorf("Ds.IncPostCounter err: %s", xerr)
+		}
 	}
-	s.Ds.UpdatePost(post)
 	// 更新索引
 	s.PushPostToSearch(post)
 	return nil
@@ -854,9 +855,10 @@ func (s *privSrv) createPostStar(postID, userID int64) (*ms.PostStar, error) {
 		return nil, xerror.ServerError
 	}
 
-	// 更新Post点赞数
-	post.UpvoteCount++
-	s.Ds.UpdatePost(post)
+	// 更新Post点赞数(原子自增 避免并发丢计数)
+	if xerr := s.Ds.IncPostCounter(post, "upvote_count", 1, 0); xerr != nil {
+		logrus.Errorf("Ds.IncPostCounter err: %s", xerr)
+	}
 
 	// 更新索引
 	s.PushPostToSearch(post)
@@ -879,9 +881,10 @@ func (s *privSrv) deletePostStar(star *ms.PostStar) error {
 		return xerror.ServerError
 	}
 
-	// 更新Post点赞数
-	post.UpvoteCount--
-	s.Ds.UpdatePost(post)
+	// 更新Post点赞数(原子自减 避免并发丢计数)
+	if xerr := s.Ds.IncPostCounter(post, "upvote_count", -1, 0); xerr != nil {
+		logrus.Errorf("Ds.IncPostCounter err: %s", xerr)
+	}
 
 	// 更新索引
 	s.PushPostToSearch(post)
@@ -905,9 +908,10 @@ func (s *privSrv) createPostCollection(postID, userID int64) (*ms.PostCollection
 		return nil, xerror.ServerError
 	}
 
-	// 更新Post点赞数
-	post.CollectionCount++
-	s.Ds.UpdatePost(post)
+	// 更新Post收藏数(原子自增 避免并发丢计数)
+	if xerr := s.Ds.IncPostCounter(post, "collection_count", 1, 0); xerr != nil {
+		logrus.Errorf("Ds.IncPostCounter err: %s", xerr)
+	}
 
 	// 更新索引
 	s.PushPostToSearch(post)
@@ -929,9 +933,10 @@ func (s *privSrv) deletePostCollection(collection *ms.PostCollection) error {
 		return xerror.ServerError
 	}
 
-	// 更新Post点赞数
-	post.CollectionCount--
-	s.Ds.UpdatePost(post)
+	// 更新Post收藏数(原子自减 避免并发丢计数)
+	if xerr := s.Ds.IncPostCounter(post, "collection_count", -1, 0); xerr != nil {
+		logrus.Errorf("Ds.IncPostCounter err: %s", xerr)
+	}
 
 	// 更新索引
 	s.PushPostToSearch(post)
