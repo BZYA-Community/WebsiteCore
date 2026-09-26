@@ -345,7 +345,7 @@ func (s *privSrv) DeleteTweet(req *web.DeleteTweetReq) error {
 	// 删除推文的媒体内容
 	deleteOssObjects(s.oss, mediaContents)
 	// 删除索引
-	s.DeleteSearchPost(post)
+	err = s.DeleteSearchPost(post)
 	if err != nil {
 		logrus.Errorf("s.DeleteSearchPost failed: %s", err)
 		return web.ErrDeletePostFailed
@@ -597,7 +597,9 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 			Type:      item.Type,
 			Sort:      item.Sort,
 		}
-		s.Ds.CreateCommentContent(postContent)
+		if _, err := s.Ds.CreateCommentContent(postContent); err != nil {
+			logrus.Errorf("Ds.CreateCommentContent err:%s", err)
+		}
 	}
 
 	if comment.AuditStatus == ms.PostAuditApproved {

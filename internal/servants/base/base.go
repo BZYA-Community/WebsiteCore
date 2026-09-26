@@ -26,6 +26,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 )
 
 type BaseServant struct {
@@ -86,7 +87,17 @@ func bindAny(c *gin.Context, obj any) error {
 	var errs xerror.ValidErrors
 	err := c.ShouldBind(obj)
 	if err != nil {
-		return mir.NewError(xerror.InvalidParams.StatusCode(), xerror.InvalidParams.WithDetails(errs.Error()))
+		// 逐字段收集入参校验错误明细，便于客户端定位具体出错字段
+		if validationErrs, ok := err.(validator.ValidationErrors); ok {
+			for _, fieldErr := range validationErrs {
+				errs = append(errs, &xerror.ValidError{
+					Message: fmt.Sprintf("字段 %s 校验失败: %s", fieldErr.Field(), fieldErr.Tag()),
+				})
+			}
+		} else {
+			errs = append(errs, &xerror.ValidError{Message: err.Error()})
+		}
+		return mir.NewError(xerror.InvalidParams.StatusCode(), xerror.InvalidParams.WithDetails(errs.Errors()...))
 	}
 	// setup *core.User if needed
 	if setter, ok := obj.(UserSetter); ok {

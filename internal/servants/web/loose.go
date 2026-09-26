@@ -169,7 +169,7 @@ func (s *looseSrv) tweetCommentsFromCache(req *web.TweetCommentsReq, limit int, 
 func (s *looseSrv) GetUserTweets(req *web.GetUserTweetsReq) (res *web.GetUserTweetsResp, err error) {
 	user, xerr := s.RelationTypFrom(req.User, req.Username)
 	if xerr != nil {
-		return nil, err
+		return nil, xerr
 	}
 	// 尝试直接从缓存中获取数据
 	key, ok := "", false

@@ -250,13 +250,12 @@ func (e *commentActionEvent) updateCommentMetric() error {
 	if err != nil {
 		return err
 	}
-	e.ds.UpdateCommentMetric(&cs.CommentMetric{
+	return e.ds.UpdateCommentMetric(&cs.CommentMetric{
 		CommentId:       e.commentId,
 		ReplyCount:      comment.ReplyCount,
 		ThumbsUpCount:   comment.ThumbsUpCount,
 		ThumbsDownCount: comment.ThumbsDownCount,
 	})
-	return nil
 }
 
 func (e *messageActionEvent) Name() string {
