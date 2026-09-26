@@ -2,7 +2,7 @@
 Description=paopao-ce
 After=syslog.target
 After=network.target
-After=mariadb.service mysqld.service redis.service
+After=postgresql.service redis.service
 
 [Service]
 Type=simple

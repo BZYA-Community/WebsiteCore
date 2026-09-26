@@ -24,8 +24,7 @@ This guide covers the recommended ways to run PaoPao in development, evaluation,
 
 - `config.yaml.sample` - canonical configuration template (overrides over embedded defaults)
 - `docker-compose.dev.yml` - local PostgreSQL / Redis / Meilisearch dev stack
-- `scripts/migration/{postgres,mysql}/` - versioned migration SQL
-- `scripts/paopao-mysql.sql` - MySQL bootstrap schema
+- `scripts/migration/postgres/` - versioned migration SQL
 - `scripts/paopao-postgres.sql` - PostgreSQL bootstrap schema
 
 <a id="run-from-source"></a>
@@ -113,7 +112,7 @@ make linux-amd64 CGO_ENABLED=0 TAGS='embed migration'
 The artifact is written to `release/`. Deployment steps:
 
 1. Upload `release/paopao` (`paopao.exe` on Windows) together with `config.yaml` to the same directory on your server.
-2. Prepare the dependencies: database (MySQL/PostgreSQL), Redis, and Meilisearch, and point to them in `config.yaml`.
+2. Prepare the dependencies: database (PostgreSQL), Redis, and Meilisearch, and point to them in `config.yaml`.
 3. Start the service:
 
 ```sh
@@ -122,7 +121,7 @@ The artifact is written to `release/`. Deployment steps:
 
 Notes:
 
-- Automatic migration requires both the `migration` build tag and the `"Migration"` feature declared in the `Features` section of `config.yaml` (e.g. `Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "Migration"]`). When both are present, the schema is migrated automatically at startup.
+- Automatic migration requires both the `migration` build tag and the `"Migration"` feature declared in the `Features` section of `config.yaml` (e.g. `Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Migration"]`). When both are present, the schema is migrated automatically at startup.
 - Without the `migration` tag the schema is not created automatically; rebuild with the tag, or apply the versioned migrations under `scripts/migration/` yourself.
 - Attachments and other persistent data are stored under `custom/` next to the binary by default; back that directory up.
 
@@ -164,10 +163,10 @@ The `Features` section controls which capability bundles are enabled:
 
 ```yaml
 Features:
-  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
-  Develop: ["Base", "MySQL", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerMeili", "OSS:Retention"]
-  Demo: ["Base", "MySQL", "Option", "Zinc", "Sms", "MinIO", "LoggerZinc", "Migration"]
-  Slim: ["Base", "Postgres", "LocalOSS", "LoggerFile", "OSS:TempDir"]
+  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "BigCacheIndex", "LoggerFile"]
+  Develop: ["Base", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerMeili", "OSS:Retention"]
+  Demo: ["Base", "Option", "Zinc", "Sms", "MinIO", "LoggerZinc", "Migration"]
+  Slim: ["Base", "LocalOSS", "LoggerFile", "OSS:TempDir"]
 ```
 
 Useful commands:
@@ -183,7 +182,7 @@ release/paopao serve --no-default-features --features develop
 release/paopao serve --features sms
 
 # Specify features explicitly
-release/paopao serve --no-default-features --features postgres,localoss,loggerfile,redis
+release/paopao serve --no-default-features --features localoss,loggerfile,redis
 ```
 
 For feature maturity and support status, see [features-status.md](features-status.md).
@@ -268,7 +267,7 @@ Add the Docs feature suite and run with the `docs` build tag:
 
 ```yaml
 Features:
-  Default: ["Base", "Postgres", "Option", "LocalOSS", "LoggerFile", "Docs"]
+  Default: ["Base", "Option", "LocalOSS", "LoggerFile", "Docs"]
   Docs: ["Docs:OpenAPI"]
 ```
 
@@ -297,3 +296,18 @@ For platform-specific or production-oriented deployment references, see:
 - For long-running deployments, it is reasonable to run the backend under a process manager and place Nginx in front of the application.
 - The SMS implementation currently references Juhe in the sample configuration. If that provider is not suitable for your deployment, replace it with another compatible service.
 - The repository includes multiple runtime combinations; keep your selected `Features` set aligned with the infrastructure you actually provision.
+
+## PostgreSQL database tests
+
+Database access always uses PostgreSQL through GORM; no database or ORM feature is required. `Database.MaxIdleConns` and `Database.MaxOpenConns` control the connection pool (defaults: 10 and 30).
+
+Start PostgreSQL with `docker compose -f docker-compose.dev.yml up -d --wait postgres`, then run:
+
+```bash
+export WEBSITECORE_TEST_POSTGRES_DSN='host=127.0.0.1 port=5432 user=paopao password=paopao dbname=postgres sslmode=disable'
+go test ./...
+```
+
+The credentials above are only for the local dev stack. The role must have `CREATEDB` permission. Each site-settings test creates a random `websitecore_test_*` database and drops it during cleanup; application database tables are never used. A missing DSN or unavailable database fails the tests instead of skipping them.
+
+CI database provisioning and test execution are outside the scope of this change; CI still runs its existing build and lint checks.

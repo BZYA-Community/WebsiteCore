@@ -11,7 +11,7 @@ App:
   RunMode: debug
 
 Features:
-  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
+  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "BigCacheIndex", "LoggerFile"]
 
 WebServer:
   HttpIp: 0.0.0.0
@@ -20,6 +20,8 @@ WebServer:
 Database:
   LogLevel: error
   TablePrefix: p_
+  MaxIdleConns: 10
+  MaxOpenConns: 30
 
 Postgres:
   Host: 127.0.0.1

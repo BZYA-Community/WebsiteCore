@@ -24,8 +24,7 @@
 
 - `config.yaml.sample` - 标准配置模板（叠加在内置默认配置之上）
 - `docker-compose.dev.yml` - 本地 PostgreSQL / Redis / Meilisearch 依赖栈
-- `scripts/migration/{postgres,mysql}/` - 版本化迁移 SQL
-- `scripts/paopao-mysql.sql` - MySQL 初始化脚本
+- `scripts/migration/postgres/` - 版本化迁移 SQL
 - `scripts/paopao-postgres.sql` - PostgreSQL 初始化脚本
 
 <a id="run-from-source"></a>
@@ -113,7 +112,7 @@ make linux-amd64 CGO_ENABLED=0 TAGS='embed migration'
 产物位于 `release/` 目录。部署步骤：
 
 1. 将 `release/paopao`（Windows 下为 `paopao.exe`）与 `config.yaml` 上传到服务器同一目录。
-2. 准备好依赖服务：数据库（MySQL/PostgreSQL）、Redis、Meilisearch，地址写入 `config.yaml`。
+2. 准备好依赖服务：数据库（PostgreSQL）、Redis、Meilisearch，地址写入 `config.yaml`。
 3. 启动服务：
 
 ```sh
@@ -122,7 +121,7 @@ make linux-amd64 CGO_ENABLED=0 TAGS='embed migration'
 
 说明：
 
-- 自动迁移需要两个条件同时满足：编译时带 `migration` 标签，且 `config.yaml` 的 `Features` 中声明 `"Migration"`（例如 `Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "Migration"]`）。满足后服务启动时会自动执行数据库迁移，无需手工建表。
+- 自动迁移需要两个条件同时满足：编译时带 `migration` 标签，且 `config.yaml` 的 `Features` 中声明 `"Migration"`（例如 `Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Migration"]`）。满足后服务启动时会自动执行数据库迁移，无需手工建表。
 - 若不带 `migration` 标签，schema 不会自动创建；请带上标签重新构建，或自行应用 `scripts/migration/` 下的版本化迁移。
 - 附件等持久化数据默认保存在二进制所在目录的 `custom/` 下，注意备份。
 
@@ -164,10 +163,10 @@ make run TAGS='embed'
 
 ```yaml
 Features:
-  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
-  Develop: ["Base", "MySQL", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerMeili", "OSS:Retention"]
-  Demo: ["Base", "MySQL", "Option", "Zinc", "Sms", "MinIO", "LoggerZinc", "Migration"]
-  Slim: ["Base", "Postgres", "LocalOSS", "LoggerFile", "OSS:TempDir"]
+  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "BigCacheIndex", "LoggerFile"]
+  Develop: ["Base", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerMeili", "OSS:Retention"]
+  Demo: ["Base", "Option", "Zinc", "Sms", "MinIO", "LoggerZinc", "Migration"]
+  Slim: ["Base", "LocalOSS", "LoggerFile", "OSS:TempDir"]
 ```
 
 常见命令：
@@ -183,7 +182,7 @@ release/paopao serve --no-default-features --features develop
 release/paopao serve --features sms
 
 # 手动显式指定功能项
-release/paopao serve --no-default-features --features postgres,localoss,loggerfile,redis
+release/paopao serve --no-default-features --features localoss,loggerfile,redis
 ```
 
 功能项成熟度与支持状态请参考 [features-status.md](features-status.md)。
@@ -268,7 +267,7 @@ docker run -it -p 4040:4040 pyroscope/pyroscope:latest server
 
 ```yaml
 Features:
-  Default: ["Base", "Postgres", "Option", "LocalOSS", "LoggerFile", "Docs"]
+  Default: ["Base", "Option", "LocalOSS", "LoggerFile", "Docs"]
   Docs: ["Docs:OpenAPI"]
 ```
 
@@ -297,3 +296,18 @@ make run TAGS='docs'
 - 对于长期运行环境，建议使用进程守护工具管理后端服务，并通过 Nginx 做反向代理。
 - 示例配置中的短信通道使用 Juhe；如果不适合你的部署场景，可以替换为其他兼容服务商。
 - 项目支持多种运行组合，请确保 `Features` 与你实际部署的基础设施保持一致。
+
+## PostgreSQL 数据库测试
+
+数据库访问统一使用 PostgreSQL 和 GORM，无需添加数据库或 ORM 特性。连接池参数为 `Database.MaxIdleConns` 和 `Database.MaxOpenConns`，默认分别为 10、30。
+
+先通过 `docker compose -f docker-compose.dev.yml up -d --wait postgres` 启动 PostgreSQL，再运行：
+
+```bash
+export WEBSITECORE_TEST_POSTGRES_DSN='host=127.0.0.1 port=5432 user=paopao password=paopao dbname=postgres sslmode=disable'
+go test ./...
+```
+
+上述凭据仅适用于本地开发栈。测试账号需要 `CREATEDB` 权限。每个站点设置测试会创建随机命名的 `websitecore_test_*` 数据库，并在清理阶段删除，不使用应用数据库的表。未设置连接信息或数据库不可用时测试会失败，不会跳过。
+
+本次不增加 CI 数据库服务或测试步骤，CI 仍执行原有构建与 lint 检查。

@@ -2,17 +2,19 @@ package sitesetting
 
 import (
 	"context"
+	"crypto/rand"
 	"os"
-	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
-	"gorm.io/driver/sqlite"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
-	_ "modernc.org/sqlite"
 )
 
 func TestGetProfileUsesBootstrapDefaultsWhenNoOverride(t *testing.T) {
@@ -30,6 +32,20 @@ func TestGetProfileUsesBootstrapDefaultsWhenNoOverride(t *testing.T) {
 	}
 	if profile.CopyrightRight != "fallback-right" {
 		t.Fatalf("CopyrightRight = %q, want fallback-right", profile.CopyrightRight)
+	}
+}
+
+func TestGetValuesUsesBootstrapDefaultsWhenSettingsTableIsMissing(t *testing.T) {
+	svc := newTestService(t)
+	if err := svc.db.Migrator().DropTable(&settingRecord{}); err != nil {
+		t.Fatalf("drop settings table: %v", err)
+	}
+	values, err := svc.GetValues(context.Background())
+	if err != nil {
+		t.Fatalf("GetValues() with missing settings table: %v", err)
+	}
+	if !hasValue(values.Items, "web_profile.enable_trends_bar", false, false) {
+		t.Fatal("missing bootstrap value for web_profile.enable_trends_bar")
 	}
 }
 
@@ -166,17 +182,11 @@ func TestBootstrapAppliesPersistedOverrides(t *testing.T) {
 
 func newTestService(t *testing.T) *Service {
 	t.Helper()
-	wd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("os.Getwd() error = %v", err)
+	db := newTestDB(t)
+	t.Chdir(t.TempDir())
+	if err := os.WriteFile("config.yaml", []byte("JWT:\n  Secret: sitesetting-test-only\n"), 0600); err != nil {
+		t.Fatalf("write test config: %v", err)
 	}
-	root := filepath.Clean(filepath.Join(wd, "..", ".."))
-	if err := os.Chdir(root); err != nil {
-		t.Fatalf("os.Chdir(%q) error = %v", root, err)
-	}
-	t.Cleanup(func() {
-		_ = os.Chdir(wd)
-	})
 	conf.Initial(nil, false)
 	conf.WebProfileSetting = &conf.WebProfileConf{
 		EnableTrendsBar:         false,
@@ -196,14 +206,51 @@ func newTestService(t *testing.T) *Service {
 		CopyrightRightLink:      "https://fallback.example.com",
 	}
 	bootstrapConfig = nil
-	db, err := gorm.Open(&sqlite.Dialector{DriverName: "sqlite", DSN: "file::memory:?cache=shared"}, &gorm.Config{NamingStrategy: schema.NamingStrategy{TablePrefix: "p_", SingularTable: true}})
-	if err != nil {
-		t.Fatalf("gorm.Open() error = %v", err)
-	}
 	if err := db.AutoMigrate(&settingRecord{}); err != nil {
 		t.Fatalf("AutoMigrate() error = %v", err)
 	}
 	return NewService(db)
+}
+
+// Each test gets a fresh database; the supplied DSN is only used to create it.
+func newTestDB(t *testing.T) *gorm.DB {
+	t.Helper()
+	dsn := os.Getenv("WEBSITECORE_TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Fatal("set WEBSITECORE_TEST_POSTGRES_DSN to a PostgreSQL connection with CREATEDB permission")
+	}
+	config, err := pgx.ParseConfig(dsn)
+	if err != nil {
+		t.Fatal("invalid WEBSITECORE_TEST_POSTGRES_DSN")
+	}
+	config.ConnectTimeout = 10 * time.Second
+	admin := stdlib.OpenDB(*config)
+	t.Cleanup(func() { _ = admin.Close() })
+	dbName := "websitecore_test_" + strings.ToLower(rand.Text())
+	identifier := pgx.Identifier{dbName}.Sanitize()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if _, err := admin.ExecContext(ctx, "CREATE DATABASE "+identifier+" TEMPLATE template0"); err != nil {
+		t.Fatalf("create isolated PostgreSQL test database: %v", err)
+	}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if _, err := admin.ExecContext(ctx, "DROP DATABASE "+identifier+" WITH (FORCE)"); err != nil {
+			t.Errorf("drop PostgreSQL test database %s: %v", dbName, err)
+		}
+	})
+	config.Database = dbName
+	config.RuntimeParams["search_path"] = "public"
+	sqlDB := stdlib.OpenDB(*config)
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	db, err := gorm.Open(postgres.New(postgres.Config{Conn: sqlDB}), &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{TablePrefix: "p_", SingularTable: true},
+	})
+	if err != nil {
+		t.Fatalf("open isolated PostgreSQL test database: %v", err)
+	}
+	return db
 }
 
 func hasValue(items []web.AdminSettingValue, key string, expected any, pending bool) bool {

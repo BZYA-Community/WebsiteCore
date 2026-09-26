@@ -1,3 +1,5 @@
+> 当前项目仅支持 PostgreSQL；下文 MySQL、SQLite 相关条目是上游历史记录，所述后端和脚本已移除。
+
 # Changelog
 
 All notable changes to paopao-ce are documented in this file.

@@ -7,7 +7,6 @@ package conf
 import (
 	"bytes"
 	_ "embed"
-	"fmt"
 	"strings"
 	"time"
 
@@ -203,17 +202,8 @@ type meiliConf struct {
 }
 
 type databaseConf struct {
-	TablePrefix string
-	LogLevel    string
-}
-
-type mysqlConf struct {
-	UserName     string
-	Password     string
-	Host         string
-	DBName       string
-	Charset      string
-	ParseTime    bool
+	TablePrefix  string
+	LogLevel     string
 	MaxIdleConns int
 	MaxOpenConns int
 }
@@ -327,17 +317,6 @@ func (s *httpServerConf) GetReadTimeout() time.Duration {
 
 func (s *httpServerConf) GetWriteTimeout() time.Duration {
 	return s.WriteTimeout * time.Second
-}
-
-func (s *mysqlConf) Dsn() string {
-	return fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s&parseTime=%t&loc=Local",
-		s.UserName,
-		s.Password,
-		s.Host,
-		s.DBName,
-		s.Charset,
-		s.ParseTime,
-	)
 }
 
 func (s postgresConf) Dsn() string {

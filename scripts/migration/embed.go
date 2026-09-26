@@ -11,5 +11,5 @@ import (
 	"embed"
 )
 
-//go:embed **/*
+//go:embed postgres/*.sql
 var Files embed.FS

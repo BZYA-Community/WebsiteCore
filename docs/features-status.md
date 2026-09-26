@@ -47,17 +47,11 @@
     * [x] 服务初始化逻辑
 
 #### 数据库:
-* `Gorm` + `MySQL`/`PostgreSQL`
-使用[gorm](https://github.com/go-gorm/gorm)作为数据库的ORM，默认使用 `Grom` + `MySQL`组合(目前状态：稳定，默认，推荐使用)； 
-    * [ ] 提按文档
-    * [x] 接口定义
-    * [x] 业务逻辑实现  
-* `Sqlx` + `MySQL`/`PostgreSQL`
-使用[sqlx](https://github.com/jmoiron/sqlx)作为数据库的ORM(目前状态：WIP)；
-    * [ ] 提按文档
-    * [ ] 接口定义
-    * [ ] 业务逻辑实现  
-    
+统一使用 PostgreSQL，通过 [GORM](https://github.com/go-gorm/gorm) 访问（稳定、默认）；无需通过 `Features` 选择数据库或 ORM。
+
+- [x] 接口定义
+- [x] 业务逻辑实现
+
 #### 对象存储: 
 * `AliOSS` 阿里云对象存储服务；
     * [ ] 提按文档  

@@ -4,19 +4,6 @@
 
 package conf
 
-import (
-	"database/sql"
-	"sync"
-
-	"github.com/alimy/tryst/cfg"
-	"github.com/sirupsen/logrus"
-)
-
-var (
-	_sqldb   *sql.DB
-	_onceSql sync.Once
-)
-
 const (
 	TableAnouncement          = "user"
 	TableAnouncementContent   = "anouncement_content"
@@ -49,37 +36,7 @@ const (
 
 type TableNameMap map[string]string
 
-func MustSqlDB() *sql.DB {
-	_onceSql.Do(func() {
-		var err error
-		if _, _sqldb, err = newSqlDB(); err != nil {
-			logrus.Fatalf("new sql db failed: %s", err)
-		}
-	})
-	return _sqldb
-}
-
-// CloseDB close databse to prevent data missing
+// CloseDB closes the application's database connection pool.
 func CloseDB() {
-	cfg.On(cfg.Actions{
-		"Gorm": func() {
-			closeGormDB()
-		},
-	}, func() {
-		closeGormDB()
-	})
-}
-
-func newSqlDB() (driver string, db *sql.DB, err error) {
-	if cfg.If("MySQL") {
-		driver = "mysql"
-		db, err = sql.Open(driver, MysqlSetting.Dsn())
-	} else if cfg.If("PostgreSQL") || cfg.If("Postgres") {
-		driver = "pgx"
-		db, err = sql.Open(driver, PostgresSetting.Dsn())
-	} else {
-		driver = "mysql"
-		db, err = sql.Open(driver, MysqlSetting.Dsn())
-	}
-	return
+	closeGormDB()
 }

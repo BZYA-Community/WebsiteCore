@@ -25,7 +25,6 @@ var (
 
 	PyroscopeSetting        *pyroscopeConf
 	DatabaseSetting         *databaseConf
-	MysqlSetting            *mysqlConf
 	PostgresSetting         *postgresConf
 	PprofServerSetting      *httpServerConf
 	MetricsServerSetting    *httpServerConf
@@ -107,7 +106,6 @@ func setupSetting(suite []string, noDefault bool) error {
 		"LoggerOpenObserve": &loggerOpenObserveSetting,
 		"LoggerOtlp":        &loggerOtlpSetting,
 		"Database":          &DatabaseSetting,
-		"MySQL":             &MysqlSetting,
 		"Postgres":          &PostgresSetting,
 		"TweetSearch":       &TweetSearchSetting,
 		"Zinc":              &ZincSetting,

@@ -14,6 +14,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -380,8 +381,8 @@ func isMissingTableError(err error) bool {
 	if err == nil {
 		return false
 	}
-	text := strings.ToLower(err.Error())
-	return strings.Contains(text, "no such table") || strings.Contains(text, "doesn't exist") || strings.Contains(text, "does not exist") || errors.Is(err, gorm.ErrRecordNotFound)
+	var pgErr *pgconn.PgError
+	return (errors.As(err, &pgErr) && pgErr.Code == "42P01") || errors.Is(err, gorm.ErrRecordNotFound)
 }
 
 func configuredValue(v any) bool {

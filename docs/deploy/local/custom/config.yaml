@@ -1,5 +1,5 @@
 Features:
-  Default: ["Postgres", "Meili", "LocalOSS", "LoggerFile", "BigCacheIndex", "Friendship", "Frontend:EmbedWeb", "Web"]
+  Default: ["Meili", "LocalOSS", "LoggerFile", "BigCacheIndex", "Friendship", "Frontend:EmbedWeb", "Web"]
 BigCacheIndex: # 使用BigCache缓存泡泡广场消息流
   MaxIndexPage: 1024            # 最大缓存页数, 必须是2^n, 代表最大同时缓存多少页数据
   HardMaxCacheSize: 256         # 最大缓存大小(MB), 0表示无限制
