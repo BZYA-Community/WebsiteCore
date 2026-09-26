@@ -358,7 +358,6 @@ const sectionLabelMap: Record<string, string> = {
     limits: "限制与阈值",
     bridge: "索引桥接",
     meili: "Meilisearch",
-    zinc: "Zinc",
     common: "通用存储",
     local_oss: "本地 OSS",
     minio: "MinIO",

@@ -138,12 +138,6 @@ LoggerFile: # 使用File写日志
   SavePath: custom/data/paopao-ce/logs
   FileName: app
   FileExt: .log
-LoggerZinc: # 使用Zinc写日志
-  Host: 127.0.0.1:4080
-  Index: paopao-log
-  User: admin
-  Password: ""  # REQUIRED: Set Zinc password
-  Secure: False
 LoggerMeili: # 使用Meili写日志
   Host: 127.0.0.1:7700
   Index: paopao-log
@@ -177,12 +171,6 @@ AdminSettings:
 TweetSearch: # 推文关键字搜索相关配置
   MaxUpdateQPS: 100            # 最大添加/删除/更新Post的QPS，设置范围[10, 10000], 默认100
   MinWorker: 10                # 最小后台更新工作者, 设置范围[5, 1000], 默认10
-Zinc: # Zinc搜索配置
-  Host: 127.0.0.1:4080
-  Index: paopao-data
-  User: admin
-  Password: ""  # REQUIRED: Set Zinc admin password
-  Secure: False
 Meili: # Meili搜索配置
   Host: 127.0.0.1:7700
   Index: paopao-data

@@ -7,6 +7,7 @@ package dao
 import (
 	"sync"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/sakila"
@@ -115,17 +116,12 @@ func initOSS() {
 
 func initTsX() {
 	var v core.VersionInfo
-	ams := newAuthorizationManageService()
-	cfg.On(cfg.Actions{
-		"Zinc": func() {
-			ts, v = search.NewZincTweetSearchService(ams)
-		},
-		"Meili": func() {
-			ts, v = search.NewMeiliTweetSearchService(ams)
-		},
-	}, func() {
-		ts, v = search.NewZincTweetSearchService(ams)
-	})
+	if cfg.If("Meili") {
+		ams := newAuthorizationManageService()
+		ts, v = search.NewMeiliTweetSearchService(ams)
+		ts = search.NewBridgeTweetSearchService(ts)
+	} else {
+		ts, v = search.NewSQLTweetSearchService(conf.MustGormDB())
+	}
 	logrus.Infof("use %s as tweet search serice by version %s", v.Name(), v.Version())
-	ts = search.NewBridgeTweetSearchService(ts)
 }

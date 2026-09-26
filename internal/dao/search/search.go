@@ -9,7 +9,6 @@ import (
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
-	"github.com/BZYA-Community/WebsiteCore/pkg/zinc"
 	"github.com/meilisearch/meilisearch-go"
 	"github.com/sirupsen/logrus"
 )
@@ -49,20 +48,6 @@ func NewMeiliTweetSearchService(ams core.AuthorizationManageService) (core.Tweet
 		publicFilter: fmt.Sprintf("visibility=%d", core.PostVisitPublic),
 	}
 	return mts, mts
-}
-
-func NewZincTweetSearchService(ams core.AuthorizationManageService) (core.TweetSearchService, core.VersionInfo) {
-	s := conf.ZincSetting
-	zts := &zincTweetSearchServant{
-		tweetSearchFilter: tweetSearchFilter{
-			ams: ams,
-		},
-		indexName: s.Index,
-		client:    zinc.NewClient(s.Endpoint(), s.User, s.Password),
-	}
-	zts.createIndex()
-
-	return zts, zts
 }
 
 func NewBridgeTweetSearchService(ts core.TweetSearchService) core.TweetSearchService {

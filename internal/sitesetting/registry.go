@@ -34,7 +34,6 @@ const (
 type bootstrapSnapshot struct {
 	App           confAppSnapshot
 	TweetSearch   confTweetSearchSnapshot
-	Zinc          confZincSnapshot
 	Meili         confMeiliSnapshot
 	ObjectStorage confObjectStorageSnapshot
 	AliOSS        confAliOSSSnapshot
@@ -59,14 +58,6 @@ type confAppSnapshot struct {
 type confTweetSearchSnapshot struct {
 	MaxUpdateQPS int
 	MinWorker    int
-}
-
-type confZincSnapshot struct {
-	Host     string
-	Index    string
-	User     string
-	Password string
-	Secure   bool
 }
 
 type confMeiliSnapshot struct {
@@ -205,9 +196,6 @@ func ensureBootstrapSnapshot() {
 	if conf.TweetSearchSetting != nil {
 		bootstrapConfig.TweetSearch = confTweetSearchSnapshot{MaxUpdateQPS: conf.TweetSearchSetting.MaxUpdateQPS, MinWorker: conf.TweetSearchSetting.MinWorker}
 	}
-	if conf.ZincSetting != nil {
-		bootstrapConfig.Zinc = confZincSnapshot{Host: conf.ZincSetting.Host, Index: conf.ZincSetting.Index, User: conf.ZincSetting.User, Password: conf.ZincSetting.Password, Secure: conf.ZincSetting.Secure}
-	}
 	if conf.MeiliSetting != nil {
 		bootstrapConfig.Meili = confMeiliSnapshot{Host: conf.MeiliSetting.Host, Index: conf.MeiliSetting.Index, ApiKey: conf.MeiliSetting.ApiKey, Secure: conf.MeiliSetting.Secure}
 	}
@@ -302,12 +290,6 @@ func Registry() []Definition {
 		stringDefWithActive("meili.index", "search", "meili", "Meili index", "Meilisearch index name.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Meili") }, func() any { return conf.MeiliSetting.Index }, func() any { return bootstrapConfig.Meili.Index }, validateTrimmedMax("meili.index", 255), func(v any) { conf.MeiliSetting.Index = v.(string) }),
 		stringDefWithActive("meili.api_key", "search", "meili", "Meili API key", "Meilisearch API key.", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("Meili") }, func() any { return conf.MeiliSetting.ApiKey }, func() any { return bootstrapConfig.Meili.ApiKey }, validateTrimmedMax("meili.api_key", 512), func(v any) { conf.MeiliSetting.ApiKey = v.(string) }),
 		boolDefWithActive("meili.secure", "search", "meili", "Meili secure", "Use HTTPS for Meilisearch.", ApplyModeRestartRequired, false, true, func() bool { return cfg.If("Meili") }, func() any { return conf.MeiliSetting.Secure }, func() any { return bootstrapConfig.Meili.Secure }, func(v any) { conf.MeiliSetting.Secure = v.(bool) }),
-
-		stringDefWithActive("zinc.host", "search", "zinc", "Zinc host", "Zinc host.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Zinc") }, func() any { return conf.ZincSetting.Host }, func() any { return bootstrapConfig.Zinc.Host }, validateTrimmedMax("zinc.host", 255), func(v any) { conf.ZincSetting.Host = v.(string) }),
-		stringDefWithActive("zinc.index", "search", "zinc", "Zinc index", "Zinc index name.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Zinc") }, func() any { return conf.ZincSetting.Index }, func() any { return bootstrapConfig.Zinc.Index }, validateTrimmedMax("zinc.index", 255), func(v any) { conf.ZincSetting.Index = v.(string) }),
-		stringDefWithActive("zinc.user", "search", "zinc", "Zinc user", "Zinc username.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Zinc") }, func() any { return conf.ZincSetting.User }, func() any { return bootstrapConfig.Zinc.User }, validateTrimmedMax("zinc.user", 255), func(v any) { conf.ZincSetting.User = v.(string) }),
-		stringDefWithActive("zinc.password", "search", "zinc", "Zinc password", "Zinc password.", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("Zinc") }, func() any { return conf.ZincSetting.Password }, func() any { return bootstrapConfig.Zinc.Password }, validateTrimmedMax("zinc.password", 512), func(v any) { conf.ZincSetting.Password = v.(string) }),
-		boolDefWithActive("zinc.secure", "search", "zinc", "Zinc secure", "Use HTTPS for Zinc.", ApplyModeRestartRequired, false, true, func() bool { return cfg.If("Zinc") }, func() any { return conf.ZincSetting.Secure }, func() any { return bootstrapConfig.Zinc.Secure }, func(v any) { conf.ZincSetting.Secure = v.(bool) }),
 
 		intDef("object_storage.retain_in_days", "storage", "common", "Object retention days", "Retention window for temporary objects.", ApplyModeRestartRequired, false, true, func() any { return conf.ObjectStorage.RetainInDays }, func() any { return bootstrapConfig.ObjectStorage.RetainInDays }, func(v int) error { return between(v, 0, 3650, "retain_in_days") }, func(v any) { conf.ObjectStorage.RetainInDays = v.(int) }),
 		stringDef("object_storage.temp_dir", "storage", "common", "Object temp dir", "Temporary directory/prefix for objects.", ApplyModeRestartRequired, false, true, nil, func() any { return conf.ObjectStorage.TempDir }, func() any { return bootstrapConfig.ObjectStorage.TempDir }, validateTrimmedMax("temp_dir", 255), func(v any) { conf.ObjectStorage.TempDir = v.(string) }),

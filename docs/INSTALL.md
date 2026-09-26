@@ -166,7 +166,7 @@ The `Features` section controls which capability bundles are enabled:
 Features:
   Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
   Develop: ["Base", "MySQL", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerMeili", "OSS:Retention"]
-  Demo: ["Base", "MySQL", "Option", "Zinc", "Sms", "MinIO", "LoggerZinc", "Migration"]
+  Demo: ["Base", "MySQL", "Option", "Meili", "Sms", "MinIO", "LoggerFile", "Migration"]
   Slim: ["Base", "Postgres", "LocalOSS", "LoggerFile", "OSS:TempDir"]
 ```
 
@@ -258,9 +258,6 @@ docker run -v ${PWD}/data/openobserve:/data \
 docker run -it -p 4040:4040 pyroscope/pyroscope:latest server
 ```
 
-### Zinc (legacy / optional)
-
-Zinc still appears in the repository and feature definitions, but the current default stack is Meilisearch-based. Use it only if you intentionally want the legacy search path.
 
 ## Enable API Documentation Locally
 

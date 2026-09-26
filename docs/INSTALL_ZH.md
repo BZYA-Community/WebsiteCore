@@ -166,7 +166,7 @@ make run TAGS='embed'
 Features:
   Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
   Develop: ["Base", "MySQL", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerMeili", "OSS:Retention"]
-  Demo: ["Base", "MySQL", "Option", "Zinc", "Sms", "MinIO", "LoggerZinc", "Migration"]
+  Demo: ["Base", "MySQL", "Option", "Meili", "Sms", "MinIO", "LoggerFile", "Migration"]
   Slim: ["Base", "Postgres", "LocalOSS", "LoggerFile", "OSS:TempDir"]
 ```
 
@@ -258,9 +258,6 @@ docker run -v ${PWD}/data/openobserve:/data \
 docker run -it -p 4040:4040 pyroscope/pyroscope:latest server
 ```
 
-### Zinc（遗留 / 可选）
-
-仓库中仍保留了 Zinc 相关代码与 Feature 定义，但当前默认推荐的搜索方案是 Meilisearch。只有在你明确需要兼容旧方案时，再考虑启用 Zinc。
 
 ## 本地启用 API 文档
 

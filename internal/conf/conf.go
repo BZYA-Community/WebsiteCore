@@ -15,7 +15,6 @@ import (
 var (
 	loggerSetting            *loggerConf
 	loggerFileSetting        *loggerFileConf
-	loggerZincSetting        *loggerZincConf
 	loggerMeiliSetting       *loggerMeiliConf
 	loggerOpenObserveSetting *loggerOpenObserveConf
 	loggerOtlpSetting        *loggerOtlponf
@@ -47,7 +46,6 @@ var (
 	RedisCacheIndexSetting  *redisCacheIndexConf
 	SmsJuheSetting          *smsJuheConf
 	TweetSearchSetting      *tweetSearchConf
-	ZincSetting             *zincConf
 	MeiliSetting            *meiliConf
 	ObjectStorage           *objectStorageConf
 	AliOSSSetting           *aliOSSConf
@@ -101,7 +99,6 @@ func setupSetting(suite []string, noDefault bool) error {
 		"Sentry":            &sentrySetting,
 		"Logger":            &loggerSetting,
 		"LoggerFile":        &loggerFileSetting,
-		"LoggerZinc":        &loggerZincSetting,
 		"LoggerMeili":       &loggerMeiliSetting,
 		"LoggerOpenObserve": &loggerOpenObserveSetting,
 		"LoggerOtlp":        &loggerOtlpSetting,
@@ -109,7 +106,6 @@ func setupSetting(suite []string, noDefault bool) error {
 		"MySQL":             &MysqlSetting,
 		"Postgres":          &PostgresSetting,
 		"TweetSearch":       &TweetSearchSetting,
-		"Zinc":              &ZincSetting,
 		"Meili":             &MeiliSetting,
 		"Redis":             &redisSetting,
 		"JWT":               &JWTSetting,

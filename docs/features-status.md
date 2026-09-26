@@ -111,10 +111,6 @@
     * [x] 业务逻辑实现 
 
 #### 搜索:
-* `Zinc` 基于[Zinc](https://github.com/zinclabs/zinc)搜索引擎提供推文搜索服务(目前状态: Deprecated)；  
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
 * `Meili` 基于[Meilisearch](https://github.com/meilisearch/meilisearch)搜索引擎提供推文搜索服务(目前状态: 稳定，推荐使用); 
     * [ ] 提按文档  
     * [x] 接口定义
@@ -129,10 +125,6 @@
     * [ ] 提按文档  
     * [x] 接口定义
     * [x] 业务逻辑实现   
-* `LoggerZinc` 使用[Zinc](https://github.com/zinclabs/zinc)写日志(目前状态: Deprecated);   
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现  
 * `LoggerMeili` 使用[Meilisearch](https://github.com/meilisearch/meilisearch)写日志(目前状态: Deprecated);  
     * [ ] 提按文档  
     * [x] 接口定义

@@ -46,14 +46,6 @@ type loggerFileConf struct {
 	FileExt  string
 }
 
-type loggerZincConf struct {
-	Host     string
-	Index    string
-	User     string
-	Password string
-	Secure   bool
-}
-
 type loggerMeiliConf struct {
 	Host         string
 	Index        string
@@ -185,14 +177,6 @@ type smsJuheConf struct {
 type tweetSearchConf struct {
 	MaxUpdateQPS int
 	MinWorker    int
-}
-
-type zincConf struct {
-	Host     string
-	Index    string
-	User     string
-	Password string
-	Secure   bool
 }
 
 type meiliConf struct {
@@ -432,10 +416,6 @@ func (s *loggerConf) logLevel() logrus.Level {
 	}
 }
 
-func (s *loggerZincConf) Endpoint() string {
-	return endpoint(s.Host, s.Secure)
-}
-
 func (s *loggerMeiliConf) Endpoint() string {
 	return endpoint(s.Host, s.Secure)
 }
@@ -460,10 +440,6 @@ func (s *loggerMeiliConf) maxLogBuffer() int {
 
 func (s *objectStorageConf) TempDirSlash() string {
 	return strings.Trim(s.TempDir, " /") + "/"
-}
-
-func (s *zincConf) Endpoint() string {
-	return endpoint(s.Host, s.Secure)
 }
 
 func (s *meiliConf) Endpoint() string {
