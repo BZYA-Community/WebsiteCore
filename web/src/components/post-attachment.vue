@@ -16,7 +16,7 @@
                         <cloud-download-outline />
                     </n-icon>
                 </template>
-                附件
+                {{ t('post.attachment') }}
             </n-button>
         </div>
 
@@ -25,10 +25,10 @@
             v-model:show="showDownloadModal"
             :mask-closable="false"
             preset="dialog"
-            title="下载提示"
+            :title="t('post.downloadTipTitle')"
             :content="downloadTip"
-            positive-text="确认下载"
-            negative-text="取消"
+            :positive-text="t('post.action.confirmDownload')"
+            :negative-text="t('common.cancel')"
             icon-placement="top"
             @positive-click="execDownloadAction"
         />
@@ -37,8 +37,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { CloudDownloadOutline } from '@vicons/ionicons5';
 import { Api } from '@/utils/request';
+
+const { t } = useI18n();
 
 withDefaults(
   defineProps<{
@@ -55,7 +58,7 @@ const attachmentID = ref(0);
 const download = (attachment: Item.PostItemProps) => {
   showDownloadModal.value = true;
   attachmentID.value = attachment.id;
-  downloadTip.value = '这是一个免费附件，您可以直接下载？';
+  downloadTip.value = t('post.downloadTipContent');
 };
 const execDownloadAction = () => {
   Api.v1.attachment.get._self({

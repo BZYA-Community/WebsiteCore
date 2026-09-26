@@ -1,0 +1,70 @@
+{
+  "pageTitle": "用户管理",
+  "table": {
+    "id": "ID",
+    "nickname": "昵称",
+    "username": "用户名",
+    "phone": "手机号",
+    "identity": "身份",
+    "role": "角色",
+    "status": "状态",
+    "createdOn": "注册时间",
+    "actions": "操作",
+    "user": "用户",
+    "operator": "操作人",
+    "change": "变更",
+    "action": "动作",
+    "time": "时间"
+  },
+  "searchPlaceholder": "搜索 ID / 用户名 / 昵称 / 手机号",
+  "statusNormal": "正常",
+  "statusBanned": "封禁",
+  "actionDetail": "详情",
+  "actionBan": "禁言",
+  "actionUnban": "解封",
+  "actionGrant": "授予",
+  "actionRevoke": "移除",
+  "drawer": {
+    "labelUid": "UID",
+    "labelNickname": "昵称",
+    "labelUsername": "用户名",
+    "labelPhone": "手机号",
+    "labelIdentity": "身份",
+    "labelStatus": "状态",
+    "labelCreatedOn": "注册时间",
+    "roleManagement": "角色管理",
+    "roleTip": "运维可管理所有角色；管理员可管理 导师/审核/管理员，不可变更运维账号。",
+    "roleChangeLog": "角色变更记录",
+    "granted": "已授予",
+    "notGranted": "未授予"
+  },
+  "role": {
+    "mentor": "导师",
+    "auditor": "审核",
+    "admin": "管理员",
+    "operator": "运维"
+  },
+  "pagination": {
+    "userCount": "共 {count} 人",
+    "itemCount": "共 {count} 条"
+  },
+  "detailTitle": "用户详情 - {name}",
+  "noRoles": "无",
+  "userFallback": "#{id}",
+  "operatorFallback": "#{id}",
+  "roleChangeArrow": "{old} → {new}",
+  "dialog": {
+    "changeRoleTitle": "变更用户角色",
+    "changeRoleContent": "确定为 {username} {action}「{role}」角色？",
+    "roleUpdated": "角色已更新",
+    "banTitle": "禁言用户",
+    "unbanTitle": "解封用户",
+    "banContent": "确定对 {username} 进行{action}处理？{warning}",
+    "banWarning": "禁言后该用户无法登录。",
+    "banned": "已禁言",
+    "unbanned": "已解封",
+    "deleteTitle": "删除用户",
+    "deleteContent": "确定删除用户 {username}？删除后该用户无法登录、不再出现在列表与前台，历史数据保留（数据库可恢复）。",
+    "deleted": "已删除"
+  }
+}

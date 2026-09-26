@@ -1,0 +1,45 @@
+{
+  "tag": {
+    "featured": "Featured",
+    "pending": "Under Review",
+    "rejected": "Rejected"
+  },
+  "action": {
+    "reply": "Reply",
+    "login": "Log In",
+    "register": "Sign Up",
+    "publish": "Post"
+  },
+  "confirm": {
+    "highlightComment": "Feature this comment?",
+    "unhighlightComment": "Remove featured status?",
+    "deleteComment": "Delete this comment?",
+    "deleteReply": "Delete this reply?"
+  },
+  "msg": {
+    "deleteSuccess": "Deleted successfully",
+    "operateSuccess": "Operation successful",
+    "invalidTopic": "Invalid topic in comment",
+    "contentRequired": "Please enter some content",
+    "commentPendingAudit": "Comment submitted, visible after approval",
+    "publishSuccess": "Published successfully",
+    "replyPendingAudit": "Reply submitted, visible after approval",
+    "replySuccess": "Reply posted"
+  },
+  "reply": {
+    "placeholder": "Write a reply..."
+  },
+  "compose": {
+    "placeholderLocked": "Bubble is locked, replies are disabled",
+    "placeholder": "Share your thoughts...",
+    "loginBanner": "Log in to discover more"
+  },
+  "label": {
+    "like": "Like"
+  },
+  "upload": {
+    "imageFormatError": "Only png/jpg/gif formats allowed",
+    "imageSizeError": "Image size cannot exceed 10MB",
+    "uploadFailed": "Upload failed"
+  }
+}

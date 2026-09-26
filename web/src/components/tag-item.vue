@@ -54,10 +54,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { MoreVertOutlined } from '@vicons/material';
 import type { DropdownOption } from 'naive-ui';
 import { pinTopic, stickTopic, followTopic, unfollowTopic } from '@/api/post';
 import defaultUserAvatar from '@/assets/img/logo.png';
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -86,34 +89,34 @@ const tagOptions = computed(() => {
   let options: DropdownOption[] = [];
   if (props.tag.is_following === 0) {
     options.push({
-      label: '关注',
+      label: t('post.action.follow'),
       key: 'follow',
     });
   } else {
     if (props.tag.is_pin === 0) {
       options.push({
-        label: '钉住',
+        label: t('post.action.pin'),
         key: 'pin',
       });
     } else {
       options.push({
-        label: '取消钉住',
+        label: t('post.action.unpin'),
         key: 'unpin',
       });
     }
     if (props.tag.is_top === 0) {
       options.push({
-        label: '置顶',
+        label: t('post.action.stick'),
         key: 'stick',
       });
     } else {
       options.push({
-        label: '取消置顶',
+        label: t('post.action.unstick'),
         key: 'unstick',
       });
     }
     options.push({
-      label: '取消关注',
+      label: t('post.action.unfollow'),
       key: 'unfollow',
     });
   }
@@ -130,7 +133,7 @@ const handleTagAction = (
       })
         .then((_res) => {
           emit('update', { is_following: 1 });
-          window.$message.success(`关注成功`);
+          window.$message.success(t('post.msg.followSuccess'));
         })
         .catch((err) => {
           console.log(err);
@@ -142,7 +145,7 @@ const handleTagAction = (
       })
         .then((_res) => {
           emit('update', { is_following: 0 });
-          window.$message.success(`取消关注`);
+          window.$message.success(t('post.msg.unfollowSuccess'));
         })
         .catch((err) => {
           console.log(err);
@@ -154,7 +157,7 @@ const handleTagAction = (
       })
         .then((_res) => {
           emit('update', { is_pin: 1 });
-          window.$message.success(`钉住成功`);
+          window.$message.success(t('post.msg.pinSuccess'));
         })
         .catch((err) => {
           console.log(err);
@@ -166,7 +169,7 @@ const handleTagAction = (
       })
         .then((_res) => {
           emit('update', { is_pin: 0 });
-          window.$message.success(`取消钉住`);
+          window.$message.success(t('post.msg.unpinSuccess'));
         })
         .catch((err) => {
           console.log(err);
@@ -178,7 +181,7 @@ const handleTagAction = (
       })
         .then((res) => {
           emit('update', { is_top: res.top_status });
-          window.$message.success(`置顶成功`);
+          window.$message.success(t('post.msg.stickSuccess'));
         })
         .catch((err) => {
           console.log(err);
@@ -190,7 +193,7 @@ const handleTagAction = (
       })
         .then((res) => {
           emit('update', { is_top: res.top_status });
-          window.$message.success(`取消置顶`);
+          window.$message.success(t('post.msg.unstickSuccess'));
         })
         .catch((err) => {
           console.log(err);

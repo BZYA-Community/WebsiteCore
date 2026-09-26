@@ -27,7 +27,7 @@
                     size="small"
                     round
                 >
-                    审核中
+                    {{ t('course.comment.auditing') }}
                 </n-tag>
                 <n-tag
                     v-else-if="comment.audit_status === AuditStatusEnum.REJECTED"
@@ -36,7 +36,7 @@
                     size="small"
                     round
                 >
-                    未通过审核
+                    {{ t('course.comment.auditRejected') }}
                 </n-tag>
             </template>
             <template #header-extra>
@@ -49,8 +49,8 @@
                             userInfo.is_admin ||
                             userInfo.id === comment.user.id
                         "
-                        negative-text="取消"
-                        positive-text="确认"
+                        :negative-text="t('common.cancel')"
+                        :positive-text="t('common.confirm')"
                         @positive-click="execDelAction"
                     >
                         <template #trigger>
@@ -67,7 +67,7 @@
                                 </template>
                             </n-button>
                         </template>
-                        是否删除这条评论？
+                        {{ t('course.comment.deleteConfirm') }}
                     </n-popconfirm>
                 </div>
             </template>
@@ -118,6 +118,9 @@ import { Trash } from '@vicons/tabler';
 import { deleteCourseComment, type CourseComment, type CourseReply, type CourseCommentContent } from '@/api/course';
 import { AuditStatusEnum } from '@/utils/IEnum';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const router = useRouter();
 const replyAtUserID = ref(0);
@@ -167,7 +170,7 @@ const doClickText = (e: MouseEvent) => {
     const d = _target.dataset.detail.split(':');
     if (d.length === 2) {
       if (d[0] === 'tag') {
-        window.$message.warning('评论内的无效话题');
+        window.$message.warning(t('course.comment.invalidTag'));
       } else {
         router.push({
           name: 'user',
@@ -198,7 +201,7 @@ const execDelAction = () => {
     id: comment.value.id,
   })
     .then(() => {
-      window.$message.success('删除成功');
+      window.$message.success(t('course.deleteSuccess'));
       setTimeout(() => {
         reload();
       }, 50);

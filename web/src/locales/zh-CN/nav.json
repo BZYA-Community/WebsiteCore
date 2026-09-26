@@ -1,0 +1,18 @@
+{
+  "home": "广场",
+  "topic": "话题",
+  "courses": "课程",
+  "profile": "主页",
+  "messages": "消息",
+  "collection": "收藏",
+  "setting": "设置",
+  "adminSettings": "系统配置",
+  "adminUsers": "用户管理",
+  "adminAudit": "审核队列",
+  "postDetail": "泡泡详情",
+  "composeMd": "发布长文",
+  "courseDetail": "课程详情",
+  "userDetail": "用户详情",
+  "following": "关注",
+  "pageNotFound": "404"
+}

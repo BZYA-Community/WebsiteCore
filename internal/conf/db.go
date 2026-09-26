@@ -8,8 +8,6 @@ import (
 	"database/sql"
 	"fmt"
 	"sync"
-
-	"github.com/alimy/tryst/cfg"
 )
 
 var (
@@ -63,25 +61,11 @@ func SqlDB() (*sql.DB, error) {
 
 // CloseDB close databse to prevent data missing
 func CloseDB() {
-	cfg.On(cfg.Actions{
-		"Gorm": func() {
-			closeGormDB()
-		},
-	}, func() {
-		closeGormDB()
-	})
+	closeGormDB()
 }
 
 func newSqlDB() (driver string, db *sql.DB, err error) {
-	if cfg.If("MySQL") {
-		driver = "mysql"
-		db, err = sql.Open(driver, MysqlSetting.Dsn())
-	} else if cfg.If("PostgreSQL") || cfg.If("Postgres") {
-		driver = "pgx"
-		db, err = sql.Open(driver, PostgresSetting.Dsn())
-	} else {
-		driver = "mysql"
-		db, err = sql.Open(driver, MysqlSetting.Dsn())
-	}
+	driver = "pgx"
+	db, err = sql.Open(driver, PostgresSetting.Dsn())
 	return
 }

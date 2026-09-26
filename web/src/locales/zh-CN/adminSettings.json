@@ -1,0 +1,87 @@
+{
+  "title": "系统配置",
+  "alert": {
+    "pendingRestart": "检测到部分配置已经保存，但需要重启服务后才会切换到新值。带有“待重启”标记的配置当前仍在使用旧的生效值。"
+  },
+  "empty": "暂无可显示的配置项",
+  "itemCount": "{count} 项配置",
+  "sectionCount": "{count} 项",
+  "inactiveTitle": "未激活配置 ({count})",
+  "tag": {
+    "secret": "机密",
+    "pendingRestart": "待重启",
+    "readonly": "只读",
+    "inactive": "未激活"
+  },
+  "label": {
+    "currentStatus": "当前状态：",
+    "bootstrapBaseline": "启动基线：",
+    "currentEffective": "当前生效："
+  },
+  "group": {
+    "web": "Web 站点",
+    "app": "应用行为",
+    "search": "搜索能力",
+    "storage": "对象存储",
+    "notifications": "通知服务",
+    "payments": "支付服务"
+  },
+  "section": {
+    "profile": "站点资料",
+    "general": "常规设置",
+    "limits": "限制与阈值",
+    "bridge": "索引桥接",
+    "meili": "Meilisearch",
+    "zinc": "Zinc",
+    "common": "通用存储",
+    "localOss": "本地 OSS",
+    "minio": "MinIO",
+    "s3": "Amazon S3",
+    "alioss": "AliOSS",
+    "cos": "腾讯 COS",
+    "huaweiObs": "华为 OBS",
+    "smsJuhe": "聚合短信",
+    "alipay": "支付宝"
+  },
+  "mode": {
+    "live": "即时生效",
+    "restartRequired": "重启后生效",
+    "bootstrapOnly": "仅启动配置"
+  },
+  "source": {
+    "override": "管理覆盖",
+    "bootstrap": "启动配置"
+  },
+  "status": {
+    "configured": "已配置",
+    "notConfigured": "未配置"
+  },
+  "value": {
+    "notSet": "未设置",
+    "enabled": "已开启",
+    "disabled": "已关闭"
+  },
+  "placeholder": {
+    "secretInput": "留空表示保持当前配置，输入后将替换",
+    "inputValue": "请输入配置值"
+  },
+  "hint": {
+    "inactiveItem": "当前功能未启用，所以这项配置暂不参与当前运行行为。",
+    "secretReadonly": "为安全起见不会显示当前明文，当前项仅展示是否已配置。",
+    "secretEditable": "为安全起见不会回显当前明文。留空表示保持原值，输入新内容后会安全替换。",
+    "bootstrapOnly": "该项由启动配置控制，当前页面仅提供查看，不允许直接覆盖。",
+    "pendingRestart": "新配置已保存，但当前服务仍在使用旧值；重启后会切换到已保存的配置。",
+    "restartRequired": "保存后会写入管理覆盖值，但需要服务重启后才会切换。",
+    "live": "保存后会立即刷新当前服务中的配置状态。",
+    "inactiveSection": "当前功能或能力未启用，所以该配置暂不参与当前运行时行为。"
+  },
+  "action": {
+    "resetUnsaved": "重置未保存更改",
+    "saveConfig": "保存配置"
+  },
+  "msg": {
+    "invalidNumber": "{label} 请输入有效数值",
+    "noChanges": "没有需要保存的变更",
+    "saveSuccess": "已保存 {count} 项配置"
+  }
+}

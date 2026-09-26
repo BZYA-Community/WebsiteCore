@@ -9,9 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alimy/tryst/cfg"
 	"github.com/sirupsen/logrus"
-	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -78,19 +76,11 @@ func newGormDB() (db *gorm.DB, err error) {
 	plugin := dbresolver.Register(dbresolver.Config{}).
 		SetConnMaxIdleTime(time.Hour).
 		SetConnMaxLifetime(24 * time.Hour).
-		SetMaxIdleConns(MysqlSetting.MaxIdleConns).
-		SetMaxOpenConns(MysqlSetting.MaxOpenConns)
+		SetMaxIdleConns(DatabaseSetting.GetMaxIdleConns()).
+		SetMaxOpenConns(DatabaseSetting.GetMaxOpenConns())
 
-	if cfg.If("MySQL") {
-		logrus.Debugln("use MySQL as db")
-		db, err = gorm.Open(mysql.Open(MysqlSetting.Dsn()), config)
-	} else if cfg.If("Postgres") {
-		logrus.Debugln("use PostgreSQL as db")
-		db, err = gorm.Open(postgres.Open(PostgresSetting.Dsn()), config)
-	} else {
-		logrus.Debugln("use default of MySQL as db")
-		db, err = gorm.Open(mysql.Open(MysqlSetting.Dsn()), config)
-	}
+	logrus.Debugln("use PostgreSQL as db")
+	db, err = gorm.Open(postgres.Open(PostgresSetting.Dsn()), config)
 	if err == nil {
 		err = db.Use(plugin)
 	}

@@ -38,15 +38,15 @@
               @{{ message.receiver_user.username }}
             </span>
           </span>
-          <span class="nickname" v-else> 系统 </span>
+          <span class="nickname" v-else> {{ t('message.system') }} </span>
           <n-tag v-if="isWhisperSender" class="top-tag" type="info" size="small" round>
-            私信已发送
+            {{ t('message.whisperSent') }}
             <template #icon>
               <n-icon :component="CheckmarkCircle" />
             </template>
           </n-tag>
           <n-tag v-if="message.type == 4 && message.receiver_user_id == userInfo.id" class="top-tag" type="warning" size="small" round>
-            私信已接收
+            {{ t('message.whisperReceived') }}
             <template #icon>
               <n-icon :component="CheckmarkCircle" />
             </template>
@@ -77,7 +77,7 @@
             <span v-if="message.type === 1 || message.type === 2 || message.type === 3" @click.stop="viewDetail(message)" class="hash-link view-link">
               <n-icon>
                 <share-outline />
-              </n-icon> 查看详情
+              </n-icon> {{ t('message.viewDetail') }}
             </span>
           </div>
 
@@ -98,6 +98,7 @@
 <script setup lang="ts">
 import { h, computed } from 'vue';
 import type { Component } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { NIcon, useDialog, DropdownOption } from 'naive-ui';
 import { useStoreMain } from '@/store/main';
 import { useStoreUser } from '@/store/user';
@@ -114,9 +115,12 @@ import { MoreHorizFilled } from '@vicons/material';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
 import UserAction, { canWhisperUser } from '@/composables/useUserAction';
+import defaultUserAvatar from '@/assets/img/logo.png';
 
-const defaultavatar =
-  'https://paopao-demo.vercel.app/avatar/default/admin.png';
+const { t } = useI18n();
+
+// 本地默认头像(不使用外链): 用户头像为空时兜底展示
+const defaultavatar = defaultUserAvatar;
 
 const router = useRouter();
 
@@ -151,7 +155,7 @@ const actionOpts = computed(() => {
   // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
   if (canWhisperUser(user)) {
     options.push({
-      label: '私信 @' + user.username,
+      label: t('message.whisperAt', { username: user.username }),
       key: 'whisper',
       icon: renderIcon(PaperPlaneOutline),
     });
@@ -159,13 +163,13 @@ const actionOpts = computed(() => {
   if (userInfo.value.id != user.id) {
     if (user.is_following) {
       options.push({
-        label: '取消关注 @' + user.username,
+        label: t('message.unfollowAt', { username: user.username }),
         key: 'unfollow',
         icon: renderIcon(WalkOutline),
       });
     } else {
       options.push({
-        label: '关注 @' + user.username,
+        label: t('message.followAt', { username: user.username }),
         key: 'follow',
         icon: renderIcon(BodyOutline),
       });
@@ -250,7 +254,7 @@ const viewDetail = (message: Item.MessageProps) => {
         },
       });
     } else {
-      window.$message.error('该动态已被删除');
+      window.$message.error(t('message.postDeleted'));
     }
   }
 };

@@ -9,7 +9,8 @@
     "check": "biome check --write",
     "format": "biome format --write",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "i18n:check": "node scripts/i18n-check.mjs"
   },
   "dependencies": {
     "@opentiny/vue-slide-bar": "^3.14.0",
@@ -34,11 +35,14 @@
     "vfonts": "^0.0.3",
     "vue": "^3.5.30",
     "vue-advanced-chat": "^2.1.2",
+    "vue-advanced-cropper": "^2.8.9",
+    "vue-i18n": "^11",
     "vue-router": "4",
     "vuex": "^4.1.0"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
+    "@intlify/unplugin-vue-i18n": "^11.2.5",
     "@types/node": "^22.14.1",
     "@types/qrcode": "^1.5.5",
     "@vitejs/plugin-vue": "^6.0.5",

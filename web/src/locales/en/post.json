@@ -1,0 +1,113 @@
+{
+  "status": {
+    "pinned": "Pinned",
+    "private": "Private",
+    "pendingAudit": "Pending Review",
+    "auditRejected": "Review Rejected",
+    "notPassed": "Not Passed",
+    "friendVisible": "Friends Only",
+    "followingVisible": "Followers Only",
+    "public": "Public"
+  },
+  "action": {
+    "delete": "Delete",
+    "lock": "Lock",
+    "unlock": "Unlock",
+    "stick": "Pin",
+    "unstick": "Unpin",
+    "highlight": "Highlight",
+    "unhighlight": "Remove Highlight",
+    "approve": "Approve",
+    "reject": "Reject",
+    "confirmReject": "Confirm Reject",
+    "confirmDownload": "Confirm Download",
+    "copyLink": "Copy Link",
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "readFull": "Read Full Article",
+    "follow": "Follow",
+    "unfollow": "Unfollow",
+    "pin": "Pin",
+    "unpin": "Unpin"
+  },
+  "dialog": {
+    "tipTitle": "Notice",
+    "deleteContent": "Are you sure you want to delete this post?",
+    "lockContent": "Are you sure you want to {action} this post?",
+    "stickContent": "Are you sure you want to {action} this post?",
+    "highlightContent": "Are you sure you want to {action} this post?",
+    "visibilityContent": "Are you sure you want to change the visibility of this post to {visibility}?",
+    "rejectTitle": "Rejection Reason",
+    "rejectTip": "Once rejected, the post will be set to private and marked as \"Not Passed\" (visible to the author). The author can change the visibility to non-private and resubmit for review.",
+    "rejectPlaceholder": "Please enter the rejection reason (required)",
+    "auditApproveTitle": "Approve Post",
+    "auditApproveContent": "Are you sure you want to approve this post? Once approved, it will appear publicly in the feed and search results."
+  },
+  "audit": {
+    "barTip": "This content is not public yet. Only the author and reviewers can see it.",
+    "rejectReasonRequired": "Please enter the rejection reason"
+  },
+  "publishAt": "Posted on",
+  "lastReply": "Last reply",
+  "attachment": "Attachment",
+  "downloadTipTitle": "Download Notice",
+  "downloadTipContent": "This is a free attachment. You can download it directly.",
+  "msg": {
+    "deleteSuccess": "Deleted successfully",
+    "lockSuccess": "Locked successfully",
+    "unlockSuccess": "Unlocked successfully",
+    "stickSuccess": "Pinned successfully",
+    "unstickSuccess": "Unpinned successfully",
+    "highlightSuccess": "Highlighted successfully",
+    "unhighlightSuccess": "Highlight removed successfully",
+    "visibilitySuccess": "Visibility changed successfully",
+    "linkCopied": "Link copied to clipboard",
+    "auditApproved": "Approved successfully",
+    "auditRejected": "Post rejected",
+    "followSuccess": "Followed successfully",
+    "unfollowSuccess": "Unfollowed",
+    "pinSuccess": "Pinned successfully",
+    "unpinSuccess": "Unpinned successfully",
+    "stickSuccess": "Pinned successfully",
+    "unstickSuccess": "Unpinned successfully"
+  },
+  "menu": {
+    "whisper": "Message {'@'}{user}",
+    "followUser": "Follow {'@'}{user}",
+    "unfollowUser": "Unfollow {'@'}{user}"
+  },
+  "home": {
+    "filterHot": "Trending",
+    "filterFollowing": "Following",
+    "latest": "Latest",
+    "noMoreBubbles": "No more bubbles",
+    "loadError": "Loading error",
+    "loadMore": "Load more",
+    "squareTitle": "Bubble Square",
+    "searchPrefix": "Search: "
+  },
+  "topic": {
+    "title": "Topics",
+    "tabHot": "Hot",
+    "tabNew": "New",
+    "tabFollow": "Following",
+    "tabPin": "Pinned",
+    "saveSuccess": "Saved successfully"
+  },
+  "postDetail": {
+    "title": "Post Detail",
+    "commentTitle": "Comments",
+    "sortRecommended": "Recommended",
+    "sortHot": "Hot",
+    "sortNewest": "Newest",
+    "emptyComments": "No comments yet. Be the first!",
+    "noMoreData": "No more data",
+    "loadError": "Loading error",
+    "loadComments": "Load comments"
+  },
+  "notFound": {
+    "resourceNotFound": "404 Resource Not Found",
+    "description": "Try looking at something else",
+    "backHome": "Back to Home"
+  }
+}

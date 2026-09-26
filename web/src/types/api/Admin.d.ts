@@ -27,6 +27,8 @@ declare namespace Api {
                     comment: (params: NetParams.AuditCommentReq) => Promise<NetReq.AuditCommentResp>;
                     /** 审核·通过/拒绝昵称变更 */
                     nickname: (params: NetParams.AuditNicknameReq) => Promise<NetReq.AuditNicknameResp>;
+                    /** 审核·通过/拒绝头像变更 */
+                    avatar: (params: NetParams.AuditAvatarReq) => Promise<NetReq.AuditAvatarResp>;
                 }
             },
             get: {
@@ -59,6 +61,8 @@ declare namespace Api {
                     comments: (params: NetParams.AuditCommentsReq) => Promise<NetReq.AuditCommentsResp>;
                     /** 审核·昵称变更队列 */
                     nicknames: (params: NetParams.PageReq) => Promise<NetReq.AuditNicknamesResp>;
+                    /** 审核·头像变更队列 */
+                    avatars: (params: NetParams.PageReq) => Promise<NetReq.AuditAvatarsResp>;
                     /** 审核·操作日志 */
                     logs: (params: NetParams.PageReq) => Promise<NetReq.AuditLogsResp>;
                 }
@@ -131,6 +135,12 @@ declare namespace Api {
                 reason?: string;
             }
 
+            interface AuditAvatarReq {
+                user_id: number;
+                action: 'approve' | 'reject';
+                reason?: string;
+            }
+
             interface SiteProfileReq {
                 enable_trends_bar: boolean;
                 allow_tweet_attachment: boolean;
@@ -170,6 +180,8 @@ declare namespace Api {
             interface AuditCommentResp {}
 
             interface AuditNicknameResp {}
+
+            interface AuditAvatarResp {}
 
             interface Pager {
                 page: number;
@@ -274,6 +286,21 @@ declare namespace Api {
 
             interface AuditNicknamesResp {
                 list: AuditNicknameItem[];
+                pager: Pager;
+            }
+
+            interface AuditAvatarItem {
+                user_id: number;
+                username: string;
+                /** 当前头像 */
+                avatar: string;
+                /** 待审核头像 */
+                pending_avatar: string;
+                created_on: number;
+            }
+
+            interface AuditAvatarsResp {
+                list: AuditAvatarItem[];
                 pager: Pager;
             }
 

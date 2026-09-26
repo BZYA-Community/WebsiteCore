@@ -1,43 +1,102 @@
-# 贡献指南与社区晋升制度
+# Contributing Guide
 
-本仓库由学生自主管理。任何人都可以贡献，所有贡献都会被记录在每周五自动生成的周报中。
+This repository is run by students. Anyone can contribute, and every contribution is recorded in the automatically generated weekly report (Fridays, 20:00 Beijing time).
 
-## 角色（只看贡献记录，不看年龄与年级）
+New here? Read this page end to end, then pick a `good first issue`. A first PR that fixes one line of documentation still counts — merging a contribution on the day it is opened is a community tradition.
 
-| 角色 | 权限 | 如何获得 |
-|---|---|---|
-| 外围贡献者 | 提 issue、文档、翻译、测试反馈 | 加入社区即可 |
-| 贡献者 | 推送分支、提交 PR | 合并 1 个有效 PR |
-| 审查员（merge 权） | 审批与合并 PR | ① 已合并 PR ≥ 5；② 其中 ≥ 1 个 M 或 L 难度；③ 有效 review ≥ 3 次；④ 技术委员会/维护者确认 |
-| 维护者 | 合并、部署、规则修订 | 委员会提名，负责人任命。目前：@Alumin-Hydro |
+## Code of conduct
 
-**AI 供数，人供权。** 难度分级（S/M/L）由 AI 审查在 PR 上公示，作为展示信息，不作为任何自动解锁的货币；晋升的最后一步永远是制度化的人工确认。
+This platform serves a community of minors. Be strict about code, kind about people: explain, don't just reject. UI copy is written in Chinese and must stay age-appropriate.
 
-反刷分：拆分同一工作为多个 PR 的，审查员可合并计数；难度标注与实际不符的，以人工复核为准。细则见 `docs/governance.md` 第三节。
+## Roles and promotion
 
-任何人（包括维护者）的代码都必须走 PR——**main 分支禁止直推**，制度面前人人平等。
+Roles depend only on contribution records — never on age or grade.
 
-## PR 规则
+| Role | Permissions | How to get it |
+| --- | --- | --- |
+| Peripheral contributor | Open issues, docs, translations, testing feedback | Join the community |
+| Contributor | Push branches, open PRs | 1 merged PR |
+| Reviewer (merge rights) | Approve and merge PRs | (1) ≥ 5 merged PRs; (2) ≥ 1 of them graded M or L; (3) ≥ 3 effective reviews; (4) confirmation by the tech committee / maintainer |
+| Maintainer | Merge, deploy, revise rules | Nominated by the committee, appointed by the owner. Currently: @Alumin-Hydro |
 
-1. 一个 PR 只做一件事，关联对应 issue
-2. PR 必须通过 CI（lint / typecheck / build）与 AI 审查
-3. 🔴 级别的审查意见必须处理完才能合并；🟡 级别需回复说明；🟢 自愿
-4. 新增依赖需在 PR 中说明理由——社区项目保持依赖精简
-5. 禁止提交任何密钥、密码、个人隐私信息
-6. UI 文案用中文；本平台面向未成年人，措辞注意得体
+**AI supplies the numbers, people grant the rights.** Difficulty grades (S/M/L) are published by the AI review on every PR. They are display information only — they never unlock anything automatically; the last step of every promotion is a human decision.
 
-## 相关文档
+Anti-gaming: splitting one piece of work into multiple PRs may be counted as one by reviewers; disputed difficulty grades are settled by human review. Details: [`docs/governance.md`](docs/governance.md), section 3.
 
-- **平台需求**（做什么）：`docs/requirements-starisle-v2.0.md` —— 需求基线，开发前必读
-- **治理章程**（谁有权、怎么晋升）：`docs/governance.md`
-- **开发环境**（怎么跑起来）：`docs/development.md`
+Everyone — including maintainers — goes through PRs. **Direct pushes to `main` are forbidden.**
 
-## Commit 署名
+## Pull request workflow
 
-使用你自己的 GitHub 账号提交（建议设置 noreply 邮箱：GitHub → Settings → Emails → Keep my email addresses private）。只有关联到账号的 commit 才会计入你的贡献图。
+1. Fork the repository and create a branch from `dev` (or `main` if `dev` is unavailable).
+2. Make your change. One PR does exactly one thing and links its issue (`closes #xx`).
+3. Commit messages use conventional prefixes: `feat:` / `fix:` / `docs:` / `refactor:` / `chore:`. The weekly report classifies by them.
+4. Run the **BVT** (below) and keep the output for the PR description.
+5. Open the PR with the matching template (feature / bugfix / documentation).
+6. The PR then passes three layers: CI (hard gate) → AI review (24/7) → human merge decision.
+7. Review findings are graded: 🔴 must be fixed before merge; 🟡 requires a written response; 🟢 is optional.
 
-## 新人第一步
+## BVT — Build Verification Test (mandatory)
 
-1. 完成 GitHub 账号设置（含 noreply 邮箱）
-2. 领取 `good first issue`
-3. 第一次 PR 哪怕只改一行文档也算——首次合并当天完成是社区传统
+**No PR merges without a passing BVT.** CI automates part of it; the rest you run locally and paste into the PR template. If a check genuinely does not apply, say so in the PR instead of silently skipping it.
+
+### Backend BVT — every PR
+
+```sh
+go build ./...           # syntax / compilation check — must be clean
+go vet ./...
+golangci-lint run ./...  # v1.64.8, same as CI
+go test ./...
+```
+
+Additional checks when you touch the corresponding areas:
+
+| You changed... | Also run / verify |
+| --- | --- |
+| `mirc/` (API definitions) | `make gen-mir`, and confirm `auto/` contains no hand edits |
+| Database schema | Migration pair for **both** dialects under `scripts/migration/{postgres,mysql}/`, verified locally with a `migration`-tagged build (`make migrate`) |
+| Configuration keys | `internal/conf/config.yaml` (embedded) and `config.yaml.sample` updated together |
+| Behavior covered by E2E scripts | The relevant `scripts/test_*.py`, paste PASS/FAIL counts into the PR |
+
+### Frontend BVT — every PR touching `web/`
+
+```sh
+cd web
+npm install
+npm run lint             # ESLint, 0 errors
+npm run build            # Vite production build succeeds
+```
+
+Then the visual checks — **page content must not overlap or overflow** at any of the standard viewports (1920 / 1600 / 1366 / 1200 / 1000 / 821 / 375):
+
+```sh
+python scripts/verify_sidebar_830.py   # sidebar overlap check at the 830px breakpoint
+python scripts/measure_width.py        # column widths across 7 viewports
+python scripts/screenshot.py           # screenshots of key pages for manual comparison
+```
+
+Requires Python 3 with Playwright (`pip install playwright && playwright install chromium`) and a local instance running at `http://127.0.0.1:8008` (see [`docs/deploy/local.md`](docs/deploy/local.md)). Attach the screenshots or script output to the PR as evidence.
+
+### Documentation BVT — docs-only PRs
+
+Verify every link you added or touched resolves, and that referenced commands match the current `Makefile` / `scripts/`. CI is skipped for `docs/**` changes, so this is on you.
+
+## Rules that block a merge outright
+
+- Any secret, token, password, or real personal data (phone numbers, addresses) in the diff.
+- New dependencies without justification in the PR description; heavyweight dependencies are rejected by default.
+- Failing CI, or unresolved 🔴 review findings.
+- Generated files (`auto/`, `web/dist/`) hand-edited or committed as build artifacts.
+
+## Related documents
+
+| Topic | Document |
+| --- | --- |
+| What the platform is and must become (requirements baseline) | [`docs/requirements-starisle-v2.0.md`](docs/requirements-starisle-v2.0.md) |
+| Who has which rights, review and promotion mechanics | [`docs/governance.md`](docs/governance.md) |
+| Dev environment, architecture, codegen, testing | [`docs/development.md`](docs/development.md) |
+| CI pipelines and AI review | [`docs/ci-cd.md`](docs/ci-cd.md) |
+| Security vulnerability reporting | [`SECURITY.md`](SECURITY.md) |
+
+## Commit attribution
+
+Commit from your own GitHub account (enable the noreply email: GitHub → Settings → Emails → *Keep my email addresses private*). Only commits linked to your account count toward your contribution graph and the promotion ledger.

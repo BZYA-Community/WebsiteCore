@@ -36,6 +36,12 @@ func TestJailPathRejectsTraversal(t *testing.T) {
 }
 
 func TestJailPathAcceptsValidKeys(t *testing.T) {
+	// jailPath 内部会对 root 做 filepath.Abs, 前缀断言须用同样平台相关的绝对路径
+	// (Windows 上 "/srv/..." 会被解析为当前盘符下的路径)
+	absRoot, err := filepath.Abs(testLocalOSSRoot)
+	if err != nil {
+		t.Fatalf("filepath.Abs(%q) error = %v", testLocalOSSRoot, err)
+	}
 	validKeys := []string{
 		"2024/06/01/0f0f8c1e-uuid.jpg",
 		"attachment/2024/06/0a1b2c3d.zip",
@@ -48,8 +54,8 @@ func TestJailPathAcceptsValidKeys(t *testing.T) {
 			t.Errorf("jailPath(%q) 应被接受, 却报错: %v", key, err)
 			continue
 		}
-		if !strings.HasPrefix(got, testLocalOSSRoot) {
-			t.Errorf("jailPath(%q) = %q, 未位于根目录 %q 之内", key, got, testLocalOSSRoot)
+		if !strings.HasPrefix(got, absRoot) {
+			t.Errorf("jailPath(%q) = %q, 未位于根目录 %q 之内", key, got, absRoot)
 		}
 	}
 }

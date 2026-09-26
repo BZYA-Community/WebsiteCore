@@ -45,8 +45,8 @@ declare namespace Api {
                 password: (data: NetParams.UserChangePassword) => Promise<NetReq.UserChangePassword>;
                 /** 更改昵称 */
                 nickname: (data: NetParams.UserChangeNickname) => Promise<NetReq.UserChangeNickname>;
-                /** 更改头像 */
-                avatar: (data: NetParams.UserChangeAvatar) => Promise<void>;
+                /** 更改头像(审核开启时返回 pending=true, 审核通过后生效) */
+                avatar: (data: NetParams.UserChangeAvatar) => Promise<NetReq.UserChangeAvatarResp>;
             },
             /** 信息相关 */
             message: {
@@ -168,6 +168,11 @@ declare namespace Api {
             }
 
             interface UserChangePassword { }
+
+            interface UserChangeAvatarResp {
+                /** true 表示已提交待审核(旧头像继续生效), 审核通过后自动切换 */
+                pending?: boolean;
+            }
             interface UserChangeNickname { }
 
             interface UserGetUnreadMsgCount {

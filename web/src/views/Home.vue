@@ -52,7 +52,7 @@
 
             <div>
                 <div class="empty-wrap" v-if="list.length === 0">
-                    <n-empty size="large" description="暂无数据" />
+                    <n-empty size="large" :description="t('common.noData')" />
                 </div>
                 <n-list-item v-for="post in list" :key="post.id">
                     <post-item :post="post"
@@ -66,11 +66,11 @@
         </n-list>
 
         <n-space v-if="totalPage > 0" justify="center">
-            <InfiniteLoading class="load-more" :slots="{ complete: '没有更多泡泡了', error: '加载出错' }" @infinite="handleNextPage">
+            <InfiniteLoading class="load-more" :slots="{ complete: t('post.home.noMoreBubbles'), error: t('post.home.loadError') }" @infinite="handleNextPage">
                 <template #spinner>
                     <div class="load-more-wrap">
                         <n-spin :size="14" v-if="!noMore" />
-                        <span class="load-more-spinner">{{ noMore ? '没有更多泡泡了' : '加载更多' }}</span>
+                        <span class="load-more-spinner">{{ noMore ? t('post.home.noMoreBubbles') : t('post.home.loadMore') }}</span>
                     </div>
                 </template>
             </InfiniteLoading>
@@ -80,6 +80,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { useRoute, useRouter } from 'vue-router';
 import { useDialog } from 'naive-ui';
@@ -106,15 +107,16 @@ const { profile } = storeToRefs(storeProfile);
 const route = useRoute();
 const router = useRouter();
 const dialog = useDialog();
+const { t } = useI18n();
 
 const newestTweetsStyle = ref<'newest' | 'hots' | 'following'>('newest');
 
 // 筛选按钮配置
-const filterButtons = [
-  { key: 'newest' as const, label: '全部', index: 0 },
-  { key: 'hots' as const, label: '热门推荐', index: 1 },
-  { key: 'following' as const, label: '正在关注', index: 2 },
-];
+const filterButtons = computed(() => [
+  { key: 'newest' as const, label: t('common.all'), index: 0 },
+  { key: 'hots' as const, label: t('post.home.filterHot'), index: 1 },
+  { key: 'following' as const, label: t('post.home.filterFollowing'), index: 2 },
+]);
 
 const onFilterClick = (key: 'newest' | 'hots' | 'following', index: number) => {
   newestTweetsStyle.value = key;
@@ -139,23 +141,23 @@ const initBlocks = ref(9);
 const wheelBlocks = ref(8);
 const slideBarKey = ref(0);
 const slideBarList = ref<Item.SlideBarItem[]>([
-  { title: '最新动态', style: 1, username: '', avatar: allTweets, show: true },
+  { title: t('post.home.latest'), style: 1, username: '', avatar: allTweets, show: true },
   {
-    title: '热门推荐',
+    title: t('post.home.filterHot'),
     style: 2,
     username: '',
     avatar: discoverTweets,
     show: false,
   },
   {
-    title: '正在关注',
+    title: t('post.home.filterFollowing'),
     style: 3,
     username: '',
     avatar: followingTweets,
     show: false,
   },
 ]);
-const title = ref<string>('泡泡广场');
+const title = ref<string>(t('post.home.squareTitle'));
 const targetStyle = ref<number>(1);
 const targetUsername = ref<string>('');
 const list = ref<any[]>([]);
@@ -180,12 +182,12 @@ function postFollowAction(userId: number, isFollowing: boolean) {
 }
 
 const updateTitle = () => {
-  title.value = '泡泡广场';
+  title.value = t('post.home.squareTitle');
   if (route.query && route.query.q) {
     if (route.query.t && route.query.t === 'tag') {
       title.value = '#' + decodeURIComponent(route.query.q as string);
     } else {
-      title.value = '搜索: ' + decodeURIComponent(route.query.q as string);
+      title.value = t('post.home.searchPrefix') + decodeURIComponent(route.query.q as string);
     }
   }
 };

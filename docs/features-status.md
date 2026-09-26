@@ -1,220 +1,109 @@
-## Features Status
-功能项状态说明。
+# Feature Status
 
-## 目前支持的功能集合
-#### 子服务
-* `OldWeb` 开启旧的Web服务(目前状态: 已弃，不可用)
-    * [ ] 提按文档
-    * [x] 服务初始化逻辑
-    * [x] 接口定义
-    * [x] 业务逻辑实现
-* `Web` 开启Web服务(目前状态: WIP)
-    * [ ] 提按文档
-    * [x] 服务初始化逻辑
-    * [x] 接口定义
-    * [x] 业务逻辑实现
-* `Admin` 开启Admin后台运维服务(目前状态: WIP)
-    * [ ] 提按文档
-    * [x] 服务初始化逻辑
-    * [ ] 接口定义
-    * [ ] 业务逻辑实现
-* `SpaceX` 开启SpaceX服务(目前状态: WIP)
-    * [ ] 提按文档
-    * [x] 服务初始化逻辑
-    * [ ] 接口定义
-    * [ ] 业务逻辑实现
-* `Bot` 开启Bot服务(目前状态: WIP)
-    * [ ] 提按文档
-    * [x] 服务初始化逻辑
-    * [ ] 接口定义
-    * [ ] 业务逻辑实现
-* `NativeOBS` 开启NativeOBS服务(目前状态: WIP)
-    * [ ] 提按文档
-    * [ ] 服务初始化逻辑
-    * [ ] 接口定义
-    * [ ] 业务逻辑实现
-* `Docs` 开启NativeOBS服务(目前状态: WIP)
-    * [ ] 提按文档
-    * [x] 服务初始化逻辑
-* `Frontend:Web` 开启独立前端服务(目前状态: 内测)
-    * [ ] 提按文档
-    * [x] 服务初始化逻辑
-* `Frontend:EmbedWeb` 开启内嵌于后端Web API服务中的前端服务(目前状态: 稳定｜默认)
-    * [ ] 提按文档
-    * [x] 服务初始化逻辑
-* `Deprecated:OldWeb`  开启旧的Web服务(目前状态: 已弃，不可用)
-    * [ ] 提按文档
-    * [x] 服务初始化逻辑
+WebsiteCore assembles its capabilities from feature flags declared in `config.yaml` under `Features` (see [deploy/configuration.md](deploy/configuration.md)). This page is the authoritative matrix of what each flag does and how well it is supported in this fork.
 
-#### 数据库:
-* `Gorm` + `MySQL`/`PostgreSQL`
-使用[gorm](https://github.com/go-gorm/gorm)作为数据库的ORM，默认使用 `Grom` + `MySQL`组合(目前状态：稳定，默认，推荐使用)； 
-    * [ ] 提按文档
-    * [x] 接口定义
-    * [x] 业务逻辑实现  
-* `Sqlx` + `MySQL`/`PostgreSQL`
-使用[sqlx](https://github.com/jmoiron/sqlx)作为数据库的ORM(目前状态：WIP)；
-    * [ ] 提按文档
-    * [ ] 接口定义
-    * [ ] 业务逻辑实现  
-    
-#### 对象存储: 
-* `AliOSS` 阿里云对象存储服务；
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现    
-* `COS` 腾讯云对象存储服务；
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现   
-* `HuaweiOBS` 华为云对象存储服务；
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现   
-* `MinIO` [MinIO](https://github.com/minio/minio)对象存储服务；
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现   
-* `S3` AWS S3兼容的对象存储服务；
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现     
-* `LocalOSS` 提供使用本地目录文件作为对象存储的功能，仅用于开发调试环境；
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
-* `OSS:Retention` 基于对象存储系统的对象过期自动删除特性实现 先创建临时对象再持久化的功能(目前状态: 内测阶段)；  
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
-* `OSS:TempDir` 基于对象存储系统的对象拷贝/移动特性实现 先创建临时对象再持久化的功能(目前状态: 内测阶段)；
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现   
+Status legend:
 
-#### 缓存:
-* `Redis` Redis缓存
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
-* `SimpleCacheIndex` 提供简单的 广场推文列表 的缓存功能能(目前状态: Deprecated)； 
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现   
-* `BigCacheIndex` 使用[BigCache](https://github.com/allegro/bigcache)缓存 广场推文列表，缓存每个用户每一页，简单做到千人千面(目前状态: Deprecated)；  
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
-* `RedisCacheIndex` 使用Redis缓存 广场推文列表，缓存每个用户每一页，简单做到千人千面(目前状态: Deprecated)；  
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
+- **stable** — used in production paths, covered by CI builds and/or verification scripts
+- **works** — functional, less exercised; report issues normally
+- **legacy** — inherited from upstream paopao-ce, kept compiling but not recommended for new deployments
 
-#### 搜索:
-* `Zinc` 基于[Zinc](https://github.com/zinclabs/zinc)搜索引擎提供推文搜索服务(目前状态: Deprecated)；  
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
-* `Meili` 基于[Meilisearch](https://github.com/meilisearch/meilisearch)搜索引擎提供推文搜索服务(目前状态: 稳定，推荐使用); 
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现  
-* `Bleve` 基于[Bleve](https://github.com/blevesearch/bleve)搜索引擎提供推文搜索服务(目前状态: WIP); 
-    * [ ] 提按文档  
-    * [ ] 接口定义
-    * [ ] 业务逻辑实现  
+The default suite shipped in `config.yaml.sample`:
 
-#### 日志:
-* `LoggerFile` 使用文件写日志(目前状态: 稳定); 
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现   
-* `LoggerZinc` 使用[Zinc](https://github.com/zinclabs/zinc)写日志(目前状态: Deprecated);   
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现  
-* `LoggerMeili` 使用[Meilisearch](https://github.com/meilisearch/meilisearch)写日志(目前状态: Deprecated);  
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
-* `LoggerOpenObserve` 使用[OpenObserve](https://github.com/openobserve/openobserve)写日志(目前状态: Deprecated);  
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
-* `LoggerOtlp` 使用[OpenTelemetry](https://github.com/open-telemetry/opentelemetry-go)写日志(目前状态: 内测阶段);  
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
+```yaml
+Features:
+  Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
+```
 
+## Sub-services
 
-#### 监控:
-* `Sentry` 使用Sentry进行错误跟踪与性能监控(目前状态: 内测); 
-    * [x] [提按文档](docs/proposal/23040412-关于使用sentry用于错误追踪与性能检测的设计.md)  
-    * [x] 接口定义
-    * [x] 业务逻辑实现   
+| Feature | Port | Status | Notes |
+| --- | --- | --- | --- |
+| `Web` | 8008 | stable | Main REST API; the core of every deployment |
+| `Frontend:EmbedWeb` | (via Web) | stable | Serves the Vue SPA compiled into the binary (`embed` build tag) |
+| `Frontend:Web` | 8006 | works | Standalone static frontend server |
+| `Docs` | 8011 | works | OpenAPI docs (`docs` build tag); spec still partially reflects upstream |
+| `Pprof` | 6060 | works | Profiling; internal networks only |
+| `Metrics` | 6080 | works | Prometheus endpoint; internal networks only |
 
-#### 关系模式:    
-* `Friendship` 弱关系好友模式，类似微信朋友圈(目前状态: 内置Builtin); 
-    * [x] [提按文档](docs/proposal/22110410-关于Friendship功能项的设计.md)
-    * [x] 接口定义
-    * [x] 业务逻辑实现     
-* `Followship` 关注者模式，类似Twitter的Follow模式(目前状态: 内置Builtin);  
-    * [ ] [提按文档](docs/proposal/22110409-关于Followship功能项的设计.md)
-    * [ ] 接口定义
-    * [ ] 业务逻辑实现   
-* `Lightship` 开放模式，所有推文都公开可见(目前状态: 已弃，不可用);  
-    * [x] [提按文档](docs/proposal/22121409-关于Lightship功能项的设计.md)
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
+## Database
 
-### 支付:  
-* `Alipay`  开启基于[支付宝开放平台](https://open.alipay.com/)的钱包功能； 
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现   
+| Feature | Status | Notes |
+| --- | --- | --- |
+| `Postgres` | stable | Default and only supported database; dev stack pins PostgreSQL 18.6 |
 
-### 短信验证: 
-* SmsJuhe(需要开启sms)  
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
-* `Sms` 开启短信验证码功能，用于手机绑定验证手机是否注册者的；功能如果没有开启，手机绑定时任意短信验证码都可以绑定手机；
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
+MySQL and SQLite support were removed in this fork (2026-09-25).
 
-### 开发文档:  
-* `Docs:OpenAPI` 开启openapi文档功能，提供web api文档说明(visit http://127.0.0.1:8008/docs/openapi);  
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现   
+## Search
 
-### 性能优化
-* [`Pyroscope`](docs/proposal/23021510-关于使用pyroscope用于性能调试的设计.md) 开启Pyroscope功能用于性能调试(目前状态: 内测);  
-    * [x] 提按文档  
-    * [x] 业务逻辑实现  
-* [`Pprof`](docs/proposal/23062905-添加Pprof功能特性用于获取Profile.md) 开启Pprof功能收集Profile信息(目前状态: 内测);  
-    * [x] 提按文档  
-    * [x] 业务逻辑实现  
+| Feature | Status | Notes |
+| --- | --- | --- |
+| `Meili` | stable | Meilisearch; recommended, in the default suite and dev stack (v1.54.0) |
+| SQL fallback | stable | When `Meili` is not enabled, search falls back to PostgreSQL `ILIKE` fuzzy matching — no external service required |
 
-### 其他:    
-* `PhoneBind` 手机绑定功能； 
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现  
+Indexing goes through an async bridge tuned by `TweetSearch` (`MaxUpdateQPS`, `MinWorker`).
 
-* `UseAuditHook` 使用审核hook功能 (目前状态: 内测 待完善后将转为Builtin)
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现  
+## Cache index (public timeline)
 
-* `DisableJobManager` 禁止使用JobManager功能 (目前状态: 内测 待完善后将转为Builtin)
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现  
+| Feature | Status | Notes |
+| --- | --- | --- |
+| `BigCacheIndex` | stable | In-process BigCache; default choice |
+| `SimpleCacheIndex` | works | Minimal in-process index |
+| `RedisCacheIndex` | works | Shared cache across instances; use when running multiple replicas |
 
-### 功能特性:
-* `Web:DisallowUserRegister` 不允许用户注册；       
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现   
+## Object storage
+
+| Feature | Status | Notes |
+| --- | --- | --- |
+| `LocalOSS` | stable | Local disk under `custom/`; default fallback |
+| `AliOSS` | works | Alibaba Cloud OSS |
+| `OSS:TempDir` | works | Stage uploads in a temp directory first |
+| `OSS:Retention` | works | Set retain-until metadata on objects |
+
+Enable exactly one backend. When no storage feature is enabled, `LocalOSS` is used automatically. All backends are configurable from the admin UI (storage group).
+
+## Messaging
+
+| Feature | Status | Notes |
+| --- | --- | --- |
+| `Sms` | works | Phone-number binding via Juhe SMS (聚合数据); the only built-in provider. See [deploy/sms.md](deploy/sms.md). Without this flag, phone verification is a no-op — disable `AllowPhoneBind` on public sites. |
+
+## Logging
+
+| Feature | Status | Notes |
+| --- | --- | --- |
+| `LoggerFile` | stable | File logs under `custom/`; default choice |
+| `LoggerOtlp` | works | OpenTelemetry Protocol export (logs/traces/metrics) |
+
+## Observability
+
+| Feature | Status | Notes |
+| --- | --- | --- |
+| `Sentry` | works | Error tracking with stack traces |
+| `Pyroscope` | works | Continuous profiling |
+
+## Lifecycle
+
+| Feature | Status | Notes |
+| --- | --- | --- |
+| `Migration` | stable | Auto-apply database migrations at startup; requires the `migration` build tag (the `migrate` subcommand always enables both) |
+| `Web:DisallowUserRegister` | works | Close public registration |
+
+## Removed in this fork
+
+| Former feature | Reason |
+| --- | --- |
+| `Sqlite3` | Removed 2026-09-25 to slim the binary |
+| `MySQL` | Removed 2026-09-27; PostgreSQL is the sole database |
+| `Zinc` | Removed 2026-09-27; Meilisearch or SQL fallback cover all search needs |
+| `Admin` (standalone 8014) | Removed 2026-09-27; Web 内的 `/v1/admin` 管理面板仍保留 |
+| `SpaceX` (8012) | Removed 2026-09-27; upstream experimental service |
+| `Bot` (8016) | Removed 2026-09-27; upstream bot service |
+| `NativeOBS` (8018) | Removed 2026-09-27; direct upload service |
+| `Mobile` (8020 gRPC) | Removed 2026-09-27; no mobile client in this fork |
+| `MinIO`, `S3`, `COS`, `HuaweiOBS` | Removed 2026-09-27; LocalOSS 与 AliOSS 覆盖存储需求 |
+| `LoggerZinc`, `LoggerMeili`, `LoggerOpenObserve` | Removed 2026-09-27; LoggerFile 与 LoggerOtlp 覆盖日志需求 |
+| `Lightship` (open mode) | Deprecated upstream |
+| `Alipay` / wallet | Platform is non-commercial (2026-09-25) |
+| `Friendship` | Replaced by identity-group messaging rules (2026-09-26) |
+| `Deprecated:OldWeb` | Old frontend removed upstream |

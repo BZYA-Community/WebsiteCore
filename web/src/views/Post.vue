@@ -1,6 +1,6 @@
 <template>
     <div>
-        <main-nav title="泡泡详情" :back="true" />
+        <main-nav :title="t('post.postDetail.title')" :back="true" />
 
         <n-list class="main-content-wrap" bordered>
             <n-list-item>
@@ -9,18 +9,18 @@
                         <post-detail :post="post" @reload="reloadPost" />
                     </div>
                     <div class="empty-wrap" v-else>
-                        <n-empty size="large" description="暂无数据" />
+                        <n-empty size="large" :description="t('common.noData')" />
                     </div>
                 </n-spin>
             </n-list-item>
             <div class="comment-opts-wrap" v-if="post.id > 0">
                 <n-tabs type="bar" justify-content="end" size="small" tab-style="margin-left: -24px;" animated @update:value="commentTab">
                     <template #prefix>
-                        <span class="comment-title-item">评论</span>
+                        <span class="comment-title-item">{{ t('post.postDetail.commentTitle') }}</span>
                     </template>
-                    <n-tab-pane name="default"><template #tab>推荐</template></n-tab-pane>
-                    <n-tab-pane name="hots"><template #tab>热门</template></n-tab-pane>
-                    <n-tab-pane name="newest"><template #tab>最新</template></n-tab-pane>
+                    <n-tab-pane name="default"><template #tab>{{ t('post.postDetail.sortRecommended') }}</template></n-tab-pane>
+                    <n-tab-pane name="hots"><template #tab>{{ t('post.postDetail.sortHot') }}</template></n-tab-pane>
+                    <n-tab-pane name="newest"><template #tab>{{ t('post.postDetail.sortNewest') }}</template></n-tab-pane>
                 </n-tabs>
             </div>
             <n-list-item v-if="post.id > 0">
@@ -33,7 +33,7 @@
                 </div>
                 <div v-else>
                     <div class="empty-wrap" v-if="comments.length === 0">
-                        <n-empty size="large" description="暂无评论，快来抢沙发" />
+                        <n-empty size="large" :description="t('post.postDetail.emptyComments')" />
                     </div>
 
                     <n-list-item v-for="comment in comments" :key="comment.id">
@@ -42,14 +42,14 @@
                 </div>
             </div>
             <n-space v-if="comments.length >= pageSize" justify="center">
-                <InfiniteLoading class="load-more" :slots="{complete: '没有更多数据了', error: '加载出错'}" @infinite="loadComments">
+                <InfiniteLoading class="load-more" :slots="{complete: t('post.postDetail.noMoreData'), error: t('post.postDetail.loadError')}" @infinite="loadComments">
                     <template #spinner>
                         <span v-if="defaultCommentsSort && defaultNoMore" class="load-more-spinner" ><!-- 注意一定要保留这里 --></span>
                         <span v-if="!defaultCommentsSort && hotsNoMore" class="load-more-spinner" ><!-- 注意一定要保留这里 --></span>
                         <span v-if="!defaultCommentsSort && newestNoMore" class="load-more-spinner" ><!-- 注意一定要保留这里 --></span>
-                        <span v-if="defaultCommentsSort && !defaultNoMore" class="load-more-spinner" >加载评论</span>
-                        <span v-if="!defaultCommentsSort && !hotsNoMore" class="load-more-spinner" >加载评论</span>
-                        <span v-if="!defaultCommentsSort && !newestNoMore" class="load-more-spinner" >加载评论</span>
+                        <span v-if="defaultCommentsSort && !defaultNoMore" class="load-more-spinner" >{{ t('post.postDetail.loadComments') }}</span>
+                        <span v-if="!defaultCommentsSort && !hotsNoMore" class="load-more-spinner" >{{ t('post.postDetail.loadComments') }}</span>
+                        <span v-if="!defaultCommentsSort && !newestNoMore" class="load-more-spinner" >{{ t('post.postDetail.loadComments') }}</span>
                     </template>
                 </InfiniteLoading>
             </n-space>
@@ -59,12 +59,14 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, computed, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { getPost, getPostComments } from '@/api/post';
 import InfiniteLoading from 'v3-infinite-loading';
 import 'v3-infinite-loading/lib/style.css';
 
 const route = useRoute();
+const { t } = useI18n();
 const post = ref<Item.PostProps>({} as Item.PostProps);
 const loading = ref(false);
 const commentLoading = ref(false);

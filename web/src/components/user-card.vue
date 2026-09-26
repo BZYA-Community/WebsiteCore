@@ -21,14 +21,14 @@
                 <n-tag
                     v-if="contact.is_following"
                     class="top-tag" type="success" size="small" round>
-                    已关注
+                    {{ t('user.followed') }}
                 </n-tag>
                 <div class="user-info">
                     <span class="info-item">
                         UID. {{ contact.user_id }}
                     </span>
                      <span class="info-item">
-                        {{ formatDate(contact.created_on) }}&nbsp;加入
+                        {{ formatDate(contact.created_on) }}&nbsp;{{ t('user.joined') }}
                     </span>
                 </div>
             </template>
@@ -58,6 +58,7 @@
 <script setup lang="ts">
 import { h } from 'vue';
 import type { Component } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { NIcon, useDialog, DropdownOption } from 'naive-ui';
 import { formatDate } from '@/utils/formatTime';
 import { MoreHorizFilled } from '@vicons/material';
@@ -68,6 +69,7 @@ import {
 } from '@vicons/ionicons5';
 import UserAction, { canWhisperUser } from '@/composables/useUserAction';
 
+const { t } = useI18n();
 const dialog = useDialog();
 
 const props = withDefaults(
@@ -112,7 +114,7 @@ const actionOpts = computed(() => {
   // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
   if (canWhisperUser({ roles: props.contact.roles })) {
     options.push({
-      label: '私信 @' + props.contact.username,
+      label: t('user.actionWhisper', { username: props.contact.username }),
       key: 'whisper',
       icon: renderIcon(PaperPlaneOutline),
     });
@@ -120,13 +122,13 @@ const actionOpts = computed(() => {
 
   if (props.contact.is_following) {
     options.push({
-      label: '取消关注 @' + props.contact.username,
+      label: t('user.actionUnfollow', { username: props.contact.username }),
       key: 'unfollow',
       icon: renderIcon(WalkOutline),
     });
   } else {
     options.push({
-      label: '关注 @' + props.contact.username,
+      label: t('user.actionFollow', { username: props.contact.username }),
       key: 'follow',
       icon: renderIcon(BodyOutline),
     });

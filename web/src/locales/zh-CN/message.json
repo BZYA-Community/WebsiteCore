@@ -1,0 +1,31 @@
+{
+  "system": "系统",
+  "whisperSent": "私信已发送",
+  "whisperReceived": "私信已接收",
+  "viewDetail": "查看详情",
+  "whisperAt": "私信 {'@'}{username}",
+  "unfollowAt": "取消关注 {'@'}{username}",
+  "followAt": "关注 {'@'}{username}",
+  "postDeleted": "该动态已被删除",
+  "loadError": "加载出错",
+  "loadMore": "加载更多",
+  "chat": {
+    "title": "消息",
+    "roomsEmpty": "暂无会话",
+    "roomEmpty": "选择会话开始聊天",
+    "newMessages": "新消息",
+    "messagesEmpty": "暂无消息",
+    "conversationStarted": "会话开始于:",
+    "typeMessage": "输入私信内容…",
+    "searchRoom": "搜索会话",
+    "isOnline": "在线",
+    "isTyping": "正在输入…",
+    "dateFormat": "YYYY年M月D日",
+    "mePrefix": "我: ",
+    "systemRoom": "系统通知",
+    "systemUser": "系统",
+    "viewDetailLink": "查看详情: {url}",
+    "viewProfileLink": "查看主页: {url}",
+    "loadingNickname": "加载中…"
+  }
+}

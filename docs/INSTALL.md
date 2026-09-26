@@ -1,8 +1,6 @@
 # Installation Guide
 
-English | [简体中文](INSTALL_ZH.md)
-
-This guide covers the recommended ways to run PaoPao in development, evaluation, and self-hosted deployments. For a project overview, see [README.md](../README.md).
+This guide covers the recommended ways to run WebsiteCore in development, evaluation, and self-hosted deployments. For a project overview, see [README.md](../README.md); for the full operations library, see [deploy/README.md](deploy/README.md).
 
 ## Choose an Installation Path
 
@@ -24,8 +22,7 @@ This guide covers the recommended ways to run PaoPao in development, evaluation,
 
 - `config.yaml.sample` - canonical configuration template (overrides over embedded defaults)
 - `docker-compose.dev.yml` - local PostgreSQL / Redis / Meilisearch dev stack
-- `scripts/migration/{postgres,mysql}/` - versioned migration SQL
-- `scripts/paopao-mysql.sql` - MySQL bootstrap schema
+- `scripts/migration/postgres/` - versioned migration SQL
 - `scripts/paopao-postgres.sql` - PostgreSQL bootstrap schema
 
 <a id="run-from-source"></a>
@@ -113,7 +110,7 @@ make linux-amd64 CGO_ENABLED=0 TAGS='embed migration'
 The artifact is written to `release/`. Deployment steps:
 
 1. Upload `release/paopao` (`paopao.exe` on Windows) together with `config.yaml` to the same directory on your server.
-2. Prepare the dependencies: database (MySQL/PostgreSQL), Redis, and Meilisearch, and point to them in `config.yaml`.
+2. Prepare the dependencies: PostgreSQL, Redis, and (optionally) Meilisearch, and point to them in `config.yaml`.
 3. Start the service:
 
 ```sh
@@ -144,19 +141,19 @@ make run TAGS='embed'
 
 ## Configuration Basics
 
-At startup, PaoPao reads either:
+At startup, WebsiteCore reads either:
 
 1. `./custom/config.yaml`
 2. `./config.yaml`
 
 The first file found is used.
 
-Important: the external file is no longer expected to carry every runtime knob. PaoPao loads embedded defaults first, then overlays your local config file.
+Important: the external file is no longer expected to carry every runtime knob. WebsiteCore loads embedded defaults first, then overlays your local config file. A complete reference for every section and feature flag is in [deploy/configuration.md](deploy/configuration.md).
 
 Recommended split:
 
 - **Bootstrap YAML**: ports, feature selection, database, Redis, JWT, `AdminSettings.EncryptionKey`
-- **Admin UI (`/#/admin/settings`)**: most site, search, storage, SMS, payment, and app-behavior settings
+- **Admin UI (`/#/admin/settings`)**: most site, search, storage, SMS, and app-behavior settings
 
 If a setting is marked **restart required** in the admin page, it is persisted immediately but only becomes active after a process restart.
 
@@ -165,8 +162,8 @@ The `Features` section controls which capability bundles are enabled:
 ```yaml
 Features:
   Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
-  Develop: ["Base", "MySQL", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerMeili", "OSS:Retention"]
-  Demo: ["Base", "MySQL", "Option", "Zinc", "Sms", "MinIO", "LoggerZinc", "Migration"]
+  Develop: ["Base", "Postgres", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerOtlp", "OSS:Retention"]
+  Demo: ["Base", "Postgres", "Option", "Meili", "Sms", "LocalOSS", "LoggerFile", "Migration"]
   Slim: ["Base", "Postgres", "LocalOSS", "LoggerFile", "OSS:TempDir"]
 ```
 
@@ -190,7 +187,7 @@ For feature maturity and support status, see [features-status.md](features-statu
 
 ## Optional Infrastructure Services
 
-The default modern stack is centered on **Meilisearch**, **Redis**, and either **LocalOSS**, **MinIO**, or a cloud object store. Optional integrations can be started separately when needed.
+The default modern stack is centered on **Meilisearch**, **Redis**, and **LocalOSS** (or AliOSS for cloud deployments). Optional integrations can be started separately when needed.
 
 ### Meilisearch (recommended search engine)
 
@@ -215,52 +212,13 @@ Meili:
   Secure: False
 ```
 
-### MinIO
-
-```sh
-mkdir -p data/minio/data
-docker run -d --name minio \
-  -v ${PWD}/data/minio/data:/data \
-  -p 9000:9000 -p 9001:9001 \
-  -e MINIO_ROOT_USER=minio-root-user \
-  -e MINIO_ROOT_PASSWORD=minio-root-password \
-  -e MINIO_DEFAULT_BUCKETS=paopao:public \
-  bitnami/minio:latest
-```
-
-Matching config example:
-
-```yaml
-MinIO:
-  AccessKey: Q3AM3UQ867SPQQA43P2F
-  SecretKey: zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG
-  Secure: False
-  Endpoint: 127.0.0.1:9000
-  Bucket: paopao
-  Domain: 127.0.0.1:9000
-```
-
-### OpenObserve
-
-```sh
-mkdir -p data/openobserve
-docker run -v ${PWD}/data/openobserve:/data \
-  -e ZO_DATA_DIR=/data \
-  -p 5080:5080 \
-  -e ZO_ROOT_USER_EMAIL=root@paopao.info \
-  -e ZO_ROOT_USER_PASSWORD=paopao-ce \
-  public.ecr.aws/zinclabs/openobserve:latest
-```
-
 ### Pyroscope
 
 ```sh
 docker run -it -p 4040:4040 pyroscope/pyroscope:latest server
 ```
 
-### Zinc (legacy / optional)
-
-Zinc still appears in the repository and feature definitions, but the current default stack is Meilisearch-based. Use it only if you intentionally want the legacy search path.
+> **Note:** When the `Meili` feature is not enabled, search automatically falls back to PostgreSQL `ILIKE` fuzzy matching — no external search service is required.
 
 ## Enable API Documentation Locally
 
@@ -282,15 +240,15 @@ Then visit:
 
 ## Additional Deployment Docs
 
-For platform-specific or production-oriented deployment references, see:
+For production-oriented deployment references, see:
 
-- [docs/deploy/README.md](deploy/README.md)
-- [docs/deploy/core/](docs/deploy/core/)
-- [docs/deploy/local/](docs/deploy/local/)
-- [docs/deploy/k8s/](docs/deploy/k8s/)
-- [docs/deploy/aliyun/](docs/deploy/aliyun/)
-- [docs/deploy/huawei/](docs/deploy/huawei/)
-- [docs/deploy/tencent/](docs/deploy/tencent/)
+- [deploy/README.md](deploy/README.md) - deployment overview and path selection
+- [deploy/production.md](deploy/production.md) - recommended production layout (binary + systemd + Nginx, dependencies in Docker)
+- [deploy/docker-compose.md](deploy/docker-compose.md) - fully containerized alternative
+- [deploy/configuration.md](deploy/configuration.md) - full configuration reference
+- [deploy/database.md](deploy/database.md) - database deployment, migrations, backups
+- [deploy/sms.md](deploy/sms.md) - SMS platform configuration
+- [deploy/public-launch.md](deploy/public-launch.md) - pre-launch security and compliance checklist
 
 ## Operational Notes
 

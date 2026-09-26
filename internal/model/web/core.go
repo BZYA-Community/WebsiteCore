@@ -20,6 +20,11 @@ type ChangeAvatarReq struct {
 	Avatar   string `json:"avatar" form:"avatar" binding:"required"`
 }
 
+// ChangeAvatarResp 头像变更结果: Pending=true 表示已提交待审核(旧头像继续生效)
+type ChangeAvatarResp struct {
+	Pending bool `json:"pending"`
+}
+
 type SyncSearchIndexReq struct {
 	BaseInfo `json:"-" binding:"-"`
 }

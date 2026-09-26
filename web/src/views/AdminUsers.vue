@@ -1,13 +1,13 @@
 <template>
     <div>
-        <main-nav title="用户管理" />
+        <main-nav :title="t('adminUsers.pageTitle')" />
 
-        <n-card title="用户管理" size="small" class="setting-card">
+        <n-card :title="t('adminUsers.pageTitle')" size="small" class="setting-card">
             <n-spin :show="loading">
                 <div class="toolbar">
                     <n-input
                         v-model:value="keyword"
-                        placeholder="搜索 ID / 用户名 / 昵称 / 手机号"
+                        :placeholder="t('adminUsers.searchPlaceholder')"
                         clearable
                         class="keyword-input"
                         @keyup.enter="handleSearch"
@@ -19,7 +19,7 @@
                         :loading="loading"
                         @click="handleSearch"
                     >
-                        搜索
+                        {{ t('common.search') }}
                     </n-button>
                 </div>
 
@@ -47,46 +47,45 @@
                             size="small"
                             :column="1"
                         >
-                            <n-descriptions-item label="UID">
+                            <n-descriptions-item :label="t('adminUsers.drawer.labelUid')">
                                 {{ detail.id }}
                             </n-descriptions-item>
-                            <n-descriptions-item label="昵称">
+                            <n-descriptions-item :label="t('adminUsers.drawer.labelNickname')">
                                 {{ detail.nickname }}
                             </n-descriptions-item>
-                            <n-descriptions-item label="用户名">
+                            <n-descriptions-item :label="t('adminUsers.drawer.labelUsername')">
                                 {{ detail.username }}
                             </n-descriptions-item>
-                            <n-descriptions-item label="手机号">
+                            <n-descriptions-item :label="t('adminUsers.drawer.labelPhone')">
                                 {{ detail.phone }}
                             </n-descriptions-item>
-                            <n-descriptions-item label="身份">
+                            <n-descriptions-item :label="t('adminUsers.drawer.labelIdentity')">
                                 <n-tag
                                     round
                                     size="small"
                                     :type="identityTagType(detail.identity)"
                                 >
-                                    {{ detail.identity }}
+                                    {{ identityLabel(detail.identity) }}
                                 </n-tag>
                             </n-descriptions-item>
-                            <n-descriptions-item label="状态">
+                            <n-descriptions-item :label="t('adminUsers.drawer.labelStatus')">
                                 <n-tag
                                     round
                                     size="small"
                                     :type="detail.status === 1 ? 'success' : 'error'"
                                 >
-                                    {{ detail.status === 1 ? '正常' : '封禁' }}
+                                    {{ detail.status === 1 ? t('adminUsers.statusNormal') : t('adminUsers.statusBanned') }}
                                 </n-tag>
                             </n-descriptions-item>
-                            <n-descriptions-item label="注册时间">
+                            <n-descriptions-item :label="t('adminUsers.drawer.labelCreatedOn')">
                                 {{ formatTime(detail.created_on) }}
                             </n-descriptions-item>
                         </n-descriptions>
 
                         <div>
-                            <div class="section-title">角色管理</div>
+                            <div class="section-title">{{ t('adminUsers.drawer.roleManagement') }}</div>
                             <div class="role-tip">
-                                运维可管理所有角色；管理员可管理 导师/审核/管理员，
-                                不可变更运维账号。
+                                {{ t('adminUsers.drawer.roleTip') }}
                             </div>
                             <n-space vertical size="small" class="role-list">
                                 <div
@@ -108,8 +107,8 @@
                                     <span class="role-state">
                                         {{
                                             detail.roles?.includes(role)
-                                                ? '已授予'
-                                                : '未授予'
+                                                ? t('adminUsers.drawer.granted')
+                                                : t('adminUsers.drawer.notGranted')
                                         }}
                                     </span>
                                     <n-button
@@ -126,8 +125,8 @@
                                     >
                                         {{
                                             detail.roles?.includes(role)
-                                                ? '移除'
-                                                : '授予'
+                                                ? t('adminUsers.actionRevoke')
+                                                : t('adminUsers.actionGrant')
                                         }}
                                     </n-button>
                                 </div>
@@ -135,7 +134,7 @@
                         </div>
 
                         <div>
-                            <div class="section-title">角色变更记录</div>
+                            <div class="section-title">{{ t('adminUsers.drawer.roleChangeLog') }}</div>
                             <n-data-table
                                 remote
                                 size="small"
@@ -159,15 +158,16 @@
 </template>
 
 <script setup lang="ts">
-import { h, onMounted, reactive, ref } from 'vue';
+import { computed, h, onMounted, reactive, ref } from 'vue';
 import type { Component } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { NButton, NSpace, NTag, useDialog } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import { userInfo as fetchUserInfo } from '@/api/auth';
 import { formatTime } from '@/utils/formatTime';
-import { identityTagType } from '@/utils/identity';
+import { identityTagType, identityLabel } from '@/utils/identity';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { Api } from '@/utils/request';
@@ -175,6 +175,7 @@ import { Api } from '@/utils/request';
 type UserItem = Api.Admin.NetReq.UserItem;
 type RoleLogItem = Api.Admin.NetReq.UserRoleLogItem;
 
+const { t } = useI18n();
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const { userInfo } = storeToRefs(storeUser);
@@ -198,7 +199,9 @@ const userPagination = reactive({
     pageSize: 10,
     itemCount: 0,
     showSizePicker: false,
-    prefix: ({ itemCount }: { itemCount: number }) => `共 ${itemCount} 人`,
+    prefix: computed(({ itemCount }: { itemCount: number }) =>
+        t('adminUsers.pagination.userCount', { count: itemCount }),
+    ),
 });
 
 const roleLogPagination = reactive({
@@ -206,19 +209,21 @@ const roleLogPagination = reactive({
     pageSize: 5,
     itemCount: 0,
     showSizePicker: false,
-    prefix: ({ itemCount }: { itemCount: number }) => `共 ${itemCount} 条`,
+    prefix: computed(({ itemCount }: { itemCount: number }) =>
+        t('adminUsers.pagination.itemCount', { count: itemCount }),
+    ),
 });
 
-const roleNameMap: Record<string, string> = {
-    mentor: '导师',
-    auditor: '审核',
-    admin: '管理员',
-    operator: '运维',
-};
+const roleNameMap = computed<Record<string, string>>(() => ({
+    mentor: t('adminUsers.role.mentor'),
+    auditor: t('adminUsers.role.auditor'),
+    admin: t('adminUsers.role.admin'),
+    operator: t('adminUsers.role.operator'),
+}));
 
-const roleName = (role: string) => roleNameMap[role] ?? role;
+const roleName = (role: string) => roleNameMap.value[role] ?? role;
 
-const detailTitle = ref('用户详情');
+const detailTitle = ref(t('adminUsers.detailTitle', { name: '' }));
 
 // 运维账号在服务端享有全部角色管理权限，前端按同一规则禁用按钮
 const selfIsOperator = () =>
@@ -288,7 +293,7 @@ const loadDetail = async (id: number) => {
 };
 
 const openDetail = (row: UserItem) => {
-    detailTitle.value = `用户详情 - ${row.nickname || row.username}`;
+    detailTitle.value = t('adminUsers.detailTitle', { name: row.nickname || row.username });
     detail.value = { ...row };
     detailShow.value = true;
     roleLogPagination.page = 1;
@@ -301,12 +306,16 @@ const handleRoleChange = (row: Partial<UserItem>, role: string) => {
         return;
     }
     const has = (row.roles || []).includes(role);
-    const actionText = has ? '移除' : '授予';
+    const actionText = has ? t('adminUsers.actionRevoke') : t('adminUsers.actionGrant');
     dialog.warning({
-        title: '变更用户角色',
-        content: `确定为 ${row.nickname || row.username} ${actionText}「${roleName(role)}」角色？`,
-        positiveText: '确定',
-        negativeText: '取消',
+        title: t('adminUsers.dialog.changeRoleTitle'),
+        content: t('adminUsers.dialog.changeRoleContent', {
+            username: row.nickname || row.username,
+            action: actionText,
+            role: roleName(role),
+        }),
+        positiveText: t('common.confirm'),
+        negativeText: t('common.cancel'),
         onPositiveClick: async () => {
             roleChanging.value = true;
             try {
@@ -315,7 +324,7 @@ const handleRoleChange = (row: Partial<UserItem>, role: string) => {
                     role: role as Api.Admin.NetParams.UserRoleChangeReq['role'],
                     action: has ? 'remove' : 'add',
                 });
-                window.$message.success('角色已更新');
+                window.$message.success(t('adminUsers.dialog.roleUpdated'));
                 await loadDetail(row.id as number);
                 loadUsers();
                 loadRoleLogs();
@@ -337,19 +346,21 @@ const handleSearch = () => {
 const handleStatusChange = (row: UserItem) => {
     const banning = row.status === 1;
     dialog.warning({
-        title: banning ? '禁言用户' : '解封用户',
-        content: `确定对 ${row.nickname || row.username} 进行${
-            banning ? '禁言' : '解封'
-        }处理？${banning ? '禁言后该用户无法登录。' : ''}`,
-        positiveText: '确定',
-        negativeText: '取消',
+        title: banning ? t('adminUsers.dialog.banTitle') : t('adminUsers.dialog.unbanTitle'),
+        content: t('adminUsers.dialog.banContent', {
+            username: row.nickname || row.username,
+            action: banning ? t('adminUsers.actionBan') : t('adminUsers.actionUnban'),
+            warning: banning ? t('adminUsers.dialog.banWarning') : '',
+        }),
+        positiveText: t('common.confirm'),
+        negativeText: t('common.cancel'),
         onPositiveClick: async () => {
             try {
                 await Api.v1.admin.post.user.status({
                     id: row.id,
                     status: banning ? 2 : 1,
                 });
-                window.$message.success(banning ? '已禁言' : '已解封');
+                window.$message.success(banning ? t('adminUsers.dialog.banned') : t('adminUsers.dialog.unbanned'));
                 loadUsers();
                 // 详情抽屉打开时同步刷新
                 if (detailShow.value && detail.value.id === row.id) {
@@ -365,14 +376,16 @@ const handleStatusChange = (row: UserItem) => {
 // 软删除(is_del=1: 无法登录/从前台与列表消失, 数据保留可恢复)
 const handleUserDelete = (row: UserItem) => {
     dialog.warning({
-        title: '删除用户',
-        content: `确定删除用户 ${row.nickname || row.username}？删除后该用户无法登录、不再出现在列表与前台，历史数据保留（数据库可恢复）。`,
-        positiveText: '删除',
-        negativeText: '取消',
+        title: t('adminUsers.dialog.deleteTitle'),
+        content: t('adminUsers.dialog.deleteContent', {
+            username: row.nickname || row.username,
+        }),
+        positiveText: t('common.delete'),
+        negativeText: t('common.cancel'),
         onPositiveClick: async () => {
             try {
                 await Api.v1.admin.post.user.delete({ id: row.id });
-                window.$message.success('已删除');
+                window.$message.success(t('adminUsers.dialog.deleted'));
                 if (detailShow.value && detail.value.id === row.id) {
                     detailShow.value = false;
                 }
@@ -402,43 +415,43 @@ const handleRoleLogPageChange = (page: number) => {
     loadRoleLogs();
 };
 
-const userColumns: DataTableColumns<UserItem> = [
+const userColumns = computed<DataTableColumns<UserItem>>(() => [
     {
-        title: 'ID',
+        title: t('adminUsers.table.id'),
         key: 'id',
         width: 80,
     },
     {
-        title: '昵称',
+        title: t('adminUsers.table.nickname'),
         key: 'nickname',
         width: 140,
         ellipsis: { tooltip: true },
     },
     {
-        title: '用户名',
+        title: t('adminUsers.table.username'),
         key: 'username',
         width: 130,
         ellipsis: { tooltip: true },
     },
     {
-        title: '手机号',
+        title: t('adminUsers.table.phone'),
         key: 'phone',
         width: 130,
         render: (row) => row.phone || '-',
     },
     {
-        title: '身份',
+        title: t('adminUsers.table.identity'),
         key: 'identity',
         width: 90,
         render: (row) =>
             h(
                 NTag,
                 { round: true, size: 'small', type: identityTagType(row.identity) },
-                { default: () => row.identity }
+                { default: () => identityLabel(row.identity) }
             ),
     },
     {
-        title: '角色',
+        title: t('adminUsers.table.role'),
         key: 'roles',
         render: (row) =>
             h(
@@ -457,7 +470,7 @@ const userColumns: DataTableColumns<UserItem> = [
             ),
     },
     {
-        title: '状态',
+        title: t('adminUsers.table.status'),
         key: 'status',
         width: 80,
         render: (row) =>
@@ -468,17 +481,17 @@ const userColumns: DataTableColumns<UserItem> = [
                     size: 'small',
                     type: row.status === 1 ? 'success' : 'error',
                 },
-                { default: () => (row.status === 1 ? '正常' : '封禁') }
+                { default: () => (row.status === 1 ? t('adminUsers.statusNormal') : t('adminUsers.statusBanned')) }
             ),
     },
     {
-        title: '注册时间',
+        title: t('adminUsers.table.createdOn'),
         key: 'created_on',
         width: 150,
         render: (row) => formatTime(row.created_on),
     },
     {
-        title: '操作',
+        title: t('adminUsers.table.actions'),
         key: 'actions',
         width: 200,
         render: (row) => {
@@ -495,7 +508,7 @@ const userColumns: DataTableColumns<UserItem> = [
                         type: 'info',
                         onClick: () => openDetail(row),
                     },
-                    { default: () => '详情' }
+                    { default: () => t('adminUsers.actionDetail') }
                 ),
             ];
             if (operable) {
@@ -508,7 +521,7 @@ const userColumns: DataTableColumns<UserItem> = [
                             type: 'warning',
                             onClick: () => handleStatusChange(row),
                         },
-                        { default: () => (row.status === 1 ? '禁言' : '解封') }
+                        { default: () => (row.status === 1 ? t('adminUsers.actionBan') : t('adminUsers.actionUnban')) }
                     ),
                     h(
                         NButton,
@@ -518,7 +531,7 @@ const userColumns: DataTableColumns<UserItem> = [
                             type: 'error',
                             onClick: () => handleUserDelete(row),
                         },
-                        { default: () => '删除' }
+                        { default: () => t('common.delete') }
                     ),
                 );
             }
@@ -529,31 +542,34 @@ const userColumns: DataTableColumns<UserItem> = [
             );
         },
     },
-];
+]);
 
-const roleLogColumns: DataTableColumns<RoleLogItem> = [
+const roleLogColumns = computed<DataTableColumns<RoleLogItem>>(() => [
     {
-        title: '用户',
+        title: t('adminUsers.table.user'),
         key: 'username',
         width: 100,
         ellipsis: { tooltip: true },
-        render: (row) => row.username || `#${row.user_id}`,
+        render: (row) => row.username || t('adminUsers.userFallback', { id: row.user_id }),
     },
     {
-        title: '操作人',
+        title: t('adminUsers.table.operator'),
         key: 'operator_name',
         width: 100,
         ellipsis: { tooltip: true },
-        render: (row) => row.operator_name || `#${row.operator_id}`,
+        render: (row) => row.operator_name || t('adminUsers.operatorFallback', { id: row.operator_id }),
     },
     {
-        title: '变更',
+        title: t('adminUsers.table.change'),
         key: 'roles',
         render: (row) =>
-            `${row.old_roles || '无'} → ${row.new_roles || '无'}`,
+            t('adminUsers.roleChangeArrow', {
+                old: row.old_roles || t('adminUsers.noRoles'),
+                new: row.new_roles || t('adminUsers.noRoles'),
+            }),
     },
     {
-        title: '动作',
+        title: t('adminUsers.table.action'),
         key: 'action',
         width: 70,
         render: (row) =>
@@ -564,16 +580,16 @@ const roleLogColumns: DataTableColumns<RoleLogItem> = [
                     size: 'small',
                     type: row.action === 'add' ? 'success' : 'warning',
                 },
-                { default: () => (row.action === 'add' ? '授予' : '移除') }
+                { default: () => (row.action === 'add' ? t('adminUsers.actionGrant') : t('adminUsers.actionRevoke')) }
             ),
     },
     {
-        title: '时间',
+        title: t('adminUsers.table.time'),
         key: 'created_on',
         width: 140,
         render: (row) => formatTime(row.created_on),
     },
-];
+]);
 
 const ensureAdminAccess = async () => {
     if (!localStorage.getItem(TOKEN_KEY) && userInfo.value.id === 0) {

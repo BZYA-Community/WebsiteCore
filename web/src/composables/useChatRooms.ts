@@ -3,6 +3,7 @@ import { Api } from '@/utils/request';
 import { useStoreUser } from '@/store/user';
 import { useStoreProfile } from '@/store/profile';
 import { formatRelativeTime } from '@/utils/formatTime';
+import i18n from '@/locales';
 import moment from 'moment';
 
 /**
@@ -48,12 +49,13 @@ export interface VACMessage {
 const SYSTEM_ROOM_ID = '0';
 const PAGE_SIZE = 20;
 
-const dayLabel = (ts: number) => moment.unix(ts).format('YYYY年M月D日');
-const timeLabel = (ts: number) => moment.unix(ts).format('HH:mm');
-
 export function useChatRooms() {
+  const { t } = i18n.global;
   const storeUser = useStoreUser();
   const storeProfile = useStoreProfile();
+
+  const dayLabel = (ts: number) => moment.unix(ts).format(t('message.chat.dateFormat'));
+  const timeLabel = (ts: number) => moment.unix(ts).format('HH:mm');
 
   const myId = computed(() => String(storeUser.userInfo.id || 0));
   const myName = computed(() => storeUser.userInfo.nickname || '');
@@ -87,7 +89,7 @@ export function useChatRooms() {
     index: c.last_time,
     lastMessage: c.last_content
       ? {
-          content: (c.last_from_me ? '我: ' : '') + c.last_content,
+          content: (c.last_from_me ? t('message.chat.mePrefix') : '') + c.last_content,
           senderId: c.last_from_me ? myId.value : String(c.user_id),
           timestamp: formatRelativeTime(c.last_time),
         }
@@ -101,9 +103,9 @@ export function useChatRooms() {
     if (m.brief) lines.push(m.brief);
     if (m.content) lines.push(m.content);
     if (m.type >= 1 && m.type <= 3 && m.post_id) {
-      lines.push(`查看详情: ${base}#/post?id=${m.post_id}`);
+      lines.push(t('message.chat.viewDetailLink', { url: `${base}#/post?id=${m.post_id}` }));
     } else if (m.type === 99 && m.sender_id > 0 && m.sender_username) {
-      lines.push(`查看主页: ${base}#/u?s=${encodeURIComponent(m.sender_username)}`);
+      lines.push(t('message.chat.viewProfileLink', { url: `${base}#/u?s=${encodeURIComponent(m.sender_username)}` }));
     }
     return lines.join('\n');
   };
@@ -111,7 +113,7 @@ export function useChatRooms() {
   const toMessage = (m: Item.ChatHistoryItem, isSystem: boolean): VACMessage => ({
     _id: String(m.id),
     senderId: String(m.sender_id),
-    username: isSystem ? m.sender_name || '系统' : undefined,
+    username: isSystem ? m.sender_name || t('message.chat.systemUser') : undefined,
     content: isSystem ? composeSystemContent(m) : m.content,
     date: dayLabel(m.timestamp),
     timestamp: timeLabel(m.timestamp),
@@ -124,12 +126,13 @@ export function useChatRooms() {
   const loadContacts = async () => {
     try {
       const res = await Api.v1.user.get.chat.contacts({});
+      const systemRoomLabel = t('message.chat.systemRoom');
       const list: VACRoom[] = [
         {
           roomId: SYSTEM_ROOM_ID,
-          roomName: '系统通知',
+          roomName: systemRoomLabel,
           avatar: res.system.avatar || '/logo.png',
-          users: [{ _id: SYSTEM_ROOM_ID, username: '系统通知' }],
+          users: [{ _id: SYSTEM_ROOM_ID, username: systemRoomLabel }],
           unreadCount: res.system.unread > 0 ? res.system.unread : undefined,
           index: res.system.last_time || Number.MAX_SAFE_INTEGER / 1000,
           lastMessage: res.system.last_content
@@ -297,7 +300,7 @@ export function useChatRooms() {
       const peer: Item.ChatContactItem = {
         user_id: userId,
         username: seed?.username || '',
-        nickname: seed?.nickname || '加载中…',
+        nickname: seed?.nickname || t('message.chat.loadingNickname'),
         avatar: seed?.avatar || '',
         roles: seed?.roles || [],
         identity: seed?.identity || '',

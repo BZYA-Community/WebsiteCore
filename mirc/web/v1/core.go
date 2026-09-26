@@ -40,8 +40,8 @@ type Core struct {
 	// ChangeNickname 修改昵称
 	ChangeNickname func(Post, web.ChangeNicknameReq) `mir:"user/nickname"`
 
-	// ChangeAvatar 修改头像
-	ChangeAvatar func(Post, web.ChangeAvatarReq) `mir:"user/avatar"`
+	// ChangeAvatar 修改头像(审核开启时返回pending=true 审核通过后生效)
+	ChangeAvatar func(Post, web.ChangeAvatarReq) web.ChangeAvatarResp `mir:"user/avatar"`
 
 	// SuggestUsers 检索用户
 	SuggestUsers func(Get, web.SuggestUsersReq) web.SuggestUsersResp `mir:"suggest/users"`

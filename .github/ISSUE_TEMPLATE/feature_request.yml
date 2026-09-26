@@ -1,0 +1,58 @@
+name: Feature request
+description: A new capability or an improvement to something that already exists.
+title: "[Feature] <one-line summary of the idea>"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Suggest an idea for the platform. Remember this is a community for minors — proposals must fit that audience.
+        The product baseline is [`docs/requirements-starisle-v2.0.md`](../../docs/requirements-starisle-v2.0.md); check it first to see whether your idea is already planned.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Who hits this problem, in what situation, and how often?
+      placeholder: e.g. When a mentor reviews long Markdown posts, code blocks render without highlighting, making review slow.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior you want. UI ideas can include sketches or screenshots.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Other ways to solve the same problem, and why you did not pick them.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area of the product
+      options:
+        - Posts / content
+        - Private messaging
+        - Courses
+        - Content moderation / admin
+        - User profile / identity groups
+        - Search
+        - Frontend UI/UX
+        - Backend API
+        - Deployment / operations
+        - Other
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues (including closed ones) and this is not a duplicate.
+          required: true
+        - label: The latest version does not already do this.
+          required: true
+        - label: This fits a platform for minors (no paid features, no data-heavy collection).
+          required: true

@@ -25,7 +25,7 @@
                         size="small"
                         round
                     >
-                        置顶
+                        {{ t('post.status.pinned') }}
                     </n-tag>
                     <n-tag
                         v-if="post.audit_status === 0"
@@ -34,7 +34,7 @@
                         size="small"
                         round
                     >
-                        待审核
+                        {{ t('post.status.pendingAudit') }}
                     </n-tag>
                     <n-tag
                         v-if="post.audit_status === 2"
@@ -43,7 +43,7 @@
                         size="small"
                         round
                     >
-                        未通过
+                        {{ t('post.status.notPassed') }}
                     </n-tag>
                     <n-tag
                         v-if="post.visibility == 1"
@@ -52,7 +52,7 @@
                         size="small"
                         round
                     >
-                        私密
+                        {{ t('post.status.private') }}
                     </n-tag>
                     <n-tag
                         v-if="post.visibility == 2"
@@ -61,7 +61,7 @@
                         size="small"
                         round
                     >
-                        好友可见
+                        {{ t('post.status.friendVisible') }}
                     </n-tag>
                     <div v-if="isMobile">
                         <span class="timestamp-mobile">
@@ -99,7 +99,7 @@
                             :key="content.id"
                             class="post-text"
                             @click.stop="doClickText($event, post.id)"
-                            v-html="preparePost(content.content, '展开', '收起', profile.tweetMobileEllipsisSize, inFoldStyle)"
+                            v-html="preparePost(content.content, t('post.action.expand'), t('post.action.collapse'), profile.tweetMobileEllipsisSize, inFoldStyle)"
                         ></span>
                     </div>
                     <template v-else>
@@ -108,7 +108,7 @@
                             :key="content.id"
                             class="post-text hover"
                             @click.stop="doClickText($event, post.id)"
-                            v-html="preparePost(content.content, '展开', '收起', profile.tweetWebEllipsisSize, inFoldStyle)"
+                            v-html="preparePost(content.content, t('post.action.expand'), t('post.action.collapse'), profile.tweetWebEllipsisSize, inFoldStyle)"
                         ></span>
                     </template>
                 </template>
@@ -129,7 +129,7 @@
                         class="hash-link read-full-link"
                         @click.stop="goPostDetail(post.id)"
                     >
-                        阅读全文
+                        {{ t('post.action.readFull') }}
                     </span>
                 </div>
             </template>
@@ -183,6 +183,7 @@ import { h, ref, computed } from 'vue';
 import { useStoreMain } from '@/store/main';
 import { useRouter } from 'vue-router';
 import { NIcon, useDialog } from 'naive-ui';
+import { useI18n } from 'vue-i18n';
 import type { Component } from 'vue';
 import type { DropdownOption } from 'naive-ui';
 import { formatPrettyDate } from '@/utils/formatTime';
@@ -209,6 +210,7 @@ import { Api } from '@/utils/request';
 import UserAction, { canWhisperUser } from '@/composables/useUserAction';
 import { usePostContent } from '@/composables/usePostContent';
 
+const { t } = useI18n();
 const router = useRouter();
 
 const storeMain = useStoreMain();
@@ -249,7 +251,7 @@ const tweetOptions = computed(() => {
   // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
   if (!props.isOwner && canWhisperUser(props.post.user)) {
     options.push({
-      label: '私信 @' + props.post.user.username,
+      label: t('post.menu.whisper', { user: props.post.user.username }),
       key: 'whisper',
       icon: renderIcon(PaperPlaneOutline),
     });
@@ -257,20 +259,20 @@ const tweetOptions = computed(() => {
   if (!props.isOwner && props.addFollowAction) {
     if (props.post.user.is_following) {
       options.push({
-        label: '取消关注 @' + props.post.user.username,
+        label: t('post.menu.unfollowUser', { user: props.post.user.username }),
         key: 'unfollow',
         icon: renderIcon(WalkOutline),
       });
     } else {
       options.push({
-        label: '关注 @' + props.post.user.username,
+        label: t('post.menu.followUser', { user: props.post.user.username }),
         key: 'follow',
         icon: renderIcon(BodyOutline),
       });
     }
   }
   options.push({
-    label: '复制链接',
+    label: t('post.action.copyLink'),
     key: 'copyTweetLink',
     icon: renderIcon(ShareSocialOutline),
   });
@@ -285,7 +287,7 @@ const handleTweetAction = async (
       copy(
         `${window.location.origin}/#/post?id=${post.value.id}&share=copy_link&t=${new Date().getTime()}`,
       );
-      window.$message.success('链接已复制到剪贴板');
+      window.$message.success(t('post.msg.linkCopied'));
       break;
     case 'whisper':
       emit('send-whisper', props.post.user);

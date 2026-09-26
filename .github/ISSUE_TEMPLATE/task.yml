@@ -1,0 +1,63 @@
+name: Task / proposal
+description: A concrete work item — refactoring, cleanup, infrastructure, or a written design proposal.
+title: "[Task] <one-line summary of the work>"
+labels: ["task"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for work items with a defined outcome (as opposed to open-ended feature ideas).
+        Large tasks should link or include a written proposal, following the structure the community uses in `docs/governance.md`.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is the work, in a few sentences?
+    validations:
+      required: true
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Scenario
+      description: In what situation is this work needed? What is the current pain?
+    validations:
+      required: true
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requirements
+      description: The concrete end state. Bullet list, each item checkable.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: plan
+    attributes:
+      label: Proposed approach
+      description: How you plan to do it — files, migrations, API changes, rollout steps.
+  - type: textarea
+    id: questions
+    attributes:
+      label: Open questions
+      description: Risks, unknowns, trade-offs against other approaches.
+  - type: dropdown
+    id: size
+    attributes:
+      label: Estimated size
+      options:
+        - S (small — hours)
+        - M (medium — days)
+        - L (large — needs splitting or a proposal)
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and proposals (including closed ones) — no duplicate.
+          required: true
+        - label: The latest version does not already implement this.
+          required: true

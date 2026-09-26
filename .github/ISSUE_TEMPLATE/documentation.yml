@@ -1,0 +1,43 @@
+name: Documentation issue
+description: A doc page is wrong, outdated, missing, or hard to follow.
+title: "[Docs] <page path> — <what is wrong>"
+labels: ["documentation"]
+body:
+  - type: input
+    id: page
+    attributes:
+      label: Which page?
+      description: Repository-relative path, or the URL you were reading.
+      placeholder: e.g. docs/deploy/production.md
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Problem type
+      options:
+        - Factually wrong (does not match the code/behavior)
+        - Outdated (describes removed or renamed things)
+        - Missing (topic not documented anywhere)
+        - Broken link or command
+        - Hard to understand / follow
+    validations:
+      required: true
+  - type: textarea
+    id: detail
+    attributes:
+      label: Details
+      description: Quote the wrong passage and describe what is correct, or list the commands that failed and their actual output.
+    validations:
+      required: true
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested fix
+      description: Optional — if you know how the text should read, write it here. Documentation PRs are a great first contribution.
+  - type: checkboxes
+    id: willing
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to submit a PR fixing this myself.

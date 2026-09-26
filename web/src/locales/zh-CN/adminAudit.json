@@ -1,0 +1,88 @@
+{
+  "pageTitle": "审核队列",
+  "cardTitle": "内容审核",
+  "tab": {
+    "post": "帖子",
+    "comment": "评论",
+    "nickname": "昵称",
+    "logs": "审核日志",
+    "avatar": "头像"
+  },
+  "status": {
+    "pending": "待审核",
+    "approved": "已通过",
+    "rejected": "未通过"
+  },
+  "action": {
+    "viewPost": "查看帖子",
+    "viewType": "查看{type}",
+    "viewHome": "查看主页",
+    "approve": "通过",
+    "reject": "拒绝",
+    "approveAction": "通过",
+    "rejectAction": "拒绝",
+    "deleteAction": "删除",
+    "commentApprove": "评论通过",
+    "commentReject": "评论拒绝",
+    "replyApprove": "回复通过",
+    "replyReject": "回复拒绝",
+    "nicknameApprove": "昵称通过",
+    "nicknameReject": "昵称拒绝",
+    "courseCommentApprove": "课程评论通过",
+    "courseCommentReject": "课程评论拒绝",
+    "courseReplyApprove": "课程回复通过",
+    "courseReplyReject": "课程回复拒绝",
+    "courseDelete": "课程删除",
+    "avatarApprove": "头像通过",
+    "avatarReject": "头像拒绝"
+  },
+  "contentType": {
+    "title": "标题",
+    "text": "文字",
+    "image": "图片",
+    "video": "视频",
+    "audio": "音频",
+    "link": "链接",
+    "attachment": "附件",
+    "paidAttachment": "收费附件",
+    "markdownLong": "Markdown长文",
+    "typeN": "类型{n}"
+  },
+  "visibility": {
+    "private": "私密",
+    "friendsOnly": "好友可见",
+    "followOnly": "关注可见",
+    "public": "公开"
+  },
+  "table": {
+    "postId": "帖子ID",
+    "operator": "操作人",
+    "action": "动作",
+    "statusChange": "状态变更",
+    "reason": "原因",
+    "time": "时间"
+  },
+  "commentType": {
+    "reply": "回复",
+    "courseComment": "课程评论",
+    "courseReply": "课程回复",
+    "comment": "评论"
+  },
+  "rejectTitle": "拒绝原因",
+  "confirmReject": "确认拒绝",
+  "rejectPlaceholder": "请填写拒绝原因(必填)",
+  "emptyText": "(空)",
+  "noTextContent": "(无文字内容)",
+  "noContent": "(无内容)",
+  "mediaCount": "({count}个{kinds}内容)",
+  "paginationPrefix": "共 {count} 条",
+  "nicknameChangeRequest": "昵称变更申请",
+  "msg": {
+    "approved": "已通过审核",
+    "nicknameApproved": "已通过昵称变更",
+    "fillRejectReason": "请填写拒绝原因",
+    "rejected": "已拒绝",
+    "avatarApproved": "已通过头像变更"
+  },
+  "avatarChangeRequest": "头像变更申请"
+}

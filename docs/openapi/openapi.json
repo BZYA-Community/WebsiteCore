@@ -1,13 +1,13 @@
 {
     "openapi": "3.0.0",
     "info": {
-      "title": "paopao-ce API",
-      "description": "# The paopao-ce API documentation\n\nWelcome to the paopao-ce API documentation!\n\n",
+      "title": "WebsiteCore API",
+      "description": "# The WebsiteCore API documentation\n\nAPI of the WebsiteCore community platform (a paopao-ce derivative).\n\nNote: this spec currently covers the NativeOBS upload endpoints inherited from upstream; the main Web API is defined in `mirc/` and served from the same origin as the frontend.\n",
       "version": "0.1.0"
     },
     "servers": [
       {
-        "url": "https://api.paopao.info"
+        "url": "http://127.0.0.1:8008"
       }
     ],
     "tags": [],

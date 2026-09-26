@@ -9,7 +9,6 @@ import (
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
-	"github.com/BZYA-Community/WebsiteCore/pkg/zinc"
 	"github.com/meilisearch/meilisearch-go"
 	"github.com/sirupsen/logrus"
 )
@@ -51,18 +50,15 @@ func NewMeiliTweetSearchService(ams core.AuthorizationManageService) (core.Tweet
 	return mts, mts
 }
 
-func NewZincTweetSearchService(ams core.AuthorizationManageService) (core.TweetSearchService, core.VersionInfo) {
-	s := conf.ZincSetting
-	zts := &zincTweetSearchServant{
+// NewSqlTweetSearchService SQL 直查搜索（无外部搜索引擎时的默认回退实现）
+func NewSqlTweetSearchService(ams core.AuthorizationManageService) (core.TweetSearchService, core.VersionInfo) {
+	sts := &sqlTweetSearchServant{
 		tweetSearchFilter: tweetSearchFilter{
 			ams: ams,
 		},
-		indexName: s.Index,
-		client:    zinc.NewClient(s.Endpoint(), s.User, s.Password),
+		db: conf.MustGormDB(),
 	}
-	zts.createIndex()
-
-	return zts, zts
+	return sts, sts
 }
 
 func NewBridgeTweetSearchService(ts core.TweetSearchService) core.TweetSearchService {

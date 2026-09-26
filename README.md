@@ -1,8 +1,8 @@
 <div align="center">
   <h1>WebsiteCore</h1>
   <p>
-    基于 <a href="https://github.com/rocboss/paopao-ce">paopao-ce</a> 深度定制的微社区系统<br>
-    Go + Vue3 全栈 · 身份组权限 · 内容审核 · B站式站内私信
+    A self-hosted micro-community platform deeply customized from <a href="https://github.com/rocboss/paopao-ce">paopao-ce</a><br>
+    Go + Vue 3 full stack · identity-group permissions · content moderation · Bilibili-style in-site messaging
   </p>
   <a href="https://github.com/BZYA-Community/WebsiteCore/actions/workflows/ci.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/BZYA-Community/WebsiteCore/ci.yml?style=flat-square&label=CI" alt="CI">
@@ -28,120 +28,140 @@
   <a href="https://github.com/BZYA-Community/WebsiteCore/graphs/contributors">
     <img src="https://img.shields.io/github/contributors/BZYA-Community/WebsiteCore?style=flat-square" alt="Contributors">
   </a>
-  <a href="https://github.com/BZYA-Community/WebsiteCore">
-    <img src="https://img.shields.io/badge/work%20on-my%20machine-blue?style=flat-square" alt="Works on My Machine">
-  </a>
 </div>
 
 <br>
 
-## 简介
+English | [简体中文](README_ZH.md)
 
-WebsiteCore 是一个自托管的微社区/论坛系统：Go 后端（Gin + GORM + Redis + Meilisearch）内嵌 Vue 3 前端单页应用，单二进制即可运行。在上游 paopao-ce 基础上，本仓库增加了身份组体系、内容审核流与会话化站内私信等能力。
+## About
 
-## 功能特性
+WebsiteCore is a self-hosted micro-community / forum system: a Go backend (Gin + GORM + Redis + Meilisearch) embedding a Vue 3 single-page app, shipped as a single binary. On top of the upstream paopao-ce it adds an identity-group system, a content moderation pipeline, conversational in-site messaging, and a course module — and it is built and governed by a student community, for a platform serving minors.
 
-- **用户身份组与 RBAC**：游客 / 道友 / 导师 / 审核 / 管理员 / 运维，管理后台支持角色变更、禁言与软删除，全程留痕（角色变更日志）
-- **内容审核**：普通用户发帖进入审核队列，导师及以上免审；审核拒绝打回私密并可重新提交，审核结果站内通知
-- **站内私信（B站式）**：消息中心 = 会话列表（系统联系人置顶）+ 独立聊天窗；已读/未读、历史分页、身份组权限（道友↔道友禁止私信，道友对高级身份首条限制，回复后解除）
-- **系统通知会话**：关注 / 评论 / 回复 / 审核 / 管理通知统一归入「系统通知」会话，可跳转到帖子与用户主页
-- **好友与关注**：好友申请（通讯录内同意/拒绝）、单向关注、好友可见/关注可见等帖子可见性
-- **内容形态**：短动态（图片/视频/附件/收费附件）、Markdown 长文、话题标签、热搜趋势
-- **可插拔特性**：存储（LocalOSS/MinIO/S3）、搜索（Meilisearch/Zinc）、数据库（PostgreSQL/MySQL）等均通过 `Features` 开关装配
+## Features
 
-## 技术栈
+- **Identity groups and RBAC**: guest / member / mentor / auditor / admin / operator, with backend user management (role changes, mute, soft delete) and full audit trails
+- **Content moderation**: posts from regular users enter a review queue; mentor and above are exempt; rejection returns content to private with resubmission; results are notified in-site
+- **In-site messaging (Bilibili-style)**: session list with pinned system contacts, standalone chat window, read/unread state, paginated history, and messaging rules derived from identity groups
+- **System notification session**: follow / comment / reply / moderation / management notices unified into one conversation, with jump links to posts and profiles
+- **Courses and long-form content**: course groups, play counts, signed playback, Markdown long-form posts, topics, trending searches
+- **Follow and visibility**: one-way following, post visibility levels (public / following / private)
+- **Pluggable capabilities**: storage (LocalOSS / AliOSS), search (Meilisearch or SQL fallback), database (PostgreSQL) and more, assembled via `Features` flags
 
-| 层 | 技术 |
+## Tech stack
+
+| Layer | Technology |
 | --- | --- |
-| 后端 | Go · Gin · GORM · Redis(rueidis) · go-mir(接口代码生成) · golang-migrate(数据库迁移) |
-| 前端 | Vue 3 · Vite · Naive UI · Pinia · vue-advanced-chat(私信) · md-editor-v3(长文) |
-| 依赖服务 | PostgreSQL / MySQL · Redis · Meilisearch(可选) |
+| Backend | Go · Gin · GORM · Redis (rueidis) · go-mir (API codegen) · golang-migrate |
+| Frontend | Vue 3 · Vite · Naive UI · Pinia · vue-i18n (i18n) · vue-advanced-chat · md-editor-v3 · Artplayer |
+| Infrastructure | PostgreSQL · Redis · Meilisearch (optional) |
 
-## 快速开始
+## Quick start
 
-### 1. 启动依赖服务
+### 1. Start the dependency stack
 
-本地开发依赖（PostgreSQL、Redis、Meilisearch）由仓库自带的 compose 一键启动：
+Local dependencies (PostgreSQL, Redis, Meilisearch) come up with one command:
 
 ```bash
-make deps-up        # 启动并等待健康检查通过
+make deps-up        # starts and waits for health checks
 ```
 
-镜像均已 pin（`postgres:18.6` / `redis:7.4.11` / `getmeili/meilisearch:v1.54.0`），端口只绑定 `127.0.0.1`。更多命令见 [docs/deploy/local/001-本地开发依赖环境部署.md](docs/deploy/local/001-本地开发依赖环境部署.md)。
+Images are pinned (`postgres:18.6` / `redis:7.4.11` / `getmeili/meilisearch:v1.54.0`) and ports bind to `127.0.0.1` only. Details: [docs/deploy/local.md](docs/deploy/local.md).
 
-数据库默认 PostgreSQL，也支持 MySQL（自行准备实例并在配置中切换特性名即可）；全文搜索可选 Meilisearch。
+PostgreSQL is the only supported database. Full-text search uses Meilisearch (optional); without it, search falls back to PostgreSQL `ILIKE` fuzzy matching.
 
-### 2. 配置
+### 2. Configure
 
 ```bash
 cp config.yaml.sample config.yaml
 ```
 
-关键项：
+Key values:
 
-- `JWT.Secret`：**必填**，留空启动会直接退出。生成：`openssl rand -hex 24`
-- `Features.Default`：特性开关列表，默认已是 `Postgres`；数据库特性名写 `Postgres` / `MySQL`；启用自动建表迁移需加 `Migration` 特性并用 `migration` tag 编译（或直接用 `make migrate`）
-- `WebServer.HttpPort`：监听端口（默认 8008）
-- 数据库 / Redis / Meili 连接信息已与 `docker-compose.dev.yml` 对齐，无需改动
+- `JWT.Secret`: **required** — the process exits if empty. Generate: `openssl rand -hex 24`
+- `Features.Default`: capability flags; defaults to `Postgres`. Add `Migration` (with a `migration`-tagged build) for auto schema migration
+- `WebServer.HttpPort`: listen port (default 8008)
+- Database / Redis / Meili connection info already matches `docker-compose.dev.yml`
 
-### 3. 建库
-
-```bash
-make migrate        # 用内嵌迁移脚本建出完整 schema
-```
-
-### 4. 构建前端并运行
+### 3. Create the schema
 
 ```bash
-make build-web          # 构建前端产物(供 embed 内嵌)
-make run TAGS='embed'   # 启动后端并内嵌前端
+make migrate        # applies the embedded migrations
 ```
 
-访问 `http://127.0.0.1:8008`。更多安装/部署细节见 [docs/INSTALL_ZH.md](docs/INSTALL_ZH.md)。
-
-## 开发
+### 4. Build the frontend and run
 
 ```bash
-make run          # 后端开发模式(go run)
-make gen-mir      # 接口代码再生成: mirc/web/v1/*.go -> auto/api/v1/(勿手改生成物)
-make gen-enum     # 枚举代码再生成
-make test         # 测试
-cd web && npm run dev    # 前端开发服务
+make build-web          # builds web/dist/ for embedding
+make run TAGS='embed'   # starts the backend with the embedded SPA
 ```
 
-新增 API 的标准流程：在 `mirc/web/v1/` 声明接口签名 → `make gen-mir` 生成路由骨架 → 在 `internal/servants/web/` 实现业务。数据库结构变更在 `scripts/migration/{mysql,postgres}/` 按编号新增 `NNNN_name.{up,down}.sql`（两方言各一份）。
+Open `http://127.0.0.1:8008`. Full installation and deployment guides: [docs/INSTALL.md](docs/INSTALL.md) and [docs/deploy/](docs/deploy/).
 
-## 目录结构
+## Development
 
-```
-├── auto/          # go-mir 生成的路由/接口代码(勿手改)
-├── cmd/           # 命令入口(serve/version/migrate)
-├── internal/      # 后端实现: conf(配置装配) core(服务接口) dao(数据层) servants(HTTP层)
-├── mirc/          # mir 接口声明(API 的唯一事实来源)
-├── pkg/           # 通用工具库
-├── release/       # 构建输出
-├── scripts/       # migration SQL 等脚本
-├── web/           # Vue3 前端
-└── docs/          # 全部文档(安装/部署/提案/API/变更记录)
+```bash
+make run               # backend in dev mode (go run)
+make gen-mir           # regenerate API code: mirc/ -> auto/ (never hand-edit generated files)
+make gen-enum          # regenerate enums
+make test              # go test ./...
+cd web && npm run dev  # frontend dev server
+cd web && npm run i18n:check  # locale pack validation (missing/unused/zh-CN-en parity)
 ```
 
-## 文档
+Standard flow for a new API: declare it in `mirc/web/v1/` → `make gen-mir` generates the routing skeleton → implement it in `internal/servants/web/`. Schema changes go into `scripts/migration/postgres/` as numbered `NNNN_name.{up,down}.sql` pairs. Full guide: [docs/development.md](docs/development.md).
 
-| 文档 | 说明 |
+The frontend is internationalized with **vue-i18n** (`zh-CN` source + `en`; language picker in the bottom-left sidebar). Locale packs live in `web/src/locales/<locale>/<namespace>.json` — plain nested JSON, ready for Crowdin/Weblate/Tolgee so the community can maintain more languages. Never hardcode UI copy: add keys to both locales and render with `t()`. Details: the Internationalization section in [web/README.md](web/README.md).
+
+## Contributing
+
+Every PR must pass CI, the AI review, and the **BVT** (Build Verification Test): backend syntax/build/lint/test checks, and — for frontend changes — the locale-pack check (`npm run i18n:check`: missing keys / unused keys / zh-CN-en parity) plus layout checks ensuring no overlapping content at the standard viewports. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full process, role/promotion system, and review rules.
+
+This repository is maintained by a student community; contributions are recorded in the weekly report published every Friday.
+
+## Repository layout
+
+```
+├── auto/          # API/routing code generated by go-mir (do not edit)
+├── cmd/           # CLI entrypoints (serve / migrate / version)
+├── internal/      # backend: conf, core, dao, servants, service, sitesetting, infra
+├── mirc/          # API definitions (single source of truth for routes)
+├── pkg/           # shared utilities
+├── scripts/       # migrations, E2E/verification scripts, service units
+├── web/           # Vue 3 frontend
+└── docs/          # all documentation
+```
+
+## Documentation
+
+| Document | Description |
 | --- | --- |
-| [docs/INSTALL_ZH.md](docs/INSTALL_ZH.md) | 安装与本地部署指南 |
-| [docs/deploy/](docs/deploy/) | 本地/云平台/K8s 部署参考 |
-| [docs/features-status.md](docs/features-status.md) | 功能项成熟度与状态 |
-| [docs/CHANGELOG.md](docs/CHANGELOG.md) | 版本变更记录 |
-| [docs/proposal/](docs/proposal/) | 设计提案与实现笔记 |
-| [docs/openapi/](docs/openapi/) | OpenAPI 文档资源（运行时由 `/docs/openapi` 提供） |
+| [docs/INSTALL.md](docs/INSTALL.md) | Installation and local setup |
+| [docs/deploy/](docs/deploy/) | Deployment guides: configuration, database, SMS, production, Docker Compose, public-launch checklist |
+| [docs/development.md](docs/development.md) | Development guide: environment, architecture, codegen, testing |
+| [docs/ci-cd.md](docs/ci-cd.md) | CI pipelines, AI review, weekly report |
+| [docs/features-status.md](docs/features-status.md) | Feature flag maturity matrix |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Change history of this fork |
+| [docs/governance.md](docs/governance.md) | Community governance charter (Chinese) |
+| [docs/requirements-starisle-v2.0.md](docs/requirements-starisle-v2.0.md) | Product requirements baseline (Chinese) |
+| [docs/openapi/](docs/openapi/) | OpenAPI assets (served at `/docs/openapi` with the `docs` build tag) |
 
-完整索引见 [docs/README_ZH.md](docs/README_ZH.md)。
+Full index: [docs/README.md](docs/README.md).
 
-## 致谢
+## Acknowledgements
 
-- 上游项目 [rocboss/paopao-ce](https://github.com/rocboss/paopao-ce)（MIT License）
+- Upstream project [rocboss/paopao-ce](https://github.com/rocboss/paopao-ce) (MIT License)
 
 ## License
 
 [MIT](LICENSE)
+
+## A Blessing to All Captains, Travelers, Trailblazers, and Proxies
+
+Fight for all that is beautiful in the world!
+
+We Will Be Reunited.
+
+May this journey lead us starward!
+
+Welcome to New Eridu.

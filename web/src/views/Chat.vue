@@ -1,6 +1,6 @@
 <template>
     <div>
-        <main-nav title="消息" />
+        <main-nav :title="t('message.chat.title')" />
         <div class="chat-page">
             <!--
                 vue-advanced-chat 为 Web Component:
@@ -51,8 +51,11 @@
 <script setup lang="ts">
 import { computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { useChatRooms } from '@/composables/useChatRooms';
+
+const { t } = useI18n();
 
 const storeMain = useStoreMain();
 const route = useRoute();
@@ -74,18 +77,18 @@ const {
     startPolling,
 } = useChatRooms();
 
-// 组件文案中文化
-const textMessages = {
-    ROOMS_EMPTY: '暂无会话',
-    ROOM_EMPTY: '选择会话开始聊天',
-    NEW_MESSAGES: '新消息',
-    MESSAGES_EMPTY: '暂无消息',
-    CONVERSATION_STARTED: '会话开始于:',
-    TYPE_MESSAGE: '输入私信内容…',
-    SEARCH: '搜索会话',
-    IS_ONLINE: '在线',
-    IS_TYPING: '正在输入…',
-};
+// 组件文案中文化(computed 以响应 locale 切换)
+const textMessages = computed(() => ({
+    ROOMS_EMPTY: t('message.chat.roomsEmpty'),
+    ROOM_EMPTY: t('message.chat.roomEmpty'),
+    NEW_MESSAGES: t('message.chat.newMessages'),
+    MESSAGES_EMPTY: t('message.chat.messagesEmpty'),
+    CONVERSATION_STARTED: t('message.chat.conversationStarted'),
+    TYPE_MESSAGE: t('message.chat.typeMessage'),
+    SEARCH: t('message.chat.searchRoom'),
+    IS_ONLINE: t('message.chat.isOnline'),
+    IS_TYPING: t('message.chat.isTyping'),
+}));
 
 // 配色对齐站点(亮/暗两套由 theme prop 切换, 这里覆盖容器背景与气泡主色)
 const chatStyles = computed(() => {

@@ -238,9 +238,12 @@ func (s *tweetManageSrv) DeletePost(post *ms.Post) ([]string, error) {
 				return err
 			}
 
-			if tags := strings.Split(post.Tags, ","); len(tags) > 0 {
-				// 删tag，宽松处理错误，有错误不会回滚
-				deleteTags(tx, tags)
+			// 仅已过审帖子递减标签计数(待审/被拒帖创建时未计数, 避免误减他人贡献的计数)
+			if post.AuditStatus == dbr.PostAuditApproved {
+				if tags := strings.Split(post.Tags, ","); len(tags) > 0 {
+					// 删tag，宽松处理错误，有错误不会回滚
+					deleteTags(tx, tags)
+				}
 			}
 
 			return nil
@@ -339,15 +342,19 @@ func (s *tweetManageSrv) VisiblePost(post *ms.Post, visibility cs.TweetVisibleTy
 	if err = post.Update(tx); err != nil {
 		return
 	}
-	// tag处理
+	// tag处理: 计数跟随审核状态, 仅已过审帖子计入/扣除。
+	// 待审/被拒帖转非私密不创建标签(过审时由审核端UpsertTags补建),
+	// 未过审帖转私密也不递减(创建时未计数, 避免误减他人贡献的计数)。
 	tags := strings.Split(post.Tags, ",")
 	// TODO: 暂时宽松不处理错误，这里或许可以有优化，后续完善
-	if oldVisibility == dbr.PostVisitPrivate {
-		// 从私密转为非私密才需要重新创建tag
-		createTags(tx, post.UserID, tags)
-	} else if visibility == cs.TweetVisitPrivate {
-		// 从非私密转为私密才需要删除tag
-		deleteTags(tx, tags)
+	if post.AuditStatus == dbr.PostAuditApproved {
+		if oldVisibility == dbr.PostVisitPrivate {
+			// 从私密转为非私密才需要重新创建tag
+			createTags(tx, post.UserID, tags)
+		} else if visibility == cs.TweetVisitPrivate {
+			// 从非私密转为私密才需要删除tag
+			deleteTags(tx, tags)
+		}
 	}
 	tx.Commit()
 	s.cacheIndex.SendAction(core.IdxActVisiblePost, post)

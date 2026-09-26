@@ -22,7 +22,7 @@ type Core interface {
 	TweetStarStatus(*web.TweetStarStatusReq) (*web.TweetStarStatusResp, error)
 	SuggestTags(*web.SuggestTagsReq) (*web.SuggestTagsResp, error)
 	SuggestUsers(*web.SuggestUsersReq) (*web.SuggestUsersResp, error)
-	ChangeAvatar(*web.ChangeAvatarReq) error
+	ChangeAvatar(*web.ChangeAvatarReq) (*web.ChangeAvatarResp, error)
 	ChangeNickname(*web.ChangeNicknameReq) error
 	ChangePassword(*web.ChangePasswordReq) error
 	UserPhoneBind(*web.UserPhoneBindReq) error
@@ -116,7 +116,8 @@ func RegisterCoreServant(e *gin.Engine, s Core) {
 			s.Render(c, nil, err)
 			return
 		}
-		s.Render(c, nil, s.ChangeAvatar(req))
+		resp, err := s.ChangeAvatar(req)
+		s.Render(c, resp, err)
 	})
 	router.Handle("POST", "user/nickname", func(c *gin.Context) {
 		select {
@@ -285,8 +286,8 @@ func (UnimplementedCoreServant) SuggestUsers(req *web.SuggestUsersReq) (*web.Sug
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
-func (UnimplementedCoreServant) ChangeAvatar(req *web.ChangeAvatarReq) error {
-	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+func (UnimplementedCoreServant) ChangeAvatar(req *web.ChangeAvatarReq) (*web.ChangeAvatarResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
 func (UnimplementedCoreServant) ChangeNickname(req *web.ChangeNicknameReq) error {

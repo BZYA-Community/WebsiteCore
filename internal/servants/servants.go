@@ -5,17 +5,12 @@
 package servants
 
 import (
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/admin"
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/bot"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/docs"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/localoss"
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/mobile"
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/space"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/statick"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/web"
 	"github.com/alimy/tryst/cfg"
 	"github.com/gin-gonic/gin"
-	"google.golang.org/grpc"
 )
 
 // RegisterWebServants register all the servants to gin.Engine
@@ -29,26 +24,6 @@ func RegisterWebServants(e *gin.Engine) {
 	web.RouteWeb(e)
 }
 
-// RegisterAdminServants register all the servants to gin.Engine
-func RegisterAdminServants(e *gin.Engine) {
-	admin.RouteManager(e)
-}
-
-// RegisterSpaceXServants register all the servants to gin.Engine
-func RegisterSpaceXServants(e *gin.Engine) {
-	space.RouteSpaceX(e)
-}
-
-// RegisterBotServants register all the servants to gin.Engine
-func RegisterBotServants(e *gin.Engine) {
-	bot.RouteBot(e)
-}
-
-// RegisterLocalossServants register all the servants to gin.Engine
-func RegisterLocalossServants(e *gin.Engine) {
-	localoss.RouteLocaloss(e)
-}
-
 // RegisterDocsServants register all the servants to gin.Engine
 func RegisterDocsServants(e *gin.Engine) {
 	docs.RegisterDocs(e)
@@ -57,9 +32,4 @@ func RegisterDocsServants(e *gin.Engine) {
 // RegisterFrontendWebServants register all the servants to gin.Engine
 func RegisterFrontendWebServants(e *gin.Engine) {
 	statick.RegisterWebStatick(e)
-}
-
-// RegisterMobileServants register all the servants to grpc.Server
-func RegisterMobileServants(s *grpc.Server) {
-	mobile.RegisterServants(s)
 }

@@ -1,6 +1,7 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY } from '@/store/user';
+import { translateErrMsg } from '@/locales/errorCodes';
 
 const service = axios.create({
 	baseURL: import.meta.env.VITE_HOST,
@@ -37,13 +38,15 @@ service.interceptors.response.use(
 			localStorage.removeItem(TOKEN_KEY);
 
 			if (response?.data.code !== 10005) {
-				window.$message.warning(response?.data.msg || '鉴权失败');
+				window.$message.warning(
+					translateErrMsg(response?.data?.code, response?.data?.msg, 'errors.authFailed'),
+				);
 			} else {
 				// 打开登录弹窗
 				useStoreMain().triggerAuth(true);
 			}
 		} else {
-			window.$message.error(response?.data?.msg || '请求失败');
+			window.$message.error(translateErrMsg(response?.data?.code, response?.data?.msg));
 		}
 		return Promise.reject(response?.data || {});
 	},

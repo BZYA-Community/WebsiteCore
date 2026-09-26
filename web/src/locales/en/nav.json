@@ -1,0 +1,18 @@
+{
+  "home": "Square",
+  "topic": "Topics",
+  "courses": "Courses",
+  "profile": "Home",
+  "messages": "Messages",
+  "collection": "Favorites",
+  "setting": "Settings",
+  "adminSettings": "System Config",
+  "adminUsers": "Users",
+  "adminAudit": "Audit Queue",
+  "postDetail": "Post Detail",
+  "composeMd": "Write Article",
+  "courseDetail": "Course Detail",
+  "userDetail": "User Detail",
+  "following": "Following",
+  "pageNotFound": "404"
+}

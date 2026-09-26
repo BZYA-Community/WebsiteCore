@@ -1,0 +1,31 @@
+{
+  "system": "System",
+  "whisperSent": "Message Sent",
+  "whisperReceived": "Message Received",
+  "viewDetail": "View Details",
+  "whisperAt": "Message {'@'}{username}",
+  "unfollowAt": "Unfollow {'@'}{username}",
+  "followAt": "Follow {'@'}{username}",
+  "postDeleted": "This post has been deleted",
+  "loadError": "Load error",
+  "loadMore": "Load more",
+  "chat": {
+    "title": "Messages",
+    "roomsEmpty": "No conversations",
+    "roomEmpty": "Select a conversation to start chatting",
+    "newMessages": "New Messages",
+    "messagesEmpty": "No messages",
+    "conversationStarted": "Conversation started on:",
+    "typeMessage": "Type a private message...",
+    "searchRoom": "Search conversations",
+    "isOnline": "Online",
+    "isTyping": "Typing...",
+    "dateFormat": "MMM D, YYYY",
+    "mePrefix": "Me: ",
+    "systemRoom": "System Notifications",
+    "systemUser": "System",
+    "viewDetailLink": "View details: {url}",
+    "viewProfileLink": "View profile: {url}",
+    "loadingNickname": "Loading..."
+  }
+}

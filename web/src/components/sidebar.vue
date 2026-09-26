@@ -14,7 +14,10 @@
                     <span class="nickname-txt">
                         {{ userInfo.nickname }}
                     </span>
-                    <n-button class="logout" quaternary circle size="tiny" @click="handleLogout">
+                    <span class="lang-btn">
+                        <lang-switcher />
+                    </span>
+                    <n-button class="logout" quaternary circle size="tiny" :title="t('sidebar.logout')" @click="handleLogout">
                         <template #icon>
                             <n-icon>
                                 <log-out-outline />
@@ -26,7 +29,8 @@
             </div>
 
             <div class="user-mini-wrap">
-                <n-button class="logout" quaternary circle @click="handleLogout">
+                <lang-switcher size="medium" :icon-size="24" />
+                <n-button class="logout" quaternary circle :title="t('sidebar.logout')" @click="handleLogout">
                     <template #icon>
                         <n-icon :size="24">
                             <log-out-outline />
@@ -38,16 +42,19 @@
         <div class="user-wrap" v-else>
             <div v-if="!profile.allowUserRegister" class="login-only-wrap">
                 <n-button strong secondary round type="primary" @click="triggerAuth('signin')">
-                    登录
+                    {{ t('sidebar.login') }}
                 </n-button>
             </div>
             <div v-if="profile.allowUserRegister" class="login-wrap">
                 <n-button strong secondary round type="primary" @click="triggerAuth('signin')">
-                    登录
+                    {{ t('sidebar.login') }}
                 </n-button>
                 <n-button strong secondary round type="info" @click="triggerAuth('signup')">
-                    注册
+                    {{ t('sidebar.signup') }}
                 </n-button>
+            </div>
+            <div class="guest-lang">
+                <lang-switcher size="small" :icon-size="20" />
             </div>
         </div>
     </div>
@@ -56,6 +63,7 @@
 <script setup lang="ts">
 import { h, ref, watch, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { NIcon, NBadge, useMessage } from 'naive-ui';
 import {
@@ -77,6 +85,7 @@ import { useStoreProfile } from '@/store/profile';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
 
+const { t } = useI18n();
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const storeProfile = useStoreProfile();
@@ -132,57 +141,57 @@ onMounted(() => {
 const menuOptions = computed(() => {
   const options = [
     {
-      label: '广场',
+      label: t('nav.home'),
       key: 'home',
       icon: () => h(HomeOutline),
       href: '/',
     },
     {
-      label: '话题',
+      label: t('nav.topic'),
       key: 'topic',
       icon: () => h(Hash),
       href: '/topic',
     },
     {
-      label: '课程',
+      label: t('nav.courses'),
       key: 'courses',
       icon: () => h(VideocamOutline),
       href: '/courses',
     },
   ];
   options.push({
-    label: '主页',
+    label: t('nav.profile'),
     key: 'profile',
     icon: () => h(LeafOutline),
     href: '/profile',
   });
   options.push({
-    label: '消息',
+    label: t('nav.messages'),
     key: 'messages',
     icon: () => h(ChatbubblesOutline),
     href: '/messages',
   });
   options.push({
-    label: '收藏',
+    label: t('nav.collection'),
     key: 'collection',
     icon: () => h(BookmarksOutline),
     href: '/collection',
   });
   options.push({
-    label: '设置',
+    label: t('nav.setting'),
     key: 'setting',
     icon: () => h(SettingsOutline),
     href: '/setting',
   });
   if (userInfo.value.is_admin) {
     options.push({
-      label: '系统配置',
+      label: t('nav.adminSettings'),
       key: 'admin-settings',
       icon: () => h(ConstructOutline),
       href: '/admin/settings',
     });
     options.push({
-      label: '用户管理',
+      label: t('nav.adminUsers'),
       key: 'admin-users',
       icon: () => h(PeopleCircleOutline),
       href: '/admin/users',
@@ -190,7 +199,7 @@ const menuOptions = computed(() => {
   }
   if (userInfo.value.is_admin || userInfo.value.roles?.includes('auditor')) {
     options.push({
-      label: '审核队列',
+      label: t('nav.adminAudit'),
       key: 'admin-audit',
       icon: () => h(ShieldCheckmarkOutline),
       href: '/admin/audit',
@@ -201,19 +210,19 @@ const menuOptions = computed(() => {
     ? options
     : [
         {
-          label: '广场',
+          label: t('nav.home'),
           key: 'home',
           icon: () => h(HomeOutline),
           href: '/',
         },
         {
-          label: '话题',
+          label: t('nav.topic'),
           key: 'topic',
           icon: () => h(Hash),
           href: '/topic',
         },
         {
-          label: '课程',
+          label: t('nav.courses'),
           key: 'courses',
           icon: () => h(VideocamOutline),
           href: '/courses',
@@ -362,6 +371,12 @@ window.$message = useMessage();
                     white-space: nowrap;
                 }
 
+                .lang-btn {
+                    display: inline-flex;
+                    align-items: center;
+                    margin-left: 6px;
+                }
+
                 .logout {
                     margin-left: 6px;
                 }
@@ -399,6 +414,13 @@ window.$message = useMessage();
                 margin: 0 4px;
             }
         }
+
+        .guest-lang {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            margin-left: 4px;
+        }
     }
 }
 
@@ -425,7 +447,8 @@ window.$message = useMessage();
         .user-avatar,
         .user-info,
         .login-only-wrap,
-        .login-wrap {
+        .login-wrap,
+        .guest-lang {
             margin-bottom: 32px;
         }
 

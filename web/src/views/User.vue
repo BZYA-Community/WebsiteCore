@@ -1,6 +1,6 @@
 <template>
     <div>
-        <main-nav title="用户详情" />
+        <main-nav :title="t('user.userPage.title')" />
 
         <n-list class="main-content-wrap profile-wrap" bordered>
             <!-- 基础信息 -->
@@ -16,15 +16,15 @@
                             <n-tag
                                 v-if="userInfo.id > 0 && userInfo.username != user.username && user.is_following"
                                 class="top-tag" type="success" size="small" round>
-                                已关注
+                                {{ t('user.followed') }}
                             </n-tag>
                             <n-tag v-if="showIdentityBadge(user.identity)" class="top-tag" :type="identityTagType(user.identity)" size="small" round>
-                                {{ user.identity }}
+                                {{ identityLabel(user.identity) }}
                             </n-tag>
                         </div>
                         <div class="userinfo">
                             <span class="info-item">UID. {{ user.id }} </span>
-                            <span class="info-item">{{ formatDate(user.created_on) }}&nbsp;加入</span>
+                            <span class="info-item">{{ t('user.userPage.joinedDate', { date: formatDate(user.created_on) }) }}</span>
                         </div>
                         <div class="userinfo">
                             <span class="info-item">
@@ -40,7 +40,7 @@
                                         },
                                     }"
                                 >
-                                    关注&nbsp;&nbsp;{{ prettyQuoteNum(user.follows)}}
+                                    {{ t('user.userPage.follows') }}&nbsp;&nbsp;{{ prettyQuoteNum(user.follows)}}
                                 </router-link>
                             </span>
                             <span class="info-item">
@@ -56,11 +56,11 @@
                                         },
                                     }"
                                 >
-                                    粉丝&nbsp;&nbsp;{{ prettyQuoteNum(user.followings) }}
+                                    {{ t('user.userPage.followers') }}&nbsp;&nbsp;{{ prettyQuoteNum(user.followings) }}
                                 </router-link>
                             </span>
                             <span class="info-item">
-                                泡泡&nbsp;&nbsp;{{ prettyQuoteNum(user.tweets_count || 0) }}
+                                {{ t('user.userPage.tweets') }}&nbsp;&nbsp;{{ prettyQuoteNum(user.tweets_count || 0) }}
                             </span>
                         </div>
                     </div>
@@ -81,11 +81,11 @@
 
             
                 <n-tabs v-if="!userLoading" class="profile-tabs-wrap" type="line" animated :value="pageType" @update:value="changeTab">
-                    <n-tab-pane name="post"><template #tab>泡泡</template></n-tab-pane>
-                    <n-tab-pane name="comment"><template #tab>评论</template></n-tab-pane>
-                    <n-tab-pane name="highlight"><template #tab>亮点</template></n-tab-pane>
-                    <n-tab-pane name="media"><template #tab>图文</template></n-tab-pane>
-                    <n-tab-pane name="star"><template #tab>喜欢</template></n-tab-pane>
+                    <n-tab-pane name="post"><template #tab>{{ t('user.userPage.tabPost') }}</template></n-tab-pane>
+                    <n-tab-pane name="comment"><template #tab>{{ t('user.userPage.tabComment') }}</template></n-tab-pane>
+                    <n-tab-pane name="highlight"><template #tab>{{ t('user.userPage.tabHighlight') }}</template></n-tab-pane>
+                    <n-tab-pane name="media"><template #tab>{{ t('user.userPage.tabMedia') }}</template></n-tab-pane>
+                    <n-tab-pane name="star"><template #tab>{{ t('user.userPage.tabStar') }}</template></n-tab-pane>
                 </n-tabs>
             </n-spin>
             <div v-if="loading && list.length === 0" class="skeleton-wrap">
@@ -93,7 +93,7 @@
             </div>
             <div v-else>
                 <div class="empty-wrap" v-if="list.length === 0">
-                    <n-empty size="large" description="暂无数据" />
+                    <n-empty size="large" :description="t('common.noData')" />
                 </div>
                 <n-list-item v-for="post in listData" :key="post.id">
                     <post-item :post="post"
@@ -107,11 +107,11 @@
         </n-list>
 
         <n-space v-if="totalPage > 0" justify="center">
-            <InfiniteLoading class="load-more" :slots="{ complete: '没有更多泡泡了', error: '加载出错' }" @infinite="nextPage()">
+            <InfiniteLoading class="load-more" :slots="{ complete: t('user.userPage.noMorePosts'), error: t('user.userPage.loadError') }" @infinite="nextPage()">
                 <template #spinner>
                     <div class="load-more-wrap">
                         <n-spin :size="14" v-if="!noMore" />
-                        <span class="load-more-spinner">{{ noMore ? '没有更多泡泡了' : '加载更多' }}</span>
+                        <span class="load-more-spinner">{{ noMore ? t('user.userPage.noMorePosts') : t('user.userPage.loadMore') }}</span>
                     </div>
                 </template>
             </InfiniteLoading>
@@ -123,12 +123,13 @@
 import { h, ref, reactive, watch, onMounted, computed } from 'vue';
 import { NIcon } from 'naive-ui';
 import type { Component, Ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { useRoute, useRouter } from 'vue-router';
 import { useDialog, DropdownOption } from 'naive-ui';
 import { MoreHorizFilled } from '@vicons/material';
 import { formatDate } from '@/utils/formatTime';
-import { identityTagType, showIdentityBadge } from '@/utils/identity';
+import { identityTagType, showIdentityBadge, identityLabel } from '@/utils/identity';
 import { prettyQuoteNum } from '@/utils/count';
 import {
   SettingsOutline,
@@ -146,6 +147,7 @@ import UserAction, { canWhisperUser, useChatJump } from '@/composables/useUserAc
 
 type PageType = 'post' | 'comment' | 'highlight' | 'media' | 'star';
 
+const { t } = useI18n();
 const dialog = useDialog();
 
 const storeMain = useStoreMain();
@@ -363,7 +365,7 @@ const userOptions = computed(() => {
   if (userInfo.value.username == user.username) {
     return [
       {
-        label: '设置',
+        label: t('user.userPage.actionSetting'),
         key: 'setting',
         icon: renderIcon(SettingsOutline),
       },
@@ -373,7 +375,7 @@ const userOptions = computed(() => {
   // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
   if (canWhisperUser(user)) {
     options.push({
-      label: '私信',
+      label: t('user.userPage.actionWhisperLabel'),
       key: 'whisper',
       icon: renderIcon(PaperPlaneOutline),
     });
@@ -381,13 +383,13 @@ const userOptions = computed(() => {
   if (userInfo.value.is_admin) {
     if (user.status === 1) {
       options.push({
-        label: '禁言',
+        label: t('user.userPage.actionBan'),
         key: 'banned',
         icon: renderIcon(CubeOutline),
       });
     } else {
       options.push({
-        label: '解封',
+        label: t('user.userPage.actionUnban'),
         key: 'deblocking',
         icon: renderIcon(CubeOutline),
       });
@@ -395,13 +397,13 @@ const userOptions = computed(() => {
   }
   if (user.is_following) {
     options.push({
-      label: '取消关注',
+      label: t('user.userPage.unfollow'),
       key: 'unfollow',
       icon: renderIcon(WalkOutline),
     });
   } else {
     options.push({
-      label: '关注',
+      label: t('user.userPage.follow'),
       key: 'follow',
       icon: renderIcon(BodyOutline),
     });
@@ -448,11 +450,10 @@ const handleFollowUser = () => {
 };
 const banUser = () => {
   dialog.warning({
-    title: '警告',
-    content:
-      '确定对该用户进行' + (user.status === 1 ? '禁言' : '解封') + '处理吗？',
-    positiveText: '确定',
-    negativeText: '取消',
+    title: t('user.userPage.dialogWarningTitle'),
+    content: user.status === 1 ? t('user.userPage.dialogBanContent') : t('user.userPage.dialogUnbanContent'),
+    positiveText: t('common.confirm'),
+    negativeText: t('common.cancel'),
     onPositiveClick: () => {
       userLoading.value = true;
       Api.v1.admin.post.user.status({
@@ -462,9 +463,9 @@ const banUser = () => {
         .then((_res) => {
           userLoading.value = false;
           if (user.status === 1) {
-            window.$message.success('禁言成功');
+            window.$message.success(t('user.userPage.banSuccess'));
           } else {
-            window.$message.success('解封成功');
+            window.$message.success(t('user.userPage.unbanSuccess'));
           }
           loadUser();
         })

@@ -1,0 +1,30 @@
+{
+  "placeholder": "What's on your mind...",
+  "enterMarkdownEditor": "Open Markdown Editor",
+  "charCount": "{count} characters entered",
+  "publish": "Post",
+  "linkPlaceholder": "Enter a link starting with http(s)://",
+  "createLink": "Create Link",
+  "loginBanner": "Log in for more content",
+  "login": "Log In",
+  "register": "Sign Up",
+  "visibilityPublic": "Public",
+  "visibilityPrivate": "Private",
+  "visibilityFollowing": "Followers Only",
+  "imageFormatError": "Images must be webp/png/jpg/gif format",
+  "imageSizeError": "Image size cannot exceed 10MB",
+  "videoFormatError": "Videos must be mp4/mov format",
+  "videoSizeError": "Video size cannot exceed 100MB",
+  "attachmentFormatError": "Attachments must be zip format",
+  "attachmentSizeError": "Attachment size cannot exceed 100MB",
+  "uploadFailed": "Upload failed",
+  "contentRequired": "Please enter some content",
+  "publishSuccessAudit": "Posted successfully. It will be visible to others after review",
+  "publishSuccess": "Posted successfully",
+  "md": {
+    "pageTitle": "Write Article",
+    "editorPlaceholder": "Markdown supported: Use # followed by space for headings, #tag# or #tag followed by space for hashtags",
+    "draftTip": "Drafts are auto-saved, keeping only the latest unpublished content",
+    "draftRecovered": "Your previous unpublished draft has been restored"
+  }
+}

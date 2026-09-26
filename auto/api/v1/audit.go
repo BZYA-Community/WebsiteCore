@@ -19,6 +19,8 @@ type Audit interface {
 	Chain() gin.HandlersChain
 
 	ListAuditLogs(*web.AdminAuditLogsReq) (*web.AdminAuditLogsResp, error)
+	AuditAvatarAction(*web.AdminAuditAvatarReq) error
+	ListAuditAvatars(*web.AdminAuditAvatarsReq) (*web.AdminAuditAvatarsResp, error)
 	AuditNicknameAction(*web.AdminAuditNicknameReq) error
 	ListAuditNicknames(*web.AdminAuditNicknamesReq) (*web.AdminAuditNicknamesResp, error)
 	AuditCommentAction(*web.AdminAuditCommentReq) error
@@ -49,6 +51,33 @@ func RegisterAuditServant(e *gin.Engine, s Audit) {
 			return
 		}
 		resp, err := s.ListAuditLogs(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("POST", "admin/audit/avatar", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.AdminAuditAvatarReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		s.Render(c, nil, s.AuditAvatarAction(req))
+	})
+	router.Handle("GET", "admin/audit/avatars", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.AdminAuditAvatarsReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.ListAuditAvatars(req)
 		s.Render(c, resp, err)
 	})
 	router.Handle("POST", "admin/audit/nickname", func(c *gin.Context) {
@@ -142,6 +171,14 @@ func (UnimplementedAuditServant) Chain() gin.HandlersChain {
 }
 
 func (UnimplementedAuditServant) ListAuditLogs(req *web.AdminAuditLogsReq) (*web.AdminAuditLogsResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAuditServant) AuditAvatarAction(req *web.AdminAuditAvatarReq) error {
+	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAuditServant) ListAuditAvatars(req *web.AdminAuditAvatarsReq) (*web.AdminAuditAvatarsResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

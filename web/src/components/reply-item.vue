@@ -9,7 +9,7 @@
                     {{ props.reply.user.username }}
                 </router-link>
                 <span class="reply-name">
-                    {{ props.reply.at_user_id > 0 ? '回复' : ':' }}
+                    {{ props.reply.at_user_id > 0 ? t('comment.action.reply') : ':' }}
                 </span>
 
                 <router-link class="user-link" :to="{
@@ -25,7 +25,7 @@
                     size="small"
                     round
                 >
-                    审核中
+                    {{ t('comment.tag.pending') }}
                 </n-tag>
                 <n-tag
                     v-else-if="props.reply.audit_status === AuditStatusEnum.REJECTED"
@@ -34,7 +34,7 @@
                     size="small"
                     round
                 >
-                    未通过审核
+                    {{ t('comment.tag.rejected') }}
                 </n-tag>
             </div>
             <div class="timestamp">
@@ -42,7 +42,7 @@
                 <n-popconfirm v-if="
                     userInfo.is_admin ||
                     userInfo.id === props.reply.user.id
-                " negative-text="取消" positive-text="确认" @positive-click="execDelAction">
+                " :negative-text="t('common.cancel')" :positive-text="t('common.confirm')" @positive-click="execDelAction">
                     <template #trigger>
                         <n-button quaternary circle size="tiny" class="del-btn">
                             <template #icon>
@@ -52,7 +52,7 @@
                             </template>
                         </n-button>
                     </template>
-                    是否删除这条回复？
+                    {{ t('comment.confirm.deleteReply') }}
                 </n-popconfirm>
             </div>
         </div>
@@ -80,7 +80,7 @@
                             <thumb-up-outlined v-if="!hasThumbsUp" />
                             <thumb-up-twotone v-if="hasThumbsUp" class="show" />
                         </n-icon>
-                        <span class="upvote-count">{{ thumbsUpCount>0 ? thumbsUpCount : "赞" }}</span>
+                        <span class="upvote-count">{{ thumbsUpCount>0 ? thumbsUpCount : t('comment.label.like') }}</span>
                     </div>
                     <div v-if="!userLogined" class="action-item">
                         <n-icon size="medium">
@@ -93,7 +93,7 @@
                             <thumb-down-twotone v-if="hasThumbsDown" class="show" />
                         </n-icon>
                     </div>
-                    <span v-if="userLogined" class="show opacity-item reply-btn" @click="focusReply"> 回复 </span>
+                    <span v-if="userLogined" class="show opacity-item reply-btn" @click="focusReply"> {{ t('comment.action.reply') }} </span>
                 </div>
             </div>
         </div>
@@ -119,6 +119,9 @@ import {
 import { YesNoEnum, AuditStatusEnum } from '@/utils/IEnum';
 import { useStoreUser } from '@/store/user';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -187,7 +190,7 @@ const execDelAction = () => {
     id: props.reply.id,
   })
     .then((res) => {
-      window.$message.success('删除成功');
+      window.$message.success(t('comment.msg.deleteSuccess'));
 
       setTimeout(() => {
         emit('reload');

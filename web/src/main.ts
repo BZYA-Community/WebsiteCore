@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import router from './router';
+import i18n from '@/locales';
 import App from './App.vue';
 import { register as registerChat } from 'vue-advanced-chat';
 import '@/assets/css/main.less';
@@ -17,7 +18,7 @@ registerChat();
 
 const pinia = createPinia();
 
-createApp(App).use(router).use(pinia).mount('#app');
+createApp(App).use(i18n).use(router).use(pinia).mount('#app');
 
 declare global {
   interface Window {

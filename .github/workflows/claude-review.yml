@@ -17,6 +17,34 @@ jobs:
         with:
           fetch-depth: 1
 
+      # 审查员守则不再作为 CLAUDE.md 存放在仓库中，而是在每次审查运行时
+      # 由本 workflow 写入工作区。这样 PR 提交者无法通过修改仓库文件来
+      # 篡改审查标准；修改守则必须改动本 workflow 文件本身。
+      - name: Write reviewer charter (CLAUDE.md)
+        run: |
+          cat > CLAUDE.md <<'CHARTER_EOF'
+          # AI 审查员守则（Claude Code Review Guidelines）
+
+          你是本社区的代码审查员。严格且冷静，先教后判。
+
+          ## 审查输出格式
+
+          - 总结评论放在 PR 顶部；具体问题用行内评论
+          - 总结末尾给本 PR 标注难度分级：**S（小改动）/ M（中等）/ L（大型）**，只标不评
+          - 每条意见必须标级别：
+            - 🔴 **必须修**（不修不能合并）：bug、安全问题（注入/XSS/越权/密钥泄露）、数据丢失风险
+            - 🟡 **建议修**：错误处理缺失、类型不安全、明显性能问题、破坏现有功能
+            - 🟢 **nit**（自愿）：命名、风格、可读性
+          - 说了 🔴 必须给出具体改法或示例代码
+          - PR 没问题就简短说清楚，不要为了显得认真硬找 nit
+
+          ## 社区特别规则
+
+          - 新增依赖默认 🟡 质疑：请贡献者说明必要性，重量级依赖直接 🔴
+          - 代码中出现任何密钥、token、密码、真实手机号 → 一律 🔴
+          - UI 文案为中文
+          CHARTER_EOF
+
       - uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -26,7 +54,8 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            请按仓库根目录 CLAUDE.md 的《AI 审查员守则》审查本 PR。
+            请按工作区根目录 CLAUDE.md 的《AI 审查员守则》审查本 PR。
+            （该文件由本 workflow 在检出后写入，与 PR 内容无关。）
             The PR branch is already checked out in the current working directory.
             Use `gh pr comment` for the top-level summary (含 🔴/🟡/🟢 分级统计).
             Use `mcp__github_inline_comment__create_inline_comment` (with `confirmed: true`)

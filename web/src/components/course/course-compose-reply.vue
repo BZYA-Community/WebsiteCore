@@ -6,10 +6,10 @@
             </span>
             <div class="actions">
                 <span class="show reply-btn" v-if="userLogined && !showReply" @click="switchReply(true)">
-                    回复
+                    {{ t('course.action.reply') }}
                 </span>
                 <span class="hide reply-btn" v-if="userLogined && showReply" @click="switchReply(false)">
-                    取消
+                    {{ t('common.cancel') }}
                 </span>
             </div>
         </div>
@@ -19,10 +19,10 @@
                 <n-input ref="inputInstRef" size="small" :placeholder="
                     props.atUsername
                         ? '@' + props.atUsername
-                        : '请输入回复内容..'
+                        : t('course.reply.placeholder')
                 " :maxlength="defaultReplyMaxLength" v-model:value="replyContent" show-count clearable />
                 <n-button type="primary" size="small" ghost :loading="submitting" @click="submitReply">
-                    回复
+                    {{ t('course.action.reply') }}
                 </n-button>
             </n-input-group>
         </div>
@@ -36,6 +36,9 @@ import { formatPrettyTime } from '@/utils/formatTime';
 import { createCourseCommentReply, type CourseComment } from '@/api/course';
 import { InputInst } from 'naive-ui';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -80,7 +83,7 @@ const switchReply = (status: boolean) => {
 };
 const submitReply = () => {
   if (replyContent.value.trim().length === 0) {
-    window.$message.warning('请输入回复内容');
+    window.$message.warning(t('course.reply.inputRequired'));
     return;
   }
   submitting.value = true;
@@ -92,9 +95,9 @@ const submitReply = () => {
     .then((res) => {
       switchReply(false);
       if (res.audit_status === 0) {
-        window.$message.success('回复已提交，审核通过后对外可见');
+        window.$message.success(t('course.reply.auditSubmitted'));
       } else {
-        window.$message.success('评论成功');
+        window.$message.success(t('course.reply.commentSuccess'));
       }
       emit('reload');
     })

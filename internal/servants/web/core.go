@@ -329,12 +329,12 @@ func (s *coreSrv) ChangeNickname(req *web.ChangeNicknameReq) error {
 	return nil
 }
 
-func (s *coreSrv) ChangeAvatar(req *web.ChangeAvatarReq) (xerr error) {
+func (s *coreSrv) ChangeAvatar(req *web.ChangeAvatarReq) (resp *web.ChangeAvatarResp, xerr error) {
 	// 校验前移(#25): 先确认是本站合法附件, 校验通过后才注册失败回滚删除,
 	// 避免把客户端提交的原始字符串交给删除路径
 	if err := s.Ds.CheckAttachment(req.Avatar); err != nil {
 		logrus.Errorf("Ds.CheckAttachment failed: %s", err)
-		return xerror.InvalidParams
+		return resp, xerror.InvalidParams
 	}
 	defer func() {
 		if xerr != nil {
@@ -342,19 +342,34 @@ func (s *coreSrv) ChangeAvatar(req *web.ChangeAvatarReq) (xerr error) {
 		}
 	}()
 
+	// 待审对象也立即持久化: 防止临时对象过期清理在审核完成前误删头像文件
 	if err := s.oss.PersistObject(s.oss.ObjectKey(req.Avatar)); err != nil {
 		logrus.Errorf("Ds.ChangeUserAvatar persist object failed: %s", err)
-		return xerror.ServerError
+		return resp, xerror.ServerError
 	}
 	user := req.User
+	// 审核开关: 无管理角色的用户头像变更先暂存 待审核通过后生效(见auditSrv)
+	if conf.AuditSetting.Enabled && !user.HasAnyRole() {
+		user.PendingAvatar = req.Avatar
+		if err := s.Ds.UpdateUser(user); err != nil {
+			logrus.Errorf("Ds.UpdateUser failed: %s", err)
+			return resp, xerror.ServerError
+		}
+		// 用户信息有缓存(GetUserInfo*) 暂存字段写入后需失效缓存 否则审核端读到旧数据
+		onChangeUsernameEvent(user.ID, user.Username)
+		return &web.ChangeAvatarResp{Pending: true}, nil
+	}
+	oldAvatar := user.Avatar
 	user.Avatar = req.Avatar
 	if err := s.Ds.UpdateUser(user); err != nil {
 		logrus.Errorf("Ds.UpdateUser failed: %s", err)
-		return xerror.ServerError
+		return resp, xerror.ServerError
 	}
 	// 缓存处理
 	onChangeUsernameEvent(user.ID, user.Username)
-	return nil
+	// 清理旧头像对象(仅本站OSS的public/avatar/前缀)
+	deleteOldAvatar(s.oss, oldAvatar, req.Avatar)
+	return &web.ChangeAvatarResp{}, nil
 }
 
 func (s *coreSrv) TweetCollectionStatus(req *web.TweetCollectionStatusReq) (*web.TweetCollectionStatusResp, error) {

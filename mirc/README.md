@@ -1,10 +1,24 @@
-### RESTful API for paopao-ce
-本目录包含所有RESTful API相关定义文件
+# mirc — RESTful API Definitions for WebsiteCore
 
-|服务|目录|系列API| url前缀|备注|
-| ----- | -----  | ----- | ----- | ----- |
-|Web|web|/|/|Web系列RESTful API相关定义文件|
-|Admin|admin|m|/m/|Admin后台运维系列相关RESTful API相关定义文件|
-|SpaceX|space|x|/x/|SpaceX系列相关RESTful API相关定义文件|
-|NativeOBS|localoss|s|/s/| NativeOBS系列RESTful API相关定义文件|
-|Bot|bot|r| /r/|Bot系列相关RESTful API相关定义文件|
+This directory is the single source of truth for all RESTful API routes. Files here are [go-mir](https://github.com/alimy/mir) interface definitions; the actual routing code is generated into `../auto/` and must never be hand-edited.
+
+## Services
+
+| Service | Directory | API series | URL prefix | Purpose |
+| --- | --- | --- | --- | --- |
+| Web | `web/` | `/` | `/` | Main site API (posts, comments, messaging, users, courses, admin panel) |
+
+## Workflow
+
+1. Declare or modify an endpoint signature in the matching service directory (e.g. `web/v1/`).
+2. Regenerate:
+
+   ```sh
+   make gen-mir        # runs `go generate mirc/gen.go`, then gofumpt over auto/api
+   ```
+
+3. Implement the handler in `../internal/servants/<service>/`.
+
+Generation is driven by `gen.go` in this directory. After regenerating, `auto/` changes belong in the same commit as the `mirc/` change — reviewers check that `auto/` contains no manual edits.
+
+See [../docs/development.md](../docs/development.md) for the full backend development flow.

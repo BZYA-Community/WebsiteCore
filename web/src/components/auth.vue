@@ -13,34 +13,34 @@
         <div class="auth-wrap">
             <n-card :bordered="false">
                 <div v-if="!profile.allowUserRegister">
-                    <n-space justify="center"><n-h3><n-text type="success">账号登录</n-text></n-h3></n-space>
+                    <n-space justify="center"><n-h3><n-text type="success">{{ t('auth.title.login') }}</n-text></n-h3></n-space>
                     <n-form
                             ref="loginRef"
                             :model="loginForm"
                             :rules="{
                                 username: {
                                     required: true,
-                                    message: '请输入账户名',
+                                    message: t('auth.rule.usernameRequired'),
                                 },
                                 password: {
                                     required: true,
-                                    message: '请输入密码',
+                                    message: t('auth.rule.passwordRequired'),
                                 },
                             }"
                         >
-                            <n-form-item-row label="账户" path="username">
+                            <n-form-item-row :label="t('auth.field.username')" path="username">
                                 <n-input
                                     v-model:value="loginForm.username"
-                                    placeholder="请输入用户名"
+                                    :placeholder="t('auth.placeholder.username')"
                                     @keyup.enter.prevent="handleLogin"
                                 />
                             </n-form-item-row>
-                            <n-form-item-row label="密码" path="password">
+                            <n-form-item-row :label="t('auth.field.password')" path="password">
                                 <n-input
                                     type="password"
                                     show-password-on="mousedown"
                                     v-model:value="loginForm.password"
-                                    placeholder="请输入账户密码"
+                                    :placeholder="t('auth.placeholder.password')"
                                     @keyup.enter.prevent="handleLogin"
                                 />
                             </n-form-item-row>
@@ -53,7 +53,7 @@
                             :loading="loading"
                             @click="handleLogin"
                         >
-                            登录
+                            {{ t('auth.action.login') }}
                         </n-button>
                 </div>
                 <n-tabs
@@ -62,34 +62,34 @@
                     size="large"
                     justify-content="space-evenly"
                 >
-                    <n-tab-pane name="signin"><template #tab>登录</template>
+                    <n-tab-pane name="signin"><template #tab>{{ t('auth.tab.signin') }}</template>
                         <n-form
                             ref="loginRef"
                             :model="loginForm"
                             :rules="{
                                 username: {
                                     required: true,
-                                    message: '请输入账户名',
+                                    message: t('auth.rule.usernameRequired'),
                                 },
                                 password: {
                                     required: true,
-                                    message: '请输入密码',
+                                    message: t('auth.rule.passwordRequired'),
                                 },
                             }"
                         >
-                            <n-form-item-row label="账户" path="username">
+                            <n-form-item-row :label="t('auth.field.username')" path="username">
                                 <n-input
                                     v-model:value="loginForm.username"
-                                    placeholder="请输入用户名"
+                                    :placeholder="t('auth.placeholder.username')"
                                     @keyup.enter.prevent="handleLogin"
                                 />
                             </n-form-item-row>
-                            <n-form-item-row label="密码" path="password">
+                            <n-form-item-row :label="t('auth.field.password')" path="password">
                                 <n-input
                                     type="password"
                                     show-password-on="mousedown"
                                     v-model:value="loginForm.password"
-                                    placeholder="请输入账户密码"
+                                    :placeholder="t('auth.placeholder.password')"
                                     @keyup.enter.prevent="handleLogin"
                                 />
                             </n-form-item-row>
@@ -102,35 +102,35 @@
                             :loading="loading"
                             @click="handleLogin"
                         >
-                            登录
+                            {{ t('auth.action.login') }}
                         </n-button>
                     </n-tab-pane>
-                    <n-tab-pane name="signup"><template #tab>注册</template>
+                    <n-tab-pane name="signup"><template #tab>{{ t('auth.tab.signup') }}</template>
                         <n-form
                             ref="registerRef"
                             :model="registerForm"
                             :rules="registerRule"
                         >
-                            <n-form-item-row label="用户名" path="username">
+                            <n-form-item-row :label="t('auth.field.registerUsername')" path="username">
                                 <n-input
                                     v-model:value="registerForm.username"
-                                    placeholder="用户名注册后无法修改"
+                                    :placeholder="t('auth.placeholder.registerUsername')"
                                 />
                             </n-form-item-row>
-                            <n-form-item-row label="密码" path="password">
+                            <n-form-item-row :label="t('auth.field.password')" path="password">
                                 <n-input
                                     type="password"
                                     show-password-on="mousedown"
-                                    placeholder="密码不少于6位"
+                                    :placeholder="t('auth.placeholder.registerPassword')"
                                     v-model:value="registerForm.password"
                                     @keyup.enter.prevent="handleRegister"
                                 />
                             </n-form-item-row>
-                            <n-form-item-row label="重复密码" path="repassword">
+                            <n-form-item-row :label="t('auth.field.repassword')" path="repassword">
                                 <n-input
                                     type="password"
                                     show-password-on="mousedown"
-                                    placeholder="请再次输入密码"
+                                    :placeholder="t('auth.placeholder.repassword')"
                                     v-model:value="registerForm.repassword"
                                     @keyup.enter.prevent="handleRegister"
                                 />
@@ -144,7 +144,7 @@
                             :loading="loading"
                             @click="handleRegister"
                         >
-                            注册
+                            {{ t('auth.action.register') }}
                         </n-button>
                     </n-tab-pane>
                 </n-tabs>
@@ -154,7 +154,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { userInfo } from '@/api/auth';
@@ -163,6 +164,7 @@ import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
 import { useStoreProfile } from '@/store/profile';
 
+const { t } = useI18n();
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const storeProfile = useStoreProfile();
@@ -181,19 +183,19 @@ const registerForm = reactive({
   password: '',
   repassword: '',
 });
-const registerRule = {
+const registerRule = computed(() => ({
   username: {
     required: true,
-    message: '请输入账户名',
+    message: t('auth.rule.usernameRequired'),
   },
   password: {
     required: true,
-    message: '请输入密码',
+    message: t('auth.rule.passwordRequired'),
   },
   repassword: [
     {
       required: true,
-      message: '请输入密码',
+      message: t('auth.rule.passwordRequired'),
     },
     {
       validator: (rule: FormItemRule, value: any) => {
@@ -203,11 +205,11 @@ const registerRule = {
           registerForm.password.length >= value.length
         );
       },
-      message: '两次密码输入不一致',
+      message: t('auth.rule.repasswordMismatch'),
       trigger: 'input',
     },
   ],
-};
+}));
 const handleLogin = (e: Event) => {
   e.preventDefault();
   e.stopPropagation();
@@ -228,7 +230,7 @@ const handleLogin = (e: Event) => {
           return userInfo(token);
         })
         .then((res) => {
-          window.$message.success('登录成功');
+          window.$message.success(t('auth.msg.loginSuccess'));
           loading.value = false;
 
           storeUser.updateUserinfo(res);
@@ -270,7 +272,7 @@ const handleRegister = (e: Event) => {
           return userInfo(token);
         })
         .then((res) => {
-          window.$message.success('注册成功');
+          window.$message.success(t('auth.msg.registerSuccess'));
           loading.value = false;
 
           storeUser.updateUserinfo(res);

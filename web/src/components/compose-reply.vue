@@ -16,7 +16,7 @@
                         <thumb-up-outlined v-if="!hasThumbsUp" />
                         <thumb-up-twotone v-if="hasThumbsUp" class="show" />
                     </n-icon>
-                    <span class="upvote-count">{{ thumbsUpCount>0 ? thumbsUpCount : "赞" }}</span>
+                    <span class="upvote-count">{{ thumbsUpCount>0 ? thumbsUpCount : t('comment.label.like') }}</span>
                 </div>
                 <div v-if="!userLogined" class="action-item">
                     <n-icon size="medium">
@@ -30,10 +30,10 @@
                     </n-icon>
                 </div>
                 <span class="show reply-btn" v-if="userLogined && !showReply" @click="switchReply(true)">
-                    回复
+                    {{ t('comment.action.reply') }}
                 </span>
                 <span class="hide reply-btn" v-if="userLogined && showReply" @click="switchReply(false)">
-                    取消
+                    {{ t('common.cancel') }}
                 </span>
             </div>
         </div>
@@ -43,10 +43,10 @@
                 <n-input ref="inputInstRef" size="small" :placeholder="
                     props.atUsername
                         ? '@' + props.atUsername
-                        : '请输入回复内容..'
+                        : t('comment.reply.placeholder')
                 " :maxlength="defaultReplyMaxLength" v-model:value="replyContent" show-count clearable />
                 <n-button type="primary" size="small" ghost :loading="submitting" @click="submitReply">
-                    回复
+                    {{ t('comment.action.reply') }}
                 </n-button>
             </n-input-group>
         </div>
@@ -72,6 +72,9 @@ import {
 } from '@vicons/material';
 import { YesNoEnum } from '@/utils/IEnum';
 import { storeToRefs } from 'pinia';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n();
 
 const props = withDefaults(
   defineProps<{
@@ -164,9 +167,9 @@ const submitReply = () => {
     .then((res) => {
       switchReply(false);
       if (res.audit_status === 0) {
-        window.$message.success('回复已提交，审核通过后对外可见');
+        window.$message.success(t('comment.msg.replyPendingAudit'));
       } else {
-        window.$message.success('评论成功');
+        window.$message.success(t('comment.msg.replySuccess'));
       }
       emit('reload');
     })

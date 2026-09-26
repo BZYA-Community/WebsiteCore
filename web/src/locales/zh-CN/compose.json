@@ -1,0 +1,30 @@
+{
+  "placeholder": "说说您的新鲜事...",
+  "enterMarkdownEditor": "进入Markdown编辑器",
+  "charCount": "已输入{count}字",
+  "publish": "发布",
+  "linkPlaceholder": "请输入以http(s)://开头的链接",
+  "createLink": "创建链接",
+  "loginBanner": "登录后，精彩更多",
+  "login": "登录",
+  "register": "注册",
+  "visibilityPublic": "公开",
+  "visibilityPrivate": "私密",
+  "visibilityFollowing": "关注可见",
+  "imageFormatError": "图片仅允许 webp/png/jpg/gif 格式",
+  "imageSizeError": "图片大小不能超过10MB",
+  "videoFormatError": "视频仅允许 mp4/mov 格式",
+  "videoSizeError": "视频大小不能超过100MB",
+  "attachmentFormatError": "附件仅允许 zip 格式",
+  "attachmentSizeError": "附件大小不能超过100MB",
+  "uploadFailed": "上传失败",
+  "contentRequired": "请输入内容哦",
+  "publishSuccessAudit": "发布成功，内容审核通过后对他人可见",
+  "publishSuccess": "发布成功",
+  "md": {
+    "pageTitle": "发布长文",
+    "editorPlaceholder": "支持 Markdown：井号后加空格是标题，#话题# 或 #话题 加空格是话题标签",
+    "draftTip": "草稿自动保存，仅保留最近一次未发布的内容",
+    "draftRecovered": "已恢复上次未发布的草稿"
+  }
+}
