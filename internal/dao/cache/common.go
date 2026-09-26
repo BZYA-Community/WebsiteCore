@@ -7,13 +7,40 @@ package cache
 import (
 	"bytes"
 	"encoding/gob"
+	"time"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/RoaringBitmap/roaring/roaring64"
+	"github.com/sirupsen/logrus"
 )
+
+const (
+	// sendRetryMax 通道满时的发送重试次数上限
+	sendRetryMax = 3
+	// sendRetryInterval 通道满时的发送重试间隔
+	sendRetryInterval = 10 * time.Millisecond
+)
+
+// trySend 以非阻塞方式尝试发送 item 到 ch，通道满时做有限次退避重试，
+// 仍失败则丢弃并记录告警日志（缓存可重建，避免无界拉起协程造成泄漏）。
+func trySend[T any](ch chan<- T, quit <-chan struct{}, item T, tag string) bool {
+	for i := 1; i <= sendRetryMax; i++ {
+		select {
+		case ch <- item:
+			return true
+		case <-quit:
+			logrus.Debugf("%s stopped, drop item", tag)
+			return false
+		case <-time.After(sendRetryInterval):
+			logrus.Debugf("%s channel full, retry %d/%d", tag, i, sendRetryMax)
+		}
+	}
+	logrus.Warnf("%s channel is full after %d retries, drop item", tag, sendRetryMax)
+	return false
+}
 
 type cacheDataService struct {
 	core.DataService

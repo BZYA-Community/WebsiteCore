@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"time"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
@@ -26,6 +27,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type BaseServant struct {
@@ -369,11 +371,22 @@ func (s *DaoServant) pushAllPostToSearch() error {
 			return fmt.Errorf("get first page tweets push to search failed: %s", err)
 		}
 		i, nums := 0, int(math.Ceil(float64(totalRows)/float64(splitNum)))
+		// 合并失败时的有界重试：退避 + 上限，避免无退出条件的空转死循环烧满 CPU
+		const maxMergeRetries = 5
+		mergeRetries := 0
 		for {
 			postsFormated, xerr := s.Ds.MergePosts(posts)
 			if xerr != nil || len(posts) != len(postsFormated) {
+				if mergeRetries++; mergeRetries > maxMergeRetries {
+					return fmt.Errorf("merge posts push to search failed after %d retries: err: %v, posts: %d, postsFormated: %d", mergeRetries-1, xerr, len(posts), len(postsFormated))
+				}
+				// 指数退避：100ms、200ms... 最长1.6s
+				backoff := time.Duration(1<<uint(mergeRetries-1)) * 100 * time.Millisecond
+				logrus.Errorf("pushAllPostToSearch merge posts failed(retry %d/%d): err: %v, posts: %d, postsFormated: %d", mergeRetries, maxMergeRetries, xerr, len(posts), len(postsFormated))
+				time.Sleep(backoff)
 				continue
 			}
+			mergeRetries = 0
 			for i, pf := range postsFormated {
 				contentFormated := ""
 				for _, content := range pf.Contents {

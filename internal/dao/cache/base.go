@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
@@ -53,6 +54,8 @@ type cacheIndexSrv struct {
 	cache              tweetsCache
 	lastCacheResetTime time.Time
 	preventDuration    time.Duration
+	quit               chan struct{}
+	closeOnce          sync.Once
 }
 
 func (s *cacheIndexSrv) IndexPosts(user *ms.User, offset int, limit int) (*ms.IndexTweetList, error) {
@@ -89,14 +92,8 @@ func (s *cacheIndexSrv) getPosts(key string) (*ms.IndexTweetList, error) {
 
 func (s *cacheIndexSrv) cachePosts(key string, tweets *ms.IndexTweetList) {
 	entry := &postsEntry{key: key, tweets: tweets}
-	select {
-	case s.cachePostsCh <- entry:
+	if trySend(s.cachePostsCh, s.quit, entry, "cacheIndexSrv.cachePosts") {
 		logrus.Debugf("cacheIndexSrv.cachePosts cachePosts by chan of key: %s", key)
-	default:
-		go func(ch chan<- *postsEntry, entry *postsEntry) {
-			logrus.Debugf("cacheIndexSrv.cachePosts cachePosts indexAction by goroutine of key: %s", key)
-			ch <- entry
-		}(s.cachePostsCh, entry)
 	}
 }
 
@@ -123,26 +120,30 @@ func (s *cacheIndexSrv) keyFrom(user *ms.User, offset int, limit int) string {
 
 func (s *cacheIndexSrv) SendAction(act core.IdxAct, post *ms.Post) {
 	action := core.NewIndexAction(act, post)
-	select {
-	case s.indexActionCh <- action:
+	if trySend(s.indexActionCh, s.quit, action, "cacheIndexSrv.SendAction") {
 		logrus.Debugf("cacheIndexSrv.SendAction send indexAction by chan: %s", act)
-	default:
-		go func(ch chan<- *core.IndexAction, act *core.IndexAction) {
-			logrus.Debugf("cacheIndexSrv.SendAction send indexAction by goroutine: %s", action.Act)
-			ch <- act
-		}(s.indexActionCh, action)
 	}
 }
 
 func (s *cacheIndexSrv) startIndexPosts() {
 	for {
 		select {
+		case <-s.quit:
+			logrus.Debugln("cacheIndexSrv.startIndexPosts stopped")
+			return
 		case entry := <-s.cachePostsCh:
 			s.setPosts(entry)
 		case action := <-s.indexActionCh:
 			s.handleIndexAction(action)
 		}
 	}
+}
+
+// Close 停止后台索引更新协程，可安全重复调用
+func (s *cacheIndexSrv) Close() {
+	s.closeOnce.Do(func() {
+		close(s.quit)
+	})
 }
 
 func (s *cacheIndexSrv) handleIndexAction(action *core.IndexAction) {
@@ -208,6 +209,7 @@ func newCacheIndexSrv(ips core.IndexPostsService, ams core.AuthorizationManageSe
 		name:            tc.Name(),
 		version:         tc.Version(),
 		preventDuration: 10 * time.Second,
+		quit:            make(chan struct{}),
 	}
 
 	// indexActionCh capacity custom configure by conf.yaml need in [10, 10000]

@@ -5,6 +5,7 @@
 package cache
 
 import (
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -25,6 +26,8 @@ type simpleCacheIndexServant struct {
 	maxIndexSize    int
 	checkTick       *time.Ticker
 	expireIndexTick *time.Ticker
+	quit            chan struct{}
+	closeOnce       sync.Once
 }
 
 func (s *simpleCacheIndexServant) IndexPosts(user *ms.User, offset int, limit int) (*ms.IndexTweetList, error) {
@@ -51,14 +54,8 @@ func (s *simpleCacheIndexServant) TweetTimeline(userId int64, offset int, limit 
 }
 
 func (s *simpleCacheIndexServant) SendAction(act core.IdxAct, _post *ms.Post) {
-	select {
-	case s.indexActionCh <- act:
+	if trySend(s.indexActionCh, s.quit, act, "simpleCacheIndexServant.SendAction") {
 		logrus.Debugf("simpleCacheIndexServant.SendAction send indexAction by chan: %s", act)
-	default:
-		go func(ch chan<- core.IdxAct, act core.IdxAct) {
-			logrus.Debugf("simpleCacheIndexServant.SendAction send indexAction by goroutine: %s", act)
-			ch <- act
-		}(s.indexActionCh, act)
 	}
 }
 
@@ -66,6 +63,11 @@ func (s *simpleCacheIndexServant) startIndexPosts() {
 	var err error
 	for {
 		select {
+		case <-s.quit:
+			logrus.Debugln("simpleCacheIndexServant.startIndexPosts stopped")
+			s.checkTick.Stop()
+			s.expireIndexTick.Stop()
+			return
 		case <-s.checkTick.C:
 			if s.indexPosts == nil {
 				logrus.Debugf("index posts by checkTick")
@@ -104,6 +106,13 @@ func (s *simpleCacheIndexServant) startIndexPosts() {
 
 func (s *simpleCacheIndexServant) Name() string {
 	return "SimpleCacheIndex"
+}
+
+// Close 停止后台索引更新协程与定时器，可安全重复调用
+func (s *simpleCacheIndexServant) Close() {
+	s.closeOnce.Do(func() {
+		close(s.quit)
+	})
 }
 
 func (s *simpleCacheIndexServant) Version() *semver.Version {

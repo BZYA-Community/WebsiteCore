@@ -69,6 +69,7 @@ func NewSimpleCacheIndexService(indexPosts core.IndexPostsService) (core.CacheIn
 		indexPosts:      nil,
 		checkTick:       time.NewTicker(s.CheckTickDuration), // check whether need update index every 1 minute
 		expireIndexTick: time.NewTicker(time.Second),
+		quit:            make(chan struct{}),
 	}
 
 	// force expire index every ExpireTickDuration second

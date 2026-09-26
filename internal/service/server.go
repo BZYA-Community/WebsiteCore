@@ -70,7 +70,7 @@ func (p *serverPool[T]) stopServer(maxSidSize int) {
 	for _, srv := range p.servers {
 		ss := srv.services()
 		if len(ss) < 1 {
-			return
+			continue
 		}
 		for _, s := range ss {
 			colorPrint(actOnStop, s.OnStop(), maxSidSize, s)
