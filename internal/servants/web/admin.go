@@ -34,15 +34,53 @@ func (s *adminSrv) Chain() gin.HandlersChain {
 	return gin.HandlersChain{chain.JWT(), chain.Admin()}
 }
 
+// guardOperatorTarget 运维账号保护: 目标为运维账号时仅运维可操作(删除/角色变更/状态变更同规则)
+func guardOperatorTarget(target, operator *ms.User) error {
+	if target.HasRole(ms.RoleOperator) && !operator.HasRole(ms.RoleOperator) {
+		return web.ErrRoleChangeNoPermission
+	}
+	return nil
+}
+
+// ChangeUserStatus 用户管理·禁言/解封用户(status: 1正常 2封禁)
+// 权限规则: 与删除/角色变更同规则——不可修改自己; 运维账号仅运维可操作
 func (s *adminSrv) ChangeUserStatus(req *web.ChangeUserStatusReq) error {
+	if req.User == nil {
+		return web.ErrNoPermission
+	}
 	user, err := s.Ds.GetUserByID(req.ID)
 	if err != nil || user.Model == nil || user.ID <= 0 {
 		return web.ErrNoExistUsername
+	}
+	if user.ID == req.User.ID {
+		return xerror.InvalidParams.WithDetails("不能修改当前登录账号状态")
+	}
+	// 运维账号保护: 与角色变更同规则
+	if err := guardOperatorTarget(user, req.User); err != nil {
+		return err
+	}
+	if user.Status == req.Status {
+		// 幂等: 状态无变化直接成功
+		return nil
 	}
 	// 执行更新
 	user.Status = req.Status
 	if err := s.Ds.UpdateUser(user); err != nil {
 		return xerror.ServerError
+	}
+	// 写状态变更日志(复用角色变更日志结构: action=ban/unban, 角色列记录操作时角色快照; 宽松处理错误)
+	action := "unban"
+	if req.Status == ms.UserStatusClosed {
+		action = "ban"
+	}
+	if err := s.Ds.CreateUserRoleLog(&ms.UserRoleLog{
+		UserID:     user.ID,
+		OperatorID: req.User.ID,
+		OldRoles:   user.Roles,
+		NewRoles:   user.Roles,
+		Action:     action,
+	}); err != nil {
+		logrus.Errorf("Ds.CreateUserRoleLog err: %s", err)
 	}
 	// 过期该用户缓存(info:id/info:name/profile:name)
 	onChangeUsernameEvent(user.ID, user.Username)
@@ -64,8 +102,8 @@ func (s *adminSrv) AdminUserDelete(req *web.AdminUserDeleteReq) error {
 		return xerror.InvalidParams.WithDetails("不能删除当前登录账号")
 	}
 	// 运维账号保护: 与角色变更同规则
-	if user.HasRole(ms.RoleOperator) && !req.User.HasRole(ms.RoleOperator) {
-		return web.ErrRoleChangeNoPermission
+	if err := guardOperatorTarget(user, req.User); err != nil {
+		return err
 	}
 	if err := s.Ds.SoftDeleteUser(user); err != nil {
 		logrus.Errorf("Ds.SoftDeleteUser err: %s", err)
@@ -199,10 +237,11 @@ func (s *adminSrv) AdminUserRoleChange(req *web.AdminUserRoleReq) error {
 		return web.ErrNoExistUsername
 	}
 	// operator相关变更(授予/移除operator角色 或 修改运维账号)仅运维可操作
-	if req.Role == ms.RoleOperator || user.HasRole(ms.RoleOperator) {
-		if !req.User.HasRole(ms.RoleOperator) {
-			return web.ErrRoleChangeNoPermission
-		}
+	if req.Role == ms.RoleOperator && !req.User.HasRole(ms.RoleOperator) {
+		return web.ErrRoleChangeNoPermission
+	}
+	if err := guardOperatorTarget(user, req.User); err != nil {
+		return err
 	}
 	oldRoles := user.Roles
 	if req.Action == "add" {
