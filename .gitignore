@@ -1,6 +1,8 @@
 .DS_Store
 .mirc
 .idea
+/.vscode/
+.claude/
 __debug_bin
 !*.example
 /config.yaml
@@ -17,5 +19,6 @@ __debug_bin
 scripts/shots/
 
 # 本地测试二进制(勿提交)
+*.exe
 paopao-*.exe
 *.exe~
