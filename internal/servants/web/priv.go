@@ -240,7 +240,18 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 		}
 	}()
 
-	contents, err := persistMediaContents(s.oss, req.Contents)
+	// 校验前移(#25): 先校验全部内容项, 未通过校验的项不落OSS、不进回滚删除列表
+	validContents := make([]*web.PostContentItem, 0, len(req.Contents))
+	for _, item := range req.Contents {
+		if err := item.Check(s.Ds); err != nil {
+			// 属性非法
+			logrus.Infof("contents check err: %s", err)
+			continue
+		}
+		validContents = append(validContents, item)
+	}
+
+	contents, err := persistMediaContents(s.oss, validContents)
 	if err != nil {
 		return nil, web.ErrCreatePostFailed
 	}
@@ -267,13 +278,8 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 		return nil, web.ErrCreatePostFailed
 	}
 
-	// 创建推文内容
-	for _, item := range req.Contents {
-		if err := item.Check(s.Ds); err != nil {
-			// 属性非法
-			logrus.Infof("contents check err: %s", err)
-			continue
-		}
+	// 创建推文内容(内容项已在持久化前通过 Check 校验)
+	for _, item := range validContents {
 		postContent := &ms.PostContent{
 			PostID:  post.ID,
 			UserID:  req.User.ID,
@@ -538,7 +544,18 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 		}
 	}()
 
-	if mediaContents, err = persistMediaContents(s.oss, req.Contents); err != nil {
+	// 校验前移(#25): 先校验全部内容项再持久化, 未通过校验的项不落OSS、不入库、
+	// 也不进入回滚删除列表, 避免失败路径拿着客户端原始字符串执行删除
+	validContents := make([]*web.PostContentItem, 0, len(req.Contents))
+	for _, item := range req.Contents {
+		if err := item.Check(s.Ds); err != nil {
+			logrus.Infof("comment contents check err: %s", err)
+			continue
+		}
+		validContents = append(validContents, item)
+	}
+
+	if mediaContents, err = persistMediaContents(s.oss, validContents); err != nil {
 		return nil, xerror.ServerError
 	}
 
@@ -583,13 +600,8 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 		return nil, web.ErrCreateCommentFailed
 	}
 
-	for _, item := range req.Contents {
-		// 检查附件是否是本站资源
-		if item.Type == ms.ContentTypeImage || item.Type == ms.ContentTypeVideo || item.Type == ms.ContentTypeAttachment {
-			if err := s.Ds.CheckAttachment(item.Content); err != nil {
-				continue
-			}
-		}
+	for _, item := range validContents {
+		// 内容项已在持久化前通过 Check 校验(含附件是否本站资源)
 		postContent := &ms.CommentContent{
 			CommentID: comment.ID,
 			UserID:    req.Uid,
