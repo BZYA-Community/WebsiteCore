@@ -6,6 +6,7 @@ package web
 
 import (
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/cache"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
@@ -121,4 +122,17 @@ func newFollowshipSrv(s *base.DaoServant) api.Followship {
 	return &followshipSrv{
 		DaoServant: s,
 	}
+}
+
+// NewFollowshipService 以显式注入的 core.DataService 构造 followship 仆人(#18 样板)。
+//
+// 与 newFollowshipSrv 走 base.NewDaoServant()(其内部从 dao 包的 sync.Once 全局定位器
+// 取实现)不同, 本构造函数只依赖调用方传入的参数, 不读取 dao/cache 等包级全局, 因此可以在
+// 单元测试里传入假 DAO 直接运行业务逻辑(见 followship_test.go, 无需 config.yaml)。
+// 生产装配路径 RouteWeb -> newFollowshipSrv 保持原样, 本函数仅作为构造注入的入口样板。
+func NewFollowshipService(ds core.DataService) api.Followship {
+	return newFollowshipSrv(&base.DaoServant{
+		BaseServant: base.NewBaseServant(),
+		Ds:          ds,
+	})
 }
