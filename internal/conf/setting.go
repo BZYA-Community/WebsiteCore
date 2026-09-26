@@ -46,55 +46,12 @@ type loggerFileConf struct {
 	FileExt  string
 }
 
-type loggerZincConf struct {
-	Host     string
-	Index    string
-	User     string
-	Password string
-	Secure   bool
-}
-
-type loggerMeiliConf struct {
-	Host         string
-	Index        string
-	ApiKey       string
-	Secure       bool
-	MaxLogBuffer int
-	MinWorker    int
-}
-
-type loggerOpenObserveConf struct {
-	Host         string
-	Organization string
-	Stream       string
-	User         string
-	Password     string
-	Secure       bool
-	MaxLogBuffer int
-	MinWorker    int
-}
-
-type loggerOtlponf struct {
-	Endpoint      string
-	Authorization string
-	Organization  string
-	TraceStream   string
-	MetricStream  string
-	LogStream     string
-	Insecure      bool
-}
-
 type httpServerConf struct {
 	RunMode      string
 	HttpIp       string
 	HttpPort     string
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
-}
-
-type grpcServerConf struct {
-	Host string
-	Port string
 }
 
 type appConf struct {
@@ -225,46 +182,12 @@ type objectStorageConf struct {
 	TempDir      string
 }
 
-type minioConf struct {
-	AccessKey string
-	SecretKey string
-	Secure    bool
-	Endpoint  string
-	Bucket    string
-	Domain    string
-}
-
-type s3Conf struct {
-	AccessKey string
-	SecretKey string
-	Secure    bool
-	Endpoint  string
-	Bucket    string
-	Domain    string
-}
-
 type aliOSSConf struct {
 	AccessKeyID     string
 	AccessKeySecret string
 	Endpoint        string
 	Bucket          string
 	Domain          string
-}
-
-type cosConf struct {
-	SecretID  string
-	SecretKey string
-	Region    string
-	Bucket    string
-	Domain    string
-}
-
-type huaweiOBSConf struct {
-	AccessKey string
-	SecretKey string
-	Endpoint  string
-	Bucket    string
-	Domain    string
 }
 
 type localossConf struct {
@@ -430,32 +353,6 @@ func (s *loggerConf) logLevel() logrus.Level {
 	default:
 		return logrus.ErrorLevel
 	}
-}
-
-func (s *loggerZincConf) Endpoint() string {
-	return endpoint(s.Host, s.Secure)
-}
-
-func (s *loggerMeiliConf) Endpoint() string {
-	return endpoint(s.Host, s.Secure)
-}
-
-func (s *loggerMeiliConf) minWork() int {
-	if s.MinWorker < 5 {
-		return 5
-	} else if s.MinWorker > 100 {
-		return 100
-	}
-	return s.MinWorker
-}
-
-func (s *loggerMeiliConf) maxLogBuffer() int {
-	if s.MaxLogBuffer < 10 {
-		return 10
-	} else if s.MaxLogBuffer > 1000 {
-		return 1000
-	}
-	return s.MaxLogBuffer
 }
 
 func (s *objectStorageConf) TempDirSlash() string {

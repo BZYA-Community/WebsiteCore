@@ -51,21 +51,6 @@ func newService() (ss []Service) {
 		"Web": func() {
 			ss = append(ss, newWebService())
 		},
-		"Admin": func() {
-			ss = append(ss, newAdminService())
-		},
-		"SpaceX": func() {
-			ss = append(ss, newSpaceXService())
-		},
-		"Bot": func() {
-			ss = append(ss, newBotService())
-		},
-		"NativeOBS": func() {
-			ss = append(ss, newLocalossService())
-		},
-		"Mobile": func() {
-			ss = append(ss, newMobileService())
-		},
 		"Frontend:Web": func() {
 			ss = append(ss, newFrontendWebServiceService())
 		},

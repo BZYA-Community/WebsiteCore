@@ -13,7 +13,7 @@ linters:
 
 issues:
   exclude-rules:
-    # mir 生成代码(auto/)与rpc pb 代码不做质量检查, 仅参与编译
+    # mir 生成代码(auto/)不做质量检查, 仅参与编译
     - path: (^|/)auto/
       linters:
         - govet

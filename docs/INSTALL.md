@@ -165,8 +165,8 @@ The `Features` section controls which capability bundles are enabled:
 ```yaml
 Features:
   Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
-  Develop: ["Base", "MySQL", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerMeili", "OSS:Retention"]
-  Demo: ["Base", "MySQL", "Option", "Zinc", "Sms", "MinIO", "LoggerZinc", "Migration"]
+  Develop: ["Base", "MySQL", "BigCacheIndex", "Meili", "Sms", "AliOSS", "LoggerFile", "OSS:Retention"]
+  Demo: ["Base", "MySQL", "Option", "Zinc", "Sms", "LocalOSS", "LoggerFile", "Migration"]
   Slim: ["Base", "Postgres", "LocalOSS", "LoggerFile", "OSS:TempDir"]
 ```
 
@@ -190,7 +190,7 @@ For feature maturity and support status, see [features-status.md](features-statu
 
 ## Optional Infrastructure Services
 
-The default modern stack is centered on **Meilisearch**, **Redis**, and either **LocalOSS**, **MinIO**, or a cloud object store. Optional integrations can be started separately when needed.
+The default modern stack is centered on **Meilisearch**, **Redis**, and either **LocalOSS** or **AliOSS**. Optional integrations can be started separately when needed.
 
 ### Meilisearch (recommended search engine)
 
@@ -215,42 +215,20 @@ Meili:
   Secure: False
 ```
 
-### MinIO
+### AliOSS
 
-```sh
-mkdir -p data/minio/data
-docker run -d --name minio \
-  -v ${PWD}/data/minio/data:/data \
-  -p 9000:9000 -p 9001:9001 \
-  -e MINIO_ROOT_USER=minio-root-user \
-  -e MINIO_ROOT_PASSWORD=minio-root-password \
-  -e MINIO_DEFAULT_BUCKETS=paopao:public \
-  bitnami/minio:latest
-```
-
-Matching config example:
+Enable the `AliOSS` feature instead of `LocalOSS` to use Alibaba Cloud OSS.
 
 ```yaml
-MinIO:
-  AccessKey: Q3AM3UQ867SPQQA43P2F
-  SecretKey: zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG
-  Secure: False
-  Endpoint: 127.0.0.1:9000
-  Bucket: paopao
-  Domain: 127.0.0.1:9000
+AliOSS:
+  Endpoint: oss-cn-shanghai.aliyuncs.com
+  AccessKeyID: ""
+  AccessKeySecret: ""
+  Bucket: ""
+  Domain: ""
 ```
 
-### OpenObserve
-
-```sh
-mkdir -p data/openobserve
-docker run -v ${PWD}/data/openobserve:/data \
-  -e ZO_DATA_DIR=/data \
-  -p 5080:5080 \
-  -e ZO_ROOT_USER_EMAIL=root@paopao.info \
-  -e ZO_ROOT_USER_PASSWORD=paopao-ce \
-  public.ecr.aws/zinclabs/openobserve:latest
-```
+Fill in your own credentials, bucket and public domain before starting. Logs use `LoggerFile`; no external log service is needed.
 
 ### Pyroscope
 

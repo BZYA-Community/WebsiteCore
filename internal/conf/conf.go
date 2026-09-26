@@ -13,14 +13,10 @@ import (
 )
 
 var (
-	loggerSetting            *loggerConf
-	loggerFileSetting        *loggerFileConf
-	loggerZincSetting        *loggerZincConf
-	loggerMeiliSetting       *loggerMeiliConf
-	loggerOpenObserveSetting *loggerOpenObserveConf
-	loggerOtlpSetting        *loggerOtlponf
-	sentrySetting            *sentryConf
-	redisSetting             *redisConf
+	loggerSetting     *loggerConf
+	loggerFileSetting *loggerFileConf
+	sentrySetting     *sentryConf
+	redisSetting      *redisConf
 
 	PyroscopeSetting        *pyroscopeConf
 	DatabaseSetting         *databaseConf
@@ -29,13 +25,8 @@ var (
 	PprofServerSetting      *httpServerConf
 	MetricsServerSetting    *httpServerConf
 	WebServerSetting        *httpServerConf
-	AdminServerSetting      *httpServerConf
-	SpaceXServerSetting     *httpServerConf
-	BotServerSetting        *httpServerConf
-	LocalossServerSetting   *httpServerConf
 	FrontendWebSetting      *httpServerConf
 	DocsServerSetting       *httpServerConf
-	MobileServerSetting     *grpcServerConf
 	AppSetting              *appConf
 	CacheSetting            *cacheConf
 	EventManagerSetting     *eventManagerConf
@@ -51,10 +42,6 @@ var (
 	MeiliSetting            *meiliConf
 	ObjectStorage           *objectStorageConf
 	AliOSSSetting           *aliOSSConf
-	COSSetting              *cosConf
-	HuaweiOBSSetting        *huaweiOBSConf
-	MinIOSetting            *minioConf
-	S3Setting               *s3Conf
 	LocalOSSSetting         *localossConf
 	JWTSetting              *jwtConf
 	AdminSettingsSetting    *adminSettingsConf
@@ -85,13 +72,8 @@ func setupSetting(suite []string, noDefault bool) error {
 		"PprofServer":       &PprofServerSetting,
 		"MetricsServer":     &MetricsServerSetting,
 		"WebServer":         &WebServerSetting,
-		"AdminServer":       &AdminServerSetting,
-		"SpaceXServer":      &SpaceXServerSetting,
-		"BotServer":         &BotServerSetting,
-		"LocalossServer":    &LocalossServerSetting,
 		"FrontendWebServer": &FrontendWebSetting,
 		"DocsServer":        &DocsServerSetting,
-		"MobileServer":      &MobileServerSetting,
 		"CacheIndex":        &CacheIndexSetting,
 		"SimpleCacheIndex":  &SimpleCacheIndexSetting,
 		"BigCacheIndex":     &BigCacheIndexSetting,
@@ -101,10 +83,6 @@ func setupSetting(suite []string, noDefault bool) error {
 		"Sentry":            &sentrySetting,
 		"Logger":            &loggerSetting,
 		"LoggerFile":        &loggerFileSetting,
-		"LoggerZinc":        &loggerZincSetting,
-		"LoggerMeili":       &loggerMeiliSetting,
-		"LoggerOpenObserve": &loggerOpenObserveSetting,
-		"LoggerOtlp":        &loggerOtlpSetting,
 		"Database":          &DatabaseSetting,
 		"MySQL":             &MysqlSetting,
 		"Postgres":          &PostgresSetting,
@@ -116,11 +94,7 @@ func setupSetting(suite []string, noDefault bool) error {
 		"AdminSettings":     &AdminSettingsSetting,
 		"ObjectStorage":     &ObjectStorage,
 		"AliOSS":            &AliOSSSetting,
-		"COS":               &COSSetting,
-		"HuaweiOBS":         &HuaweiOBSSetting,
-		"MinIO":             &MinIOSetting,
 		"LocalOSS":          &LocalOSSSetting,
-		"S3":                &S3Setting,
 		"WebProfile":        &WebProfileSetting,
 		"Audit":             &AuditSetting,
 		"Operator":          &OperatorSetting,
@@ -170,21 +144,6 @@ func GetOssDomain() string {
 	uri := "https://"
 	if cfg.If("AliOSS") {
 		return uri + AliOSSSetting.Domain + "/"
-	} else if cfg.If("COS") {
-		return uri + COSSetting.Domain + "/"
-	} else if cfg.If("HuaweiOBS") {
-		return uri + HuaweiOBSSetting.Domain + "/"
-	} else if cfg.If("MinIO") {
-		if !MinIOSetting.Secure {
-			uri = "http://"
-		}
-		return uri + MinIOSetting.Domain + "/" + MinIOSetting.Bucket + "/"
-	} else if cfg.If("S3") {
-		if !S3Setting.Secure {
-			uri = "http://"
-		}
-		// TODO: will not work well need test in real world
-		return uri + S3Setting.Domain + "/" + S3Setting.Bucket + "/"
 	} else if cfg.If("LocalOSS") {
 		if !LocalOSSSetting.Secure {
 			uri = "http://"

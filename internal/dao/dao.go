@@ -92,16 +92,6 @@ func initOSS() {
 	var v core.VersionInfo
 	if cfg.If("AliOSS") {
 		oss, v = storage.MustAliossService()
-	} else if cfg.If("COS") {
-		oss, v = storage.NewCosService()
-	} else if cfg.If("HuaweiOBS") {
-		oss, v = storage.MustHuaweiobsService()
-	} else if cfg.If("MinIO") {
-		oss, v = storage.MustMinioService()
-	} else if cfg.If("S3") {
-		oss, v = storage.MustS3Service()
-		logrus.Infof("use S3 as object storage by version %s", v.Version())
-		return
 	} else if cfg.If("LocalOSS") {
 		oss, v = storage.MustLocalossService()
 	} else {

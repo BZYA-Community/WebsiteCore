@@ -168,10 +168,6 @@ func serveRun(_cmd *cobra.Command, _args []string) {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	if cfg.If("loggerOtlp") {
-		shutdownFn, _ := conf.InitTelemetry()
-		defer shutdownFn()
-	}
 	internal.Initial()
 	sitesetting.Bootstrap(_cmd.Context(), conf.MustGormDB())
 	ensureOperatorAccount()

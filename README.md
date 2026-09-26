@@ -47,7 +47,7 @@ WebsiteCore 是一个自托管的微社区/论坛系统：Go 后端（Gin + GORM
 - **系统通知会话**：关注 / 评论 / 回复 / 审核 / 管理通知统一归入「系统通知」会话，可跳转到帖子与用户主页
 - **好友与关注**：好友申请（通讯录内同意/拒绝）、单向关注、好友可见/关注可见等帖子可见性
 - **内容形态**：短动态（图片/视频/附件/收费附件）、Markdown 长文、话题标签、热搜趋势
-- **可插拔特性**：存储（LocalOSS/MinIO/S3）、搜索（Meilisearch/Zinc）、数据库（PostgreSQL/MySQL）等均通过 `Features` 开关装配
+- **可插拔特性**：存储（LocalOSS/AliOSS）、搜索（Meilisearch/Zinc）、数据库（PostgreSQL/MySQL）等均通过 `Features` 开关装配
 
 ## 技术栈
 

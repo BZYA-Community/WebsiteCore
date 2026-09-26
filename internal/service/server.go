@@ -16,7 +16,6 @@ import (
 
 var (
 	httpServers = newServerPool[*httpServer]()
-	grpcServers = newServerPool[*grpcServer]()
 )
 
 const (
@@ -115,7 +114,6 @@ func newBaseServe() *baseServer {
 func checkServices() (int, int) {
 	var ss []Service
 	ss = append(ss, httpServers.allServices()...)
-	ss = append(ss, grpcServers.allServices()...)
 	return len(ss), maxSidSize(ss)
 }
 
@@ -173,7 +171,6 @@ func Start(wg *conc.WaitGroup) {
 
 	// start servers
 	httpServers.startServer(wg, maxSidSize)
-	grpcServers.startServer(wg, maxSidSize)
 }
 
 // Stop stop all servers
@@ -184,5 +181,4 @@ func Stop() {
 	}
 	// stop servers
 	httpServers.stopServer(maxSidSize)
-	grpcServers.stopServer(maxSidSize)
 }

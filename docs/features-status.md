@@ -13,27 +13,7 @@
     * [x] 服务初始化逻辑
     * [x] 接口定义
     * [x] 业务逻辑实现
-* `Admin` 开启Admin后台运维服务(目前状态: WIP)
-    * [ ] 提按文档
-    * [x] 服务初始化逻辑
-    * [ ] 接口定义
-    * [ ] 业务逻辑实现
-* `SpaceX` 开启SpaceX服务(目前状态: WIP)
-    * [ ] 提按文档
-    * [x] 服务初始化逻辑
-    * [ ] 接口定义
-    * [ ] 业务逻辑实现
-* `Bot` 开启Bot服务(目前状态: WIP)
-    * [ ] 提按文档
-    * [x] 服务初始化逻辑
-    * [ ] 接口定义
-    * [ ] 业务逻辑实现
-* `NativeOBS` 开启NativeOBS服务(目前状态: WIP)
-    * [ ] 提按文档
-    * [ ] 服务初始化逻辑
-    * [ ] 接口定义
-    * [ ] 业务逻辑实现
-* `Docs` 开启NativeOBS服务(目前状态: WIP)
+* `Docs` 开启开发文档服务(目前状态: WIP)
     * [ ] 提按文档
     * [x] 服务初始化逻辑
 * `Frontend:Web` 开启独立前端服务(目前状态: 内测)
@@ -63,22 +43,6 @@
     * [ ] 提按文档  
     * [x] 接口定义
     * [x] 业务逻辑实现    
-* `COS` 腾讯云对象存储服务；
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现   
-* `HuaweiOBS` 华为云对象存储服务；
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现   
-* `MinIO` [MinIO](https://github.com/minio/minio)对象存储服务；
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现   
-* `S3` AWS S3兼容的对象存储服务；
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现     
 * `LocalOSS` 提供使用本地目录文件作为对象存储的功能，仅用于开发调试环境；
     * [ ] 提按文档  
     * [x] 接口定义
@@ -129,22 +93,6 @@
     * [ ] 提按文档  
     * [x] 接口定义
     * [x] 业务逻辑实现   
-* `LoggerZinc` 使用[Zinc](https://github.com/zinclabs/zinc)写日志(目前状态: Deprecated);   
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现  
-* `LoggerMeili` 使用[Meilisearch](https://github.com/meilisearch/meilisearch)写日志(目前状态: Deprecated);  
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
-* `LoggerOpenObserve` 使用[OpenObserve](https://github.com/openobserve/openobserve)写日志(目前状态: Deprecated);  
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
-* `LoggerOtlp` 使用[OpenTelemetry](https://github.com/open-telemetry/opentelemetry-go)写日志(目前状态: 内测阶段);  
-    * [ ] 提按文档  
-    * [x] 接口定义
-    * [x] 业务逻辑实现 
 
 
 #### 监控:

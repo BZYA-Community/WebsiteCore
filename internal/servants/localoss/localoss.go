@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	api "github.com/BZYA-Community/WebsiteCore/auto/api/s/v1"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/storage"
 	"github.com/gin-gonic/gin"
@@ -66,9 +65,4 @@ func serveLocalOSSObject(c *gin.Context, savePath string) {
 		}
 	}
 	c.File(fullPath)
-}
-
-// RouteLocaloss register LocalOSS route if needed
-func RouteLocaloss(e *gin.Engine) {
-	api.RegisterUserServant(e, newUserSrv())
 }
