@@ -177,7 +177,9 @@ func newTestService(t *testing.T) *Service {
 	t.Cleanup(func() {
 		_ = os.Chdir(wd)
 	})
-	conf.Initial(nil, false)
+	if err := conf.Initial(nil, false); err != nil {
+		t.Fatalf("conf.Initial(nil, false) error = %v", err)
+	}
 	conf.WebProfileSetting = &conf.WebProfileConf{
 		EnableTrendsBar:         false,
 		AllowTweetAttachment:    true,

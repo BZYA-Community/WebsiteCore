@@ -6,19 +6,20 @@ package conf
 
 import (
 	"database/sql"
+	"fmt"
 	"sync"
 
 	"github.com/alimy/tryst/cfg"
-	"github.com/sirupsen/logrus"
 )
 
 var (
-	_sqldb   *sql.DB
-	_onceSql sync.Once
+	_sqldb    *sql.DB
+	_sqldbErr error
+	_onceSql  sync.Once
 )
 
 const (
-	TableAnouncement          = "user"
+	TableAnouncement          = "anouncement"
 	TableAnouncementContent   = "anouncement_content"
 	TableAttachment           = "attachment"
 	TableCaptcha              = "captcha"
@@ -49,14 +50,15 @@ const (
 
 type TableNameMap map[string]string
 
-func MustSqlDB() *sql.DB {
+// SqlDB 返回共享的 *sql.DB，首次调用时创建；失败时返回 error 而不是杀进程。
+func SqlDB() (*sql.DB, error) {
 	_onceSql.Do(func() {
 		var err error
 		if _, _sqldb, err = newSqlDB(); err != nil {
-			logrus.Fatalf("new sql db failed: %s", err)
+			_sqldbErr = fmt.Errorf("new sql db failed: %w", err)
 		}
 	})
-	return _sqldb
+	return _sqldb, _sqldbErr
 }
 
 // CloseDB close databse to prevent data missing

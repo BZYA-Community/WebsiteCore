@@ -155,7 +155,19 @@ func serveRun(_cmd *cobra.Command, _args []string) {
 	maxprocs.Set(maxprocs.Logger(log.Printf))
 
 	// initial configure
-	conf.Initial(features, noDefaultFeatures)
+	if err := conf.Initial(features, noDefaultFeatures); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	// 数据库/缓存初始化失败同样由 cmd 层处理（库代码只返回 error，不再 log.Fatalf）
+	if _, err := conf.GormDB(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if _, err := conf.RedisClient(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 	if cfg.If("loggerOtlp") {
 		shutdownFn, _ := conf.InitTelemetry()
 		defer shutdownFn()
