@@ -92,6 +92,11 @@ type RedisCache interface {
 	GetCountLoginErr(ctx context.Context, id int64) (int64, error)
 	DelCountLoginErr(ctx context.Context, id int64) error
 	IncrCountLoginErr(ctx context.Context, id int64) error
+	// 登录失败复合键(账号×来源IP)计数(#28): account 为归一化(小写)后的登录账号,
+	// 防止单一来源IP通过批量试错他人密码将任意账号全局锁死
+	GetCountLoginErrAccountIP(ctx context.Context, account string, ip string) (int64, error)
+	DelCountLoginErrAccountIP(ctx context.Context, account string, ip string) error
+	IncrCountLoginErrAccountIP(ctx context.Context, account string, ip string) error
 	GetCountWhisper(ctx context.Context, uid int64) (int64, error)
 	IncrCountWhisper(ctx context.Context, uid int64) error
 }

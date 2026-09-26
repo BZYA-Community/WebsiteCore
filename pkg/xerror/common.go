@@ -5,12 +5,14 @@
 package xerror
 
 var (
-	Success                   = NewError(0, "成功")
-	ServerError               = NewError(10000, "服务内部错误")
-	InvalidParams             = NewError(10001, "入参错误")
-	NotFound                  = NewError(10002, "找不到")
-	UnauthorizedAuthNotExist  = NewError(10003, "账户不存在")
-	UnauthorizedAuthFailed    = NewError(10004, "账户密码错误")
+	Success                  = NewError(0, "成功")
+	ServerError              = NewError(10000, "服务内部错误")
+	InvalidParams            = NewError(10001, "入参错误")
+	NotFound                 = NewError(10002, "找不到")
+	UnauthorizedAuthNotExist = NewError(10003, "账户不存在")
+	// UnauthorizedAuthFailed 凭据校验统一错误(#28): 登录时"用户不存在/密码错误"
+	// 一律返回本错误, 不再区分业务码, 防止用户名枚举
+	UnauthorizedAuthFailed    = NewError(10004, "用户名或密码错误")
 	UnauthorizedTokenError    = NewError(10005, "鉴权失败，Token 错误或丢失")
 	UnauthorizedTokenTimeout  = NewError(10006, "鉴权失败，Token 超时")
 	UnauthorizedTokenGenerate = NewError(10007, "鉴权失败，Token 生成失败")

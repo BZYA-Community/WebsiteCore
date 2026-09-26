@@ -28,9 +28,15 @@ import (
 )
 
 const (
-	_MaxLoginErrTimes = 10
-	_MaxPhoneCaptcha  = 10
+	// _MaxAccountLoginErrTimes 账号维度次要上限(#28兜底): 复合键(账号×IP, 由
+	// LoginLockout 中间件按 10次/IP 控制)挡单来源IP, 此阈值抬高后用于兜底
+	// 分布式撞库; 1小时内全局失败达该次数才锁定账号(等待1小时自动解锁)。
+	_MaxAccountLoginErrTimes = 50
+	_MaxPhoneCaptcha         = 10
 )
+
+// _dummyPasswordHash 用户不存在时用于等时密码比较的占位哈希(#28 防时序枚举)
+var _dummyPasswordHash = utils.HashPassword("WebsiteCore-timing-equalizer")
 
 type pubSrv struct {
 	api.UnimplementedPubServant
@@ -124,28 +130,32 @@ func (s *pubSrv) Login(req *web.LoginReq) (*web.LoginResp, error) {
 	user, err := s.Ds.GetUserByUsername(req.Username)
 	if err != nil {
 		logrus.Errorf("Ds.GetUserByUsername err:%s", err)
-		return nil, xerror.UnauthorizedAuthNotExist
+	}
+	if err != nil || user.Model == nil || user.ID <= 0 {
+		// 凭据类失败统一返回同一业务码与文案(#28 防用户名枚举):
+		// "用户不存在"与"密码错误"不再可区分;
+		// 用户不存在时补一次等价的密码比较, 避免时序差异泄露账号是否存在
+		validPassword(_dummyPasswordHash, req.Password)
+		return nil, xerror.UnauthorizedAuthFailed
 	}
 
-	if user.Model != nil && user.ID > 0 {
-		if count, err := s.Redis.GetCountLoginErr(ctx, user.ID); err == nil && count >= _MaxLoginErrTimes {
-			return nil, web.ErrTooManyLoginError
-		}
-		// 对比密码是否正确
-		if validPassword(user.Password, req.Password) {
-			if user.Status == ms.UserStatusClosed {
-				return nil, web.ErrUserHasBeenBanned
-			}
-			// 清空登录计数
-			s.Redis.DelCountLoginErr(ctx, user.ID)
-		} else {
-			// 登录错误计数
-			s.Redis.IncrCountLoginErr(ctx, user.ID)
-			return nil, xerror.UnauthorizedAuthFailed
-		}
-	} else {
-		return nil, xerror.UnauthorizedAuthNotExist
+	// 账号维度次要上限(#28): 复合键(账号×IP)锁定由 LoginLockout 中间件负责,
+	// 此处更高阈值仅用于兜底分布式撞库
+	if count, err := s.Redis.GetCountLoginErr(ctx, user.ID); err == nil && count >= _MaxAccountLoginErrTimes {
+		return nil, web.ErrTooManyLoginError
 	}
+	// 对比密码是否正确
+	if !validPassword(user.Password, req.Password) {
+		// 登录错误计数
+		s.Redis.IncrCountLoginErr(ctx, user.ID)
+		return nil, xerror.UnauthorizedAuthFailed
+	}
+	// 封停提示仅在密码正确后返回(#28): 密码持有者可见, 不构成枚举侧信道
+	if user.Status == ms.UserStatusClosed {
+		return nil, web.ErrUserHasBeenBanned
+	}
+	// 清空登录计数
+	s.Redis.DelCountLoginErr(ctx, user.ID)
 
 	token, err := app.GenerateToken(user)
 	if err != nil {
