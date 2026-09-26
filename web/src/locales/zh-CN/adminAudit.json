@@ -5,7 +5,8 @@
     "post": "帖子",
     "comment": "评论",
     "nickname": "昵称",
-    "logs": "审核日志"
+    "logs": "审核日志",
+    "avatar": "头像"
   },
   "status": {
     "pending": "待审核",
@@ -31,7 +32,9 @@
     "courseCommentReject": "课程评论拒绝",
     "courseReplyApprove": "课程回复通过",
     "courseReplyReject": "课程回复拒绝",
-    "courseDelete": "课程删除"
+    "courseDelete": "课程删除",
+    "avatarApprove": "头像通过",
+    "avatarReject": "头像拒绝"
   },
   "contentType": {
     "title": "标题",
@@ -78,6 +81,8 @@
     "approved": "已通过审核",
     "nicknameApproved": "已通过昵称变更",
     "fillRejectReason": "请填写拒绝原因",
-    "rejected": "已拒绝"
-  }
+    "rejected": "已拒绝",
+    "avatarApproved": "已通过头像变更"
+  },
+  "avatarChangeRequest": "头像变更申请"
 }

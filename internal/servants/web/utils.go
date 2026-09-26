@@ -6,11 +6,10 @@ package web
 
 import (
 	"image"
-	"math/rand"
 	"strings"
-	"time"
 	"unicode/utf8"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
@@ -20,62 +19,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var defaultAvatars = []string{
-	"https://paopao-demo.vercel.app/avatar/default/zoe.png",
-	"https://paopao-demo.vercel.app/avatar/default/william.png",
-	"https://paopao-demo.vercel.app/avatar/default/walter.png",
-	"https://paopao-demo.vercel.app/avatar/default/thomas.png",
-	"https://paopao-demo.vercel.app/avatar/default/taylor.png",
-	"https://paopao-demo.vercel.app/avatar/default/sophia.png",
-	"https://paopao-demo.vercel.app/avatar/default/sam.png",
-	"https://paopao-demo.vercel.app/avatar/default/ryan.png",
-	"https://paopao-demo.vercel.app/avatar/default/ruby.png",
-	"https://paopao-demo.vercel.app/avatar/default/quinn.png",
-	"https://paopao-demo.vercel.app/avatar/default/paul.png",
-	"https://paopao-demo.vercel.app/avatar/default/owen.png",
-	"https://paopao-demo.vercel.app/avatar/default/olivia.png",
-	"https://paopao-demo.vercel.app/avatar/default/norman.png",
-	"https://paopao-demo.vercel.app/avatar/default/nora.png",
-	"https://paopao-demo.vercel.app/avatar/default/natalie.png",
-	"https://paopao-demo.vercel.app/avatar/default/naomi.png",
-	"https://paopao-demo.vercel.app/avatar/default/miley.png",
-	"https://paopao-demo.vercel.app/avatar/default/mike.png",
-	"https://paopao-demo.vercel.app/avatar/default/lucas.png",
-	"https://paopao-demo.vercel.app/avatar/default/kylie.png",
-	"https://paopao-demo.vercel.app/avatar/default/julia.png",
-	"https://paopao-demo.vercel.app/avatar/default/joshua.png",
-	"https://paopao-demo.vercel.app/avatar/default/john.png",
-	"https://paopao-demo.vercel.app/avatar/default/jane.png",
-	"https://paopao-demo.vercel.app/avatar/default/jackson.png",
-	"https://paopao-demo.vercel.app/avatar/default/ivy.png",
-	"https://paopao-demo.vercel.app/avatar/default/isaac.png",
-	"https://paopao-demo.vercel.app/avatar/default/henry.png",
-	"https://paopao-demo.vercel.app/avatar/default/harry.png",
-	"https://paopao-demo.vercel.app/avatar/default/harold.png",
-	"https://paopao-demo.vercel.app/avatar/default/hanna.png",
-	"https://paopao-demo.vercel.app/avatar/default/grace.png",
-	"https://paopao-demo.vercel.app/avatar/default/george.png",
-	"https://paopao-demo.vercel.app/avatar/default/freddy.png",
-	"https://paopao-demo.vercel.app/avatar/default/frank.png",
-	"https://paopao-demo.vercel.app/avatar/default/finn.png",
-	"https://paopao-demo.vercel.app/avatar/default/emma.png",
-	"https://paopao-demo.vercel.app/avatar/default/emily.png",
-	"https://paopao-demo.vercel.app/avatar/default/edward.png",
-	"https://paopao-demo.vercel.app/avatar/default/clara.png",
-	"https://paopao-demo.vercel.app/avatar/default/claire.png",
-	"https://paopao-demo.vercel.app/avatar/default/chloe.png",
-	"https://paopao-demo.vercel.app/avatar/default/audrey.png",
-	"https://paopao-demo.vercel.app/avatar/default/arthur.png",
-	"https://paopao-demo.vercel.app/avatar/default/anna.png",
-	"https://paopao-demo.vercel.app/avatar/default/andy.png",
-	"https://paopao-demo.vercel.app/avatar/default/alfred.png",
-	"https://paopao-demo.vercel.app/avatar/default/alexa.png",
-	"https://paopao-demo.vercel.app/avatar/default/abigail.png",
-}
-
-func getRandomAvatar() string {
-	rand.Seed(time.Now().UnixMicro())
-	return defaultAvatars[rand.Intn(len(defaultAvatars))]
+// deleteOldAvatar 换头像成功后清理旧头像对象: 仅删除本站 OSS 域下 public/avatar/
+// 前缀的对象(外链/空值/新旧相同则跳过), 宽松处理错误(仅告警不中断)。
+// 注: 默认头像(identicon, public/avatar/default/)同样适用——同一种子生成结果幂等,
+// 误删后重启/注册流程可原样重建。
+func deleteOldAvatar(oss core.ObjectStorageService, oldURL, newURL string) {
+	if oldURL == "" || oldURL == newURL {
+		return
+	}
+	if !strings.HasPrefix(oldURL, conf.GetOssDomain()) || !strings.Contains(oldURL, "public/avatar/") {
+		return
+	}
+	if err := oss.DeleteObject(oss.ObjectKey(oldURL)); err != nil {
+		logrus.Warnf("deleteOldAvatar: delete object %q failed: %s", oldURL, err)
+	}
 }
 
 // checkPassword 密码检查

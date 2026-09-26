@@ -50,9 +50,13 @@
   },
   "avatar": {
     "formatError": "Avatar only allows png/jpg format",
-    "sizeError": "Avatar size cannot exceed 1MB",
+    "sizeError": "Source image size cannot exceed 10MB",
     "updateSuccess": "Avatar updated successfully",
-    "uploadFailed": "Upload failed"
+    "uploadFailed": "Upload failed",
+    "cropTitle": "Crop Avatar",
+    "cropConfirm": "Confirm",
+    "cropCancel": "Cancel",
+    "auditPending": "Avatar submitted, it will take effect after approval"
   },
   "nickname": {
     "changeSuccess": "Nickname changed successfully",

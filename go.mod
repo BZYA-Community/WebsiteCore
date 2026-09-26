@@ -32,6 +32,7 @@ require (
 	github.com/prometheus/client_golang v1.23.0
 	github.com/redis/rueidis v1.0.64
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/rrivera/identicon v0.0.0-20240116195454-d5ba35832c0d
 	github.com/sirupsen/logrus v1.9.3
 	github.com/sourcegraph/conc v0.3.0
 	github.com/spf13/cobra v1.9.1

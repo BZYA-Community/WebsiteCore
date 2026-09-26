@@ -722,6 +722,87 @@ func (s *auditSrv) AuditNicknameAction(req *web.AdminAuditNicknameReq) error {
 	return nil
 }
 
+// ListAuditAvatars 头像审核队列
+func (s *auditSrv) ListAuditAvatars(req *web.AdminAuditAvatarsReq) (*web.AdminAuditAvatarsResp, error) {
+	limit, offset := req.PageSize, (req.Page-1)*req.PageSize
+	users, total, err := s.Ds.ListAuditAvatars(offset, limit)
+	if err != nil {
+		logrus.Errorf("Ds.ListAuditAvatars err: %s", err)
+		return nil, web.ErrGetPostsFailed
+	}
+	items := make([]*web.AdminAuditAvatarItem, 0, len(users))
+	for _, u := range users {
+		items = append(items, &web.AdminAuditAvatarItem{
+			UserID:        u.ID,
+			Username:      u.Username,
+			Avatar:        u.Avatar,
+			PendingAvatar: u.PendingAvatar,
+			CreatedOn:     u.CreatedOn,
+		})
+	}
+	return (*web.AdminAuditAvatarsResp)(base.PageRespFrom(items, req.Page, req.PageSize, total)), nil
+}
+
+// AuditAvatarAction 头像审核·通过/拒绝
+func (s *auditSrv) AuditAvatarAction(req *web.AdminAuditAvatarReq) error {
+	if req.User == nil {
+		return web.ErrNoPermission
+	}
+	if req.Action == "reject" && len(req.Reason) == 0 {
+		return xerror.InvalidParams.WithDetails("拒绝操作需要填写原因")
+	}
+	user, err := s.Ds.GetUserByID(req.UserID)
+	if err != nil || user.Model == nil || user.ID <= 0 {
+		return xerror.InvalidParams.WithDetails("用户不存在")
+	}
+	if user.PendingAvatar == "" {
+		return xerror.InvalidParams.WithDetails("该用户没有待审核的头像变更")
+	}
+	pending := user.PendingAvatar
+	if req.Action == "approve" {
+		oldAvatar := user.Avatar
+		if err := s.Ds.UpdateUserAvatar(user, pending, ""); err != nil {
+			logrus.Errorf("Ds.UpdateUserAvatar err: %s", err)
+			return web.ErrAuditAvatarFailed
+		}
+		// 缓存处理
+		onChangeUsernameEvent(user.ID, user.Username)
+		onCreateMessageEvent(&ms.Message{
+			ReceiverUserID: user.ID,
+			Type:           ms.MsgTypeSystem,
+			Brief:          "头像审核通过",
+			Content:        "你的新头像已通过审核并生效。",
+		})
+		// 清理旧头像对象(仅本站OSS的public/avatar/前缀)
+		deleteOldAvatar(s.oss, oldAvatar, pending)
+	} else {
+		if err := s.Ds.UpdateUserAvatar(user, user.Avatar, ""); err != nil {
+			logrus.Errorf("Ds.UpdateUserAvatar err: %s", err)
+			return web.ErrAuditAvatarFailed
+		}
+		if r := []rune(req.Reason); len(r) > 120 {
+			req.Reason = string(r[:120]) + "…"
+		}
+		onCreateMessageEvent(&ms.Message{
+			ReceiverUserID: user.ID,
+			Type:           ms.MsgTypeSystem,
+			Brief:          "头像审核未通过",
+			Content:        fmt.Sprintf("你的头像变更审核未通过。原因：%s。", req.Reason),
+		})
+		// 拒绝时清理未过审的头像文件
+		deleteOssObjects(s.oss, []string{pending})
+	}
+	// 写审核日志(失败不影响审核结果)
+	if err := s.Ds.CreateAuditLog(&ms.AuditLog{
+		OperatorID: req.User.ID,
+		Action:     "avatar_" + req.Action,
+		Reason:     req.Reason,
+	}); err != nil {
+		logrus.Errorf("Ds.CreateAuditLog err: %s", err)
+	}
+	return nil
+}
+
 // ListAuditLogs 审核日志
 func (s *auditSrv) ListAuditLogs(req *web.AdminAuditLogsReq) (*web.AdminAuditLogsResp, error) {
 	limit, offset := req.PageSize, (req.Page-1)*req.PageSize

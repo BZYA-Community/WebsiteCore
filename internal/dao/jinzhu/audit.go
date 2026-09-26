@@ -163,6 +163,28 @@ func (s *auditSrv) UpdateUserNickname(user *ms.User, nickname, pendingNickname s
 	}).Error
 }
 
+// ListAuditAvatars 头像审核队列: pending_avatar非空的用户
+func (s *auditSrv) ListAuditAvatars(offset, limit int) (res []*ms.User, total int64, err error) {
+	db := s.db.Model(&dbr.User{}).Where("is_del = ? AND pending_avatar <> ''", 0)
+	if err = db.Count(&total).Error; err != nil {
+		return
+	}
+	if offset >= 0 && limit > 0 {
+		db = db.Offset(offset).Limit(limit)
+	}
+	err = db.Order("id DESC").Find(&res).Error
+	return
+}
+
+// UpdateUserAvatar 头像审核结果落库(指定列更新 零值pending可清空)
+func (s *auditSrv) UpdateUserAvatar(user *ms.User, avatar, pendingAvatar string) error {
+	return s.db.Model(&dbr.User{}).Where("id = ?", user.ID).Updates(map[string]any{
+		"avatar":         avatar,
+		"pending_avatar": pendingAvatar,
+		"modified_on":    time.Now().Unix(),
+	}).Error
+}
+
 func (s *auditSrv) ListAuditLogs(offset, limit int) (res []*ms.AuditLog, total int64, err error) {
 	db := s.db.Model(&dbr.AuditLog{}).Where("is_del = ?", 0)
 	if err = db.Count(&total).Error; err != nil {

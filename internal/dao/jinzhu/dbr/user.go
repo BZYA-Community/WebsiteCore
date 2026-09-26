@@ -42,6 +42,9 @@ type User struct {
 	// PendingNickname 昵称变更暂存: 提交后先存此处 审核通过才写入Nickname
 	// json:"-" 避免对外泄露未审核内容
 	PendingNickname string `json:"-"`
+	// PendingAvatar 头像变更暂存: 提交后先存此处 审核通过才写入Avatar
+	// json:"-" 避免对外泄露未审核内容
+	PendingAvatar string `json:"-"`
 }
 
 type UserFormated struct {

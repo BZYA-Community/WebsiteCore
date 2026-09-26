@@ -134,6 +134,7 @@ var (
 	ErrUserDeleteFailed       = xerror.NewError(11004, "删除用户失败")
 	ErrAuditCommentFailed     = xerror.NewError(11005, "评论审核操作失败")
 	ErrAuditNicknameFailed    = xerror.NewError(11006, "昵称审核操作失败")
+	ErrAuditAvatarFailed      = xerror.NewError(11007, "头像审核操作失败")
 
 	ErrNotImplemented = xerror.NewError(10501, "功能未实现")
 )

@@ -115,11 +115,12 @@ import { MoreHorizFilled } from '@vicons/material';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
 import UserAction, { canWhisperUser } from '@/composables/useUserAction';
+import defaultUserAvatar from '@/assets/img/logo.png';
 
 const { t } = useI18n();
 
-const defaultavatar =
-  'https://paopao-demo.vercel.app/avatar/default/admin.png';
+// 本地默认头像(不使用外链): 用户头像为空时兜底展示
+const defaultavatar = defaultUserAvatar;
 
 const router = useRouter();
 

@@ -15,18 +15,17 @@
                         userInfo.phone.length > 0)
                     "
                     ref="avatarRef"
-                    :action="uploadGateway"
-                    :headers="{
-                        Authorization: uploadToken,
-                    }"
-                    :data="{
-                        type: uploadType,
-                    }"
+                    :show-file-list="false"
                     @before-upload="beforeUpload"
-                    @finish="finishUpload"
                 >
                     <n-button size="small">{{ t('setting.base.changeAvatar') }}</n-button>
                 </n-upload>
+                <avatar-cropper
+                    v-model:show="showAvatarCropper"
+                    :src="cropSrc"
+                    :loading="cropUploading"
+                    @confirm="handleCropConfirm"
+                />
             </div>
             <div class="base-line">
                 <span class="base-label">{{ t('setting.base.nickname') }}</span>
@@ -340,7 +339,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, reactive, computed } from 'vue';
+import { onMounted, ref, reactive, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { Edit } from '@vicons/tabler';
@@ -351,17 +350,15 @@ import type {
   FormInst,
   InputInst,
 } from 'naive-ui';
-import { TOKEN_KEY, useStoreUser } from '@/store/user';
+import { useStoreUser } from '@/store/user';
 import { useStoreProfile } from '@/store/profile';
 import { storeToRefs } from 'pinia';
-import { Api } from '@/utils/request';
+import { Api, request } from '@/utils/request';
 import { userInfo as fetchUserInfo } from '@/api/auth';
+import AvatarCropper from '@/components/AvatarCropper.vue';
 
 const { t } = useI18n();
 
-const uploadGateway = import.meta.env.VITE_HOST + '/v1/attachment';
-const uploadToken = 'Bearer ' + localStorage.getItem(TOKEN_KEY);
-const uploadType = ref('public/avatar');
 const allowActivation =
   import.meta.env.VITE_ALLOW_ACTIVATION.toLowerCase() === 'true';
 
@@ -405,49 +402,73 @@ const activateData = reactive({
   activate_code: '',
 });
 
-const beforeUpload = async (data: any) => {
+// 头像裁剪: 选择文件后先弹出正方形裁剪框, 裁剪结果再手动上传
+const showAvatarCropper = ref(false);
+const cropSrc = ref('');
+const cropUploading = ref(false);
+
+watch(showAvatarCropper, (show) => {
+  if (!show && cropSrc.value) {
+    URL.revokeObjectURL(cropSrc.value);
+    cropSrc.value = '';
+  }
+});
+
+const beforeUpload = (data: any) => {
+  const file = data.file?.file as File | undefined;
+  if (!file) {
+    return false;
+  }
   // 图片类型校验
-  if (
-    uploadType.value === 'public/avatar' &&
-    !['image/png', 'image/jpg', 'image/jpeg'].includes(data.file.file?.type)
-  ) {
+  if (!['image/png', 'image/jpg', 'image/jpeg'].includes(file.type)) {
     window.$message.warning(t('setting.avatar.formatError'));
     return false;
   }
-
-  if (uploadType.value === 'image' && data.file.file?.size > 1048576) {
+  // 源文件大小上限 10MB(裁剪后输出为 512px 内 PNG, 体积远小于此)
+  if (file.size > 10485760) {
     window.$message.warning(t('setting.avatar.sizeError'));
     return false;
   }
-
-  return true;
+  cropSrc.value = URL.createObjectURL(file);
+  showAvatarCropper.value = true;
+  // 阻止 n-upload 默认上传, 由裁剪确认后的 handleCropConfirm 接管
+  avatarRef.value?.clear();
+  return false;
 };
 
-const finishUpload = ({ file, event }: any): any => {
+const handleCropConfirm = async (blob: Blob) => {
+  cropUploading.value = true;
   try {
-    let data = JSON.parse(event.target?.response);
-
-    if (data.code === 0) {
-      if (uploadType.value === 'public/avatar') {
-        Api.v1.user.post.avatar({
-          avatar: data.data.content,
-        })
-          .then((res) => {
-            window.$message.success(t('setting.avatar.updateSuccess'));
-            avatarRef.value?.clear();
-
-            storeUser.updateUserinfo({
-              ...userInfo.value,
-              avatar: data.data.content,
-            });
-          })
-          .catch((err) => {
-            console.log(err);
-          });
-      }
+    const formData = new FormData();
+    formData.append('type', 'public/avatar');
+    formData.append(
+      'file',
+      new File([blob], 'avatar.png', { type: 'image/png' }),
+      'avatar.png',
+    );
+    const uploadRes = await request<FormData, { content: string }>({
+      method: 'post',
+      url: '/v1/attachment',
+      data: formData,
+    });
+    const res = await Api.v1.user.post.avatar({
+      avatar: uploadRes.content,
+    });
+    if (res?.pending) {
+      // 审核开启: 已提交待审, 旧头像继续生效
+      window.$message.success(t('setting.avatar.auditPending'));
+    } else {
+      window.$message.success(t('setting.avatar.updateSuccess'));
+      storeUser.updateUserinfo({
+        ...userInfo.value,
+        avatar: uploadRes.content,
+      });
     }
-  } catch (error) {
+    showAvatarCropper.value = false;
+  } catch (_err) {
     window.$message.error(t('setting.avatar.uploadFailed'));
+  } finally {
+    cropUploading.value = false;
   }
 };
 

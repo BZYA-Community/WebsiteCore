@@ -5,7 +5,8 @@
     "post": "Posts",
     "comment": "Comments",
     "nickname": "Nicknames",
-    "logs": "Audit Logs"
+    "logs": "Audit Logs",
+    "avatar": "Avatars"
   },
   "status": {
     "pending": "Pending",
@@ -31,7 +32,9 @@
     "courseCommentReject": "Course Comment Rejected",
     "courseReplyApprove": "Course Reply Approved",
     "courseReplyReject": "Course Reply Rejected",
-    "courseDelete": "Course Deleted"
+    "courseDelete": "Course Deleted",
+    "avatarApprove": "Avatar Approved",
+    "avatarReject": "Avatar Rejected"
   },
   "contentType": {
     "title": "Title",
@@ -78,6 +81,8 @@
     "approved": "Approved successfully",
     "nicknameApproved": "Nickname change approved",
     "fillRejectReason": "Please enter a rejection reason",
-    "rejected": "Rejected"
-  }
+    "rejected": "Rejected",
+    "avatarApproved": "Avatar change approved"
+  },
+  "avatarChangeRequest": "Avatar Change Request"
 }

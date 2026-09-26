@@ -50,9 +50,13 @@
   },
   "avatar": {
     "formatError": "头像仅允许 png/jpg 格式",
-    "sizeError": "头像大小不能超过1MB",
+    "sizeError": "原图大小不能超过10MB",
     "updateSuccess": "头像更新成功",
-    "uploadFailed": "上传失败"
+    "uploadFailed": "上传失败",
+    "cropTitle": "裁剪头像",
+    "cropConfirm": "确认",
+    "cropCancel": "取消",
+    "auditPending": "头像已提交，审核通过后生效"
   },
   "nickname": {
     "changeSuccess": "昵称修改成功",

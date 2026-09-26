@@ -15,6 +15,7 @@ import (
 
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/infra/avatar"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/web/assets"
@@ -100,15 +101,21 @@ func (s *pubSrv) Register(req *web.RegisterReq) (*web.RegisterResp, error) {
 		return nil, web.ErrUserRegisterFailed
 	}
 	password, salt := encryptPasswordAndSalt(req.Password)
+	// 默认头像: 按用户名生成 GitHub 风格 identicon 存本站 OSS(不使用外链)
+	avatarURL, err := avatar.Generate(req.Username)
+	if err != nil {
+		logrus.Errorf("avatar.Generate err: %s", err)
+		return nil, web.ErrUserRegisterFailed
+	}
 	user := &ms.User{
 		Nickname: req.Username,
 		Username: req.Username,
 		Password: password,
-		Avatar:   getRandomAvatar(),
+		Avatar:   avatarURL,
 		Salt:     salt,
 		Status:   ms.UserStatusNormal,
 	}
-	user, err := s.Ds.CreateUser(user)
+	user, err = s.Ds.CreateUser(user)
 	if err != nil {
 		logrus.Errorf("Ds.CreateUser err: %s", err)
 		return nil, web.ErrUserRegisterFailed

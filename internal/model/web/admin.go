@@ -206,6 +206,36 @@ type AdminAuditNicknameItem struct {
 	CreatedOn       int64  `json:"created_on"`
 }
 
+// AdminAuditAvatarsReq 头像审核队列
+type AdminAuditAvatarsReq struct {
+	SimpleInfo `form:"-" binding:"-"`
+	Page       int `form:"-" binding:"-"`
+	PageSize   int `form:"-" binding:"-"`
+}
+
+func (r *AdminAuditAvatarsReq) SetPageInfo(page, pageSize int) {
+	r.Page, r.PageSize = page, pageSize
+}
+
+type AdminAuditAvatarsResp base.PageResp
+
+// AdminAuditAvatarReq 头像审核动作
+type AdminAuditAvatarReq struct {
+	BaseInfo `json:"-" binding:"-"`
+	UserID   int64  `json:"user_id" binding:"required"`
+	Action   string `json:"action" binding:"required,oneof=approve reject"`
+	Reason   string `json:"reason"`
+}
+
+// AdminAuditAvatarItem 头像审核队列条目
+type AdminAuditAvatarItem struct {
+	UserID        int64  `json:"user_id"`
+	Username      string `json:"username"`
+	Avatar        string `json:"avatar"`
+	PendingAvatar string `json:"pending_avatar"`
+	CreatedOn     int64  `json:"created_on"`
+}
+
 // AdminAuditLogsReq 审核日志
 type AdminAuditLogsReq struct {
 	SimpleInfo `form:"-" binding:"-"`

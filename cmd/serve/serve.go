@@ -20,6 +20,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/cache"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
+	"github.com/BZYA-Community/WebsiteCore/internal/infra/avatar"
 	"github.com/BZYA-Community/WebsiteCore/internal/service"
 	"github.com/BZYA-Community/WebsiteCore/internal/sitesetting"
 	"github.com/BZYA-Community/WebsiteCore/pkg/debug"
@@ -63,8 +64,16 @@ func deferFn() {
 	conf.CloseDB()
 }
 
-// _defaultOperatorAvatar 运维账号自动创建时使用的默认头像(与注册流程同源)
-const _defaultOperatorAvatar = "https://paopao-demo.vercel.app/avatar/default/zoe.png"
+// ensureGhostAvatar 启动时为 Ghost 占位用户(已注销作者)生成本地 identicon 头像,
+// 替代旧版外链默认头像(ms 包不能依赖 infra/avatar, 故从 cmd 层注入)。
+func ensureGhostAvatar() {
+	url, err := avatar.Generate(ms.GhostUserFormated.Username)
+	if err != nil {
+		logrus.Errorf("generate ghost avatar failure by err: %v", err)
+		return
+	}
+	ms.GhostUserFormated.Avatar = url
+}
 
 // ensureOperatorAccount 幂等确保配置的运维账号可用:
 // 账号不存在时按配置创建；存在时密码以配置为准(不一致则重置)；始终确保 operator 角色与 is_admin
@@ -91,13 +100,19 @@ func ensureOperatorAccount() {
 			return
 		}
 		salt := uuid.Must(uuid.NewV4()).String()[:8]
+		// 默认头像: 本地生成 identicon(与注册流程同源), 生成失败留空,
+		// 下次启动走"已存在且头像为空"分支自动补齐
+		operatorAvatar, aerr := avatar.Generate(op.Username)
+		if aerr != nil {
+			logrus.Warnf("generate operator account[%s] avatar failure by err: %v", op.Username, aerr)
+		}
 		user = &dbr.User{
 			Model:    &dbr.Model{},
 			Nickname: op.Username,
 			Username: op.Username,
 			Password: utils.HashPassword(op.Password),
 			Salt:     salt,
-			Avatar:   _defaultOperatorAvatar,
+			Avatar:   operatorAvatar,
 			Status:   ms.UserStatusNormal,
 			IsAdmin:  true,
 			Roles:    ms.RoleOperator,
@@ -131,6 +146,15 @@ func ensureOperatorAccount() {
 				updates["password"] = utils.HashPassword(op.Password)
 				updates["salt"] = salt
 			}
+		}
+	}
+	// 头像为空时启动生成补齐(不使用外链默认头像), 已有头像不覆盖
+	if user.Avatar == "" {
+		if operatorAvatar, aerr := avatar.Generate(op.Username); aerr != nil {
+			logrus.Warnf("generate operator account[%s] avatar failure by err: %v", op.Username, aerr)
+		} else {
+			updates["avatar"] = operatorAvatar
+			user.Avatar = operatorAvatar
 		}
 	}
 	if len(updates) == 0 {
@@ -174,6 +198,7 @@ func serveRun(_cmd *cobra.Command, _args []string) {
 	}
 	internal.Initial()
 	sitesetting.Bootstrap(_cmd.Context(), conf.MustGormDB())
+	ensureGhostAvatar()
 	ensureOperatorAccount()
 	ss := service.MustInitService()
 	if len(ss) < 1 {

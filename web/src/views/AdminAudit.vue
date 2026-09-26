@@ -12,6 +12,7 @@
                     <n-tab name="post">{{ t('adminAudit.tab.post') }}</n-tab>
                     <n-tab name="comment">{{ t('adminAudit.tab.comment') }}</n-tab>
                     <n-tab name="nickname">{{ t('adminAudit.tab.nickname') }}</n-tab>
+                    <n-tab name="avatar">{{ t('adminAudit.tab.avatar') }}</n-tab>
                     <n-tab name="logs">{{ t('adminAudit.tab.logs') }}</n-tab>
                 </n-tabs>
 
@@ -215,6 +216,73 @@
                     </div>
                 </template>
 
+                <!-- 头像队列 -->
+                <template v-else-if="category === 'avatar'">
+                    <div class="audit-cards">
+                        <div class="empty-wrap audit-empty" v-if="!loading && avatarItems.length === 0">
+                            <n-empty size="large" :description="t('common.noData')" />
+                        </div>
+                        <div
+                            v-for="row in avatarItems"
+                            :key="row.user_id"
+                            class="audit-card"
+                            @click="openUserInNewTab(row.username)"
+                        >
+                            <div class="audit-card-head">
+                                <span class="audit-card-id">@{{ row.username }}</span>
+                                <n-tag size="small" round type="warning">{{ t('adminAudit.status.pending') }}</n-tag>
+                                <span class="audit-card-time">
+                                    {{ formatTime(row.created_on) }}
+                                </span>
+                            </div>
+                            <div class="audit-card-summary avatar-change-wrap">
+                                <n-avatar :size="64" :src="row.avatar" />
+                                <span class="nickname-arrow">→</span>
+                                <n-avatar :size="64" :src="row.pending_avatar" />
+                            </div>
+                            <div class="audit-card-foot">
+                                <span class="audit-card-author">{{ t('adminAudit.avatarChangeRequest') }}</span>
+                                <n-button
+                                    size="tiny"
+                                    quaternary
+                                    type="info"
+                                    @click.stop="openUserInNewTab(row.username)"
+                                >
+                                    {{ t('adminAudit.action.viewHome') }}
+                                </n-button>
+                                <n-button
+                                    size="tiny"
+                                    quaternary
+                                    type="success"
+                                    :loading="acting"
+                                    @click.stop="approveAvatar(row)"
+                                >
+                                    {{ t('adminAudit.action.approve') }}
+                                </n-button>
+                                <n-button
+                                    size="tiny"
+                                    quaternary
+                                    type="error"
+                                    @click.stop="openReject('avatar', row)"
+                                >
+                                    {{ t('adminAudit.action.reject') }}
+                                </n-button>
+                            </div>
+                        </div>
+                        <div
+                            class="audit-card-pager"
+                            v-if="avatarPagination.itemCount > avatarPagination.pageSize"
+                        >
+                            <n-pagination
+                                :page="avatarPagination.page"
+                                :page-size="avatarPagination.pageSize"
+                                :item-count="avatarPagination.itemCount"
+                                @update:page="handleAvatarPageChange"
+                            />
+                        </div>
+                    </div>
+                </template>
+
                 <!-- 审核日志 -->
                 <template v-else>
                     <n-data-table
@@ -274,6 +342,7 @@ import { Api } from '@/utils/request';
 type AuditPostItem = Api.Admin.NetReq.AuditPostItem;
 type AuditCommentItem = Api.Admin.NetReq.AuditCommentItem;
 type AuditNicknameItem = Api.Admin.NetReq.AuditNicknameItem;
+type AuditAvatarItem = Api.Admin.NetReq.AuditAvatarItem;
 type AuditLogItem = Api.Admin.NetReq.AuditLogItem;
 
 const storeMain = useStoreMain();
@@ -284,17 +353,18 @@ const { t } = useI18n();
 
 const loading = ref(false);
 const acting = ref(false);
-const category = ref<'post' | 'comment' | 'nickname' | 'logs'>('post');
+const category = ref<'post' | 'comment' | 'nickname' | 'avatar' | 'logs'>('post');
 const activeTab = ref('pending');
 const postItems = ref<AuditPostItem[]>([]);
 const commentItems = ref<AuditCommentItem[]>([]);
 const nicknameItems = ref<AuditNicknameItem[]>([]);
+const avatarItems = ref<AuditAvatarItem[]>([]);
 const logItems = ref<AuditLogItem[]>([]);
 
 // 拒绝原因弹窗
 const showRejectModal = ref(false);
 const rejectReason = ref('');
-const rejectTarget = ref<{ kind: 'comment' | 'nickname'; row: AuditCommentItem | AuditNicknameItem } | null>(null);
+const rejectTarget = ref<{ kind: 'comment' | 'nickname' | 'avatar'; row: AuditCommentItem | AuditNicknameItem | AuditAvatarItem } | null>(null);
 
 const tabStatusMap: Record<string, number> = {
     pending: 0,
@@ -319,6 +389,14 @@ const commentPagination = reactive({
 });
 
 const nicknamePagination = reactive({
+    page: 1,
+    pageSize: 10,
+    itemCount: 0,
+    showSizePicker: false,
+    prefix: ({ itemCount }: { itemCount: number }) => t('adminAudit.paginationPrefix', { count: itemCount }),
+});
+
+const avatarPagination = reactive({
     page: 1,
     pageSize: 10,
     itemCount: 0,
@@ -396,6 +474,10 @@ const actionText = (action: string) => {
             return t('adminAudit.action.nicknameApprove');
         case 'nickname_reject':
             return t('adminAudit.action.nicknameReject');
+        case 'avatar_approve':
+            return t('adminAudit.action.avatarApprove');
+        case 'avatar_reject':
+            return t('adminAudit.action.avatarReject');
         case 'course_comment_approve':
             return t('adminAudit.action.courseCommentApprove');
         case 'course_comment_reject':
@@ -544,6 +626,22 @@ const loadNicknames = async () => {
     }
 };
 
+const loadAvatars = async () => {
+    loading.value = true;
+    try {
+        const resp = await Api.v1.admin.get.audit.avatars({
+            page: avatarPagination.page,
+            page_size: avatarPagination.pageSize,
+        });
+        avatarItems.value = resp.list || [];
+        avatarPagination.itemCount = resp.pager?.total_rows || 0;
+    } catch (_err) {
+        // do nothing
+    } finally {
+        loading.value = false;
+    }
+};
+
 const loadLogs = async () => {
     loading.value = true;
     try {
@@ -568,6 +666,9 @@ const loadActiveTab = () => {
         case 'nickname':
             loadNicknames();
             break;
+        case 'avatar':
+            loadAvatars();
+            break;
         case 'comment':
             loadComments();
             break;
@@ -583,6 +684,8 @@ const handleCategoryChange = (tab: string) => {
         logPagination.page = 1;
     } else if (tab === 'nickname') {
         nicknamePagination.page = 1;
+    } else if (tab === 'avatar') {
+        avatarPagination.page = 1;
     } else if (tab === 'comment') {
         commentPagination.page = 1;
     } else {
@@ -615,6 +718,11 @@ const handleCommentPageChange = (page: number) => {
 const handleNicknamePageChange = (page: number) => {
     nicknamePagination.page = page;
     loadNicknames();
+};
+
+const handleAvatarPageChange = (page: number) => {
+    avatarPagination.page = page;
+    loadAvatars();
 };
 
 const handleLogPageChange = (page: number) => {
@@ -655,9 +763,25 @@ const approveNickname = async (row: AuditNicknameItem) => {
     }
 };
 
+const approveAvatar = async (row: AuditAvatarItem) => {
+    acting.value = true;
+    try {
+        await Api.v1.admin.post.audit.avatar({
+            user_id: row.user_id,
+            action: 'approve',
+        });
+        window.$message.success(t('adminAudit.msg.avatarApproved'));
+        loadAvatars();
+    } catch (_err) {
+        // 错误提示由请求拦截器统一处理
+    } finally {
+        acting.value = false;
+    }
+};
+
 const openReject = (
-    kind: 'comment' | 'nickname',
-    row: AuditCommentItem | AuditNicknameItem
+    kind: 'comment' | 'nickname' | 'avatar',
+    row: AuditCommentItem | AuditNicknameItem | AuditAvatarItem
 ) => {
     rejectTarget.value = { kind, row };
     rejectReason.value = '';
@@ -685,7 +809,7 @@ const confirmReject = async () => {
                 reason,
             });
             loadComments();
-        } else {
+        } else if (target.kind === 'nickname') {
             const row = target.row as AuditNicknameItem;
             await Api.v1.admin.post.audit.nickname({
                 user_id: row.user_id,
@@ -693,6 +817,14 @@ const confirmReject = async () => {
                 reason,
             });
             loadNicknames();
+        } else {
+            const row = target.row as AuditAvatarItem;
+            await Api.v1.admin.post.audit.avatar({
+                user_id: row.user_id,
+                action: 'reject',
+                reason,
+            });
+            loadAvatars();
         }
         window.$message.success(t('adminAudit.msg.rejected'));
         showRejectModal.value = false;
@@ -891,6 +1023,16 @@ onMounted(async () => {
             .nickname-new {
                 color: #18a058;
                 font-weight: 600;
+            }
+        }
+
+        .avatar-change-wrap {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            .nickname-arrow {
+                opacity: 0.5;
             }
         }
 

@@ -25,6 +25,10 @@ type SiteAdminService interface {
 	ListAuditNicknames(offset, limit int) ([]*ms.User, int64, error)
 	// 昵称审核动作: 直接落nickname/pending_nickname列(Save全量写 零值可清空)
 	UpdateUserNickname(user *ms.User, nickname, pendingNickname string) error
+	// 头像审核队列: pending_avatar非空的用户
+	ListAuditAvatars(offset, limit int) ([]*ms.User, int64, error)
+	// 头像审核动作: 直接落avatar/pending_avatar列(指定列更新 零值pending可清空)
+	UpdateUserAvatar(user *ms.User, avatar, pendingAvatar string) error
 	// 审核操作日志
 	CreateAuditLog(log *ms.AuditLog) error
 	ListAuditLogs(offset, limit int) ([]*ms.AuditLog, int64, error)
