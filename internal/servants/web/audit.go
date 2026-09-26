@@ -74,6 +74,20 @@ func (s *auditSrv) AuditPostAction(req *web.AdminAuditPostReq) error {
 			}
 			// 过审后进入搜索索引
 			s.PushPostToSearch(post)
+			// 标签计数随过审补建(待审期间未计数), 仅非私密帖; 宽松处理错误
+			if post.Visibility != ms.PostVisitPrivate {
+				tags := make([]string, 0)
+				for _, tg := range strings.Split(post.Tags, ",") {
+					if tg = strings.TrimSpace(tg); tg != "" {
+						tags = append(tags, tg)
+					}
+				}
+				if len(tags) > 0 {
+					if _, err := s.Ds.UpsertTags(post.UserID, tags); err != nil {
+						logrus.Errorf("Ds.UpsertTags err: %s", err)
+					}
+				}
+			}
 		}
 	case "reject":
 		// 拒绝: 标记未通过并打回私密(仅作者可见) 作者可将可见性重新设为非私密再次提交审核

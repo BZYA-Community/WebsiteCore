@@ -295,8 +295,11 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 
 	// 私密推文不创建标签与用户提醒
 	if post.Visibility != core.PostVisitPrivate {
-		// 创建标签
-		s.Ds.UpsertTags(req.User.ID, tags)
+		// 仅已过审帖子创建标签计数: 待审帖的标签在过审时补建(见auditSrv.AuditPostAction),
+		// 避免未过审的标签文本提前进入公开话题列表(quote_num>0即展示)
+		if post.AuditStatus == ms.PostAuditApproved {
+			s.Ds.UpsertTags(req.User.ID, tags)
+		}
 
 		// 创建用户消息提醒
 		for _, u := range req.Users {
