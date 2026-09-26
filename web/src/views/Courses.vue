@@ -224,7 +224,7 @@ import {
   type CourseItem,
 } from '@/api/course';
 import { Api } from '@/utils/request';
-import { TOKEN_KEY } from '@/store/user';
+import { uploadFile } from '@/composables/useAuth';
 import InfiniteLoading from 'v3-infinite-loading';
 import type { UploadCustomRequestOptions } from 'naive-ui';
 
@@ -523,11 +523,7 @@ const uploadCover = async (blob: Blob) => {
     const form = new FormData();
     form.append('type', 'public/image');
     form.append('file', new File([blob], 'cover.jpg', { type: 'image/jpeg' }));
-    const res = await axios.post(
-      import.meta.env.VITE_HOST + '/v1/attachment',
-      form,
-      { headers: { Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY) } },
-    );
+    const res = await uploadFile('/v1/attachment', form);
     if (res.data?.code === 0) {
       coverUrl.value = res.data.data.content;
     }
@@ -558,16 +554,11 @@ const uploadVideo = async (file: File, ext: string) => {
     } else {
       const form = new FormData();
       form.append('file', file);
-      const res = await axios.post(
-        import.meta.env.VITE_HOST + '/v1/admin/course/video',
-        form,
-        {
-          headers: { Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY) },
-          onUploadProgress: (e) => {
-            if (e.total) videoProgress.value = Math.round((e.loaded * 100) / e.total);
-          },
+      const res = await uploadFile('/v1/admin/course/video', form, {
+        onUploadProgress: (e) => {
+          if (e.total) videoProgress.value = Math.round((e.loaded * 100) / e.total);
         },
-      );
+      });
       if (res.data?.code !== 0) {
         throw new Error(res.data?.msg || '上传失败');
       }

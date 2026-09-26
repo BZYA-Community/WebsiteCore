@@ -150,7 +150,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useStoreMain } from '@/store/main';
-import { TOKEN_KEY, useStoreUser } from '@/store/user';
+import { useStoreUser } from '@/store/user';
+import { authHeader, attachmentEndpoint } from '@/composables/useAuth';
 import { debounce } from 'lodash';
 import { ImageOutline } from '@vicons/ionicons5';
 import { createCourseComment } from '@/api/course';
@@ -190,11 +191,9 @@ const allowUserRegister = ref(
 const defaultCommentMaxLength = Number(
   import.meta.env.VITE_DEFAULT_COMMENT_MAX_LENGTH,
 );
-const uploadGateway = import.meta.env.VITE_HOST + '/v1/attachment';
+const uploadGateway = attachmentEndpoint();
 
-const uploadToken = computed(() => {
-  return 'Bearer ' + localStorage.getItem(TOKEN_KEY);
-});
+const uploadToken = computed(() => authHeader());
 // 加载at用户列表
 const loadSuggestionUsers = debounce((k) => {
   Api.v1.suggest.get

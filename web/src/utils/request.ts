@@ -1,6 +1,6 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { useStoreMain } from '@/store/main';
-import { TOKEN_KEY } from '@/store/user';
+import { applyAuthHeader, clearToken } from '@/composables/useAuth';
 
 const service = axios.create({
 	baseURL: import.meta.env.VITE_HOST,
@@ -9,10 +9,8 @@ const service = axios.create({
 
 service.interceptors.request.use(
 	(config) => {
-		// 鉴权Header
-		if (localStorage.getItem(TOKEN_KEY)) {
-			config.headers.set('Authorization', 'Bearer ' + localStorage.getItem(TOKEN_KEY));
-		}
+		// 鉴权Header（统一由 useAuth 注入，未登录时不注入）
+		applyAuthHeader(config.headers);
 
 		return config;
 	},
@@ -34,7 +32,7 @@ service.interceptors.response.use(
 		const { response = {} } = error || {};
 		// 重定向
 		if (+response?.status === 401) {
-			localStorage.removeItem(TOKEN_KEY);
+			clearToken();
 
 			if (response?.data.code !== 10005) {
 				window.$message.warning(response?.data.msg || '鉴权失败');

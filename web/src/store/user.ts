@@ -1,8 +1,9 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
+import { clearToken } from "@/composables/useAuth";
 
-/** 本地存储的用户令牌键名 */
-export const TOKEN_KEY = 'PAOPAO_TOKEN';
+/** 本地存储的用户令牌键名（读写统一收口于 @/composables/useAuth，此处保留导出兼容旧引用） */
+export { TOKEN_KEY } from "@/composables/useAuth";
 
 export const useStoreUser = defineStore('user', () => {
     const userInfo = ref<Record<string, any>>({
@@ -28,7 +29,7 @@ export const useStoreUser = defineStore('user', () => {
     }
 
     function userLogout() {
-        localStorage.removeItem(TOKEN_KEY);
+        clearToken();
         userInfo.value = {
             id: 0,
             nickname: '',

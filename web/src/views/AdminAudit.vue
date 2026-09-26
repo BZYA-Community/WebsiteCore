@@ -259,26 +259,16 @@
 
 <script setup lang="ts">
 import { h, onMounted, reactive, ref } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useRouter } from 'vue-router';
 import { NTag } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
-import { userInfo as fetchUserInfo } from '@/api/auth';
 import { formatTime } from '@/utils/formatTime';
 import { mdPlainText } from '@/utils/markdown';
-import { useStoreMain } from '@/store/main';
-import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { Api } from '@/utils/request';
 
 type AuditPostItem = Api.Admin.NetReq.AuditPostItem;
 type AuditCommentItem = Api.Admin.NetReq.AuditCommentItem;
 type AuditNicknameItem = Api.Admin.NetReq.AuditNicknameItem;
 type AuditLogItem = Api.Admin.NetReq.AuditLogItem;
-
-const storeMain = useStoreMain();
-const storeUser = useStoreUser();
-const { userInfo } = storeToRefs(storeUser);
-const router = useRouter();
 
 const loading = ref(false);
 const acting = ref(false);
@@ -770,44 +760,8 @@ const logColumns: DataTableColumns<AuditLogItem> = [
     },
 ];
 
-const ensureAuditAccess = async () => {
-    if (!localStorage.getItem(TOKEN_KEY) && userInfo.value.id === 0) {
-        storeMain.triggerAuth(true);
-        storeMain.triggerAuthKey('signin');
-        router.replace({
-            name: 'home',
-        });
-        return false;
-    }
-
-    if (userInfo.value.id === 0) {
-        try {
-            const currentUser = await fetchUserInfo();
-            storeUser.updateUserinfo(currentUser);
-        } catch (_err) {
-            storeUser.userLogout();
-            router.replace({
-                name: 'home',
-            });
-            return false;
-        }
-    }
-
-    if (!userInfo.value.is_admin && !userInfo.value.roles?.includes('auditor')) {
-        router.replace({
-            name: '404',
-        });
-        return false;
-    }
-
-    return true;
-};
-
-onMounted(async () => {
-    const allowed = await ensureAuditAccess();
-    if (!allowed) {
-        return;
-    }
+onMounted(() => {
+    // 登录与管理员/审核员校验已由路由 meta.requiresAuth/requiresAdmin/adminRoles + 全局守卫统一处理（#35）
     loadActiveTab();
 });
 </script>

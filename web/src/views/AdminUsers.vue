@@ -162,23 +162,18 @@
 import { h, onMounted, reactive, ref } from 'vue';
 import type { Component } from 'vue';
 import { storeToRefs } from 'pinia';
-import { useRouter } from 'vue-router';
 import { NButton, NSpace, NTag, useDialog } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
-import { userInfo as fetchUserInfo } from '@/api/auth';
 import { formatTime } from '@/utils/formatTime';
 import { identityTagType } from '@/utils/identity';
-import { useStoreMain } from '@/store/main';
-import { TOKEN_KEY, useStoreUser } from '@/store/user';
+import { useStoreUser } from '@/store/user';
 import { Api } from '@/utils/request';
 
 type UserItem = Api.Admin.NetReq.UserItem;
 type RoleLogItem = Api.Admin.NetReq.UserRoleLogItem;
 
-const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const { userInfo } = storeToRefs(storeUser);
-const router = useRouter();
 const dialog = useDialog();
 
 const loading = ref(false);
@@ -575,44 +570,8 @@ const roleLogColumns: DataTableColumns<RoleLogItem> = [
     },
 ];
 
-const ensureAdminAccess = async () => {
-    if (!localStorage.getItem(TOKEN_KEY) && userInfo.value.id === 0) {
-        storeMain.triggerAuth(true);
-        storeMain.triggerAuthKey('signin');
-        router.replace({
-            name: 'home',
-        });
-        return false;
-    }
-
-    if (userInfo.value.id === 0) {
-        try {
-            const currentUser = await fetchUserInfo();
-            storeUser.updateUserinfo(currentUser);
-        } catch (_err) {
-            storeUser.userLogout();
-            router.replace({
-                name: 'home',
-            });
-            return false;
-        }
-    }
-
-    if (!userInfo.value.is_admin) {
-        router.replace({
-            name: '404',
-        });
-        return false;
-    }
-
-    return true;
-};
-
-onMounted(async () => {
-    const allowed = await ensureAdminAccess();
-    if (!allowed) {
-        return;
-    }
+onMounted(() => {
+    // 登录与管理员校验已由路由 meta.requiresAuth/requiresAdmin + 全局守卫统一处理（#35）
     loadUsers();
 });
 </script>

@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
+import { checkRouteAuth } from './guard';
 
 const routes = [
   {
@@ -23,6 +24,7 @@ const routes = [
     name: 'compose-md',
     meta: {
       title: '发布长文',
+      requiresAuth: true,
     },
     component: () => import('@/views/ComposeMd.vue'),
   },
@@ -95,6 +97,7 @@ const routes = [
     name: 'setting',
     meta: {
       title: '设置',
+      requiresAuth: true,
     },
     component: () => import('@/views/Setting.vue'),
   },
@@ -103,6 +106,8 @@ const routes = [
     name: 'admin-settings',
     meta: {
       title: '系统配置',
+      requiresAuth: true,
+      requiresAdmin: true,
     },
     component: () => import('@/views/AdminSettings.vue'),
   },
@@ -111,6 +116,8 @@ const routes = [
     name: 'admin-users',
     meta: {
       title: '用户管理',
+      requiresAuth: true,
+      requiresAdmin: true,
     },
     component: () => import('@/views/AdminUsers.vue'),
   },
@@ -119,6 +126,10 @@ const routes = [
     name: 'admin-audit',
     meta: {
       title: '审核队列',
+      requiresAuth: true,
+      requiresAdmin: true,
+      // 审核队列对管理员与审核员（auditor）开放
+      adminRoles: ['auditor'],
     },
     component: () => import('@/views/AdminAudit.vue'),
   },
@@ -141,9 +152,16 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to) => {
   document.title = `${to.meta.title} | 泡泡 - 一个清新文艺的微社区`;
-  next();
+
+  // 路由级鉴权：只对声明了 requiresAuth / requiresAdmin 的路由生效
+  if (to.meta.requiresAuth || to.meta.requiresAdmin) {
+    const redirect = await checkRouteAuth(to.meta);
+    if (redirect) return redirect;
+  }
+
+  return true;
 });
 
 export default router;

@@ -4,6 +4,7 @@
  */
 
 import { request } from '@/utils/request';
+import { applyAuthHeader } from '@/composables/useAuth';
 
 /** 用户信息 */
 export const userInfo = (
@@ -12,9 +13,7 @@ export const userInfo = (
 	return request({
 		method: 'get',
 		url: '/v1/user/info',
-		headers: {
-			Authorization: `Bearer ${token}`,
-		},
+		headers: applyAuthHeader({}, token),
 	});
 };
 

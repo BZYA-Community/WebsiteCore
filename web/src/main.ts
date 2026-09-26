@@ -17,7 +17,8 @@ registerChat();
 
 const pinia = createPinia();
 
-createApp(App).use(router).use(pinia).mount('#app');
+// pinia 必须先于 router 安装：路由守卫（router/guard.ts）会在组件外读取 store
+createApp(App).use(pinia).use(router).mount('#app');
 
 declare global {
   interface Window {

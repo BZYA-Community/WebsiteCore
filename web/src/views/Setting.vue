@@ -350,14 +350,15 @@ import type {
   FormInst,
   InputInst,
 } from 'naive-ui';
-import { TOKEN_KEY, useStoreUser } from '@/store/user';
+import { useStoreUser } from '@/store/user';
+import { authHeader, attachmentEndpoint } from '@/composables/useAuth';
 import { useStoreProfile } from '@/store/profile';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
 import { userInfo as fetchUserInfo } from '@/api/auth';
 
-const uploadGateway = import.meta.env.VITE_HOST + '/v1/attachment';
-const uploadToken = 'Bearer ' + localStorage.getItem(TOKEN_KEY);
+const uploadGateway = attachmentEndpoint();
+const uploadToken = authHeader();
 const uploadType = ref('public/avatar');
 const allowActivation =
   import.meta.env.VITE_ALLOW_ACTIVATION.toLowerCase() === 'true';
@@ -717,10 +718,7 @@ const handleNicknameShow = () => {
   }, 30);
 };
 onMounted(() => {
-  if (userInfo.value.id === 0) {
-    storeMain.triggerAuth(true);
-    storeMain.triggerAuthKey('signin');
-  }
+  // 登录校验已由路由 meta.requiresAuth + 全局守卫统一处理（#35）
   loadCaptcha();
   loadCaptcha4Activate();
 });

@@ -156,7 +156,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { useStoreMain } from '@/store/main';
-import { TOKEN_KEY, useStoreUser } from '@/store/user';
+import { useStoreUser } from '@/store/user';
+import { getToken, setToken } from '@/composables/useAuth';
 import { userInfo } from '@/api/auth';
 import type { FormInst, FormItemRule } from 'naive-ui';
 import { storeToRefs } from 'pinia';
@@ -223,7 +224,7 @@ const handleLogin = (e: Event) => {
         .then((res) => {
           const token = res?.token || '';
           // 写入用户信息
-          localStorage.setItem(TOKEN_KEY, token);
+          setToken(token);
 
           return userInfo(token);
         })
@@ -265,7 +266,7 @@ const handleRegister = (e: Event) => {
         .then((res) => {
           const token = res?.token || '';
           // 写入用户信息
-          localStorage.setItem(TOKEN_KEY, token);
+          setToken(token);
 
           return userInfo(token);
         })
@@ -287,7 +288,7 @@ const handleRegister = (e: Event) => {
 };
 
 onMounted(() => {
-  const token = localStorage.getItem(TOKEN_KEY) || '';
+  const token = getToken();
   if (token) {
     userInfo(token)
       .then((res) => {

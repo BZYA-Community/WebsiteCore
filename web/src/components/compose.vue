@@ -282,7 +282,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useStoreMain } from '@/store/main';
-import { TOKEN_KEY, useStoreUser } from '@/store/user';
+import { useStoreUser } from '@/store/user';
+import { authHeader, attachmentEndpoint } from '@/composables/useAuth';
 import { useStoreProfile } from '@/store/profile';
 import { debounce } from 'lodash';
 
@@ -338,11 +339,9 @@ const defaultVisitType = ref<VisibilityEnum>(VisibilityEnum.PUBLIC);
 const allowTweetVisibility = ref(
   import.meta.env.VITE_ALLOW_TWEET_VISIBILITY.toLowerCase() === 'true',
 );
-const uploadGateway = import.meta.env.VITE_HOST + '/v1/attachment';
+const uploadGateway = attachmentEndpoint();
 
-const uploadToken = computed(() => {
-  return 'Bearer ' + localStorage.getItem(TOKEN_KEY);
-});
+const uploadToken = computed(() => authHeader());
 
 const visibilities = computed(() => {
   let res = [

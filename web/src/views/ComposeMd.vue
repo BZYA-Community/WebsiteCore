@@ -223,7 +223,7 @@ import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { debounce } from 'lodash';
 import { useStoreMain } from '@/store/main';
-import { TOKEN_KEY, useStoreUser } from '@/store/user';
+import { authHeader, attachmentEndpoint } from '@/composables/useAuth';
 import { useStoreProfile } from '@/store/profile';
 
 import {
@@ -239,7 +239,6 @@ import 'md-editor-v3/lib/style.css';
 import { createPost } from '@/api/post';
 import { parsePostTag } from '@/utils/content';
 import { MD_MAX_LENGTH, mdTheme } from '@/utils/markdown';
-import { userInfo as fetchUserInfo } from '@/api/auth';
 import { isZipFile } from '@/utils/isZipFile';
 import type { UploadFileInfo, UploadInst } from 'naive-ui';
 import { VisibilityEnum, PostItemTypeEnum } from '@/utils/IEnum';
@@ -248,10 +247,8 @@ const MD_DRAFT_KEY = 'paopao-md-draft';
 
 const router = useRouter();
 const storeMain = useStoreMain();
-const storeUser = useStoreUser();
 const storeProfile = useStoreProfile();
 const { theme } = storeToRefs(storeMain);
-const { userInfo } = storeToRefs(storeUser);
 const { profile } = storeToRefs(storeProfile);
 
 const editorTheme = computed(() => mdTheme(theme.value));
@@ -283,11 +280,9 @@ const defaultVisitType = ref<VisibilityEnum>(VisibilityEnum);
 const allowTweetVisibility = ref(
   import.meta.env.VITE_ALLOW_TWEET_VISIBILITY.toLowerCase() === 'true',
 );
-const uploadGateway = import.meta.env.VITE_HOST + '/v1/attachment';
+const uploadGateway = attachmentEndpoint();
 
-const uploadToken = computed(() => {
-  return 'Bearer ' + localStorage.getItem(TOKEN_KEY);
-});
+const uploadToken = computed(() => authHeader());
 
 const visibilities = computed(() => {
   let res = [
@@ -550,38 +545,7 @@ const submitPost = () => {
     });
 };
 
-const ensureLogin = async () => {
-  if (!localStorage.getItem(TOKEN_KEY) && userInfo.value.id === 0) {
-    storeMain.triggerAuth(true);
-    storeMain.triggerAuthKey('signin');
-    router.replace({
-      name: 'home',
-    });
-    return false;
-  }
-
-  if (userInfo.value.id === 0) {
-    try {
-      const currentUser = await fetchUserInfo();
-      storeUser.updateUserinfo(currentUser);
-    } catch (_err) {
-      storeUser.userLogout();
-      router.replace({
-        name: 'home',
-      });
-      return false;
-    }
-  }
-
-  return true;
-};
-
-onMounted(async () => {
-  const allowed = await ensureLogin();
-  if (!allowed) {
-    return;
-  }
-
+onMounted(() => {
   const defaultVisibility = profile.value.defaultTweetVisibility;
   if (defaultVisibility === 'following') {
     defaultVisitType.value = VisibilityEnum.Following;
