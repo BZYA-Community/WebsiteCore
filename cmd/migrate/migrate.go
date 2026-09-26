@@ -5,6 +5,7 @@
 package migrate
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/BZYA-Community/WebsiteCore/cmd"
@@ -29,7 +30,10 @@ func migrateRun(_cmd *cobra.Command, _args []string) {
 	// always migrates. The command must be built with the `migration` build tag,
 	// otherwise migration.Run reports that the build lacks migration support and
 	// migrateRun exits non-zero.
-	conf.Initial([]string{"Migration"}, false)
+	if err := conf.Initial([]string{"Migration"}, false); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 
 	// This is a CLI command: surface migration logs on stderr instead of the
 	// logger sinks configured for the server (e.g. LoggerFile), so the operator

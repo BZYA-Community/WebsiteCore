@@ -5,9 +5,8 @@
 package conf
 
 import (
+	"errors"
 	"fmt"
-	"log"
-	"os"
 	"time"
 
 	"github.com/alimy/tryst/cfg"
@@ -150,20 +149,21 @@ func setupSetting(suite []string, noDefault bool) error {
 
 	// Validate critical security settings
 	if JWTSetting.Secret == "" {
-		fmt.Fprintf(os.Stderr, "fatal: JWT Secret is not set. Generate one with: openssl rand -base64 32\nSet it in custom/config.yaml under JWT.Secret\n")
-		os.Exit(1)
+		return errors.New("JWT Secret is not set. Generate one with: openssl rand -base64 32\nSet it in custom/config.yaml under JWT.Secret")
 	}
 
 	return nil
 }
 
-func Initial(suite []string, noDefault bool) {
-	err := setupSetting(suite, noDefault)
-	if err != nil {
-		log.Fatalf("init.setupSetting err: %v", err)
+// Initial 初始化配置/日志/Sentry，失败时返回 error 而不是直接杀进程；
+// 是否退出由调用方（cmd 层）决定。
+func Initial(suite []string, noDefault bool) error {
+	if err := setupSetting(suite, noDefault); err != nil {
+		return fmt.Errorf("init.setupSetting err: %w", err)
 	}
 	setupLogger()
 	initSentry()
+	return nil
 }
 
 func GetOssDomain() string {
