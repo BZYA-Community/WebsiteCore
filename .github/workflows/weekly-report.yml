@@ -6,9 +6,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  issues: write
-  pull-requests: write
+  contents: read
+  issues: read
+  pull-requests: read
 
 jobs:
   report:
@@ -23,21 +23,42 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash scripts/weekly-report.sh
 
-      - name: Archive via PR and publish Issue
+      - name: Send to DingTalk
         env:
-          GH_TOKEN: ${{ github.token }}
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+          DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
         run: |
           D=$(date +%Y-%m-%d)
-          BR="weekly/${D}-$(date +%H%M)"
-          mkdir -p docs/weekly
-          cp /tmp/weekly-report.md "docs/weekly/${D}.md"
-          git config user.name "weekly-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git checkout -b "$BR"
-          git add docs/weekly
-          git commit -m "docs: weekly report ${D}"
-          git push origin "$BR"
-          gh label create weekly-report --color 5319e7 --description "每周自动周报" 2>/dev/null || true
-          gh issue create --title "社区开发周报 ${D}" --body-file /tmp/weekly-report.md --label weekly-report
-          # PR 创建与合并由维护者侧的定时任务完成（GITHUB_TOKEN 建的 PR 不触发 CI，会永久卡在等待检查）
-          echo "branch pushed: $BR（等待维护者侧归档任务处理）"
+          REPORT=$(cat /tmp/weekly-report.md)
+          
+          # 转义特殊字符
+          REPORT_ESCAPED=$(echo "$REPORT" | sed 's/"/\\"/g' | sed 's/\\/\\\\/g' | tr '\n' ' ' | sed 's/  */ /g')
+          
+          # 构建钉钉消息（Markdown 格式）
+          MSG=$(cat <<EOF
+          {
+            "msgtype": "markdown",
+            "markdown": {
+              "title": "社区开发周报 ${D}",
+              "text": "## 社区开发周报 ${D}\n\n${REPORT_ESCAPED}\n\n---\n\n[查看详情](https://github.com/BZYA-Community/WebsiteCore)"
+            }
+          }
+          EOF
+          )
+          
+          # 如果配置了加签，计算签名
+          if [ -n "$DINGTALK_SECRET" ]; then
+            TIMESTAMP=$(date +%s%3N)
+            STRING_TO_SIGN="${TIMESTAMP}\n${DINGTALK_SECRET}"
+            SIGN=$(echo -ne "$STRING_TO_SIGN" | openssl dgst -sha256 -hmac "$DINGTALK_SECRET" -binary | base64 | sed 's/+/%2B/g' | sed 's/\//%2F/g' | sed 's/=/%3D/g')
+            URL="${DINGTALK_WEBHOOK}&timestamp=${TIMESTAMP}&sign=${SIGN}"
+          else
+            URL="$DINGTALK_WEBHOOK"
+          fi
+          
+          # 发送
+          curl -s -X POST "$URL" \
+            -H "Content-Type: application/json" \
+            -d "$MSG"
+          
+          echo "周报已推送到钉钉"
