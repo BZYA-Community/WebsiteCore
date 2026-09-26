@@ -1,47 +1,50 @@
 # Documentation Index
 
-English | [简体中文](README_ZH.md)
+Start here if you are looking for anything beyond the project overview in the [root README](../README.md).
 
-This directory contains project documentation for development, deployment, API assets, design notes, and community discussions around PaoPao.
+## Getting started
 
-If you are looking for the main project entry points, start from:
-
-- [../README.md](../README.md) - project overview
-- [INSTALL.md](INSTALL.md) - installation and local setup guide
-
-## Documentation Sections
-
-| Section | Description |
+| Document | For whom |
 | --- | --- |
-| [INSTALL.md](INSTALL.md) ([中文](INSTALL_ZH.md)) | Installation and local setup guide |
-| [CHANGELOG.md](CHANGELOG.md) | Release history (upstream paopao-ce lineage and fork notes) |
-| [features-status.md](features-status.md) | Feature maturity and support status |
-| [openapi/](openapi/) | Exported API documentation assets, including generated OpenAPI files and static docs artifacts |
-| [proposal/](proposal/) | Product ideas, design proposals, and implementation notes |
-| [deploy/](deploy/) | Deployment references for local, cloud, and Kubernetes environments |
-| [discuss/](discuss/) | Discussion-oriented documents, notes, and related references |
+| [INSTALL.md](INSTALL.md) | Anyone running the project for the first time |
+| [deploy/local.md](deploy/local.md) | Developers setting up a local stack |
+| [development.md](development.md) | Contributors writing code |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | Everyone opening an issue or PR (roles, BVT, review rules) |
 
-## Recommended Reading Paths
+## Deployment and operations
 
-### New contributors
+| Document | Topic |
+| --- | --- |
+| [deploy/README.md](deploy/README.md) | Deployment overview and path selection |
+| [deploy/configuration.md](deploy/configuration.md) | Full `config.yaml` reference, feature flags, admin-managed settings |
+| [deploy/database.md](deploy/database.md) | PostgreSQL/MySQL setup, migrations, backup and restore |
+| [deploy/sms.md](deploy/sms.md) | SMS provider (Juhe) and phone-binding configuration |
+| [deploy/production.md](deploy/production.md) | Recommended production layout: native binary + Dockerized dependencies + Nginx |
+| [deploy/docker-compose.md](deploy/docker-compose.md) | Fully containerized alternative |
+| [deploy/public-launch.md](deploy/public-launch.md) | Checklist before opening a site to the public internet |
+| [ci-cd.md](ci-cd.md) | GitHub Actions pipelines, AI review, weekly report |
 
-1. Read [../README.md](../README.md)
-2. Follow [INSTALL.md](INSTALL.md)
-3. Browse [proposal/](proposal/) to understand product intent and feature direction
+## Reference
 
-### Operators and self-hosters
+| Document | Topic |
+| --- | --- |
+| [features-status.md](features-status.md) | Feature flag maturity matrix |
+| [CHANGELOG.md](CHANGELOG.md) | WebsiteCore change history |
+| [openapi/](openapi/) | OpenAPI assets served at `/docs/openapi` with the `docs` build tag |
+| [governance.md](governance.md) | Community governance charter (Chinese): review process, promotion rules, release flow |
+| [requirements-starisle-v2.0.md](requirements-starisle-v2.0.md) | Product requirements baseline (Chinese): what the platform is and must become |
+| [archive/](archive/) | Historical upstream paopao-ce documents, kept for reference only |
 
-1. Start with [INSTALL.md](INSTALL.md)
-2. Continue into [deploy/README.md](deploy/README.md)
-3. Use the platform-specific deployment docs that match your target environment
+## Reading paths
 
-### API and integration work
+**New contributor**: root [README](../README.md) → [INSTALL.md](INSTALL.md) → [development.md](development.md) → [../CONTRIBUTING.md](../CONTRIBUTING.md). Skim [governance.md](governance.md) to understand how reviews and promotions work.
 
-1. Review [openapi/](openapi/)
-2. Check [proposal/](proposal/) for feature context when endpoint behavior is tied to product design
+**Operator / self-hoster**: [INSTALL.md](INSTALL.md) → [deploy/production.md](deploy/production.md) → [deploy/configuration.md](deploy/configuration.md) → [deploy/database.md](deploy/database.md) → [deploy/public-launch.md](deploy/public-launch.md).
 
-## Notes
+**API / integration work**: [openapi/](openapi/) (run with `make run TAGS='docs'`) → [development.md](development.md) (how APIs are defined in `mirc/` and generated into `auto/`).
 
-- `openapi/` is primarily a generated documentation asset bundle rather than a hand-written narrative section.
-- `proposal/` contains historical and ongoing design material, so some documents reflect exploration rather than final behavior.
-- `discuss/` may include working notes and community-oriented references in addition to formal documentation.
+## Conventions
+
+- Documentation is maintained in English; the root [README_ZH.md](../README_ZH.md) provides a Chinese overview, and the two community charters (governance, requirements) remain in Chinese as authored.
+- Docs live next to the code they describe and change through the same PR flow. If a PR changes behavior, it updates the affected page in the same change.
+- Anything under `archive/` is frozen history; do not link to it from user-facing guides.

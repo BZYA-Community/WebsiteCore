@@ -1,0 +1,80 @@
+name: Bug report
+description: Something is broken, throws an error, or behaves differently than expected.
+title: "[Bug] <one-line summary of the symptom>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Fill in as much as you can — a reproducible report gets fixed much faster.
+        Security problem? Do NOT use this form; see [SECURITY.md](../../SECURITY.md).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Which page, what you clicked, what you saw that was wrong.
+      placeholder: e.g. On the Courses page, clicking search freezes the page — the spinner keeps turning and nothing responds.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps, starting from opening the site, so someone else can reproduce it exactly.
+      placeholder: |
+        1. Log in as ...
+        2. Go to ...
+        3. Click ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Your account role
+      options:
+        - Guest (not logged in)
+        - Regular user
+        - Mentor
+        - Auditor
+        - Admin
+        - Operator
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Where did it happen?
+      options:
+        - Desktop — Chrome/Edge
+        - Desktop — Firefox
+        - Desktop — Safari
+        - Mobile — iOS
+        - Mobile — Android
+        - Other (write in the notes)
+    validations:
+      required: true
+  - type: input
+    id: time
+    attributes:
+      label: Approximate time it happened
+      placeholder: e.g. 2026-09-26 21:30 Beijing time
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots / recordings / error text
+      description: Drag images in directly. Console errors (browser DevTools → Console) and server log excerpts help a lot.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
+        - label: This happens on the latest deployed version.
+          required: true

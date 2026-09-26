@@ -1,8 +1,6 @@
 # Installation Guide
 
-English | [简体中文](INSTALL_ZH.md)
-
-This guide covers the recommended ways to run PaoPao in development, evaluation, and self-hosted deployments. For a project overview, see [README.md](../README.md).
+This guide covers the recommended ways to run WebsiteCore in development, evaluation, and self-hosted deployments. For a project overview, see [README.md](../README.md); for the full operations library, see [deploy/README.md](deploy/README.md).
 
 ## Choose an Installation Path
 
@@ -144,19 +142,19 @@ make run TAGS='embed'
 
 ## Configuration Basics
 
-At startup, PaoPao reads either:
+At startup, WebsiteCore reads either:
 
 1. `./custom/config.yaml`
 2. `./config.yaml`
 
 The first file found is used.
 
-Important: the external file is no longer expected to carry every runtime knob. PaoPao loads embedded defaults first, then overlays your local config file.
+Important: the external file is no longer expected to carry every runtime knob. WebsiteCore loads embedded defaults first, then overlays your local config file. A complete reference for every section and feature flag is in [deploy/configuration.md](deploy/configuration.md).
 
 Recommended split:
 
 - **Bootstrap YAML**: ports, feature selection, database, Redis, JWT, `AdminSettings.EncryptionKey`
-- **Admin UI (`/#/admin/settings`)**: most site, search, storage, SMS, payment, and app-behavior settings
+- **Admin UI (`/#/admin/settings`)**: most site, search, storage, SMS, and app-behavior settings
 
 If a setting is marked **restart required** in the admin page, it is persisted immediately but only becomes active after a process restart.
 
@@ -282,15 +280,15 @@ Then visit:
 
 ## Additional Deployment Docs
 
-For platform-specific or production-oriented deployment references, see:
+For production-oriented deployment references, see:
 
-- [docs/deploy/README.md](deploy/README.md)
-- [docs/deploy/core/](docs/deploy/core/)
-- [docs/deploy/local/](docs/deploy/local/)
-- [docs/deploy/k8s/](docs/deploy/k8s/)
-- [docs/deploy/aliyun/](docs/deploy/aliyun/)
-- [docs/deploy/huawei/](docs/deploy/huawei/)
-- [docs/deploy/tencent/](docs/deploy/tencent/)
+- [deploy/README.md](deploy/README.md) - deployment overview and path selection
+- [deploy/production.md](deploy/production.md) - recommended production layout (binary + systemd + Nginx, dependencies in Docker)
+- [deploy/docker-compose.md](deploy/docker-compose.md) - fully containerized alternative
+- [deploy/configuration.md](deploy/configuration.md) - full configuration reference
+- [deploy/database.md](deploy/database.md) - database deployment, migrations, backups
+- [deploy/sms.md](deploy/sms.md) - SMS platform configuration
+- [deploy/public-launch.md](deploy/public-launch.md) - pre-launch security and compliance checklist
 
 ## Operational Notes
 

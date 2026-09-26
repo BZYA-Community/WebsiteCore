@@ -1,30 +1,34 @@
-# Security Policy 安全政策
+# Security Policy
 
-## Supported Versions 支持的版本
+## Supported versions
 
-本项目为社区定制分支，仅对主干分支提供安全更新，不维护独立的版本发布线。
+This project is a community-maintained fork. Security updates are provided for the `main` branch only; we do not maintain separate release lines.
 
-| Version 版本 | Supported 是否支持 |
-| ------------ | ------------------ |
-| main 分支（最新提交） | :white_check_mark: |
-| 历史提交 / 历史分支 | :x: |
-| 上游 paopao-ce 及其他衍生分支 | :x:（请向上游报告） |
+| Version | Supported |
+| --- | --- |
+| `main` branch (latest commit) | Yes |
+| Historical commits / branches | No |
+| Upstream paopao-ce and other derivatives | No — report to the upstream project |
 
-## Reporting a Vulnerability 漏洞报告
+## Reporting a vulnerability
 
-如发现本项目的安全漏洞，请通过以下方式报告：
+Please report security vulnerabilities privately:
 
-- **推荐渠道**：GitHub 私密安全报告 —— 进入本仓库页面，依次点击 **Security → Report a vulnerability**，填写漏洞详情与复现步骤。
-- 请勿在 Issue、讨论区或公开渠道披露未修复的漏洞细节。
+- **Preferred channel**: GitHub private vulnerability reporting — open this repository's **Security** tab, then **Report a vulnerability**, and include details plus reproduction steps.
+- Do not disclose unpatched vulnerability details in issues, discussions, or any public channel.
 
-**处理流程与时效**：
+### Handling timeline
 
-| 阶段 | 预期 |
-| ---- | ---- |
-| 确认收到报告 | 7 天内 |
-| 初步评估（是否接受 / 严重等级） | 14 天内 |
-| 修复与公告 | 视严重程度尽快处理，通常 30 天内 |
+| Stage | Target |
+| --- | --- |
+| Acknowledge the report | within 7 days |
+| Initial triage (accept / decline, severity) | within 14 days |
+| Fix and public note | as soon as practical, typically within 30 days |
 
-- 报告被接受后，我们会在修复发布时在提交说明中致谢报告者（除非你要求匿名）。
-- 报告被拒绝时，我们会说明原因（例如：属于上游 paopao-ce 的问题、影响范围仅限本地开发环境、或无法复现）。
-- 与私有部署配置相关的弱口令、错误配置类问题不属于代码漏洞，请自行加固（参见 `docs/INSTALL.md` 中的安全建议）。
+- If your report is accepted, we will credit you in the fix commit message unless you prefer to stay anonymous.
+- If it is declined, we will explain why (for example: an upstream paopao-ce issue, local-development-only impact, or not reproducible).
+- Weak passwords or misconfigurations in private deployments are not code vulnerabilities; harden your instance following the security checklist in [`docs/deploy/public-launch.md`](docs/deploy/public-launch.md).
+
+## Scope notes
+
+Things we treat as security-relevant in this fork include: authentication/JWT bypasses, authorization flaws around identity groups and the content-audit pipeline, private-message permission leaks, path traversal in object storage, injection issues, and secret leakage in code or logs.

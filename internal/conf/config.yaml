@@ -270,11 +270,11 @@ WebProfile:
   TweetMobileEllipsisSize: 300     # 移动端推文作为feed显示的最长字数，默认300字
   DefaultTweetVisibility: friend   # 推文默认可见性，默认好友可见 值: public/following/friend/private
   DefaultMsgLoopInterval: 5000     # 拉取未读消息的间隔，单位：毫秒, 默认5000ms 
-  CopyrightTop: "2026 PaoPao"
-  CopyrightLeft: ""
+  CopyrightTop: "2026 All contributors"
+  CopyrightLeft: "为世界上所有美好而战！"
   CopyrightLeftLink: ""
-  CopyrightRight: "泡泡(PaoPao)开源社区"
-  CopyrightRightLink: "https://github.com/rocboss/paopao-ce"
+  CopyrightRight: "Github"
+  CopyrightRightLink: "https://github.com/BZYA-Community/WebsiteCore"
 
 Audit:
   Enabled: true                   # 是否开启内容审核，开启后普通用户新帖需审核通过后公开

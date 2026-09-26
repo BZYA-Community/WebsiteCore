@@ -1,50 +1,48 @@
-# Deployment Documentation
+# Deployment Guides
 
-English | [简体中文](README_ZH.md)
+This directory covers everything needed to run WebsiteCore, from a laptop development stack to a public production server.
 
-This directory collects deployment-oriented documentation for PaoPao across local environments, cloud platforms, and Kubernetes-based setups.
+## Pick a path
 
-For the higher-level setup flow, start with:
-
-- [../INSTALL.md](../INSTALL.md) - installation and runtime setup guide
-- [../README.md](../README.md) - overall documentation index
-
-## Deployment Sections
-
-| Section | Description |
+| I want to... | Read |
 | --- | --- |
-| [core/](core/) | Core deployment concepts and configuration references |
-| [local/](local/) | Local deployment and local dependency setup notes |
-| [aliyun/](aliyun/) | Alibaba Cloud deployment documentation |
-| [huawei/](huawei/) | Huawei Cloud deployment documentation |
-| [tencent/](tencent/) | Tencent Cloud deployment documentation |
-| [k8s/](k8s/) | Kubernetes deployment references |
+| Run the project locally for development | [local.md](local.md) |
+| Understand `config.yaml`, feature flags, and admin-managed settings | [configuration.md](configuration.md) |
+| Set up PostgreSQL or MySQL, run migrations, take backups | [database.md](database.md) |
+| Enable SMS verification (phone binding) | [sms.md](sms.md) |
+| Deploy to a server (recommended: native binary + Dockerized dependencies) | [production.md](production.md) |
+| Deploy everything with Docker Compose | [docker-compose.md](docker-compose.md) |
+| Open the site to the public internet safely | [public-launch.md](public-launch.md) |
 
-## Suggested Reading Order
+## Architecture at a glance
 
-### For local self-hosting
+A WebsiteCore installation is a single Go binary plus three infrastructure services:
 
-1. Read [../INSTALL.md](../INSTALL.md)
-2. Continue with [local/README.md](local/README.md)
-3. Use [core/](core/) if you need additional configuration detail
+```text
+                     +----------------------------+
+   browser --------> | WebsiteCore binary         |
+                     | (Gin API + embedded Vue SPA)|
+                     +----+--------+--------+-----+
+                          |        |        |
+                    +-----+---+ +--+---+ +--+------------+
+                    | PostgreSQL| | Redis| | Meilisearch |
+                    | or MySQL  | |      | | (optional)  |
+                    +-----------+ +------+ +-------------+
+```
 
-### For cloud deployment
+- **Database** (required): PostgreSQL (default) or MySQL. See [database.md](database.md).
+- **Redis** (required): caching, counters, phone verification codes.
+- **Meilisearch** (optional but recommended): full-text search. Zinc is supported as a legacy alternative.
+- **Object storage**: local disk (`LocalOSS`) by default; MinIO, S3, AliOSS, COS, and HuaweiOBS are available via feature flags.
 
-1. Read [../INSTALL.md](../INSTALL.md)
-2. Review [core/](core/)
-3. Open the provider-specific guide for your target platform:
-   - [aliyun/README.md](aliyun/README.md)
-   - [huawei/README.md](huawei/README.md)
-   - [tencent/README.md](tencent/README.md)
+All three infrastructure services are typically run with Docker; the application itself runs as a native binary under systemd. This is the recommended production layout and is documented in [production.md](production.md). A fully containerized alternative is documented in [docker-compose.md](docker-compose.md).
 
-### For Kubernetes-based deployment
+## Prerequisites for any deployment
 
-1. Read [../INSTALL.md](../INSTALL.md)
-2. Review [core/](core/)
-3. Continue with [k8s/README.md](k8s/README.md)
+1. A built binary (or a release package). Build with `make build TAGS='embed migration'` so the frontend assets and database migrations are compiled in. See [../INSTALL.md](../INSTALL.md).
+2. A `config.yaml` next to the binary. Start from [../../config.yaml.sample](../../config.yaml.sample); a full reference is in [configuration.md](configuration.md).
+3. Two secrets you must generate yourself:
+   - `JWT.Secret` — `openssl rand -hex 24`. The process exits at startup if empty.
+   - `AdminSettings.EncryptionKey` — a long random string used to encrypt secrets stored via the admin UI.
 
-## Notes
-
-- Some platform directories primarily contain a single README with environment-specific instructions.
-- `local/` includes additional assets such as local dependency notes and example config material.
-- When deployment behavior depends on enabled runtime features, align your infrastructure choices with `config.yaml` and the selected `Features` suite.
+Before exposing any deployment to the public internet, work through [public-launch.md](public-launch.md).
