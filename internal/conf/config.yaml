@@ -43,6 +43,15 @@ WebServer: # Web服务
   HttpPort: 8008
   ReadTimeout: 60
   WriteTimeout: 60
+  # 可信代理列表(#28): gin SetTrustedProxies, 决定 X-Forwarded-For 是否被采信。
+  # 限流与登录锁定按客户端IP分桶: 直连公网部署请置为空 [] (严格模式, 任何转发头均忽略);
+  # 位于本机/内网反代之后时保留默认(回环+内网段), 或按实际代理地址收紧。
+  TrustedProxies:
+    - 127.0.0.0/8
+    - ::1/128
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
 PprofServer: # Pprof服务
   RunMode: debug
   HttpIp: 0.0.0.0

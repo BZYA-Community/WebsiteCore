@@ -17,6 +17,12 @@ import (
 
 // newTestRateLimitEngine 构造小容量限流测试环境: 通用/敏感桶各突发2
 func newTestRateLimitEngine() (*gin.Engine, *rateLimitStore) {
+	return newTestRateLimitEngineWithProxies(nil)
+}
+
+// newTestRateLimitEngineWithProxies 与生产 newWebEngine 一致地显式设置可信代理;
+// 默认 nil = 严格模式(不信任任何代理头), X-Forwarded-For 不参与分桶键(#28评审🔴)
+func newTestRateLimitEngineWithProxies(proxies []string) (*gin.Engine, *rateLimitStore) {
 	gin.SetMode(gin.TestMode)
 	cfg := rateLimitConfig{
 		generalLimit: rate.Every(time.Minute),
@@ -27,6 +33,9 @@ func newTestRateLimitEngine() (*gin.Engine, *rateLimitStore) {
 	}
 	st := newRateLimitStore(cfg)
 	e := gin.New()
+	if err := e.SetTrustedProxies(proxies); err != nil {
+		panic(err)
+	}
 	e.Use(rateLimitWith(st))
 	e.GET("/v1/ok", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"code": 0})
@@ -103,37 +112,78 @@ func TestRateLimitAuthPathStricterAndIndependent(t *testing.T) {
 	}
 }
 
-func TestRateLimitClientIPFromForwardedHeader(t *testing.T) {
-	e, _ := newTestRateLimitEngine()
+// TestRateLimitIgnoresSpoofedForwardedHeader 未配置可信代理时(严格模式),
+// 客户端在同一连接上每请求换一个伪造的 X-Forwarded-For 无法获得新分桶键(#28评审🔴):
+// 分桶只认 TCP 对端地址, 伪造转发头不能绕过限流
+func TestRateLimitIgnoresSpoofedForwardedHeader(t *testing.T) {
+	e, _ := newTestRateLimitEngine() // 与生产一致: SetTrustedProxies(nil)
 
-	// gin 默认信任代理头, X-Forwarded-For 决定分桶键
-	for i := 0; i < 2; i++ {
+	for i, spoofed := range []string{"8.8.8.8", "9.9.9.9"} {
 		req := httptest.NewRequest("GET", "/v1/ok", nil)
 		req.RemoteAddr = "4.4.4.4:12345"
-		req.Header.Set("X-Forwarded-For", "8.8.8.8")
+		req.Header.Set("X-Forwarded-For", spoofed)
 		w := httptest.NewRecorder()
 		e.ServeHTTP(w, req)
 		if w.Code != http.StatusOK {
-			t.Fatalf("forwarded request %d: expect 200 got %d", i+1, w.Code)
+			t.Fatalf("request %d: expect 200 got %d", i+1, w.Code)
 		}
 	}
-	// 同一转发IP第3次 → 429(桶按 XFF 键)
+	// 第3次再换一个伪造头 → 仍落在 4.4.4.4 的桶上 → 429(伪造不产生新桶)
 	req := httptest.NewRequest("GET", "/v1/ok", nil)
 	req.RemoteAddr = "4.4.4.4:12345"
-	req.Header.Set("X-Forwarded-For", "8.8.8.8")
+	req.Header.Set("X-Forwarded-For", "99.99.99.99")
 	w := httptest.NewRecorder()
 	e.ServeHTTP(w, req)
 	if w.Code != http.StatusTooManyRequests {
-		t.Fatalf("expect 429 for exhausted forwarded ip, got %d", w.Code)
+		t.Fatalf("spoofed XFF must not grant a new bucket, got %d body=%s", w.Code, w.Body.String())
 	}
-	// 同socket不同转发IP → 新桶仍放行
-	req = httptest.NewRequest("GET", "/v1/ok", nil)
-	req.RemoteAddr = "4.4.4.4:12345"
-	req.Header.Set("X-Forwarded-For", "9.9.9.9")
-	w = httptest.NewRecorder()
+}
+
+// TestRateLimitHonorsXFFFromTrustedProxy 配置可信代理(反代部署)时, 代理追加的
+// X-Forwarded-For 被采信, 真实客户端各自独立分桶 —— 修复不牺牲反代场景的功能性
+func TestRateLimitHonorsXFFFromTrustedProxy(t *testing.T) {
+	e, _ := newTestRateLimitEngineWithProxies([]string{"4.4.4.4"})
+
+	forwarded := func(client string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest("GET", "/v1/ok", nil)
+		req.RemoteAddr = "4.4.4.4:12345" // 反代的对端地址
+		req.Header.Set("X-Forwarded-For", client)
+		w := httptest.NewRecorder()
+		e.ServeHTTP(w, req)
+		return w
+	}
+	// 代理转发的真实客户端 8.8.8.8 独立分桶
+	for i := 0; i < 2; i++ {
+		if w := forwarded("8.8.8.8"); w.Code != http.StatusOK {
+			t.Fatalf("request %d: expect 200 got %d", i+1, w.Code)
+		}
+	}
+	if w := forwarded("8.8.8.8"); w.Code != http.StatusTooManyRequests {
+		t.Fatalf("expect 429 for exhausted real client, got %d", w.Code)
+	}
+	// 同一代理下的另一真实客户端 9.9.9.9 拥有独立桶
+	if w := forwarded("9.9.9.9"); w.Code != http.StatusOK {
+		t.Fatalf("expect 200 for other real client, got %d", w.Code)
+	}
+	// 非代理来源(对端不在可信列表)伪造转发头 → 头被忽略, 每次换头仍落同一桶
+	for i, spoofed := range []string{"9.9.9.9", "8.8.8.8"} {
+		req := httptest.NewRequest("GET", "/v1/ok", nil)
+		req.RemoteAddr = "6.6.6.6:12345"
+		req.Header.Set("X-Forwarded-For", spoofed)
+		w := httptest.NewRecorder()
+		e.ServeHTTP(w, req)
+		if w.Code != http.StatusOK {
+			t.Fatalf("untrusted peer request %d: expect 200 got %d", i+1, w.Code)
+		}
+	}
+	// 第3次: 头又换了, 但桶已随 6.6.6.6 耗尽 → 429(伪造头在非代理来源上无效)
+	req := httptest.NewRequest("GET", "/v1/ok", nil)
+	req.RemoteAddr = "6.6.6.6:12345"
+	req.Header.Set("X-Forwarded-For", "7.7.7.7")
+	w := httptest.NewRecorder()
 	e.ServeHTTP(w, req)
-	if w.Code != http.StatusOK {
-		t.Fatalf("expect 200 for new forwarded ip, got %d", w.Code)
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatalf("untrusted peer's spoofed XFF must not separate buckets, got %d", w.Code)
 	}
 }
 

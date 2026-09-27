@@ -16,6 +16,14 @@ Features:
 WebServer:
   HttpIp: 0.0.0.0
   HttpPort: 8008
+  # 可信代理(#28): 决定 X-Forwarded-For 是否被采信(限流/登录锁定按客户端IP分桶)。
+  # 反代部署按实际代理IP/CIDR填写; 直连公网部署请置为空 [] 防止伪造来源IP。
+  TrustedProxies:
+    - 127.0.0.0/8
+    - ::1/128
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
 
 Database:
   LogLevel: error

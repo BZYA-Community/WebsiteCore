@@ -16,6 +16,7 @@ import (
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 type webService struct {
@@ -42,6 +43,18 @@ func (s *webService) String() string {
 func newWebEngine() *gin.Engine {
 	e := gin.New()
 	e.HandleMethodNotAllowed = true
+
+	// 可信代理(#28评审🔴): 显式设置, ClientIP() 不再默认采信任意来源的
+	// X-Forwarded-For —— 否则限流与登录锁定可被"同一连接每请求换一个伪造头"绕过。
+	// 未配置时为严格模式(不信任任何代理头, 分桶键取 TCP 对端地址);
+	// 配置含非法条目时回退严格模式并记录错误, 宁可收紧不可放宽。
+	trustedProxies := conf.WebServerSetting.GetTrustedProxies()
+	if err := e.SetTrustedProxies(trustedProxies); err != nil {
+		logrus.Errorf("SetTrustedProxies(%v) err: %v, fallback to trust none", trustedProxies, err)
+		_ = e.SetTrustedProxies(nil)
+	}
+	logrus.Infof("gin trusted proxies: %v", trustedProxies)
+
 	e.Use(gin.Logger())
 	e.Use(gin.Recovery())
 

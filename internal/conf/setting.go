@@ -61,6 +61,19 @@ type httpServerConf struct {
 	HttpPort     string
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
+	// TrustedProxies 可信代理IP/CIDR列表(#28): 提供给 gin SetTrustedProxies,
+	// 决定 X-Forwarded-For 等转发头是否被采信。客户端来源IP是全局限流与登录锁定
+	// 的分桶依据, 未配置(nil/空)时为严格模式: 不信任任何代理头, ClientIP() 直接
+	// 取 TCP 对端地址, 防止客户端伪造来源IP绕过防护; 反代部署需填入真实代理地址。
+	TrustedProxies []string
+}
+
+// GetTrustedProxies 返回可信代理列表; nil接收者或未配置均返回 nil(严格模式)。
+func (c *httpServerConf) GetTrustedProxies() []string {
+	if c == nil {
+		return nil
+	}
+	return c.TrustedProxies
 }
 
 type appConf struct {
