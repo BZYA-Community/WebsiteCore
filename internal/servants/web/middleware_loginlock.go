@@ -32,18 +32,24 @@ const (
 	_maxLoginLockSniffSize = 8 << 10
 )
 
-// loginLockStore 复合键计数存储(由 core.RedisCache 实现, 测试可注入内存实现)
+// loginLockStore 计数存储(由 core.RedisCache 实现, 测试可注入内存实现)
 type loginLockStore interface {
 	GetCountLoginErrAccountIP(ctx context.Context, account string, ip string) (int64, error)
 	DelCountLoginErrAccountIP(ctx context.Context, account string, ip string) error
 	IncrCountLoginErrAccountIP(ctx context.Context, account string, ip string) error
+	// 账号级影子计数(#28评审🟡): 与账号是否存在无关, 中间件按同一键与阈值统一判定
+	GetCountLoginErrAccount(ctx context.Context, account string) (int64, error)
+	DelCountLoginErrAccount(ctx context.Context, account string) error
+	IncrCountLoginErrAccount(ctx context.Context, account string) error
 }
 
 // LoginLockout 登录失败锁定中间件(#28):
-// 以(账号, 来源IP)复合键统计登录失败次数, 防止攻击者通过批量试错他人账号密码
-// 将任意账号全局锁死; pub.Login 内保留更高阈值的账号维度次要上限作分布式兜底。
-// 计数与 pub.Login 的统一凭据错误(10003/10004)联动: 登录成功清零, 凭据失败递增 ——
-// 账号不存在与密码错误走完全相同的锁定路径, 锁定状态本身不泄露账号是否存在。
+// 两级计数, 均与 pub.Login 的统一凭据错误(10003/10004)联动 —— 登录成功清零, 凭据失败递增:
+//  1. 复合键(账号, 来源IP): 防止攻击者批量试错将任意账号锁死(单IP阈值 _maxLoginErrPerAccountIP);
+//  2. 账号级影子计数(账号): 分布式撞库(多IP摊薄复合键)达到 _MaxAccountLoginErrTimes 时
+//     统一返回锁定码 —— 该计数对"账号不存在"与"账号存在"使用同一键与阈值, 且在 handler
+//     之前判定, 使两种账号在任意失败次数下响应完全一致, 消除枚举侧信道(#28评审🟡)。
+//     pub.Login 内的用户ID计数保持不变作纵深防御(仅账号存在时可达, 行为与影子计数同步)。
 func LoginLockout() gin.HandlerFunc {
 	var (
 		once  sync.Once
@@ -85,7 +91,17 @@ func runLoginLock(store loginLockStore, c *gin.Context) {
 		return
 	}
 
-	// 3. 嗅探登录结果: 统一凭据错误(10003/10004)递增, 登录成功清零
+	// 3. 账号级影子计数检查(#28评审🟡): 分布式撞库下(复合键被多IP摊薄)达到
+	// 与 pub.Login 相同的阈值即返回同一锁定码。该检查不关心账号是否存在 ——
+	// "账号不存在"与"账号存在"在每一次请求上都走同一条判定路径与同一个计数器,
+	// 攻击者无法通过响应码(20014是否出现)区分两者, 填平原先的枚举侧信道。
+	if n, err := store.GetCountLoginErrAccount(ctx, account); err == nil && n >= _MaxAccountLoginErrTimes {
+		c.Abort()
+		app.NewResponse(c).ToErrorResponse(web.ErrTooManyLoginError)
+		return
+	}
+
+	// 4. 嗅探登录结果: 统一凭据错误(10003/10004)递增, 登录成功清零
 	sw := &sniffWriter{ResponseWriter: c.Writer}
 	c.Writer = sw
 	c.Next()
@@ -94,8 +110,10 @@ func runLoginLock(store loginLockStore, c *gin.Context) {
 	case !parsed:
 	case code == 0:
 		_ = store.DelCountLoginErrAccountIP(ctx, account, ip)
+		_ = store.DelCountLoginErrAccount(ctx, account)
 	case code == xerror.UnauthorizedAuthNotExist.StatusCode() || code == xerror.UnauthorizedAuthFailed.StatusCode():
 		_ = store.IncrCountLoginErrAccountIP(ctx, account, ip)
+		_ = store.IncrCountLoginErrAccount(ctx, account)
 	}
 }
 

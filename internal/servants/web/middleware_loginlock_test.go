@@ -19,7 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// fakeLoginLockStore 内存版复合键计数(无需Redis/配置文件)
+// fakeLoginLockStore 内存版计数(无需Redis/配置文件): 复合键与账号级影子计数共用一张表
 type fakeLoginLockStore struct {
 	mu     sync.Mutex
 	counts map[string]int64
@@ -31,6 +31,11 @@ func newFakeLoginLockStore() *fakeLoginLockStore {
 
 func lockKey(account, ip string) string {
 	return account + "|" + ip
+}
+
+// acctLockKey 账号级影子计数键(与复合键共表, 前缀隔离)
+func acctLockKey(account string) string {
+	return "acct|" + account
 }
 
 func (f *fakeLoginLockStore) GetCountLoginErrAccountIP(_ context.Context, account string, ip string) (int64, error) {
@@ -53,6 +58,26 @@ func (f *fakeLoginLockStore) IncrCountLoginErrAccountIP(_ context.Context, accou
 	return nil
 }
 
+func (f *fakeLoginLockStore) GetCountLoginErrAccount(_ context.Context, account string) (int64, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.counts[acctLockKey(account)], nil
+}
+
+func (f *fakeLoginLockStore) DelCountLoginErrAccount(_ context.Context, account string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	delete(f.counts, acctLockKey(account))
+	return nil
+}
+
+func (f *fakeLoginLockStore) IncrCountLoginErrAccount(_ context.Context, account string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.counts[acctLockKey(account)]++
+	return nil
+}
+
 // lockTestEnv 登录路由测试环境: 伪handler按 respCode 返回与 mir Render 一致的JSON
 type lockTestEnv struct {
 	store        *fakeLoginLockStore
@@ -66,6 +91,10 @@ func newLockTestEnv() (*gin.Engine, *lockTestEnv) {
 	gin.SetMode(gin.TestMode)
 	env := &lockTestEnv{store: newFakeLoginLockStore(), respCode: 10004}
 	e := gin.New()
+	// 与生产 newWebEngine 一致: 严格模式, 分桶键取 TCP 对端地址(#28评审🔴)
+	if err := e.SetTrustedProxies(nil); err != nil {
+		panic(err)
+	}
 	e.Use(func(c *gin.Context) { runLoginLock(env.store, c) })
 	e.POST("/v1/auth/login", func(c *gin.Context) {
 		env.handlerCalls++
@@ -203,6 +232,68 @@ func TestLoginLockoutSuccessResets(t *testing.T) {
 	}
 	if env.handlerCalls != callsBefore+_maxLoginErrPerAccountIP-1 {
 		t.Fatalf("counter was not reset, calls=%d", env.handlerCalls)
+	}
+}
+
+// TestLoginLockoutAccountLevelDistributedDodge 分布式撞库: 失败次数被摊薄到多个IP,
+// 各复合键均未达阈值, 但账号级影子计数达到 _MaxAccountLoginErrTimes 后直接返回20014,
+// 且该判定与账号是否存在无关(#28评审🟡) —— 伪handler恒返回10004即"账号不存在"路径,
+// 与 pub.Login 对真实账号的20014走同一中间件判定、同一阈值、同一响应码
+func TestLoginLockoutAccountLevelDistributedDodge(t *testing.T) {
+	e, env := newLockTestEnv()
+
+	// 5个来源IP轮转, 每IP失败9次(复合键9<10), 全部进入handler → 影子计数45
+	for n := 0; n < _MaxAccountLoginErrTimes-5; n++ {
+		ip := fmt.Sprintf("10.1.0.%d", n%5+1)
+		w := postLogin(e, ip, "victim")
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("attempt %d: expect 401 got %d", n+1, w.Code)
+		}
+	}
+	if env.handlerCalls != _MaxAccountLoginErrTimes-5 {
+		t.Fatalf("expect %d handler calls, got %d", _MaxAccountLoginErrTimes-5, env.handlerCalls)
+	}
+	// 再失败5次(每IP第10次, 复合键预检9<10仍放行) → 影子计数恰好达到阈值
+	for n := 0; n < 5; n++ {
+		ip := fmt.Sprintf("10.1.0.%d", n%5+1)
+		postLogin(e, ip, "victim")
+	}
+	if n, _ := env.store.GetCountLoginErrAccount(context.Background(), "victim"); n != _MaxAccountLoginErrTimes {
+		t.Fatalf("shadow counter expect %d got %d", _MaxAccountLoginErrTimes, n)
+	}
+	if env.handlerCalls != _MaxAccountLoginErrTimes {
+		t.Fatalf("expect %d handler calls, got %d", _MaxAccountLoginErrTimes, env.handlerCalls)
+	}
+
+	// 第51次用全新IP(复合键0, 不会被复合锁抢先): 影子计数命中 → 20014, 不进handler
+	w := postLogin(e, "10.1.0.99", "victim")
+	if !strings.Contains(w.Body.String(), `"code":20014`) {
+		t.Fatalf("expect code 20014 from account-level shadow counter, got %s", w.Body.String())
+	}
+	if env.handlerCalls != _MaxAccountLoginErrTimes {
+		t.Fatalf("locked request must not reach handler, calls=%d", env.handlerCalls)
+	}
+}
+
+// TestLoginLockoutAccountLevelResetOnSuccess 登录成功同时清零复合键与账号级影子计数
+func TestLoginLockoutAccountLevelResetOnSuccess(t *testing.T) {
+	e, env := newLockTestEnv()
+
+	for i := 0; i < 5; i++ {
+		postLogin(e, "10.2.0.1", "victim")
+	}
+	if n, _ := env.store.GetCountLoginErrAccount(context.Background(), "victim"); n != 5 {
+		t.Fatalf("shadow counter expect 5 got %d", n)
+	}
+	env.respCode = 0
+	if w := postLogin(e, "10.2.0.1", "victim"); w.Code != http.StatusOK {
+		t.Fatalf("expect 200 got %d", w.Code)
+	}
+	if n, _ := env.store.GetCountLoginErrAccount(context.Background(), "victim"); n != 0 {
+		t.Fatalf("shadow counter should reset after success, got %d", n)
+	}
+	if n, _ := env.store.GetCountLoginErrAccountIP(context.Background(), "victim", "10.2.0.1"); n != 0 {
+		t.Fatalf("composite counter should reset after success, got %d", n)
 	}
 }
 

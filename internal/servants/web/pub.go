@@ -146,8 +146,9 @@ func (s *pubSrv) Login(req *web.LoginReq) (*web.LoginResp, error) {
 		return nil, xerror.UnauthorizedAuthFailed
 	}
 
-	// 账号维度次要上限(#28): 复合键(账号×IP)锁定由 LoginLockout 中间件负责,
-	// 此处更高阈值仅用于兜底分布式撞库
+	// 账号维度次要上限(#28): 复合键(账号×IP)与账号级影子计数已由 LoginLockout 中间件
+	// 统一对"账号存在/不存在"执行(影子计数达同一阈值即返回同一锁定码, 防止以响应码
+	// 区分账号是否存在); 此处的用户ID计数为纵深防御, 仅账号存在时可达, 行为与影子计数同步
 	if count, err := s.Redis.GetCountLoginErr(ctx, user.ID); err == nil && count >= _MaxAccountLoginErrTimes {
 		return nil, web.ErrTooManyLoginError
 	}

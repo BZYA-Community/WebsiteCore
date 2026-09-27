@@ -20,9 +20,11 @@ const (
 	_countLoginErrKey     = "paopao_count_login_err"
 	// 登录失败复合键(账号×IP)计数前缀(#28)
 	_countLoginErrAccountIPKey = "paopao_count_login_err_acctip"
-	_imgCaptchaKey             = "paopao_img_captcha:"
-	_smsCaptchaKey             = "paopao_sms_captcha"
-	_countWhisperKey           = "paopao_whisper_key"
+	// 登录失败账号级影子计数前缀(#28): 账号不存在与存在共用同一键与阈值
+	_countLoginErrAccountKey = "paopao_count_login_err_acct"
+	_imgCaptchaKey           = "paopao_img_captcha:"
+	_smsCaptchaKey           = "paopao_sms_captcha"
+	_countWhisperKey         = "paopao_whisper_key"
 )
 
 type redisCache struct {
@@ -151,6 +153,29 @@ func (r *redisCache) DelCountLoginErrAccountIP(ctx context.Context, account stri
 
 func (r *redisCache) IncrCountLoginErrAccountIP(ctx context.Context, account string, ip string) error {
 	key := countLoginErrAccountIPKey(account, ip)
+	err := r.c.Do(ctx, r.c.B().Incr().Key(key).Build()).Error()
+	if err == nil {
+		err = r.c.Do(ctx, r.c.B().Expire().Key(key).Seconds(3600).Build()).Error()
+	}
+	return err
+}
+
+// countLoginErrAccountKey 账号级影子计数键构造(#28评审🟡): 与复合键同构,
+// 账号"存在/不存在"共用同一键 —— 中间件无法也不需要区分两者
+func countLoginErrAccountKey(account string) string {
+	return fmt.Sprintf("%s:%d:%s", _countLoginErrAccountKey, len(account), account)
+}
+
+func (r *redisCache) GetCountLoginErrAccount(ctx context.Context, account string) (int64, error) {
+	return r.c.Do(ctx, r.c.B().Get().Key(countLoginErrAccountKey(account)).Build()).AsInt64()
+}
+
+func (r *redisCache) DelCountLoginErrAccount(ctx context.Context, account string) error {
+	return r.c.Do(ctx, r.c.B().Del().Key(countLoginErrAccountKey(account)).Build()).Error()
+}
+
+func (r *redisCache) IncrCountLoginErrAccount(ctx context.Context, account string) error {
+	key := countLoginErrAccountKey(account)
 	err := r.c.Do(ctx, r.c.B().Incr().Key(key).Build()).Error()
 	if err == nil {
 		err = r.c.Do(ctx, r.c.B().Expire().Key(key).Seconds(3600).Build()).Error()

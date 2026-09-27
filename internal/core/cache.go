@@ -97,6 +97,12 @@ type RedisCache interface {
 	GetCountLoginErrAccountIP(ctx context.Context, account string, ip string) (int64, error)
 	DelCountLoginErrAccountIP(ctx context.Context, account string, ip string) error
 	IncrCountLoginErrAccountIP(ctx context.Context, account string, ip string) error
+	// 登录失败账号级影子计数(#28评审🟡): 按归一化账号计数, 对"账号不存在"与
+	// "账号存在"使用同一账号键与同一阈值(_MaxAccountLoginErrTimes), 使分布式撞库
+	// 达到阈值后两种账号返回完全相同的锁定响应, 消除以响应码区分账号是否存在的侧信道
+	GetCountLoginErrAccount(ctx context.Context, account string) (int64, error)
+	DelCountLoginErrAccount(ctx context.Context, account string) error
+	IncrCountLoginErrAccount(ctx context.Context, account string) error
 	GetCountWhisper(ctx context.Context, uid int64) (int64, error)
 	IncrCountWhisper(ctx context.Context, uid int64) error
 }
