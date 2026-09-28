@@ -687,9 +687,13 @@ func (s *courseAdminSrv) DeleteCourse(req *web.DeleteCourseReq) error {
 		keys = append(keys, key)
 	}
 	for _, lesson := range lessons {
-		if key := s.oss.ObjectKey(lesson.VideoURL); key != "" { keys = append(keys, key) }
+		if key := s.oss.ObjectKey(lesson.VideoURL); key != "" {
+			keys = append(keys, key)
+		}
 		for _, attachment := range lesson.Attachments {
-			if key := s.oss.ObjectKey(attachment.URL); key != "" { keys = append(keys, key) }
+			if key := s.oss.ObjectKey(attachment.URL); key != "" {
+				keys = append(keys, key)
+			}
 		}
 	}
 	if key := s.oss.ObjectKey(course.Cover); key != "" {
