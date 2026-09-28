@@ -67,6 +67,8 @@ var (
 	ErrCreateCourseCommentFailed    = xerror.NewError(70012, "评论发布失败")
 	ErrDeleteCourseCommentFailed    = xerror.NewError(70013, "评论删除失败")
 	ErrCourseUploadCredentialFailed = xerror.NewError(70014, "获取上传凭证失败")
+	ErrCourseGroupNameDuplicate     = xerror.NewError(70015, "课程分组名称已存在")
+	ErrCourseTitleDuplicate         = xerror.NewError(70016, "同一分组内课程名称已存在")
 
 	ErrGetCommentsFailed      = xerror.NewError(40001, "获取评论列表失败")
 	ErrCreateCommentFailed    = xerror.NewError(40002, "评论发布失败")

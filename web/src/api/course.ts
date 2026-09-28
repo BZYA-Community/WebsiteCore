@@ -30,6 +30,27 @@ export interface CourseItem {
   play_count: number;
   comment_count: number;
   created_on: number;
+  lessons: CourseLesson[];
+}
+
+export interface CourseLessonAttachment {
+  id?: number;
+  lesson_id?: number;
+  name: string;
+  url: string;
+  sort: number;
+}
+
+export interface CourseLesson {
+  id?: number;
+  course_id?: number;
+  title: string;
+  summary: string;
+  video_url?: string;
+  has_video?: boolean;
+  video?: string;
+  sort: number;
+  attachments: CourseLessonAttachment[];
 }
 
 export interface CourseCommentContent {
@@ -122,6 +143,7 @@ export const getCourseComments = (params: {
 /** 课程视频签名播放地址 */
 export const getCourseVideo = (params: {
   id: number;
+  lesson_id?: number;
 }): Promise<{ signed_url: string }> => {
   return request({ method: 'get', url: '/v1/course/video', params });
 };
@@ -189,8 +211,9 @@ export const createCourse = (data: {
   teacher_id: number;
   title: string;
   intro: string;
-  video: string;
+  video?: string;
   cover: string;
+  lessons: CourseLesson[];
 }): Promise<CourseItem> => {
   return request({ method: 'post', url: '/v1/admin/course', data });
 };
@@ -203,6 +226,7 @@ export const updateCourse = (data: {
   intro: string;
   video?: string;
   cover?: string;
+  lessons: CourseLesson[];
 }): Promise<unknown> => {
   return request({ method: 'post', url: '/v1/admin/course/update', data });
 };

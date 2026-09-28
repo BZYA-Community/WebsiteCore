@@ -16,6 +16,9 @@ type CourseService interface {
 	ListCourseGroups() ([]*ms.CourseGroupFormated, error)
 	// ListCourses 课程列表: groupId>0按分组过滤; keyword非空按标题/简介模糊匹配(课程页独立搜索)
 	ListCourses(groupId int64, keyword string, offset, limit int) ([]*ms.Course, int64, error)
+	GetCourseLessons(courseId int64) ([]*ms.CourseLesson, error)
+	CourseGroupNameExists(name string, excludeId int64) (bool, error)
+	CourseTitleExists(groupId int64, title string, excludeId int64) (bool, error)
 	// GetCourseComments 评论可见范围与帖子评论同口径:
 	//   游客: 仅已过审; 登录用户: 已过审+本人; 审核员/管理员: 全部
 	GetCourseComments(courseId, viewerId int64, viewerIsAuditor bool, limit, offset int) ([]*ms.CourseComment, int64, error)
@@ -34,6 +37,7 @@ type CourseManageService interface {
 	CountCoursesByGroup(groupId int64) (int64, error)
 	CreateCourse(c *ms.Course) (*ms.Course, error)
 	UpdateCourse(c *ms.Course) error
+	ReplaceCourseLessons(courseId int64, lessons []*ms.CourseLesson) error
 	// DeleteCourse 课程硬删除: 同事务硬删其评论/回复/内容
 	DeleteCourse(course *ms.Course) error
 	// IncrCoursePlayCount 播放量原子+1(每次播放计一次, 不去重), 返回最新值

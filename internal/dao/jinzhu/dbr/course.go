@@ -87,17 +87,18 @@ type Course struct {
 
 // CourseFormated 课程输出(含分组名与老师信息)
 type CourseFormated struct {
-	ID           int64         `json:"id"`
-	GroupID      int64         `json:"group_id"`
-	GroupName    string        `json:"group_name"`
-	TeacherID    int64         `json:"teacher_id"`
-	Teacher      *UserFormated `json:"teacher"`
-	Title        string        `json:"title"`
-	Intro        string        `json:"intro"`
-	Cover        string        `json:"cover"`
-	PlayCount    int64         `json:"play_count"`
-	CommentCount int64         `json:"comment_count"`
-	CreatedOn    int64         `json:"created_on"`
+	ID           int64           `json:"id"`
+	GroupID      int64           `json:"group_id"`
+	GroupName    string          `json:"group_name"`
+	TeacherID    int64           `json:"teacher_id"`
+	Teacher      *UserFormated   `json:"teacher"`
+	Title        string          `json:"title"`
+	Intro        string          `json:"intro"`
+	Cover        string          `json:"cover"`
+	PlayCount    int64           `json:"play_count"`
+	CommentCount int64           `json:"comment_count"`
+	CreatedOn    int64           `json:"created_on"`
+	Lessons      []*CourseLesson `json:"lessons"`
 }
 
 func (c *Course) Format() *CourseFormated {
@@ -115,7 +116,28 @@ func (c *Course) Format() *CourseFormated {
 		PlayCount:    c.PlayCount,
 		CommentCount: c.CommentCount,
 		CreatedOn:    c.CreatedOn,
+		Lessons:      []*CourseLesson{},
 	}
+}
+
+// CourseLesson is one ordered unit inside a course. Video is optional.
+type CourseLesson struct {
+	*Model
+	CourseID    int64                     `json:"course_id"`
+	Title       string                    `json:"title"`
+	Summary     string                    `json:"summary"`
+	VideoURL    string                    `json:"-"`
+	HasVideo    bool                      `json:"has_video" gorm:"-"`
+	Sort        int                       `json:"sort"`
+	Attachments []*CourseLessonAttachment `json:"attachments" gorm:"-"`
+}
+
+type CourseLessonAttachment struct {
+	*Model
+	LessonID int64  `json:"lesson_id"`
+	Name     string `json:"name"`
+	URL      string `json:"url"`
+	Sort     int    `json:"sort"`
 }
 
 func (c *Course) Create(db *gorm.DB) (*Course, error) {

@@ -133,8 +133,18 @@ func getFileExt(s string) (string, error) {
 		"application/octet-stream",
 		"application/x-zip-compressed":
 		return ".zip", nil
+	case "application/pdf":
+		return ".pdf", nil
+	case "application/msword":
+		return ".doc", nil
+	case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+		return ".docx", nil
+	case "application/vnd.ms-powerpoint":
+		return ".ppt", nil
+	case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+		return ".pptx", nil
 	default:
-		return "", web.ErrFileInvalidExt.WithDetails("仅允许 png/jpg/gif/mp4/mov/zip 类型")
+		return "", web.ErrFileInvalidExt.WithDetails("仅允许 png/jpg/gif/mp4/mov/zip/pdf/doc/docx/ppt/pptx 类型")
 	}
 }
 

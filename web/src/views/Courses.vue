@@ -169,24 +169,32 @@
                         @focus="searchTeachers('')"
                     />
                 </n-form-item>
-                <n-form-item :label="courseForm.id > 0 ? t('course.list.changeVideo') : t('course.list.courseVideo')" :required="courseForm.id === 0">
-                    <div class="video-upload-wrap">
+                <n-form-item :label="t('course.list.lessons')" required>
+                    <div class="lesson-editor">
+                      <div v-for="(lesson, index) in lessons" :key="index" class="lesson-card">
+                        <div class="lesson-head">
+                          <strong>{{ t('course.list.lessonNumber', { number: index + 1 }) }}</strong>
+                          <n-button v-if="lessons.length > 1" text type="error" @click="removeLesson(index)">{{ t('common.delete') }}</n-button>
+                        </div>
+                        <n-input v-model:value="lesson.title" maxlength="128" :placeholder="t('course.list.lessonTitle')" />
+                        <n-input v-model:value="lesson.summary" type="textarea" maxlength="2000" :placeholder="t('course.list.lessonSummary')" />
                         <n-upload
                             :show-file-list="false"
                             :custom-request="noopUpload"
-                            @before-upload="beforeVideoPick"
+                            @before-upload="(data) => beforeVideoPick(data, index)"
                         >
                             <n-button secondary>
-                                {{ videoName || t('course.list.selectVideoHint') }}
+                                {{ lesson.videoName || (lesson.video ? t('course.list.videoReadyUploaded') : t('course.list.selectOptionalVideo')) }}
                             </n-button>
                         </n-upload>
-                        <n-progress
-                            v-if="videoUploading"
-                            type="line"
-                            :percentage="videoProgress"
-                            :show-indicator="true"
-                        />
-                        <span v-if="videoReady" class="video-ready">{{ courseForm.id > 0 ? t('course.list.videoReadyChanged') : t('course.list.videoReadyUploaded') }}</span>
+                        <n-upload :show-file-list="false" :custom-request="noopUpload" @before-upload="(data) => beforeAttachmentPick(data, index)">
+                          <n-button secondary>{{ t('course.list.addAttachment') }}</n-button>
+                        </n-upload>
+                        <div v-for="(attachment, attachmentIndex) in lesson.attachments" :key="attachment.url" class="lesson-attachment">
+                          <span>{{ attachment.name }}</span><n-button text type="error" @click="lesson.attachments.splice(attachmentIndex, 1)">×</n-button>
+                        </div>
+                      </div>
+                      <n-button dashed block @click="addLesson">{{ t('course.list.addLesson') }}</n-button>
                     </div>
                 </n-form-item>
                 <n-form-item :label="t('course.list.courseCover')">
@@ -197,7 +205,7 @@
                 </n-form-item>
             </n-form>
             <template #footer>
-                <n-button type="primary" :loading="courseSaving" :disabled="videoUploading" @click="saveCourse">{{ t('common.save') }}</n-button>
+                <n-button type="primary" :loading="courseSaving" :disabled="videoUploading || attachmentUploading" @click="saveCourse">{{ t('common.save') }}</n-button>
             </template>
         </n-modal>
     </div>
@@ -223,6 +231,7 @@ import {
   getCourseUploadCredential,
   type CourseGroup,
   type CourseItem,
+  type CourseLesson,
 } from '@/api/course';
 import { Api } from '@/utils/request';
 import { TOKEN_KEY } from '@/store/user';
@@ -427,6 +436,12 @@ const courseForm = reactive({
   title: '',
   intro: '',
 });
+type EditableLesson = CourseLesson & { videoName?: string };
+const lessons = ref<EditableLesson[]>([]);
+const attachmentUploading = ref(false);
+const newLesson = (title = ''): EditableLesson => ({ title, summary: '', video: '', sort: 0, attachments: [] });
+const addLesson = () => lessons.value.push(newLesson());
+const removeLesson = (index: number) => lessons.value.splice(index, 1);
 
 const groupOptions = computed(() =>
   groups.value.map((g) => ({ label: g.name, value: g.id })),
@@ -451,11 +466,8 @@ const searchTeachers = async (k: string) => {
 };
 
 // 视频上传(直传优先, 代理回退)
-const videoName = ref('');
 const videoUploading = ref(false);
 const videoProgress = ref(0);
-const videoReady = ref(false);
-const videoKeyOrUrl = ref('');
 // 封面(canvas截帧)
 const coverBlob = ref<Blob | null>(null);
 const coverPreview = ref('');
@@ -465,7 +477,7 @@ const noopUpload = (_options: UploadCustomRequestOptions) => {
   // 仅用于选择文件, 实际上传走 beforeVideoPick 自定义流程
 };
 
-const beforeVideoPick = async (data: any) => {
+const beforeVideoPick = async (data: any, lessonIndex: number) => {
   const file: File | undefined = data.file?.file;
   if (!file) return false;
   const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
@@ -477,11 +489,10 @@ const beforeVideoPick = async (data: any) => {
     window.$message.warning(t('course.list.videoSizeError'));
     return false;
   }
-  videoName.value = file.name;
-  videoReady.value = false;
+  lessons.value[lessonIndex].videoName = file.name;
   // 用本地文件截帧生成封面(避免OSS跨域污染canvas)
   captureCover(file);
-  await uploadVideo(file, ext);
+  await uploadVideo(file, ext, lessonIndex);
   return false;
 };
 
@@ -539,7 +550,7 @@ const uploadCover = async (blob: Blob) => {
 };
 
 // 视频上传: 先取凭证, direct=浏览器直传AliOSS / proxy=后端中转
-const uploadVideo = async (file: File, ext: string) => {
+const uploadVideo = async (file: File, ext: string, lessonIndex: number) => {
   videoUploading.value = true;
   videoProgress.value = 0;
   try {
@@ -556,7 +567,7 @@ const uploadVideo = async (file: File, ext: string) => {
           if (e.total) videoProgress.value = Math.round((e.loaded * 100) / e.total);
         },
       });
-      videoKeyOrUrl.value = cred.key;
+      lessons.value[lessonIndex].video = cred.key;
     } else {
       const form = new FormData();
       form.append('file', file);
@@ -573,16 +584,34 @@ const uploadVideo = async (file: File, ext: string) => {
       if (res.data?.code !== 0) {
         throw new Error(res.data?.msg || t('course.upload.failed'));
       }
-      videoKeyOrUrl.value = res.data.data.video_url;
+      lessons.value[lessonIndex].video = res.data.data.video_url;
     }
-    videoReady.value = true;
     window.$message.success(t('course.list.videoUploadDone'));
   } catch (err: any) {
-    videoName.value = '';
+    lessons.value[lessonIndex].videoName = '';
     window.$message.error(err?.message || t('course.list.videoUploadFailed'));
   } finally {
     videoUploading.value = false;
   }
+};
+
+const beforeAttachmentPick = async (data: any, lessonIndex: number) => {
+  const file: File | undefined = data.file?.file;
+  if (!file) return false;
+  const allowed = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'zip'];
+  if (!allowed.includes((file.name.split('.').pop() || '').toLowerCase()) || file.size > 100 * 1024 * 1024) {
+    window.$message.warning(t('course.list.attachmentInvalid'));
+    return false;
+  }
+  attachmentUploading.value = true;
+  try {
+    const form = new FormData(); form.append('type', 'attachment'); form.append('file', file);
+    const res = await axios.post(import.meta.env.VITE_HOST + '/v1/attachment', form, { headers: { Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY) } });
+    if (res.data?.code !== 0) throw new Error(res.data?.msg || t('course.upload.failed'));
+    lessons.value[lessonIndex].attachments.push({ name: file.name, url: res.data.data.content, sort: lessons.value[lessonIndex].attachments.length });
+  } catch (err: any) { window.$message.error(err?.message || t('course.upload.failed')); }
+  finally { attachmentUploading.value = false; }
+  return false;
 };
 
 const openCourseModal = (course?: CourseItem) => {
@@ -591,10 +620,8 @@ const openCourseModal = (course?: CourseItem) => {
   courseForm.teacher_id = course?.teacher_id ?? null;
   courseForm.title = course?.title || '';
   courseForm.intro = course?.intro || '';
-  videoName.value = '';
-  videoReady.value = false;
+	lessons.value = course?.lessons?.length ? course.lessons.map((lesson) => ({ ...lesson, video: lesson.video_url || '', attachments: [...(lesson.attachments || [])] })) : [newLesson(course?.title || '')];
   videoProgress.value = 0;
-  videoKeyOrUrl.value = '';
   coverBlob.value = null;
   coverUrl.value = '';
   coverPreview.value = course?.cover || '';
@@ -624,8 +651,8 @@ const saveCourse = async () => {
     window.$message.warning(t('course.list.selectTeacherRequired'));
     return;
   }
-  if (courseForm.id === 0 && !videoKeyOrUrl.value) {
-    window.$message.warning(t('course.list.uploadVideoRequired'));
+  if (!lessons.value.length || lessons.value.some((lesson) => !lesson.title.trim())) {
+    window.$message.warning(t('course.list.lessonTitleRequired'));
     return;
   }
   courseSaving.value = true;
@@ -637,8 +664,9 @@ const saveCourse = async () => {
         teacher_id: courseForm.teacher_id,
         title: courseForm.title.trim(),
         intro: courseForm.intro,
-        video: videoKeyOrUrl.value || undefined,
+        video: undefined,
         cover: coverUrl.value || undefined,
+        lessons: lessons.value.map((lesson, index) => ({ ...lesson, sort: index })),
       });
     } else {
       await createCourse({
@@ -646,8 +674,9 @@ const saveCourse = async () => {
         teacher_id: courseForm.teacher_id,
         title: courseForm.title.trim(),
         intro: courseForm.intro,
-        video: videoKeyOrUrl.value,
+        video: undefined,
         cover: coverUrl.value,
+        lessons: lessons.value.map((lesson, index) => ({ ...lesson, sort: index })),
       });
     }
     window.$message.success(t('course.list.saveSuccess'));
@@ -749,6 +778,11 @@ onMounted(() => {
         font-size: 12px;
     }
 }
+
+.lesson-editor { width: 100%; display: grid; gap: 12px; }
+.lesson-card { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--n-border-color); border-radius: 8px; }
+.lesson-head, .lesson-attachment { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lesson-attachment { padding: 4px 8px; background: rgba(127, 127, 127, .08); border-radius: 6px; }
 
 .cover-wrap {
     display: flex;

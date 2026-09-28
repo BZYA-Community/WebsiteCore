@@ -81,7 +81,16 @@
     "selectGroupRequired": "Please select a group",
     "inputCourseTitle": "Please enter a course title",
     "selectTeacherRequired": "Please select a teacher",
-    "uploadVideoRequired": "Please upload a course video"
+    "uploadVideoRequired": "Please upload a course video",
+    "lessons": "Lessons",
+    "lessonNumber": "Lesson {number}",
+    "lessonTitle": "Lesson title",
+    "lessonSummary": "Lesson summary",
+    "addLesson": "Add lesson",
+    "selectOptionalVideo": "Select video (optional)",
+    "addAttachment": "Add PDF / Word / PowerPoint / ZIP",
+    "attachmentInvalid": "Attachments must be PDF, Word, PowerPoint, or ZIP and no larger than 100MB",
+    "lessonTitleRequired": "Every lesson needs a title"
   },
   "detail": {
     "title": "Course Details",
@@ -91,6 +100,7 @@
     "noComments": "No comments yet",
     "noMoreComments": "No more comments",
     "notFound": "Course does not exist or has been deleted",
-    "loadVideoFailed": "Failed to load playback URL"
+    "loadVideoFailed": "Failed to load playback URL",
+    "noVideo": "This lesson has no video. Read the summary or download its materials."
   }
 }

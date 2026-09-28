@@ -8,7 +8,7 @@
 
         <template v-else-if="course">
             <!-- 播放器(video.js, 签名地址异步到达后初始化) -->
-            <div class="player-wrap">
+            <div v-if="activeLesson?.has_video" class="player-wrap">
                 <video-player
                     v-if="videoUrl"
                     :src="videoUrl"
@@ -19,6 +19,16 @@
                     <n-spin size="large" />
                 </div>
             </div>
+			<div v-else-if="activeLesson" class="lesson-no-video">{{ t('course.detail.noVideo') }}</div>
+			<div v-if="course.lessons?.length" class="lesson-list">
+				<n-button v-for="(lesson, index) in course.lessons" :key="lesson.id" :type="activeLesson?.id === lesson.id ? 'primary' : 'default'" @click="selectLesson(lesson)">
+					{{ index + 1 }}. {{ lesson.title }}
+				</n-button>
+			</div>
+			<div v-if="activeLesson" class="lesson-body">
+				<h3>{{ activeLesson.title }}</h3><p v-if="activeLesson.summary">{{ activeLesson.summary }}</p>
+				<a v-for="attachment in activeLesson.attachments" :key="attachment.url" :href="attachment.url" target="_blank" rel="noopener" class="lesson-file">📎 {{ attachment.name }}</a>
+			</div>
 
             <!-- 标题与数据 -->
             <div class="course-head">
@@ -91,6 +101,7 @@ import {
   playCourse,
   type CourseItem,
   type CourseComment,
+  type CourseLesson,
 } from '@/api/course';
 
 const { t } = useI18n();
@@ -100,6 +111,7 @@ const courseId = Number(route.query.id || 0);
 const loading = ref(true);
 const course = ref<CourseItem | null>(null);
 const videoUrl = ref('');
+const activeLesson = ref<CourseLesson | null>(null);
 const comments = ref<CourseComment[]>([]);
 const commentPage = ref(1);
 const commentTotal = ref(0);
@@ -115,6 +127,7 @@ const loadCourse = async () => {
   try {
     const res = await getCourse({ id: courseId });
     course.value = res.course;
+	activeLesson.value = res.course.lessons?.[0] || null;
   } catch (_err) {
     course.value = null;
   } finally {
@@ -122,13 +135,20 @@ const loadCourse = async () => {
   }
 };
 
-const loadVideoUrl = async () => {
+const loadVideoUrl = async (lessonId?: number) => {
+	videoUrl.value = '';
+	if (activeLesson.value && !activeLesson.value.has_video) return;
   try {
-    const res = await getCourseVideo({ id: courseId });
+    const res = await getCourseVideo({ id: courseId, lesson_id: lessonId });
     videoUrl.value = res.signed_url;
   } catch (_err) {
     window.$message.error(t('course.detail.loadVideoFailed'));
   }
+};
+
+const selectLesson = (lesson: CourseLesson) => {
+	activeLesson.value = lesson;
+	loadVideoUrl(lesson.id);
 };
 
 const onFirstPlay = () => {
@@ -183,8 +203,7 @@ const reloadComments = () => {
 
 onMounted(() => {
   if (courseId > 0) {
-    loadCourse();
-    loadVideoUrl();
+    loadCourse().then(() => { if (activeLesson.value?.has_video) loadVideoUrl(activeLesson.value.id); });
     // 评论由InfiniteLoading进入视口时自动加载
   } else {
     loading.value = false;
@@ -212,6 +231,11 @@ onMounted(() => {
         background: #000;
     }
 }
+
+.lesson-list { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 4px; }
+.lesson-body { padding: 4px 4px 14px; }
+.lesson-no-video { padding: 28px; text-align: center; border-radius: 8px; background: var(--n-color-modal); opacity: .7; }
+.lesson-file { display: block; padding: 8px 0; color: var(--primary); }
 
 .course-head {
     padding: 14px 4px 0;

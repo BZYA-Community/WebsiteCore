@@ -94,6 +94,50 @@ func (s *courseSrv) ListCourses(groupId int64, keyword string, offset, limit int
 	return
 }
 
+func (s *courseSrv) GetCourseLessons(courseId int64) (lessons []*ms.CourseLesson, err error) {
+	err = s.db.Where("course_id = ? AND is_del = ?", courseId, 0).Order("sort, id").Find(&lessons).Error
+	if err != nil || len(lessons) == 0 {
+		return
+	}
+	ids := make([]int64, 0, len(lessons))
+	for _, lesson := range lessons {
+		ids = append(ids, lesson.ID)
+	}
+	var attachments []*ms.CourseLessonAttachment
+	if err = s.db.Where("lesson_id IN ? AND is_del = ?", ids, 0).Order("sort, id").Find(&attachments).Error; err != nil {
+		return
+	}
+	byLesson := make(map[int64][]*ms.CourseLessonAttachment)
+	for _, attachment := range attachments {
+		byLesson[attachment.LessonID] = append(byLesson[attachment.LessonID], attachment)
+	}
+	for _, lesson := range lessons {
+		lesson.Attachments = byLesson[lesson.ID]
+		lesson.HasVideo = lesson.VideoURL != ""
+	}
+	return
+}
+
+func (s *courseSrv) CourseGroupNameExists(name string, excludeId int64) (bool, error) {
+	db := s.db.Model(&dbr.CourseGroup{}).Where("is_del = ? AND lower(trim(name)) = lower(trim(?))", 0, name)
+	if excludeId > 0 {
+		db = db.Where("id <> ?", excludeId)
+	}
+	var count int64
+	err := db.Count(&count).Error
+	return count > 0, err
+}
+
+func (s *courseSrv) CourseTitleExists(groupId int64, title string, excludeId int64) (bool, error) {
+	db := s.db.Model(&dbr.Course{}).Where("is_del = ? AND group_id = ? AND lower(trim(title)) = lower(trim(?))", 0, groupId, title)
+	if excludeId > 0 {
+		db = db.Where("id <> ?", excludeId)
+	}
+	var count int64
+	err := db.Count(&count).Error
+	return count > 0, err
+}
+
 // addCourseCommentAuditScope 课程评论审核可见范围与帖子评论同口径(见addCommentAuditScope)
 func addCourseCommentAuditScope(db *gorm.DB, viewerId int64, viewerIsAuditor bool) *gorm.DB {
 	return addCommentAuditScope(db, viewerId, viewerIsAuditor)
@@ -205,6 +249,40 @@ func (s *courseManageSrv) UpdateCourse(c *ms.Course) error {
 	return c.Update(s.db)
 }
 
+func (s *courseManageSrv) ReplaceCourseLessons(courseId int64, lessons []*ms.CourseLesson) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		var oldIDs []int64
+		if err := tx.Model(&dbr.CourseLesson{}).Where("course_id = ?", courseId).Pluck("id", &oldIDs).Error; err != nil {
+			return err
+		}
+		if len(oldIDs) > 0 {
+			if err := tx.Unscoped().Where("lesson_id IN ?", oldIDs).Delete(&dbr.CourseLessonAttachment{}).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Unscoped().Where("course_id = ?", courseId).Delete(&dbr.CourseLesson{}).Error; err != nil {
+			return err
+		}
+		for _, lesson := range lessons {
+			lesson.Model = nil
+			lesson.CourseID = courseId
+			attachments := lesson.Attachments
+			lesson.Attachments = nil
+			if err := tx.Create(lesson).Error; err != nil {
+				return err
+			}
+			for _, attachment := range attachments {
+				attachment.Model = nil
+				attachment.LessonID = lesson.ID
+				if err := tx.Create(attachment).Error; err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+}
+
 // DeleteCourse 课程硬删除: 同事务硬删其评论/回复/内容(课程无状态流转 不走软删)
 func (s *courseManageSrv) DeleteCourse(course *ms.Course) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
@@ -222,6 +300,18 @@ func (s *courseManageSrv) DeleteCourse(course *ms.Course) error {
 			}
 		}
 		if err := tx.Unscoped().Where("course_id = ?", course.ID).Delete(&dbr.CourseComment{}).Error; err != nil {
+			return err
+		}
+		var lessonIds []int64
+		if err := tx.Model(&dbr.CourseLesson{}).Where("course_id = ?", course.ID).Pluck("id", &lessonIds).Error; err != nil {
+			return err
+		}
+		if len(lessonIds) > 0 {
+			if err := tx.Unscoped().Where("lesson_id IN ?", lessonIds).Delete(&dbr.CourseLessonAttachment{}).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Unscoped().Where("course_id = ?", course.ID).Delete(&dbr.CourseLesson{}).Error; err != nil {
 			return err
 		}
 		return course.DeleteUnscoped(tx)

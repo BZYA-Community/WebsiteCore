@@ -103,6 +103,9 @@ func (s *courseLooseSrv) CourseDetail(req *web.CourseDetailReq) (*web.CourseDeta
 	if err != nil || len(formated) == 0 {
 		return nil, web.ErrCourseNotExist
 	}
+	if lessons, lessonErr := s.Ds.GetCourseLessons(course.ID); lessonErr == nil {
+		formated[0].Lessons = lessons
+	}
 	return &web.CourseDetailResp{Course: formated[0]}, nil
 }
 
@@ -208,7 +211,23 @@ func (s *courseLooseSrv) CourseVideo(req *web.CourseVideoReq) (*web.CourseVideoR
 	if err != nil || course.Model == nil || course.ID <= 0 {
 		return nil, web.ErrCourseNotExist
 	}
-	objectKey := s.oss.ObjectKey(course.VideoURL)
+	videoURL := course.VideoURL
+	if lessons, lessonErr := s.Ds.GetCourseLessons(course.ID); lessonErr == nil && len(lessons) > 0 {
+		videoURL = lessons[0].VideoURL
+		if req.LessonID > 0 {
+			videoURL = ""
+			for _, lesson := range lessons {
+				if lesson.ID == req.LessonID {
+					videoURL = lesson.VideoURL
+					break
+				}
+			}
+		}
+	}
+	if strings.TrimSpace(videoURL) == "" {
+		return nil, web.ErrCourseVideoInvalid.WithDetails("本节课没有视频")
+	}
+	objectKey := s.oss.ObjectKey(videoURL)
 	signedURL, err := s.oss.SignURL(objectKey, courseVideoSignExpireSec)
 	if err != nil {
 		logrus.Errorf("oss.SignURL err: %s", err)
@@ -405,6 +424,11 @@ func (s *courseAdminSrv) CreateCourseGroup(req *web.CourseGroupReq) (*web.Course
 	if name == "" || utf8.RuneCountInString(name) > 64 {
 		return nil, xerror.InvalidParams.WithDetails("分组名称为1~64字")
 	}
+	if exists, err := s.Ds.CourseGroupNameExists(name, 0); err != nil {
+		return nil, web.ErrCreateCourseFailed
+	} else if exists {
+		return nil, web.ErrCourseGroupNameDuplicate
+	}
 	group, err := s.Ds.CreateCourseGroup(&ms.CourseGroup{
 		Name: name,
 		Sort: req.Sort,
@@ -423,6 +447,11 @@ func (s *courseAdminSrv) UpdateCourseGroup(req *web.UpdateCourseGroupReq) error 
 	}
 	if _, err := s.Ds.GetCourseGroupByID(req.ID); err != nil {
 		return web.ErrCourseGroupNotExist
+	}
+	if exists, err := s.Ds.CourseGroupNameExists(name, req.ID); err != nil {
+		return web.ErrUpdateCourseFailed
+	} else if exists {
+		return web.ErrCourseGroupNameDuplicate
 	}
 	return s.Ds.UpdateCourseGroup(&ms.CourseGroup{
 		Model: &ms.Model{ID: req.ID},
@@ -449,6 +478,15 @@ func (s *courseAdminSrv) CreateCourse(req *web.CreateCourseReq) (*web.CreateCour
 	if err != nil {
 		return nil, err
 	}
+	if exists, checkErr := s.Ds.CourseTitleExists(req.GroupID, req.Title, 0); checkErr != nil {
+		return nil, web.ErrCreateCourseFailed
+	} else if exists {
+		return nil, web.ErrCourseTitleDuplicate
+	}
+	lessons, err := s.buildLessons(0, req.Lessons, req.Video, req.Title)
+	if err != nil {
+		return nil, err
+	}
 	course, err = s.Ds.CreateCourse(course)
 	if err != nil {
 		logrus.Errorf("Ds.CreateCourse err: %s", err)
@@ -456,13 +494,28 @@ func (s *courseAdminSrv) CreateCourse(req *web.CreateCourseReq) (*web.CreateCour
 		s.oss.DeleteObjects([]string{videoKey})
 		return nil, web.ErrCreateCourseFailed
 	}
-	return (*web.CreateCourseResp)(course.Format()), nil
+	if err = s.Ds.ReplaceCourseLessons(course.ID, lessons); err != nil {
+		_ = s.Ds.DeleteCourse(course)
+		return nil, web.ErrCreateCourseFailed
+	}
+	formatted := course.Format()
+	formatted.Lessons = lessons
+	return (*web.CreateCourseResp)(formatted), nil
 }
 
 func (s *courseAdminSrv) UpdateCourse(req *web.UpdateCourseReq) error {
 	course, err := s.Ds.GetCourseByID(req.ID)
 	if err != nil || course.Model == nil || course.ID <= 0 {
 		return web.ErrCourseNotExist
+	}
+	if exists, checkErr := s.Ds.CourseTitleExists(req.GroupID, req.Title, req.ID); checkErr != nil {
+		return web.ErrUpdateCourseFailed
+	} else if exists {
+		return web.ErrCourseTitleDuplicate
+	}
+	lessons, err := s.buildLessons(req.ID, req.Lessons, req.Video, req.Title)
+	if err != nil {
+		return err
 	}
 	oldVideoKey := s.oss.ObjectKey(course.VideoURL)
 	oldCoverKey := s.oss.ObjectKey(course.Cover)
@@ -480,6 +533,10 @@ func (s *courseAdminSrv) UpdateCourse(req *web.UpdateCourseReq) error {
 	updated.Model = course.Model
 	if err := s.Ds.UpdateCourse(updated); err != nil {
 		logrus.Errorf("Ds.UpdateCourse err: %s", err)
+		return web.ErrUpdateCourseFailed
+	}
+	if err := s.Ds.ReplaceCourseLessons(course.ID, lessons); err != nil {
+		_ = s.Ds.UpdateCourse(course)
 		return web.ErrUpdateCourseFailed
 	}
 	// 更换视频/封面后清理旧对象(宽松处理)
@@ -513,7 +570,11 @@ func (s *courseAdminSrv) buildCourse(groupID, teacherID int64, title, intro, vid
 		return nil, "", web.ErrCourseTeacherInvalid
 	}
 	// 视频: 直传模式传对象键, 代理模式传完整URL, 统一归一化为键校验
-	videoKey := video
+	videoKey := strings.TrimSpace(video)
+	if videoKey == "" {
+		course := &ms.Course{GroupID: groupID, TeacherID: teacherID, Title: title, Intro: intro, VideoURL: "", Cover: strings.TrimSpace(cover)}
+		return course, "", nil
+	}
 	if strings.Contains(video, "://") {
 		videoKey = s.oss.ObjectKey(video)
 	}
@@ -540,11 +601,82 @@ func (s *courseAdminSrv) buildCourse(groupID, teacherID int64, title, intro, vid
 	return course, videoKey, nil
 }
 
+func (s *courseAdminSrv) buildLessons(courseID int64, inputs []*web.CourseLessonInput, legacyVideo, courseTitle string) ([]*ms.CourseLesson, error) {
+	if len(inputs) == 0 {
+		inputs = []*web.CourseLessonInput{{Title: strings.TrimSpace(courseTitle), Video: legacyVideo}}
+	}
+	seen := make(map[string]struct{}, len(inputs))
+	existing := make(map[int64]*ms.CourseLesson)
+	if courseID > 0 {
+		if current, err := s.Ds.GetCourseLessons(courseID); err == nil {
+			for _, lesson := range current {
+				existing[lesson.ID] = lesson
+			}
+		}
+	}
+	lessons := make([]*ms.CourseLesson, 0, len(inputs))
+	for index, input := range inputs {
+		title := strings.TrimSpace(input.Title)
+		if title == "" || utf8.RuneCountInString(title) > 128 {
+			return nil, xerror.InvalidParams.WithDetails("课节标题为1~128字")
+		}
+		key := strings.ToLower(title)
+		if _, ok := seen[key]; ok {
+			return nil, xerror.InvalidParams.WithDetails("同一课程内课节名称不能重复")
+		}
+		seen[key] = struct{}{}
+		if utf8.RuneCountInString(input.Summary) > 2000 {
+			return nil, xerror.InvalidParams.WithDetails("课节简介最长2000字")
+		}
+		videoURL := ""
+		if old, ok := existing[input.ID]; ok {
+			videoURL = old.VideoURL
+		}
+		if video := strings.TrimSpace(input.Video); video != "" {
+			videoKey := video
+			if strings.Contains(video, "://") {
+				videoKey = s.oss.ObjectKey(video)
+			}
+			if !strings.HasPrefix(videoKey, courseVideoPrefix) {
+				return nil, web.ErrCourseVideoInvalid
+			}
+			if ok, err := s.oss.IsObjectExist(videoKey); err != nil || !ok {
+				return nil, web.ErrCourseVideoInvalid
+			}
+			_ = s.oss.PersistObject(videoKey)
+			videoURL = s.oss.ObjectURL(videoKey)
+		}
+		lesson := &ms.CourseLesson{Title: title, Summary: strings.TrimSpace(input.Summary), VideoURL: videoURL, Sort: input.Sort}
+		if input.Sort == 0 {
+			lesson.Sort = index
+		}
+		for attachmentIndex, item := range input.Attachments {
+			name, url := strings.TrimSpace(item.Name), strings.TrimSpace(item.URL)
+			if name == "" || utf8.RuneCountInString(name) > 255 || url == "" {
+				return nil, xerror.InvalidParams.WithDetails("附件名称或地址无效")
+			}
+			if err := s.Ds.CheckAttachment(url); err != nil {
+				return nil, xerror.InvalidParams.WithDetails("附件必须来自本站上传")
+			}
+			key := s.oss.ObjectKey(url)
+			_ = s.oss.PersistObject(key)
+			sort := item.Sort
+			if sort == 0 {
+				sort = attachmentIndex
+			}
+			lesson.Attachments = append(lesson.Attachments, &ms.CourseLessonAttachment{Name: name, URL: url, Sort: sort})
+		}
+		lessons = append(lessons, lesson)
+	}
+	return lessons, nil
+}
+
 func (s *courseAdminSrv) DeleteCourse(req *web.DeleteCourseReq) error {
 	course, err := s.Ds.GetCourseByID(req.ID)
 	if err != nil || course.Model == nil || course.ID <= 0 {
 		return web.ErrCourseNotExist
 	}
+	lessons, _ := s.Ds.GetCourseLessons(course.ID)
 	if err := s.Ds.DeleteCourse(course); err != nil {
 		logrus.Errorf("Ds.DeleteCourse err: %s", err)
 		return web.ErrDeleteCourseFailed
@@ -553,6 +685,12 @@ func (s *courseAdminSrv) DeleteCourse(req *web.DeleteCourseReq) error {
 	keys := []string{}
 	if key := s.oss.ObjectKey(course.VideoURL); key != "" {
 		keys = append(keys, key)
+	}
+	for _, lesson := range lessons {
+		if key := s.oss.ObjectKey(lesson.VideoURL); key != "" { keys = append(keys, key) }
+		for _, attachment := range lesson.Attachments {
+			if key := s.oss.ObjectKey(attachment.URL); key != "" { keys = append(keys, key) }
+		}
 	}
 	if key := s.oss.ObjectKey(course.Cover); key != "" {
 		keys = append(keys, key)
