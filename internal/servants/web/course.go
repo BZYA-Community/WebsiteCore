@@ -485,6 +485,8 @@ func (s *courseAdminSrv) CreateCourse(req *web.CreateCourseReq) (*web.CreateCour
 	}
 	lessons, newObjectKeys, err := s.buildLessons(0, req.Lessons, req.Video, req.Title)
 	if err != nil {
+		newObjectKeys = append(newObjectKeys, videoKey)
+		s.oss.DeleteObjects(compactObjectKeys(newObjectKeys))
 		return nil, err
 	}
 	course, err = s.Ds.CreateCourseWithLessons(course, lessons)
@@ -511,6 +513,7 @@ func (s *courseAdminSrv) UpdateCourse(req *web.UpdateCourseReq) error {
 	}
 	lessons, newObjectKeys, err := s.buildLessons(req.ID, req.Lessons, req.Video, req.Title)
 	if err != nil {
+		s.oss.DeleteObjects(compactObjectKeys(newObjectKeys))
 		return err
 	}
 	oldVideoKey := s.oss.ObjectKey(course.VideoURL)
@@ -524,6 +527,7 @@ func (s *courseAdminSrv) UpdateCourse(req *web.UpdateCourseReq) error {
 	}
 	updated, _, err := s.buildCourse(req.GroupID, req.TeacherID, req.Title, req.Intro, video, cover, course)
 	if err != nil {
+		s.oss.DeleteObjects(compactObjectKeys(newObjectKeys))
 		return err
 	}
 	updated.Model = course.Model
@@ -612,15 +616,15 @@ func (s *courseAdminSrv) buildLessons(courseID int64, inputs []*web.CourseLesson
 	for index, input := range inputs {
 		title := strings.TrimSpace(input.Title)
 		if title == "" || utf8.RuneCountInString(title) > 128 {
-			return nil, nil, xerror.InvalidParams.WithDetails("课节标题为1~128字")
+			return nil, newObjectKeys, xerror.InvalidParams.WithDetails("课节标题为1~128字")
 		}
 		key := strings.ToLower(title)
 		if _, ok := seen[key]; ok {
-			return nil, nil, xerror.InvalidParams.WithDetails("同一课程内课节名称不能重复")
+			return nil, newObjectKeys, xerror.InvalidParams.WithDetails("同一课程内课节名称不能重复")
 		}
 		seen[key] = struct{}{}
 		if utf8.RuneCountInString(input.Summary) > 2000 {
-			return nil, nil, xerror.InvalidParams.WithDetails("课节简介最长2000字")
+			return nil, newObjectKeys, xerror.InvalidParams.WithDetails("课节简介最长2000字")
 		}
 		videoURL := ""
 		if old, ok := existing[input.ID]; ok {
@@ -632,10 +636,10 @@ func (s *courseAdminSrv) buildLessons(courseID int64, inputs []*web.CourseLesson
 				videoKey = s.oss.ObjectKey(video)
 			}
 			if !strings.HasPrefix(videoKey, courseVideoPrefix) {
-				return nil, nil, web.ErrCourseVideoInvalid
+				return nil, newObjectKeys, web.ErrCourseVideoInvalid
 			}
 			if ok, err := s.oss.IsObjectExist(videoKey); err != nil || !ok {
-				return nil, nil, web.ErrCourseVideoInvalid
+				return nil, newObjectKeys, web.ErrCourseVideoInvalid
 			}
 			_ = s.oss.PersistObject(videoKey)
 			videoURL = s.oss.ObjectURL(videoKey)
@@ -648,10 +652,10 @@ func (s *courseAdminSrv) buildLessons(courseID int64, inputs []*web.CourseLesson
 		for attachmentIndex, item := range input.Attachments {
 			name, url := strings.TrimSpace(item.Name), strings.TrimSpace(item.URL)
 			if name == "" || utf8.RuneCountInString(name) > 255 || url == "" {
-				return nil, nil, xerror.InvalidParams.WithDetails("附件名称或地址无效")
+				return nil, newObjectKeys, xerror.InvalidParams.WithDetails("附件名称或地址无效")
 			}
 			if err := s.Ds.CheckAttachment(url); err != nil {
-				return nil, nil, xerror.InvalidParams.WithDetails("附件必须来自本站上传")
+				return nil, newObjectKeys, xerror.InvalidParams.WithDetails("附件必须来自本站上传")
 			}
 			key := s.oss.ObjectKey(url)
 			_ = s.oss.PersistObject(key)
