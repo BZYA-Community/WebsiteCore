@@ -222,6 +222,7 @@ import CourseCard from '@/components/course/course-card.vue';
 import {
   getCourseGroups,
   getCourseList,
+  getCourse,
   createCourseGroup,
   updateCourseGroup,
   deleteCourseGroup,
@@ -560,6 +561,7 @@ const uploadVideo = async (file: File, ext: string, lessonIndex: number) => {
       form.append('key', cred.key);
       form.append('policy', cred.policy!);
       form.append('OSSAccessKeyId', cred.access_key_id!);
+      form.append('Signature', cred.signature!);
       form.append('success_action_status', '200');
       form.append('file', file);
       await axios.post(cred.host, form, {
@@ -614,22 +616,31 @@ const beforeAttachmentPick = async (data: any, lessonIndex: number) => {
   return false;
 };
 
-const openCourseModal = (course?: CourseItem) => {
-  courseForm.id = course?.id || 0;
-  courseForm.group_id = course?.group_id ?? null;
-  courseForm.teacher_id = course?.teacher_id ?? null;
-  courseForm.title = course?.title || '';
-  courseForm.intro = course?.intro || '';
-	lessons.value = course?.lessons?.length ? course.lessons.map((lesson) => ({ ...lesson, video: lesson.video_url || '', attachments: [...(lesson.attachments || [])] })) : [newLesson(course?.title || '')];
+const openCourseModal = async (course?: CourseItem) => {
+  let editableCourse = course;
+  if (course?.id) {
+    try {
+      editableCourse = (await getCourse({ id: course.id })).course;
+    } catch (_err) {
+      window.$message.error(t('course.list.loadDetailFailed'));
+      return;
+    }
+  }
+  courseForm.id = editableCourse?.id || 0;
+  courseForm.group_id = editableCourse?.group_id ?? null;
+  courseForm.teacher_id = editableCourse?.teacher_id ?? null;
+  courseForm.title = editableCourse?.title || '';
+  courseForm.intro = editableCourse?.intro || '';
+	lessons.value = editableCourse?.lessons?.length ? editableCourse.lessons.map((lesson) => ({ ...lesson, video: '', attachments: [...(lesson.attachments || [])] })) : [newLesson(editableCourse?.title || '')];
   videoProgress.value = 0;
   coverBlob.value = null;
   coverUrl.value = '';
-  coverPreview.value = course?.cover || '';
-  if (course) {
+  coverPreview.value = editableCourse?.cover || '';
+  if (editableCourse) {
     teacherOptions.value = [
       {
-        label: `${course.teacher?.nickname} (@${course.teacher?.username})`,
-        value: course.teacher_id,
+        label: `${editableCourse.teacher?.nickname} (@${editableCourse.teacher?.username})`,
+        value: editableCourse.teacher_id,
       },
     ];
   } else {

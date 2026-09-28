@@ -474,28 +474,24 @@ func (s *courseAdminSrv) DeleteCourseGroup(req *web.DeleteCourseGroupReq) error 
 }
 
 func (s *courseAdminSrv) CreateCourse(req *web.CreateCourseReq) (*web.CreateCourseResp, error) {
-	course, videoKey, err := s.buildCourse(req.GroupID, req.TeacherID, req.Title, req.Intro, req.Video, req.Cover, nil)
-	if err != nil {
-		return nil, err
-	}
 	if exists, checkErr := s.Ds.CourseTitleExists(req.GroupID, req.Title, 0); checkErr != nil {
 		return nil, web.ErrCreateCourseFailed
 	} else if exists {
 		return nil, web.ErrCourseTitleDuplicate
 	}
-	lessons, err := s.buildLessons(0, req.Lessons, req.Video, req.Title)
+	course, videoKey, err := s.buildCourse(req.GroupID, req.TeacherID, req.Title, req.Intro, req.Video, req.Cover, nil)
 	if err != nil {
 		return nil, err
 	}
-	course, err = s.Ds.CreateCourse(course)
+	lessons, newObjectKeys, err := s.buildLessons(0, req.Lessons, req.Video, req.Title)
+	if err != nil {
+		return nil, err
+	}
+	course, err = s.Ds.CreateCourseWithLessons(course, lessons)
 	if err != nil {
 		logrus.Errorf("Ds.CreateCourse err: %s", err)
-		// 落库失败清理已上传的视频对象
-		s.oss.DeleteObjects([]string{videoKey})
-		return nil, web.ErrCreateCourseFailed
-	}
-	if err = s.Ds.ReplaceCourseLessons(course.ID, lessons); err != nil {
-		_ = s.Ds.DeleteCourse(course)
+		newObjectKeys = append(newObjectKeys, videoKey)
+		s.oss.DeleteObjects(compactObjectKeys(newObjectKeys))
 		return nil, web.ErrCreateCourseFailed
 	}
 	formatted := course.Format()
@@ -513,7 +509,7 @@ func (s *courseAdminSrv) UpdateCourse(req *web.UpdateCourseReq) error {
 	} else if exists {
 		return web.ErrCourseTitleDuplicate
 	}
-	lessons, err := s.buildLessons(req.ID, req.Lessons, req.Video, req.Title)
+	lessons, newObjectKeys, err := s.buildLessons(req.ID, req.Lessons, req.Video, req.Title)
 	if err != nil {
 		return err
 	}
@@ -531,12 +527,9 @@ func (s *courseAdminSrv) UpdateCourse(req *web.UpdateCourseReq) error {
 		return err
 	}
 	updated.Model = course.Model
-	if err := s.Ds.UpdateCourse(updated); err != nil {
+	if err := s.Ds.UpdateCourseWithLessons(updated, lessons); err != nil {
 		logrus.Errorf("Ds.UpdateCourse err: %s", err)
-		return web.ErrUpdateCourseFailed
-	}
-	if err := s.Ds.ReplaceCourseLessons(course.ID, lessons); err != nil {
-		_ = s.Ds.UpdateCourse(course)
+		s.oss.DeleteObjects(compactObjectKeys(newObjectKeys))
 		return web.ErrUpdateCourseFailed
 	}
 	// 更换视频/封面后清理旧对象(宽松处理)
@@ -601,7 +594,7 @@ func (s *courseAdminSrv) buildCourse(groupID, teacherID int64, title, intro, vid
 	return course, videoKey, nil
 }
 
-func (s *courseAdminSrv) buildLessons(courseID int64, inputs []*web.CourseLessonInput, legacyVideo, courseTitle string) ([]*ms.CourseLesson, error) {
+func (s *courseAdminSrv) buildLessons(courseID int64, inputs []*web.CourseLessonInput, legacyVideo, courseTitle string) ([]*ms.CourseLesson, []string, error) {
 	if len(inputs) == 0 {
 		inputs = []*web.CourseLessonInput{{Title: strings.TrimSpace(courseTitle), Video: legacyVideo}}
 	}
@@ -615,18 +608,19 @@ func (s *courseAdminSrv) buildLessons(courseID int64, inputs []*web.CourseLesson
 		}
 	}
 	lessons := make([]*ms.CourseLesson, 0, len(inputs))
+	newObjectKeys := make([]string, 0)
 	for index, input := range inputs {
 		title := strings.TrimSpace(input.Title)
 		if title == "" || utf8.RuneCountInString(title) > 128 {
-			return nil, xerror.InvalidParams.WithDetails("课节标题为1~128字")
+			return nil, nil, xerror.InvalidParams.WithDetails("课节标题为1~128字")
 		}
 		key := strings.ToLower(title)
 		if _, ok := seen[key]; ok {
-			return nil, xerror.InvalidParams.WithDetails("同一课程内课节名称不能重复")
+			return nil, nil, xerror.InvalidParams.WithDetails("同一课程内课节名称不能重复")
 		}
 		seen[key] = struct{}{}
 		if utf8.RuneCountInString(input.Summary) > 2000 {
-			return nil, xerror.InvalidParams.WithDetails("课节简介最长2000字")
+			return nil, nil, xerror.InvalidParams.WithDetails("课节简介最长2000字")
 		}
 		videoURL := ""
 		if old, ok := existing[input.ID]; ok {
@@ -638,13 +632,14 @@ func (s *courseAdminSrv) buildLessons(courseID int64, inputs []*web.CourseLesson
 				videoKey = s.oss.ObjectKey(video)
 			}
 			if !strings.HasPrefix(videoKey, courseVideoPrefix) {
-				return nil, web.ErrCourseVideoInvalid
+				return nil, nil, web.ErrCourseVideoInvalid
 			}
 			if ok, err := s.oss.IsObjectExist(videoKey); err != nil || !ok {
-				return nil, web.ErrCourseVideoInvalid
+				return nil, nil, web.ErrCourseVideoInvalid
 			}
 			_ = s.oss.PersistObject(videoKey)
 			videoURL = s.oss.ObjectURL(videoKey)
+			newObjectKeys = append(newObjectKeys, videoKey)
 		}
 		lesson := &ms.CourseLesson{Title: title, Summary: strings.TrimSpace(input.Summary), VideoURL: videoURL, Sort: input.Sort}
 		if input.Sort == 0 {
@@ -653,13 +648,16 @@ func (s *courseAdminSrv) buildLessons(courseID int64, inputs []*web.CourseLesson
 		for attachmentIndex, item := range input.Attachments {
 			name, url := strings.TrimSpace(item.Name), strings.TrimSpace(item.URL)
 			if name == "" || utf8.RuneCountInString(name) > 255 || url == "" {
-				return nil, xerror.InvalidParams.WithDetails("附件名称或地址无效")
+				return nil, nil, xerror.InvalidParams.WithDetails("附件名称或地址无效")
 			}
 			if err := s.Ds.CheckAttachment(url); err != nil {
-				return nil, xerror.InvalidParams.WithDetails("附件必须来自本站上传")
+				return nil, nil, xerror.InvalidParams.WithDetails("附件必须来自本站上传")
 			}
 			key := s.oss.ObjectKey(url)
 			_ = s.oss.PersistObject(key)
+			if item.ID == 0 {
+				newObjectKeys = append(newObjectKeys, key)
+			}
 			sort := item.Sort
 			if sort == 0 {
 				sort = attachmentIndex
@@ -668,7 +666,24 @@ func (s *courseAdminSrv) buildLessons(courseID int64, inputs []*web.CourseLesson
 		}
 		lessons = append(lessons, lesson)
 	}
-	return lessons, nil
+	return lessons, compactObjectKeys(newObjectKeys), nil
+}
+
+func compactObjectKeys(keys []string) []string {
+	seen := make(map[string]struct{}, len(keys))
+	result := make([]string, 0, len(keys))
+	for _, key := range keys {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			continue
+		}
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		result = append(result, key)
+	}
+	return result
 }
 
 func (s *courseAdminSrv) DeleteCourse(req *web.DeleteCourseReq) error {

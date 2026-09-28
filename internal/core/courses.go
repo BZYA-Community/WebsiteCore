@@ -38,6 +38,8 @@ type CourseManageService interface {
 	CreateCourse(c *ms.Course) (*ms.Course, error)
 	UpdateCourse(c *ms.Course) error
 	ReplaceCourseLessons(courseId int64, lessons []*ms.CourseLesson) error
+	CreateCourseWithLessons(c *ms.Course, lessons []*ms.CourseLesson) (*ms.Course, error)
+	UpdateCourseWithLessons(c *ms.Course, lessons []*ms.CourseLesson) error
 	// DeleteCourse 课程硬删除: 同事务硬删其评论/回复/内容
 	DeleteCourse(course *ms.Course) error
 	// IncrCoursePlayCount 播放量原子+1(每次播放计一次, 不去重), 返回最新值

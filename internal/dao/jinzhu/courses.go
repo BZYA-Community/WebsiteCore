@@ -251,36 +251,59 @@ func (s *courseManageSrv) UpdateCourse(c *ms.Course) error {
 
 func (s *courseManageSrv) ReplaceCourseLessons(courseId int64, lessons []*ms.CourseLesson) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
-		var oldIDs []int64
-		if err := tx.Model(&dbr.CourseLesson{}).Where("course_id = ?", courseId).Pluck("id", &oldIDs).Error; err != nil {
-			return err
-		}
-		if len(oldIDs) > 0 {
-			if err := tx.Unscoped().Where("lesson_id IN ?", oldIDs).Delete(&dbr.CourseLessonAttachment{}).Error; err != nil {
-				return err
-			}
-		}
-		if err := tx.Unscoped().Where("course_id = ?", courseId).Delete(&dbr.CourseLesson{}).Error; err != nil {
-			return err
-		}
-		for _, lesson := range lessons {
-			lesson.Model = nil
-			lesson.CourseID = courseId
-			attachments := lesson.Attachments
-			lesson.Attachments = nil
-			if err := tx.Create(lesson).Error; err != nil {
-				return err
-			}
-			for _, attachment := range attachments {
-				attachment.Model = nil
-				attachment.LessonID = lesson.ID
-				if err := tx.Create(attachment).Error; err != nil {
-					return err
-				}
-			}
-		}
-		return nil
+		return replaceCourseLessons(tx, courseId, lessons)
 	})
+}
+
+func (s *courseManageSrv) CreateCourseWithLessons(course *ms.Course, lessons []*ms.CourseLesson) (*ms.Course, error) {
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(course).Error; err != nil {
+			return err
+		}
+		return replaceCourseLessons(tx, course.ID, lessons)
+	})
+	return course, err
+}
+
+func (s *courseManageSrv) UpdateCourseWithLessons(course *ms.Course, lessons []*ms.CourseLesson) error {
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		if err := course.Update(tx); err != nil {
+			return err
+		}
+		return replaceCourseLessons(tx, course.ID, lessons)
+	})
+}
+
+func replaceCourseLessons(tx *gorm.DB, courseId int64, lessons []*ms.CourseLesson) error {
+	var oldIDs []int64
+	if err := tx.Model(&dbr.CourseLesson{}).Where("course_id = ?", courseId).Pluck("id", &oldIDs).Error; err != nil {
+		return err
+	}
+	if len(oldIDs) > 0 {
+		if err := tx.Unscoped().Where("lesson_id IN ?", oldIDs).Delete(&dbr.CourseLessonAttachment{}).Error; err != nil {
+			return err
+		}
+	}
+	if err := tx.Unscoped().Where("course_id = ?", courseId).Delete(&dbr.CourseLesson{}).Error; err != nil {
+		return err
+	}
+	for _, lesson := range lessons {
+		lesson.Model = nil
+		lesson.CourseID = courseId
+		attachments := lesson.Attachments
+		lesson.Attachments = nil
+		if err := tx.Create(lesson).Error; err != nil {
+			return err
+		}
+		for _, attachment := range attachments {
+			attachment.Model = nil
+			attachment.LessonID = lesson.ID
+			if err := tx.Create(attachment).Error; err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // DeleteCourse 课程硬删除: 同事务硬删其评论/回复/内容(课程无状态流转 不走软删)

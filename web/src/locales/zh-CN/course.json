@@ -73,6 +73,7 @@
     "bottomLine": "我是有底线的",
     "inputGroupName": "请输入分组名称",
     "saveSuccess": "保存成功",
+    "loadDetailFailed": "课程详情加载失败，请稍后重试",
     "videoFormatError": "课程视频仅允许 mp4/mov 格式",
     "videoSizeError": "课程视频最大允许500MB",
     "coverGenFailed": "封面生成失败, 可稍后重试或编辑课程更换",

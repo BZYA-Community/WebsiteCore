@@ -73,6 +73,7 @@
     "bottomLine": "You've reached the end",
     "inputGroupName": "Please enter a group name",
     "saveSuccess": "Saved successfully",
+    "loadDetailFailed": "Could not load the course details. Please try again.",
     "videoFormatError": "Only mp4/mov video formats are allowed",
     "videoSizeError": "Video size cannot exceed 500MB",
     "coverGenFailed": "Cover generation failed. Try again later or edit the course to replace it",

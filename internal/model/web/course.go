@@ -136,6 +136,7 @@ type DeleteCourseGroupReq struct {
 }
 
 type CourseLessonAttachmentInput struct {
+	ID   int64  `json:"id"`
 	Name string `json:"name" binding:"required"`
 	URL  string `json:"url" binding:"required"`
 	Sort int    `json:"sort"`
