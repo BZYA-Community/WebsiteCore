@@ -10,15 +10,17 @@ on:
       - 'README.md'
       - 'docs/**'
   pull_request:
-    paths-ignore:
-      - 'README.md'
-      - 'docs/**'
+
+concurrency:
+  group: websitecore-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   GOPROXY: https://proxy.golang.org
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   backend:
@@ -46,7 +48,7 @@ jobs:
         run: go test ./...
 
       - name: Install golangci-lint
-        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
+        run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
 
       - name: Code quality (golangci-lint)
         run: golangci-lint run ./...
@@ -78,3 +80,82 @@ jobs:
 
       - name: Syntax check (build)
         run: npm run build
+
+  # Claude uses repository secrets and writes review comments. Fork-originated
+  # PRs cannot receive those upstream permissions, so skip review there rather
+  # than presenting a misleading failure. Same-repository PRs still run review
+  # after both deterministic CI jobs, including when one of them fails.
+  review:
+    name: review
+    needs: [backend, frontend]
+    if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && needs.backend.result != 'cancelled' && needs.frontend.result != 'cancelled' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 审查员守则不从 PR 分支读取，避免贡献者通过仓库文件改变审查标准。
+      - name: Write reviewer charter (CLAUDE.md)
+        run: |
+          cat > CLAUDE.md <<'CHARTER_EOF'
+          # AI 审查员守则（Claude Code Review Guidelines）
+
+          你是本社区的代码审查员。严格且冷静，先教后判。
+
+          ## 审查输出格式
+
+          - 总结评论放在 PR 顶部；具体问题用行内评论
+          - 总结末尾给本 PR 标注难度分级：**S（小改动）/ M（中等）/ L（大型）**，只标不评
+          - 每条意见必须标级别：
+            - 🔴 **必须修**（不修不能合并）：bug、安全问题（注入/XSS/越权/密钥泄露）、数据丢失风险
+            - 🟡 **建议修**：错误处理缺失、类型不安全、明显性能问题、破坏现有功能
+            - 🟢 **nit**（自愿）：命名、风格、可读性
+          - 说了 🔴 必须给出具体改法或示例代码
+          - PR 没问题就简短说清楚，不要为了显得认真硬找 nit
+
+          ## 社区特别规则
+
+          - 新增依赖默认 🟡 质疑：请贡献者说明必要性，重量级依赖直接 🔴
+          - 代码中出现任何密钥、token、密码、真实手机号 → 一律 🔴
+          - UI 文案为中文
+          CHARTER_EOF
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          additional_permissions: |
+            actions: read
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            请按工作区根目录 CLAUDE.md 的《AI 审查员守则》审查本 PR。
+            （该文件由本 workflow 写入，与 PR 内容无关。）
+            The PR branch is already checked out in the current working directory.
+
+            Deterministic CI has already finished before this job started.
+            First inspect the current PR's CI result with the GitHub CI tools:
+            distinguish passed checks from failed checks and, when a check failed,
+            inspect its job log. Never infer the current PR's result from an older run.
+            Do not rerun go build, go test, gofmt, or golangci-lint yourself; report
+            the deterministic CI evidence and spend the review budget on logic,
+            security, authorization, concurrency, and missing test cases.
+
+            Update the existing Claude progress comment with the top-level summary
+            (含 🔴/🟡/🟢 分级统计) using the GitHub comment tool. Do not create a
+            second top-level comment with gh pr comment.
+            Use `mcp__github_inline_comment__create_inline_comment` (with confirmed: true)
+            to comment on specific lines if that tool is available.
+            Be concise. Do not nitpick style. If the PR looks good, say so briefly.
+            Only post GitHub comments — don't submit review text as messages.
+          claude_args: >-
+            --model claude-sonnet-5
+            --allowedTools Read,Glob,Grep,LS,mcp__github_comment__update_claude_comment,mcp__github_inline_comment__create_inline_comment,mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log
