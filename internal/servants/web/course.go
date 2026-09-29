@@ -568,7 +568,7 @@ func (s *courseAdminSrv) cleanupRemovedLessonObjects(oldLessons, newLessons []*m
 			if attachment.URL != "" {
 				newURLs[attachment.URL] = struct{}{}
 			}
-	}
+		}
 	}
 	candidates := make(map[string]string)
 	for _, lesson := range oldLessons {
