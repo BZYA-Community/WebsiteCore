@@ -17,6 +17,10 @@ type CourseService interface {
 	// ListCourses 课程列表: groupId>0按分组过滤; keyword非空按标题/简介模糊匹配(课程页独立搜索)
 	ListCourses(groupId int64, keyword string, offset, limit int) ([]*ms.Course, int64, error)
 	GetCourseLessons(courseId int64) ([]*ms.CourseLesson, error)
+	// ReferencedCourseObjectURLs returns the subset still referenced by any
+	// course, lesson, or lesson attachment. Callers use it before deleting OSS
+	// objects that were removed during a successful course update.
+	ReferencedCourseObjectURLs(urls []string) (map[string]struct{}, error)
 	CourseGroupNameExists(name string, excludeId int64) (bool, error)
 	CourseTitleExists(groupId int64, title string, excludeId int64) (bool, error)
 	// GetCourseComments 评论可见范围与帖子评论同口径:

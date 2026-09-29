@@ -118,6 +118,33 @@ func (s *courseSrv) GetCourseLessons(courseId int64) (lessons []*ms.CourseLesson
 	return
 }
 
+func (s *courseSrv) ReferencedCourseObjectURLs(urls []string) (map[string]struct{}, error) {
+	referenced := make(map[string]struct{})
+	if len(urls) == 0 {
+		return referenced, nil
+	}
+	queries := []struct {
+		model  any
+		column string
+	}{
+		{&dbr.Course{}, "video_url"},
+		{&dbr.Course{}, "cover"},
+		{&dbr.CourseLesson{}, "video_url"},
+		{&dbr.CourseLessonAttachment{}, "url"},
+	}
+	for _, query := range queries {
+		var values []string
+		if err := s.db.Model(query.model).Where(query.column+" IN ? AND is_del = ?", urls, 0).
+			Pluck(query.column, &values).Error; err != nil {
+			return nil, err
+		}
+		for _, value := range values {
+			referenced[value] = struct{}{}
+		}
+	}
+	return referenced, nil
+}
+
 func (s *courseSrv) CourseGroupNameExists(name string, excludeId int64) (bool, error) {
 	db := s.db.Model(&dbr.CourseGroup{}).Where("is_del = ? AND lower(trim(name)) = lower(trim(?))", 0, name)
 	if excludeId > 0 {

@@ -171,30 +171,30 @@
                 </n-form-item>
                 <n-form-item :label="t('course.list.lessons')" required>
                     <div class="lesson-editor">
-                      <div v-for="(lesson, index) in lessons" :key="index" class="lesson-card">
+                      <div v-for="(lesson, index) in lessons" :key="lesson.clientKey" class="lesson-card">
                         <div class="lesson-head">
                           <strong>{{ t('course.list.lessonNumber', { number: index + 1 }) }}</strong>
-                          <n-button v-if="lessons.length > 1" text type="error" @click="removeLesson(index)">{{ t('common.delete') }}</n-button>
+                          <n-button v-if="lessons.length > 1" text type="error" :disabled="courseUploadsPending" @click="removeLesson(index)">{{ t('common.delete') }}</n-button>
                         </div>
                         <n-input v-model:value="lesson.title" maxlength="128" :placeholder="t('course.list.lessonTitle')" />
                         <n-input v-model:value="lesson.summary" type="textarea" maxlength="2000" :placeholder="t('course.list.lessonSummary')" />
                         <n-upload
                             :show-file-list="false"
                             :custom-request="noopUpload"
-                            @before-upload="(data) => beforeVideoPick(data, index)"
+                            @before-upload="(data) => beforeVideoPick(data, lesson.clientKey)"
                         >
                             <n-button secondary>
                                 {{ lesson.videoName || (lesson.video ? t('course.list.videoReadyUploaded') : t('course.list.selectOptionalVideo')) }}
                             </n-button>
                         </n-upload>
-                        <n-upload :show-file-list="false" :custom-request="noopUpload" @before-upload="(data) => beforeAttachmentPick(data, index)">
+                        <n-upload :show-file-list="false" :custom-request="noopUpload" @before-upload="(data) => beforeAttachmentPick(data, lesson.clientKey)">
                           <n-button secondary>{{ t('course.list.addAttachment') }}</n-button>
                         </n-upload>
                         <div v-for="(attachment, attachmentIndex) in lesson.attachments" :key="attachment.url" class="lesson-attachment">
                           <span>{{ attachment.name }}</span><n-button text type="error" @click="lesson.attachments.splice(attachmentIndex, 1)">×</n-button>
                         </div>
                       </div>
-                      <n-button dashed block @click="addLesson">{{ t('course.list.addLesson') }}</n-button>
+                      <n-button dashed block :disabled="courseUploadsPending" @click="addLesson">{{ t('course.list.addLesson') }}</n-button>
                     </div>
                 </n-form-item>
                 <n-form-item :label="t('course.list.courseCover')">
@@ -205,39 +205,39 @@
                 </n-form-item>
             </n-form>
             <template #footer>
-                <n-button type="primary" :loading="courseSaving" :disabled="videoUploading || attachmentUploading" @click="saveCourse">{{ t('common.save') }}</n-button>
+                <n-button type="primary" :loading="courseSaving" :disabled="courseUploadsPending" @click="saveCourse">{{ t('common.save') }}</n-button>
             </template>
         </n-modal>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { useStoreUser } from '@/store/user';
-import { storeToRefs } from 'pinia';
-import axios from 'axios';
-import { SearchOutline } from '@vicons/ionicons5';
-import CourseCard from '@/components/course/course-card.vue';
 import {
-  getCourseGroups,
-  getCourseList,
-  getCourse,
-  createCourseGroup,
-  updateCourseGroup,
-  deleteCourseGroup,
-  createCourse,
-  updateCourse,
-  deleteCourse,
-  getCourseUploadCredential,
   type CourseGroup,
   type CourseItem,
   type CourseLesson,
+  createCourse,
+  createCourseGroup,
+  deleteCourse,
+  deleteCourseGroup,
+  getCourse,
+  getCourseGroups,
+  getCourseList,
+  getCourseUploadCredential,
+  updateCourse,
+  updateCourseGroup,
 } from '@/api/course';
-import { Api } from '@/utils/request';
+import CourseCard from '@/components/course/course-card.vue';
+import { useStoreUser } from '@/store/user';
 import { TOKEN_KEY } from '@/store/user';
-import InfiniteLoading from 'v3-infinite-loading';
+import { Api } from '@/utils/request';
+import { SearchOutline } from '@vicons/ionicons5';
+import axios from 'axios';
 import type { UploadCustomRequestOptions } from 'naive-ui';
+import { storeToRefs } from 'pinia';
+import InfiniteLoading from 'v3-infinite-loading';
+import { computed, onMounted, reactive, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
 const title = computed(() => t('course.list.title'));
@@ -268,7 +268,11 @@ const loadGroups = async () => {
 
 const loadGroupCourses = async (groupId: number) => {
   try {
-    const res = await getCourseList({ group_id: groupId, page: 1, page_size: groupPreviewSize });
+    const res = await getCourseList({
+      group_id: groupId,
+      page: 1,
+      page_size: groupPreviewSize,
+    });
     groupCourses.value[groupId] = res.list || [];
   } catch (_err) {
     // do nothing
@@ -308,10 +312,15 @@ const clearSearch = () => {
 // 返回是否还有更多(供InfiniteLoading决定loaded/complete)
 const loadSearchData = async (): Promise<boolean> => {
   if (searchLoading.value) return false;
-  if (searchTotal.value > 0 && searchList.value.length >= searchTotal.value) return false;
+  if (searchTotal.value > 0 && searchList.value.length >= searchTotal.value)
+    return false;
   searchLoading.value = true;
   try {
-    const res = await getCourseList({ keyword: searchKeyword.value, page: searchPage.value, page_size: pageSize });
+    const res = await getCourseList({
+      keyword: searchKeyword.value,
+      page: searchPage.value,
+      page_size: pageSize,
+    });
     searchList.value = searchList.value.concat(res.list || []);
     searchTotal.value = res.pager?.total_rows || 0;
     searchPage.value++;
@@ -358,10 +367,15 @@ const enterGroup = (groupId: number) => {
 };
 const loadDrawerData = async (): Promise<boolean> => {
   if (drawerLoading.value) return false;
-  if (drawerTotal.value > 0 && drawerList.value.length >= drawerTotal.value) return false;
+  if (drawerTotal.value > 0 && drawerList.value.length >= drawerTotal.value)
+    return false;
   drawerLoading.value = true;
   try {
-    const res = await getCourseList({ group_id: drawerGroupId.value, page: drawerPage.value, page_size: pageSize });
+    const res = await getCourseList({
+      group_id: drawerGroupId.value,
+      page: drawerPage.value,
+      page_size: pageSize,
+    });
     drawerList.value = drawerList.value.concat(res.list || []);
     drawerTotal.value = res.pager?.total_rows || 0;
     drawerPage.value++;
@@ -404,9 +418,16 @@ const saveGroup = async () => {
   groupSaving.value = true;
   try {
     if (groupForm.id > 0) {
-      await updateCourseGroup({ id: groupForm.id, name: groupForm.name.trim(), sort: groupForm.sort });
+      await updateCourseGroup({
+        id: groupForm.id,
+        name: groupForm.name.trim(),
+        sort: groupForm.sort,
+      });
     } else {
-      await createCourseGroup({ name: groupForm.name.trim(), sort: groupForm.sort });
+      await createCourseGroup({
+        name: groupForm.name.trim(),
+        sort: groupForm.sort,
+      });
     }
     window.$message.success(t('course.list.saveSuccess'));
     groupModalShow.value = false;
@@ -437,10 +458,29 @@ const courseForm = reactive({
   title: '',
   intro: '',
 });
-type EditableLesson = CourseLesson & { videoName?: string };
+type EditableLesson = CourseLesson & {
+  videoName?: string;
+  clientKey: string;
+  uploadsPending: number;
+};
 const lessons = ref<EditableLesson[]>([]);
 const attachmentUploading = ref(false);
-const newLesson = (title = ''): EditableLesson => ({ title, summary: '', video: '', sort: 0, attachments: [] });
+let lessonKeySequence = 0;
+const nextLessonKey = () => `lesson-${Date.now()}-${lessonKeySequence++}`;
+const newLesson = (title = ''): EditableLesson => ({
+  title,
+  summary: '',
+  video: '',
+  sort: 0,
+  attachments: [],
+  clientKey: nextLessonKey(),
+  uploadsPending: 0,
+});
+const courseUploadsPending = computed(() =>
+  lessons.value.some((lesson) => lesson.uploadsPending > 0),
+);
+const findLesson = (clientKey: string) =>
+  lessons.value.find((lesson) => lesson.clientKey === clientKey);
 const addLesson = () => lessons.value.push(newLesson());
 const removeLesson = (index: number) => lessons.value.splice(index, 1);
 
@@ -454,7 +494,11 @@ const teacherLoading = ref(false);
 const searchTeachers = async (k: string) => {
   teacherLoading.value = true;
   try {
-    const res = await Api.v1.admin.get.user.list({ keyword: k, page: 1, page_size: 20 });
+    const res = await Api.v1.admin.get.user.list({
+      keyword: k,
+      page: 1,
+      page_size: 20,
+    });
     teacherOptions.value = (res.list || []).map((u: any) => ({
       label: `${u.nickname} (@${u.username})`,
       value: u.id,
@@ -478,7 +522,7 @@ const noopUpload = (_options: UploadCustomRequestOptions) => {
   // 仅用于选择文件, 实际上传走 beforeVideoPick 自定义流程
 };
 
-const beforeVideoPick = async (data: any, lessonIndex: number) => {
+const beforeVideoPick = async (data: any, lessonKey: string) => {
   const file: File | undefined = data.file?.file;
   if (!file) return false;
   const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
@@ -490,10 +534,12 @@ const beforeVideoPick = async (data: any, lessonIndex: number) => {
     window.$message.warning(t('course.list.videoSizeError'));
     return false;
   }
-  lessons.value[lessonIndex].videoName = file.name;
+  const lesson = findLesson(lessonKey);
+  if (!lesson) return false;
+  lesson.videoName = file.name;
   // 用本地文件截帧生成封面(避免OSS跨域污染canvas)
   captureCover(file);
-  await uploadVideo(file, ext, lessonIndex);
+  await uploadVideo(file, ext, lessonKey);
   return false;
 };
 
@@ -514,16 +560,22 @@ const captureCover = (file: File) => {
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth || 640;
       canvas.height = video.videoHeight || 360;
-      canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((b) => {
-        cleanup();
-        if (!b) return;
-        coverBlob.value = b;
-        if (coverPreview.value) URL.revokeObjectURL(coverPreview.value);
-        coverPreview.value = URL.createObjectURL(b);
-        // 封面即时上传到图床(复用公开图片通道)
-        uploadCover(b);
-      }, 'image/jpeg', 0.85);
+      canvas
+        .getContext('2d')
+        ?.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(
+        (b) => {
+          cleanup();
+          if (!b) return;
+          coverBlob.value = b;
+          if (coverPreview.value) URL.revokeObjectURL(coverPreview.value);
+          coverPreview.value = URL.createObjectURL(b);
+          // 封面即时上传到图床(复用公开图片通道)
+          uploadCover(b);
+        },
+        'image/jpeg',
+        0.85,
+      );
     } catch (_err) {
       cleanup();
     }
@@ -540,7 +592,9 @@ const uploadCover = async (blob: Blob) => {
     const res = await axios.post(
       import.meta.env.VITE_HOST + '/v1/attachment',
       form,
-      { headers: { Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY) } },
+      {
+        headers: { Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY) },
+      },
     );
     if (res.data?.code === 0) {
       coverUrl.value = res.data.data.content;
@@ -551,7 +605,10 @@ const uploadCover = async (blob: Blob) => {
 };
 
 // 视频上传: 先取凭证, direct=浏览器直传AliOSS / proxy=后端中转
-const uploadVideo = async (file: File, ext: string, lessonIndex: number) => {
+const uploadVideo = async (file: File, ext: string, lessonKey: string) => {
+  const lesson = findLesson(lessonKey);
+  if (!lesson) return;
+  lesson.uploadsPending += 1;
   videoUploading.value = true;
   videoProgress.value = 0;
   try {
@@ -566,10 +623,12 @@ const uploadVideo = async (file: File, ext: string, lessonIndex: number) => {
       form.append('file', file);
       await axios.post(cred.host, form, {
         onUploadProgress: (e) => {
-          if (e.total) videoProgress.value = Math.round((e.loaded * 100) / e.total);
+          if (e.total)
+            videoProgress.value = Math.round((e.loaded * 100) / e.total);
         },
       });
-      lessons.value[lessonIndex].video = cred.key;
+      const target = findLesson(lessonKey);
+      if (target) target.video = cred.key;
     } else {
       const form = new FormData();
       form.append('file', file);
@@ -577,42 +636,75 @@ const uploadVideo = async (file: File, ext: string, lessonIndex: number) => {
         import.meta.env.VITE_HOST + '/v1/admin/course/video',
         form,
         {
-          headers: { Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY) },
+          headers: {
+            Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY),
+          },
           onUploadProgress: (e) => {
-            if (e.total) videoProgress.value = Math.round((e.loaded * 100) / e.total);
+            if (e.total)
+              videoProgress.value = Math.round((e.loaded * 100) / e.total);
           },
         },
       );
       if (res.data?.code !== 0) {
         throw new Error(res.data?.msg || t('course.upload.failed'));
       }
-      lessons.value[lessonIndex].video = res.data.data.video_url;
+      const target = findLesson(lessonKey);
+      if (target) target.video = res.data.data.video_url;
     }
     window.$message.success(t('course.list.videoUploadDone'));
   } catch (err: any) {
-    lessons.value[lessonIndex].videoName = '';
+    const target = findLesson(lessonKey);
+    if (target) target.videoName = '';
     window.$message.error(err?.message || t('course.list.videoUploadFailed'));
   } finally {
     videoUploading.value = false;
+    const target = findLesson(lessonKey);
+    if (target) target.uploadsPending = Math.max(0, target.uploadsPending - 1);
   }
 };
 
-const beforeAttachmentPick = async (data: any, lessonIndex: number) => {
+const beforeAttachmentPick = async (data: any, lessonKey: string) => {
   const file: File | undefined = data.file?.file;
   if (!file) return false;
   const allowed = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'zip'];
-  if (!allowed.includes((file.name.split('.').pop() || '').toLowerCase()) || file.size > 100 * 1024 * 1024) {
+  if (
+    !allowed.includes((file.name.split('.').pop() || '').toLowerCase()) ||
+    file.size > 100 * 1024 * 1024
+  ) {
     window.$message.warning(t('course.list.attachmentInvalid'));
     return false;
   }
+  const lesson = findLesson(lessonKey);
+  if (!lesson) return false;
   attachmentUploading.value = true;
+  lesson.uploadsPending += 1;
   try {
-    const form = new FormData(); form.append('type', 'attachment'); form.append('file', file);
-    const res = await axios.post(import.meta.env.VITE_HOST + '/v1/attachment', form, { headers: { Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY) } });
-    if (res.data?.code !== 0) throw new Error(res.data?.msg || t('course.upload.failed'));
-    lessons.value[lessonIndex].attachments.push({ name: file.name, url: res.data.data.content, sort: lessons.value[lessonIndex].attachments.length });
-  } catch (err: any) { window.$message.error(err?.message || t('course.upload.failed')); }
-  finally { attachmentUploading.value = false; }
+    const form = new FormData();
+    form.append('type', 'attachment');
+    form.append('file', file);
+    const res = await axios.post(
+      import.meta.env.VITE_HOST + '/v1/attachment',
+      form,
+      {
+        headers: { Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY) },
+      },
+    );
+    if (res.data?.code !== 0)
+      throw new Error(res.data?.msg || t('course.upload.failed'));
+    const target = findLesson(lessonKey);
+    if (target)
+      target.attachments.push({
+        name: file.name,
+        url: res.data.data.content,
+        sort: target.attachments.length,
+      });
+  } catch (err: any) {
+    window.$message.error(err?.message || t('course.upload.failed'));
+  } finally {
+    attachmentUploading.value = false;
+    const target = findLesson(lessonKey);
+    if (target) target.uploadsPending = Math.max(0, target.uploadsPending - 1);
+  }
   return false;
 };
 
@@ -631,7 +723,15 @@ const openCourseModal = async (course?: CourseItem) => {
   courseForm.teacher_id = editableCourse?.teacher_id ?? null;
   courseForm.title = editableCourse?.title || '';
   courseForm.intro = editableCourse?.intro || '';
-	lessons.value = editableCourse?.lessons?.length ? editableCourse.lessons.map((lesson) => ({ ...lesson, video: '', attachments: [...(lesson.attachments || [])] })) : [newLesson(editableCourse?.title || '')];
+  lessons.value = editableCourse?.lessons?.length
+    ? editableCourse.lessons.map((lesson) => ({
+        ...lesson,
+        video: '',
+        attachments: [...(lesson.attachments || [])],
+        clientKey: nextLessonKey(),
+        uploadsPending: 0,
+      }))
+    : [newLesson(editableCourse?.title || '')];
   videoProgress.value = 0;
   coverBlob.value = null;
   coverUrl.value = '';
@@ -662,7 +762,10 @@ const saveCourse = async () => {
     window.$message.warning(t('course.list.selectTeacherRequired'));
     return;
   }
-  if (!lessons.value.length || lessons.value.some((lesson) => !lesson.title.trim())) {
+  if (
+    !lessons.value.length ||
+    lessons.value.some((lesson) => !lesson.title.trim())
+  ) {
     window.$message.warning(t('course.list.lessonTitleRequired'));
     return;
   }
@@ -677,7 +780,10 @@ const saveCourse = async () => {
         intro: courseForm.intro,
         video: undefined,
         cover: coverUrl.value || undefined,
-        lessons: lessons.value.map((lesson, index) => ({ ...lesson, sort: index })),
+        lessons: lessons.value.map((lesson, index) => ({
+          ...lesson,
+          sort: index,
+        })),
       });
     } else {
       await createCourse({
@@ -687,7 +793,10 @@ const saveCourse = async () => {
         intro: courseForm.intro,
         video: undefined,
         cover: coverUrl.value,
-        lessons: lessons.value.map((lesson, index) => ({ ...lesson, sort: index })),
+        lessons: lessons.value.map((lesson, index) => ({
+          ...lesson,
+          sort: index,
+        })),
       });
     }
     window.$message.success(t('course.list.saveSuccess'));

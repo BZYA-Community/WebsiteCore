@@ -511,6 +511,10 @@ func (s *courseAdminSrv) UpdateCourse(req *web.UpdateCourseReq) error {
 	} else if exists {
 		return web.ErrCourseTitleDuplicate
 	}
+	oldLessons, err := s.Ds.GetCourseLessons(req.ID)
+	if err != nil {
+		return web.ErrUpdateCourseFailed
+	}
 	lessons, newObjectKeys, err := s.buildLessons(req.ID, req.Lessons, req.Video, req.Title)
 	if err != nil {
 		s.oss.DeleteObjects(compactObjectKeys(newObjectKeys))
@@ -547,7 +551,57 @@ func (s *courseAdminSrv) UpdateCourse(req *web.UpdateCourseReq) error {
 	if len(staleKeys) > 0 {
 		s.oss.DeleteObjects(staleKeys)
 	}
+	s.cleanupRemovedLessonObjects(oldLessons, lessons)
 	return nil
+}
+
+// cleanupRemovedLessonObjects runs only after the DB transaction succeeds. It
+// removes lesson video/attachment objects that disappeared from this course,
+// while preserving an object if any course or lesson still references its URL.
+func (s *courseAdminSrv) cleanupRemovedLessonObjects(oldLessons, newLessons []*ms.CourseLesson) {
+	newURLs := make(map[string]struct{})
+	for _, lesson := range newLessons {
+		if lesson.VideoURL != "" {
+			newURLs[lesson.VideoURL] = struct{}{}
+		}
+		for _, attachment := range lesson.Attachments {
+			if attachment.URL != "" {
+				newURLs[attachment.URL] = struct{}{}
+			}
+	}
+	}
+	candidates := make(map[string]string)
+	for _, lesson := range oldLessons {
+		if _, kept := newURLs[lesson.VideoURL]; lesson.VideoURL != "" && !kept {
+			candidates[lesson.VideoURL] = s.oss.ObjectKey(lesson.VideoURL)
+		}
+		for _, attachment := range lesson.Attachments {
+			if _, kept := newURLs[attachment.URL]; attachment.URL != "" && !kept {
+				candidates[attachment.URL] = s.oss.ObjectKey(attachment.URL)
+			}
+		}
+	}
+	if len(candidates) == 0 {
+		return
+	}
+	urls := make([]string, 0, len(candidates))
+	for url := range candidates {
+		urls = append(urls, url)
+	}
+	referenced, err := s.Ds.ReferencedCourseObjectURLs(urls)
+	if err != nil {
+		logrus.Errorf("ReferencedCourseObjectURLs err: %s", err)
+		return
+	}
+	keys := make([]string, 0, len(candidates))
+	for url, key := range candidates {
+		if _, stillReferenced := referenced[url]; !stillReferenced {
+			keys = append(keys, key)
+		}
+	}
+	if keys = compactObjectKeys(keys); len(keys) > 0 {
+		s.oss.DeleteObjects(keys)
+	}
 }
 
 // buildCourse 校验并组装课程(分组/老师存在性, 视频/封面OSS对象有效性)
