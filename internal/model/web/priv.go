@@ -14,7 +14,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/internal/transport/httpx"
 	"github.com/BZYA-Community/WebsiteCore/pkg/convert"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/gin-gonic/gin"
@@ -235,7 +235,7 @@ func (p *PostContentItem) Check(acs core.AttachmentCheckService) error {
 }
 
 func (r *UploadAttachmentReq) Bind(c *gin.Context) (xerr error) {
-	userId, exist := base.UserIdFrom(c)
+	userId, exist := httpx.UserIdFrom(c)
 	if !exist {
 		return xerror.UnauthorizedAuthNotExist
 	}
@@ -268,7 +268,7 @@ func (r *UploadAttachmentReq) Bind(c *gin.Context) (xerr error) {
 }
 
 func (r *DownloadAttachmentReq) Bind(c *gin.Context) error {
-	user, exist := base.UserFrom(c)
+	user, exist := httpx.UserFrom(c)
 	if !exist {
 		return xerror.UnauthorizedAuthNotExist
 	}

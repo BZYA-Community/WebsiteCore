@@ -7,7 +7,7 @@ package web
 import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/internal/transport/httpx"
 	"github.com/BZYA-Community/WebsiteCore/pkg/convert"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/gin-gonic/gin"
@@ -71,12 +71,12 @@ type ReadAllMessageReq struct {
 
 type (
 	GetCollectionsReq  BasePageReq
-	GetCollectionsResp base.PageResp
+	GetCollectionsResp joint.PageResp
 )
 
 type (
 	GetStarsReq  BasePageReq
-	GetStarsResp base.PageResp
+	GetStarsResp joint.PageResp
 )
 
 type UserPhoneBindReq struct {
@@ -131,7 +131,7 @@ type TweetCollectionStatusResp struct {
 }
 
 func (r *UserInfoReq) Bind(c *gin.Context) error {
-	username, exist := base.UserNameFrom(c)
+	username, exist := httpx.UserNameFrom(c)
 	if !exist {
 		return xerror.UnauthorizedAuthNotExist
 	}
@@ -158,7 +158,7 @@ func (r *SuggestUsersReq) Bind(c *gin.Context) error {
 }
 
 func (r *TweetCollectionStatusReq) Bind(c *gin.Context) error {
-	userId, exist := base.UserIdFrom(c)
+	userId, exist := httpx.UserIdFrom(c)
 	if !exist {
 		return xerror.UnauthorizedAuthNotExist
 	}
@@ -170,7 +170,7 @@ func (r *TweetCollectionStatusReq) Bind(c *gin.Context) error {
 }
 
 func (r *TweetStarStatusReq) Bind(c *gin.Context) error {
-	UserId, exist := base.UserIdFrom(c)
+	UserId, exist := httpx.UserIdFrom(c)
 	if !exist {
 		return xerror.UnauthorizedAuthNotExist
 	}

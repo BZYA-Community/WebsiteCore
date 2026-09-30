@@ -6,7 +6,6 @@ package web
 
 import (
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 )
 
 type FollowUserReq struct {
@@ -25,7 +24,7 @@ type ListFollowsReq struct {
 	Username string `form:"username" binding:"required"`
 }
 
-type ListFollowsResp base.PageResp
+type ListFollowsResp joint.PageResp
 
 type ListFollowingsReq struct {
 	BaseInfo `form:"-" binding:"-"`
@@ -33,4 +32,4 @@ type ListFollowingsReq struct {
 	Username string `form:"username" binding:"required"`
 }
 
-type ListFollowingsResp base.PageResp
+type ListFollowingsResp joint.PageResp

@@ -8,6 +8,7 @@ import (
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/cache"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
@@ -41,7 +42,7 @@ func (s *followshipSrv) ListFollowings(r *web.ListFollowingsReq) (*web.ListFollo
 			res.Contacts[i].IsFollowing = s.Ds.IsFollow(r.User.ID, contact.UserId)
 		}
 	}
-	resp := base.PageRespFrom(res.Contacts, r.Page, r.PageSize, res.Total)
+	resp := joint.PageRespFrom(res.Contacts, r.Page, r.PageSize, res.Total)
 	return (*web.ListFollowingsResp)(resp), nil
 }
 
@@ -67,7 +68,7 @@ func (s *followshipSrv) ListFollows(r *web.ListFollowsReq) (*web.ListFollowsResp
 			}
 		}
 	}
-	resp := base.PageRespFrom(res.Contacts, r.Page, r.PageSize, res.Total)
+	resp := joint.PageRespFrom(res.Contacts, r.Page, r.PageSize, res.Total)
 	return (*web.ListFollowsResp)(resp), nil
 }
 

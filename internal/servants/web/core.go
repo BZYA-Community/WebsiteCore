@@ -193,7 +193,7 @@ func (s *coreSrv) GetCollections(req *web.GetCollectionsReq) (*web.GetCollection
 		logrus.Errorf("get collections prepare tweets err: %s", err)
 		return nil, web.ErrGetCollectionsFailed
 	}
-	resp := base.PageRespFrom(postsFormated, req.Page, req.PageSize, totalRows)
+	resp := joint.PageRespFrom(postsFormated, req.Page, req.PageSize, totalRows)
 	return (*web.GetCollectionsResp)(resp), nil
 }
 
@@ -254,7 +254,7 @@ func (s *coreSrv) GetStars(req *web.GetStarsReq) (*web.GetStarsResp, error) {
 		logrus.Errorf("Ds.MergePosts err: %s", err)
 		return nil, web.ErrGetStarsFailed
 	}
-	resp := base.PageRespFrom(postsFormated, req.Page, req.PageSize, totalRows)
+	resp := joint.PageRespFrom(postsFormated, req.Page, req.PageSize, totalRows)
 	return (*web.GetStarsResp)(resp), nil
 }
 
