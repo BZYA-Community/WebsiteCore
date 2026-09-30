@@ -47,6 +47,7 @@ Everything that must be true before a WebsiteCore instance accepts traffic from 
 
 ## Operational readiness
 
+- [ ] Database schema is migrated: register + login work, and the logs show no `relation "p_user" does not exist (SQLSTATE 42P01)` (see [database.md](database.md)).
 - [ ] systemd `Restart=always` verified (kill the process, watch it come back).
 - [ ] Logs are being written and rotated (`LoggerFile` under `custom/`, plus journald for the service itself). Consider `LoggerOtlp`/Sentry for centralized error tracking — do not expose their endpoints publicly.
 - [ ] Monitoring in place (uptime check on the homepage; Prometheus scrape of the internal `Metrics` port if enabled).

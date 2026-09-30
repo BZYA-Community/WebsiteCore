@@ -6,13 +6,13 @@ How to set up a working environment, how the codebase is organized, and how to m
 
 | Tool | Version | Used for |
 | --- | --- | --- |
-| Go | see `go.mod` (1.24+) | backend |
+| Go | see `go.mod` (1.26+) | backend |
 | Node.js | 22.x (CI parity); 20.19+ works | frontend |
 | npm or Yarn 1.x | — | frontend deps; `make build-web` uses Yarn, CI uses npm |
 | Docker + Compose | recent | PostgreSQL / Redis / Meilisearch dev stack |
 | GNU make | — | task runner |
 | gofumpt, go-enum | latest | formatting and codegen (`make install-tools`) |
-| golangci-lint | v1.64.8 (CI parity) | Go linting |
+| golangci-lint | v2.14.0 (CI parity) | Go linting |
 | Python 3 + Playwright | recent | frontend verification scripts under `scripts/` |
 
 First-time setup:

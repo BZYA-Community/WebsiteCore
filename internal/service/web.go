@@ -6,14 +6,11 @@ package service
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants"
 	"github.com/Masterminds/semver/v3"
 	"github.com/fatih/color"
-	sentrygin "github.com/getsentry/sentry-go/gin"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -39,58 +36,11 @@ func (s *webService) String() string {
 }
 
 func newWebEngine() *gin.Engine {
-	e := gin.New()
-	e.HandleMethodNotAllowed = true
-	e.Use(gin.Logger())
-	e.Use(gin.Recovery())
-
-	// 跨域配置
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowAllOrigins = true
-	corsConfig.AddAllowHeaders("Authorization")
-	e.Use(cors.New(corsConfig))
-	// 使用Sentry hook
-	if conf.UseSentryGin() {
-		e.Use(sentrygin.New(sentrygin.Options{
-			Repanic: true,
-		}))
-	}
-
-	// 默认404
-	e.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"code": 404,
-			"msg":  "Not Found",
-		})
-	})
-
-	// 默认405
-	e.NoMethod(func(c *gin.Context) {
-		c.JSON(http.StatusMethodNotAllowed, gin.H{
-			"code": 405,
-			"msg":  "Method Not Allowed",
-		})
-	})
-
-	return e
+	return newHTTPEngine(httpEngineOptions{API: true, Sentry: conf.UseSentryGin()})
 }
 
 func newWebService() Service {
-	addr := conf.WebServerSetting.HttpIp + ":" + conf.WebServerSetting.HttpPort
-	server := httpServers.from(addr, func() *httpServer {
-		engine := newWebEngine()
-		return &httpServer{
-			baseServer: newBaseServe(),
-			e:          engine,
-			server: &http.Server{
-				Addr:           addr,
-				Handler:        engine,
-				ReadTimeout:    conf.WebServerSetting.GetReadTimeout(),
-				WriteTimeout:   conf.WebServerSetting.GetWriteTimeout(),
-				MaxHeaderBytes: 1 << 20,
-			},
-		}
-	})
+	server := sharedHTTPServer(conf.WebServerSetting, newWebEngine)
 	return &webService{
 		baseHttpService: &baseHttpService{
 			server: server,

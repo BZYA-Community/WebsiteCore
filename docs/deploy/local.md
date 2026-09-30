@@ -93,6 +93,7 @@ See [../development.md](../development.md) for the full development workflow, co
 | --- | --- |
 | Process exits immediately at startup | `JWT.Secret` is empty. Generate one with `openssl rand -hex 24`. |
 | `make migrate` says the build lacks the migration tag | You ran the plain binary instead of `make migrate`. The Makefile adds `-tags migration` automatically. |
+| API returns 401/500; logs show `relation "p_user" does not exist (SQLSTATE 42P01)` | The schema was never created — run `make migrate` (step 3), then restart. |
 | Port 5432/6379/7700 already in use | A local service or another compose project holds the port. Stop it, or edit `docker-compose.dev.yml` host ports. |
 | Search returns nothing | Meilisearch not healthy yet (`make deps-status`), or `Meili` missing from `Features.Default`. |
 | Data vanished after `make deps-reset` | Expected: `deps-reset` deletes the volumes. Use `make deps-down` to keep data. |

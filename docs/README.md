@@ -18,6 +18,7 @@ Start here if you are looking for anything beyond the project overview in the [r
 | [deploy/README.md](deploy/README.md) | Deployment overview and path selection |
 | [deploy/configuration.md](deploy/configuration.md) | Full `config.yaml` reference, feature flags, admin-managed settings |
 | [deploy/database.md](deploy/database.md) | PostgreSQL setup, migrations, backup and restore |
+| [deploy/object-storage.md](deploy/object-storage.md) | Object storage: LocalOSS / AliOSS, CORS, direct uploads, troubleshooting |
 | [deploy/sms.md](deploy/sms.md) | SMS provider (Juhe) and phone-binding configuration |
 | [deploy/production.md](deploy/production.md) | Recommended production layout: native binary + Dockerized dependencies + Nginx |
 | [deploy/docker-compose.md](deploy/docker-compose.md) | Fully containerized alternative |
@@ -39,7 +40,7 @@ Start here if you are looking for anything beyond the project overview in the [r
 
 **New contributor**: root [README](../README.md) → [INSTALL.md](INSTALL.md) → [development.md](development.md) → [../CONTRIBUTING.md](../CONTRIBUTING.md). Skim [governance.md](governance.md) to understand how reviews and promotions work.
 
-**Operator / self-hoster**: [INSTALL.md](INSTALL.md) → [deploy/production.md](deploy/production.md) → [deploy/configuration.md](deploy/configuration.md) → [deploy/database.md](deploy/database.md) → [deploy/public-launch.md](deploy/public-launch.md).
+**Operator / self-hoster**: [INSTALL.md](INSTALL.md) → [deploy/production.md](deploy/production.md) → [deploy/configuration.md](deploy/configuration.md) → [deploy/database.md](deploy/database.md) → [deploy/object-storage.md](deploy/object-storage.md) → [deploy/public-launch.md](deploy/public-launch.md).
 
 **API / integration work**: [openapi/](openapi/) (run with `make run TAGS='docs'`) → [development.md](development.md) (how APIs are defined in `mirc/` and generated into `auto/`).
 

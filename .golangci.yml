@@ -1,22 +1,27 @@
-# golangci-lint v1 配置(CI 使用 v1.64.8, 见 .github/workflows/ci.yml)
+# golangci-lint v2 配置(CI 使用 v2.14.0, 见 .github/workflows/ci.yml)
+version: "2"
+
 run:
   timeout: 10m
 
 linters:
   # 仅启用精简且当前代码可全量通过的检查集, 后续可逐步收紧
-  disable-all: true
+  default: none
   enable:
     - govet # vet 语法与可疑结构
+    - ineffassign # 无效赋值
+  exclusions:
+    # mir 生成代码(auto/)与rpc pb 代码不做质量检查, 仅参与编译
+    rules:
+      - path: (^|/)auto/
+        linters:
+          - govet
+          - ineffassign
+
+formatters:
+  enable:
     - gofmt # 格式检查
     - goimports # import 排序与分组
-    - ineffassign # 无效赋值
-
-issues:
-  exclude-rules:
-    # mir 生成代码(auto/)与rpc pb 代码不做质量检查, 仅参与编译
-    - path: (^|/)auto/
-      linters:
-        - govet
-        - gofmt
-        - goimports
-        - ineffassign
+  exclusions:
+    paths:
+      - (^|/)auto/
