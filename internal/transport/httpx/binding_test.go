@@ -11,6 +11,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/transport/httpx"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
+	"github.com/alimy/mir/v5"
 	"github.com/gin-gonic/gin"
 )
 
@@ -105,6 +106,33 @@ func TestContextExtractionRejectsWrongTypes(t *testing.T) {
 	}
 	if _, ok := httpx.UserNameFrom(ctx); ok {
 		t.Fatal("numeric username accepted")
+	}
+}
+
+// Both bind paths must produce the identical InvalidParams error, including
+// per-field details. The Sentry path historically built its error from an
+// empty error list, losing the field details entirely.
+func TestBindErrorDetailsIdenticalWithAndWithoutSentry(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	pagingConfig(t)
+
+	bindInvalid := func(sentry bool) error {
+		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+		ctx.Request = httptest.NewRequest("POST", "/example", strings.NewReader(`{"name":""}`))
+		ctx.Request.Header.Set("Content-Type", "application/json")
+		return httpx.New(sentry).Bind(ctx, &request{})
+	}
+
+	plain, sentried := bindInvalid(false), bindInvalid(true)
+	if plain == nil || sentried == nil {
+		t.Fatalf("expected both binds to fail, got %v / %v", plain, sentried)
+	}
+	if plain.Error() != sentried.Error() {
+		t.Fatalf("error mismatch:\nplain:  %v\nsentry: %v", plain, sentried)
+	}
+	plainStatus, sentryStatus := plain.(mir.Error).StatusCode(), sentried.(mir.Error).StatusCode()
+	if plainStatus != sentryStatus || plainStatus != xerror.InvalidParams.StatusCode() {
+		t.Fatalf("status mismatch: %d / %d, want %d", plainStatus, sentryStatus, xerror.InvalidParams.StatusCode())
 	}
 }
 
