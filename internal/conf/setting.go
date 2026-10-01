@@ -309,6 +309,8 @@ func (s *databaseConf) TableNames() (res TableNameMap) {
 		TableComment,
 		TableCourse,
 		TableCourseGroup,
+		TableCourseLesson,
+		TableCourseLessonAttachment,
 		TableCourseComment,
 		TableCourseCommentContent,
 		TableCourseCommentReply,

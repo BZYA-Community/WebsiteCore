@@ -66,6 +66,7 @@ type CourseCommentsResp joint.PageResp
 type CourseVideoReq struct {
 	BaseInfo `form:"-" binding:"-"`
 	ID       int64 `form:"id" binding:"required"`
+	LessonID int64 `form:"lesson_id"`
 }
 
 type CourseVideoResp struct {
@@ -136,15 +137,32 @@ type DeleteCourseGroupReq struct {
 	ID       int64 `json:"id" binding:"required"`
 }
 
+type CourseLessonAttachmentInput struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name" binding:"required"`
+	URL  string `json:"url" binding:"required"`
+	Sort int    `json:"sort"`
+}
+
+type CourseLessonInput struct {
+	ID          int64                          `json:"id"`
+	Title       string                         `json:"title" binding:"required"`
+	Summary     string                         `json:"summary"`
+	Video       string                         `json:"video"`
+	Sort        int                            `json:"sort"`
+	Attachments []*CourseLessonAttachmentInput `json:"attachments"`
+}
+
 // CreateCourseReq 创建课程: Video 为OSS对象键(直传)或完整URL(代理上传返回), Cover为图片URL
 type CreateCourseReq struct {
 	BaseInfo  `json:"-" binding:"-"`
-	GroupID   int64  `json:"group_id" binding:"required"`
-	TeacherID int64  `json:"teacher_id" binding:"required"`
-	Title     string `json:"title" binding:"required"`
-	Intro     string `json:"intro"`
-	Video     string `json:"video" binding:"required"`
-	Cover     string `json:"cover"`
+	GroupID   int64                `json:"group_id" binding:"required"`
+	TeacherID int64                `json:"teacher_id" binding:"required"`
+	Title     string               `json:"title" binding:"required"`
+	Intro     string               `json:"intro"`
+	Video     string               `json:"video"`
+	Cover     string               `json:"cover"`
+	Lessons   []*CourseLessonInput `json:"lessons"`
 }
 
 type CreateCourseResp = ms.CourseFormated
@@ -152,13 +170,14 @@ type CreateCourseResp = ms.CourseFormated
 // UpdateCourseReq 更新课程: Video/Cover 为空字符串表示不更换
 type UpdateCourseReq struct {
 	BaseInfo  `json:"-" binding:"-"`
-	ID        int64  `json:"id" binding:"required"`
-	GroupID   int64  `json:"group_id" binding:"required"`
-	TeacherID int64  `json:"teacher_id" binding:"required"`
-	Title     string `json:"title" binding:"required"`
-	Intro     string `json:"intro"`
-	Video     string `json:"video"`
-	Cover     string `json:"cover"`
+	ID        int64                `json:"id" binding:"required"`
+	GroupID   int64                `json:"group_id" binding:"required"`
+	TeacherID int64                `json:"teacher_id" binding:"required"`
+	Title     string               `json:"title" binding:"required"`
+	Intro     string               `json:"intro"`
+	Video     string               `json:"video"`
+	Cover     string               `json:"cover"`
+	Lessons   []*CourseLessonInput `json:"lessons"`
 }
 
 type DeleteCourseReq struct {
