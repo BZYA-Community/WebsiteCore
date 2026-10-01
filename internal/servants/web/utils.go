@@ -171,3 +171,16 @@ func checkPermision(user *ms.User, targetUserId int64) error {
 	}
 	return nil
 }
+
+// canReplyToComment mirrors comment-list visibility: approved comments are
+// public to eligible post/course viewers; an unapproved comment is visible
+// only to its author and moderation roles.
+func canReplyToComment(auditStatus ms.PostAuditT, authorID int64, viewer *ms.User) bool {
+	if auditStatus == ms.PostAuditApproved {
+		return true
+	}
+	if viewer == nil {
+		return false
+	}
+	return viewer.ID == authorID || viewer.IsAdmin || viewer.HasRole(ms.RoleAuditor)
+}

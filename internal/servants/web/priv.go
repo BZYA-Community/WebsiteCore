@@ -408,6 +408,9 @@ func (s *privSrv) CreateCommentReply(req *web.CreateCommentReplyReq) (_ *web.Cre
 	if !s.CanViewTweet(user, post) {
 		return nil, web.ErrNoPermission
 	}
+	if !canReplyToComment(comment.AuditStatus, comment.UserID, user) {
+		return nil, web.ErrNoPermission
+	}
 	if post.IsLock > 0 {
 		return nil, web.ErrNoPermission
 	}

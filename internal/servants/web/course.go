@@ -308,6 +308,9 @@ func (s *coursePrivSrv) CreateCourseCommentReply(req *web.CreateCourseCommentRep
 		logrus.Errorf("Ds.GetUserByID err: %s", err)
 		return nil, web.ErrCreateCourseCommentFailed
 	}
+	if !canReplyToComment(comment.AuditStatus, comment.UserID, user) {
+		return nil, web.ErrNoPermission
+	}
 	atUserID := req.AtUserID
 	if atUserID == req.Uid {
 		atUserID = 0
