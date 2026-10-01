@@ -5,15 +5,15 @@
 package core
 
 import (
+	"errors"
 	"time"
-
-	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 )
+
+var ErrPhoneCaptchaMaxAttempts = errors.New("phone captcha reached maximum attempts")
 
 // SecurityService 安全相关服务
 type SecurityService interface {
-	GetLatestPhoneCaptcha(phone string) (*ms.Captcha, error)
-	UsePhoneCaptcha(captcha *ms.Captcha) error
+	VerifyPhoneCaptcha(phone, captcha string, maxAttempts int) (bool, error)
 	SendPhoneCaptcha(phone string) error
 }
 

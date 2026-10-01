@@ -5,8 +5,8 @@
 package web
 
 import (
+	"errors"
 	"fmt"
-	"time"
 	"unicode/utf8"
 
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
@@ -206,21 +206,17 @@ func (s *coreSrv) UserPhoneBind(req *web.UserPhoneBindReq) error {
 
 	// 如果禁止phone verify 则允许通过任意验证码
 	if _enablePhoneVerify {
-		c, err := s.Ds.GetLatestPhoneCaptcha(req.Phone)
+		verified, err := s.Ds.VerifyPhoneCaptcha(req.Phone, req.Captcha, _maxCaptchaTimes)
 		if err != nil {
+			if errors.Is(err, core.ErrPhoneCaptchaMaxAttempts) {
+				return web.ErrMaxPhoneCaptchaUseTimes
+			}
+			logrus.Errorf("Ds.VerifyPhoneCaptcha err: %s", err)
 			return web.ErrErrorPhoneCaptcha
 		}
-		if c.Captcha != req.Captcha {
+		if !verified {
 			return web.ErrErrorPhoneCaptcha
 		}
-		if c.ExpiredOn < time.Now().Unix() {
-			return web.ErrErrorPhoneCaptcha
-		}
-		if c.UseTimes >= _maxCaptchaTimes {
-			return web.ErrMaxPhoneCaptchaUseTimes
-		}
-		// 更新检测次数
-		s.Ds.UsePhoneCaptcha(c)
 	}
 
 	// 执行绑定
