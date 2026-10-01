@@ -140,7 +140,7 @@ type DeleteCourseGroupReq struct {
 type CreateCourseReq struct {
 	BaseInfo  `json:"-" binding:"-"`
 	GroupID   int64  `json:"group_id" binding:"required"`
-	TeacherID int64  `json:"teacher_id" binding:"required"`
+	TeacherID int64  `json:"teacher_id"`
 	Title     string `json:"title" binding:"required"`
 	Intro     string `json:"intro"`
 	Video     string `json:"video" binding:"required"`
@@ -227,4 +227,12 @@ func (r *UploadCourseVideoReq) Bind(c *gin.Context) (xerr error) {
 	r.SimpleInfo = SimpleInfo{Uid: userId}
 	r.File, r.FileSize, r.FileExt, r.ContentType = file, fileHeader.Size, fileExt, contentType
 	return nil
+}
+
+type CourseTeachersReq struct {
+	BaseInfo `form:"-" binding:"-"`
+	Keyword  string `form:"keyword"`
+}
+type CourseTeachersResp struct {
+	Teachers []*ms.UserFormated `json:"teachers"`
 }

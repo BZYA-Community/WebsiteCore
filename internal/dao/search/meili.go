@@ -162,7 +162,7 @@ func (s *meiliTweetSearchServant) filterList(user *ms.User) string {
 		return s.publicFilter
 	}
 
-	if user.IsAdmin {
+	if user.IsAdminLevel() {
 		return ""
 	}
 

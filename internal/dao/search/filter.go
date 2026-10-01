@@ -15,7 +15,7 @@ type tweetSearchFilter struct {
 
 func (s *tweetSearchFilter) filterResp(user *ms.User, resp *core.QueryResp) {
 	// 管理员不过滤
-	if user != nil && user.IsAdmin {
+	if user != nil && user.IsAdminLevel() {
 		return
 	}
 

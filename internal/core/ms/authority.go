@@ -43,7 +43,7 @@ type (
 
 // IsAllow default true if user is admin
 func (a act) IsAllow(user *User, userId int64, isFriend bool, isActivation bool) bool {
-	if user.IsAdmin {
+	if user.IsAdminLevel() {
 		return true
 	}
 	if user.ID == userId && isActivation {

@@ -41,7 +41,8 @@ func newUserManageService(db *gorm.DB, ums core.UserMetricServantA) core.UserMan
 			fmt.Sprintf("%s.phone", _user_),
 			fmt.Sprintf("%s.status", _user_),
 			fmt.Sprintf("%s.avatar", _user_),
-			fmt.Sprintf("%s.is_admin", _user_),
+			fmt.Sprintf("%s.member_identity", _user_),
+			fmt.Sprintf("%s.is_mentor", _user_),
 			fmt.Sprintf("%s.roles", _user_),
 			fmt.Sprintf("%s.created_on", _user_),
 			"m.tweets_count",
@@ -115,8 +116,8 @@ func (s *userManageSrv) CreateUser(user *dbr.User) (res *ms.User, err error) {
 	return
 }
 
-func (s *userManageSrv) UpdateUser(user *ms.User) error {
-	return user.Update(s.db)
+func (s *userManageSrv) UpdateUser(user *ms.User, fields ...string) error {
+	return user.Update(s.db, fields...)
 }
 
 func (s *userManageSrv) GetRegisterUserCount() (res int64, err error) {

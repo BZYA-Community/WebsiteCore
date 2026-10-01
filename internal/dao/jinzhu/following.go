@@ -54,13 +54,14 @@ func (s *followingManageSrv) ListFollows(userId int64, limit, offset int) (*ms.C
 	}
 	for _, f := range follows {
 		res.Contacts = append(res.Contacts, ms.ContactItem{
-			UserId:    f.User.ID,
-			Username:  f.User.Username,
-			Nickname:  f.User.Nickname,
-			Avatar:    f.User.Avatar,
-			Roles:     f.User.RoleList(),
-			Identity:  f.User.DisplayIdentity(),
-			CreatedOn: f.User.CreatedOn,
+			UserId:         f.User.ID,
+			Username:       f.User.Username,
+			Nickname:       f.User.Nickname,
+			Avatar:         f.User.Avatar,
+			Roles:          f.User.PublicRoles(),
+			MemberIdentity: f.User.MemberIdentity,
+			IsMentor:       f.User.IsMentor,
+			CreatedOn:      f.User.CreatedOn,
 		})
 	}
 	return res, nil
@@ -80,11 +81,12 @@ func (s *followingManageSrv) ListFollowings(userId int64, limit, offset int) (*m
 	}
 	for _, user := range followings {
 		res.Contacts = append(res.Contacts, ms.ContactItem{
-			UserId:    user.ID,
-			Username:  user.Username,
-			Nickname:  user.Nickname,
-			Avatar:    user.Avatar,
-			Roles:     dbr.SplitRoles(user.Roles),
+			UserId:         user.ID,
+			Username:       user.Username,
+			Nickname:       user.Nickname,
+			Avatar:         user.Avatar,
+			Roles:          dbr.PublicRoles(user.Roles),
+			MemberIdentity: user.MemberIdentity, IsMentor: user.IsMentor,
 			CreatedOn: user.CreatedOn,
 		})
 	}

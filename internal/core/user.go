@@ -11,6 +11,12 @@ import (
 
 // UserManageService 用户管理服务
 type UserManageService interface {
+	ChangeMemberAccess(actorID, userID int64, identity string, mentor, auditor bool) error
+	ChangeAccountStatus(actorID, userID int64, status int) error
+	RemoveAdminRole(actorID, userID int64) error
+	DeleteMember(actorID, userID int64) error
+	CreateAdmin(actorID int64, user *ms.User) (*ms.User, error)
+	ListCourseTeachers(keyword string) ([]*ms.User, error)
 	GetUserByID(id int64) (*ms.User, error)
 	GetUserByUsername(username string) (*ms.User, error)
 	GetUserByPhone(phone string) (*ms.User, error)
@@ -18,7 +24,7 @@ type UserManageService interface {
 	GetUsersByKeyword(keyword string) ([]*ms.User, error)
 	UserProfileByName(username string) (*cs.UserProfile, error)
 	CreateUser(user *ms.User) (*ms.User, error)
-	UpdateUser(user *ms.User) error
+	UpdateUser(user *ms.User, fields ...string) error
 	GetRegisterUserCount() (int64, error)
 }
 

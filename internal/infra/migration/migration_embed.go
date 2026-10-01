@@ -8,6 +8,7 @@
 package migration
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -43,6 +44,10 @@ func Run() error {
 		return fmt.Errorf("initial db for migration failed: %w", err)
 	}
 
+	if err := CheckIdentityUpgrade(context.Background(), db, conf.DatabaseSetting.TablePrefix); err != nil {
+		db.Close()
+		return err
+	}
 	migrationsTable := conf.DatabaseSetting.TablePrefix + "schema_migrations"
 	srcDriver, err = iofs.New(migration.Files, "postgres")
 	dbDriver, err2 = postgres.WithInstance(db, &postgres.Config{MigrationsTable: migrationsTable})

@@ -188,7 +188,11 @@ declare namespace Api {
                 messages: Item.ChatHistoryItem[];
                 peer?: Item.ChatContactItem;
                 can_send: boolean;
+    can_block: boolean;
+    blocked: boolean;
+    blocked_by_me: boolean;
                 can_send_tip: string;
+                can_send_code: number;
                 total_rows: number;
             }
 

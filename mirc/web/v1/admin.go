@@ -8,7 +8,9 @@ import (
 
 // Admin 运维相关服务
 type Admin struct {
-	Schema `mir:"v1,chain"`
+	Schema             `mir:"v1,chain"`
+	ChangeMemberAccess func(Post, web.MemberAccessReq)                 `mir:"admin/user/access"`
+	CreateAdmin        func(Post, web.CreateAdminReq) web.RegisterResp `mir:"admin/accounts"`
 
 	// ChangeUserStatus 管理·禁言/解封用户
 	ChangeUserStatus   func(Post, web.ChangeUserStatusReq)                            `mir:"admin/user/status"`

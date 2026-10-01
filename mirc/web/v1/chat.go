@@ -8,7 +8,8 @@ import (
 
 // Chat 站内私聊服务，需要授权访问
 type Chat struct {
-	Schema `mir:"v1,chain"`
+	Schema          `mir:"v1,chain"`
+	SetWhisperBlock func(Post, web.WhisperBlockReq) `mir:"user/chat/block"`
 
 	// GetChatContacts 私信会话列表(含系统联系人)
 	GetChatContacts func(Get, web.GetChatContactsReq) web.GetChatContactsResp `mir:"user/chat/contacts"`

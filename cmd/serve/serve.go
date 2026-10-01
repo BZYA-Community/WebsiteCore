@@ -76,7 +76,7 @@ func ensureGhostAvatar() {
 }
 
 // ensureOperatorAccount 幂等确保配置的运维账号可用:
-// 账号不存在时按配置创建；存在时密码以配置为准(不一致则重置)；始终确保 operator 角色与 is_admin
+// 账号不存在时按配置创建；存在时密码以配置为准(不一致则重置)；始终确保 专用 Operator 账户
 func ensureOperatorAccount() {
 	op := conf.OperatorSetting
 	if op == nil || op.Username == "" {
@@ -107,15 +107,15 @@ func ensureOperatorAccount() {
 			logrus.Warnf("generate operator account[%s] avatar failure by err: %v", op.Username, aerr)
 		}
 		user = &dbr.User{
-			Model:    &dbr.Model{},
-			Nickname: op.Username,
-			Username: op.Username,
-			Password: utils.HashPassword(op.Password),
-			Salt:     salt,
-			Avatar:   operatorAvatar,
-			Status:   ms.UserStatusNormal,
-			IsAdmin:  true,
-			Roles:    ms.RoleOperator,
+			Model:       &dbr.Model{},
+			Nickname:    op.Username,
+			Username:    op.Username,
+			Password:    utils.HashPassword(op.Password),
+			Salt:        salt,
+			Avatar:      operatorAvatar,
+			Status:      ms.UserStatusNormal,
+			AccountType: "operator",
+			Roles:       ms.RoleOperator,
 		}
 		if _, err := user.Create(db); err != nil {
 			logrus.Errorf("create operator account[%s] failure by err: %v", op.Username, err)
@@ -128,14 +128,12 @@ func ensureOperatorAccount() {
 	// 账号已存在: 确保角色/密码与配置一致
 	updates := map[string]any{}
 	oldRoles := user.Roles
-	if user.AddRole(ms.RoleOperator) {
-		updates["roles"] = user.Roles
+	if user.AccountType != "operator" || user.MemberIdentity != nil {
+		logrus.Errorf("configured operator username belongs to a different account type; refusing conversion")
+		return
 	}
-	user.SyncIsAdmin()
-	if !user.IsAdmin {
-		updates["is_admin"] = true
-		user.IsAdmin = true
-	}
+	updates["roles"] = ms.RoleOperator
+	updates["status"] = ms.UserStatusNormal
 	if op.Password != "" {
 		// 密码以配置为准，不一致则重置(bcrypt)
 		if !utils.ComparePassword(user.Password, op.Password) {

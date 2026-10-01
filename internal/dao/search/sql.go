@@ -73,7 +73,7 @@ func (s *sqlTweetSearchServant) Search(user *ms.User, q *core.QueryReq, offset, 
 func (s *sqlTweetSearchServant) baseQuery(user *ms.User) *gorm.DB {
 	db := s.db.Model(&dbr.Post{}).Where("audit_status = ?", dbr.PostAuditApproved)
 	switch {
-	case user != nil && user.IsAdmin:
+	case user != nil && user.IsAdminLevel():
 		// 管理员不过滤
 	case user == nil:
 		db = db.Where("visibility = ?", core.PostVisitPublic)

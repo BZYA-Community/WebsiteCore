@@ -21,6 +21,7 @@ type Chat interface {
 	SendChatMessage(*web.SendChatMessageReq) (*web.SendChatMessageResp, error)
 	GetChatHistory(*web.GetChatHistoryReq) (*web.GetChatHistoryResp, error)
 	GetChatContacts(*web.GetChatContactsReq) (*web.GetChatContactsResp, error)
+	SetWhisperBlock(*web.WhisperBlockReq) error
 
 	mustEmbedUnimplementedChatServant()
 }
@@ -75,6 +76,19 @@ func RegisterChatServant(e *gin.Engine, s Chat) {
 		resp, err := s.GetChatContacts(req)
 		s.Render(c, resp, err)
 	})
+	router.Handle("POST", "user/chat/block", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.WhisperBlockReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		s.Render(c, nil, s.SetWhisperBlock(req))
+	})
 }
 
 // UnimplementedChatServant can be embedded to have forward compatible implementations.
@@ -94,6 +108,10 @@ func (UnimplementedChatServant) GetChatHistory(req *web.GetChatHistoryReq) (*web
 
 func (UnimplementedChatServant) GetChatContacts(req *web.GetChatContactsReq) (*web.GetChatContactsResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedChatServant) SetWhisperBlock(req *web.WhisperBlockReq) error {
+	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
 func (UnimplementedChatServant) mustEmbedUnimplementedChatServant() {}

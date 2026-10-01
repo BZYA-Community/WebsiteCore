@@ -88,8 +88,8 @@
     "E50008": "Message is being sent, please do not submit again",
     "E50009": "Bind a phone number to send private messages",
     "E50010": "Only one private message allowed until the other party replies",
-    "E50011": "The other party has not bound a phone number and cannot receive messages yet",
-    "E50012": "Fellow users cannot send private messages; interact via friends and follows instead",
+    "E50011": "The current identities cannot send messages in this conversation",
+    "E50012": "This conversation is blocked",
     "E60001": "Failed to get collection list",
     "E60002": "Failed to get likes list",
     "E70001": "Failed to get course groups",
@@ -129,6 +129,8 @@
     "E90101": "Failed to like comment",
     "E90102": "Failed to dislike comment",
     "E90103": "Failed to like comment reply",
-    "E90104": "Failed to dislike comment reply"
+    "E90104": "Failed to dislike comment reply",
+    "E10404": "Change your temporary password first",
+    "E11008": "Remove the Mentor designation and transfer all courses first."
   }
 }

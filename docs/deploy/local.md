@@ -6,7 +6,7 @@ This guide brings up a full development stack on your machine: dependency servic
 
 | Tool | Version | Notes |
 | --- | --- | --- |
-| Go | see `go.mod` (1.24+) | backend |
+| Go | see `go.mod` (1.26+) | backend |
 | Node.js | 22.x | matches CI; 20.19+ also works |
 | Yarn or npm | Yarn 1.x / npm 10+ | `make build-web` uses Yarn; CI uses npm |
 | Docker + Compose | any recent | dependency stack |
@@ -63,7 +63,7 @@ A minimal working sample is also kept at [examples/config.yaml](examples/config.
 make migrate
 ```
 
-This runs the `migrate` subcommand with the `migration` build tag, applying every SQL file under `scripts/migration/postgres/` (or `mysql/`) in order. See [database.md](database.md) for details.
+This runs the `migrate` subcommand with the `migration` build tag, applying every SQL file under `scripts/migration/postgres/` in order. See [database.md](database.md) for details.
 
 ## 4. Build the frontend and run
 
@@ -74,7 +74,7 @@ make run TAGS='embed'   # go run with the SPA embedded in the binary
 
 Open <http://127.0.0.1:8008>.
 
-The first account is created from the `Operator` section of `config.yaml` (default username `kiana`). Set `Operator.Password` (6-16 chars) to have it created automatically with admin privileges; on later starts, changing the value resets the password.
+The dedicated Operator account is created only from the `Operator` section of `config.yaml` (default username `kiana`), with no Student/Teacher identity. Set `Operator.Password` (6-16 chars) to create it; on later starts, changing the value resets its password. An existing member with the same username is rejected rather than promoted. The Operator creates dedicated Admin accounts with temporary passwords in User Management; each Admin must change that password before using other authenticated features. Self-registration always creates a Student. See [database.md](database.md) before upgrading an older installation with users.
 
 ## Frontend-only development
 

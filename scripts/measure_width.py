@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """程序化验证中间栏自适应: 在多档视口宽度下实测 .content-wrap 渲染宽度"""
+import sys
 from playwright.sync_api import sync_playwright
+
+fails = 0
 
 BASE = 'http://127.0.0.1:8008/#/'
 VIEWPORTS = [1920, 1600, 1366, 1200, 1000, 821, 375]
@@ -36,7 +39,9 @@ with sync_playwright() as p:
         else:
             expect = min(w, 620)
         ok = 'OK' if abs(m['w'] - expect) <= 2 else 'DIFF!'
+        if ok != 'OK': fails += 1
         print(f"{w:>6} | {m['w']:>18} | {expect:>12} | {m['sidebar']}  {ok}")
         ctx.close()
     browser.close()
-print('done')
+print('RESULT:', 'FAIL' if fails else 'ALL PASS')
+sys.exit(1 if fails else 0)

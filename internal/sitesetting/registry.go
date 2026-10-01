@@ -260,7 +260,7 @@ func Registry() []Definition {
 		stringDefWithActive("sms_juhe.tpl_id", "notifications", "sms_juhe", "SMS template ID", "Juhe SMS template ID.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsJuheSetting.TplID }, func() any { return bootstrapConfig.SmsJuhe.TplID }, validateTrimmedMax("sms_juhe.tpl_id", 255), func(v any) { conf.SmsJuheSetting.TplID = v.(string) }),
 		stringDefWithActive("sms_juhe.tpl_val", "notifications", "sms_juhe", "SMS template value", "Juhe SMS template value format.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsJuheSetting.TplVal }, func() any { return bootstrapConfig.SmsJuhe.TplVal }, validateTrimmedMax("sms_juhe.tpl_val", 255), func(v any) { conf.SmsJuheSetting.TplVal = v.(string) }),
 
-		boolDef("audit.enabled", "audit", "general", "Enable content audit", "New posts from ordinary users enter the pending queue and go public only after approval. Mentors and managers are exempt.", ApplyModeLive, false, true, func() any { return conf.AuditSetting.Enabled }, func() any { return bootstrapConfig.Audit.Enabled }, func(v any) { conf.AuditSetting.Enabled = v.(bool) }),
+		boolDef("audit.enabled", "audit", "general", "Enable content audit", "Student submissions enter the pending queue. Teachers and management publish directly; Auditor does not exempt students.", ApplyModeLive, false, true, func() any { return conf.AuditSetting.Enabled }, func() any { return bootstrapConfig.Audit.Enabled }, func(v any) { conf.AuditSetting.Enabled = v.(bool) }),
 	}
 }
 

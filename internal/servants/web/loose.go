@@ -347,19 +347,20 @@ func (s *looseSrv) GetUserProfile(req *web.GetUserProfileReq) (*web.GetUserProfi
 		return nil, web.ErrGetPostsFailed
 	}
 	return &web.GetUserProfileResp{
-		ID:          he.ID,
-		Nickname:    he.Nickname,
-		Username:    he.Username,
-		Status:      he.Status,
-		Avatar:      he.Avatar,
-		IsAdmin:     he.IsAdmin,
-		Roles:       dbr.SplitRoles(he.Roles),
-		Identity:    dbr.IdentityOf(he.Roles, he.Phone),
-		IsFollowing: isFollowing,
-		CreatedOn:   he.CreatedOn,
-		Follows:     follows,
-		Followings:  followings,
-		TweetsCount: he.TweetsCount,
+		ID:       he.ID,
+		Nickname: he.Nickname,
+		Username: he.Username,
+		Status:   he.Status,
+		Avatar:   he.Avatar,
+
+		Roles:          dbr.PublicRoles(he.Roles),
+		MemberIdentity: he.MemberIdentity,
+		IsMentor:       he.IsMentor,
+		IsFollowing:    isFollowing,
+		CreatedOn:      he.CreatedOn,
+		Follows:        follows,
+		Followings:     followings,
+		TweetsCount:    he.TweetsCount,
 	}, nil
 }
 
@@ -421,7 +422,7 @@ func (s *looseSrv) TweetComments(req *web.TweetCommentsReq) (res *web.TweetComme
 	}
 
 	// 评论审核可见范围: 审核员全部/作者见本人待审/其余仅过审(与GetComments同口径)
-	viewerIsAuditor := req.User != nil && (req.User.IsAdmin || req.User.HasRole(ms.RoleAuditor))
+	viewerIsAuditor := req.User != nil && (req.User.IsAdminLevel() || req.User.HasRole(ms.RoleAuditor))
 
 	comments, totalRows, xerr := s.Ds.GetComments(req.TweetId, req.Style.ToInnerValue(), req.Uid, viewerIsAuditor, limit, offset)
 	if xerr != nil {

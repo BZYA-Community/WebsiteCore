@@ -326,6 +326,7 @@
 </template>
 
 <script setup lang="ts">
+import { isAdmin } from "@/utils/identity";
 import { computed, h, onMounted, reactive, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useRouter } from 'vue-router';
@@ -927,7 +928,7 @@ const ensureAuditAccess = async () => {
         }
     }
 
-    if (!userInfo.value.is_admin && !userInfo.value.roles?.includes('auditor')) {
+    if (!isAdmin(userInfo.value) && !userInfo.value.roles?.includes('auditor')) {
         router.replace({
             name: '404',
         });

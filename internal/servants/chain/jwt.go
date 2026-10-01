@@ -46,6 +46,8 @@ func JWT() gin.HandlerFunc {
 						// 封禁等非正常状态的 token 一律拒绝, 不再依赖各角色门分散拦截
 						if user.Status != ms.UserStatusNormal {
 							ecode = _errUserHasBeenBanned
+						} else if user.MustChangePassword && !passwordChangeRoute(c) {
+							ecode = _errPasswordChangeRequired
 						} else {
 							c.Set("USER", user)
 							c.Set("UID", claims.UID)
@@ -77,52 +79,8 @@ func JWT() gin.HandlerFunc {
 	}
 }
 
-// JwtSurely 只校验 token 本身, 不加载用户(唯一不经过身份解析的路径),
-// 现仅服务于 GetUnreadMsgCount 这类读取自身计数的轻量接口;
-// 状态校验位于身份解析处, 故由 JWT()/JwtLoose 承担(#26), 此链保持零查询语义不变。
-func JwtSurely() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		var (
-			token string
-			ecode = xerror.Success
-		)
-		if s, exist := c.GetQuery("token"); exist {
-			token = s
-		} else {
-			token = c.GetHeader("Authorization")
-			// 验证前端传过来的token格式，不为空，开头为Bearer
-			if token == "" || !strings.HasPrefix(token, "Bearer ") {
-				response := app.NewResponse(c)
-				response.ToErrorResponse(xerror.UnauthorizedTokenError)
-				c.Abort()
-				return
-			}
-			// 验证通过，提取有效部分（除去Bearer)
-			token = token[7:]
-		}
-		if token != "" {
-			if claims, err := app.ParseToken(token); err == nil {
-				c.Set("UID", claims.UID)
-				c.Set("USERNAME", claims.Username)
-			} else {
-				if errors.Is(err, jwt.ErrTokenExpired) {
-					ecode = xerror.UnauthorizedTokenTimeout
-				} else {
-					ecode = xerror.UnauthorizedTokenError
-				}
-			}
-		} else {
-			ecode = xerror.InvalidParams
-		}
-		if ecode != xerror.Success {
-			response := app.NewResponse(c)
-			response.ToErrorResponse(ecode)
-			c.Abort()
-			return
-		}
-		c.Next()
-	}
-}
+// JwtSurely enforces current account state even for lightweight count endpoints.
+func JwtSurely() gin.HandlerFunc { return JWT() }
 
 func JwtLoose() gin.HandlerFunc {
 	ums := userManageService()
@@ -149,6 +107,11 @@ func JwtLoose() gin.HandlerFunc {
 					if user.Status != ms.UserStatusNormal {
 						response := app.NewResponse(c)
 						response.ToErrorResponse(_errUserHasBeenBanned)
+						c.Abort()
+						return
+					}
+					if user.MustChangePassword && !passwordChangeRoute(c) {
+						app.NewResponse(c).ToErrorResponse(_errPasswordChangeRequired)
 						c.Abort()
 						return
 					}

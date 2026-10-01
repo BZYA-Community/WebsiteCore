@@ -19,7 +19,6 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
 	"github.com/BZYA-Community/WebsiteCore/internal/sitesetting"
-	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -37,44 +36,28 @@ func (s *adminSrv) Chain() gin.HandlersChain {
 }
 
 func (s *adminSrv) ChangeUserStatus(req *web.ChangeUserStatusReq) error {
-	user, err := s.Ds.GetUserByID(req.ID)
-	if err != nil || user.Model == nil || user.ID <= 0 {
-		return web.ErrNoExistUsername
+	if req.User == nil {
+		return web.ErrNoPermission
 	}
-	// 执行更新
-	user.Status = req.Status
-	if err := s.Ds.UpdateUser(user); err != nil {
-		return xerror.ServerError
+	if err := s.Ds.ChangeAccountStatus(req.User.ID, req.ID, req.Status); err != nil {
+		return accessError(err)
 	}
-	// 过期该用户缓存(info:id/info:name/profile:name)
-	onChangeUsernameEvent(user.ID, user.Username)
+	s.expireManagedUser(req.ID)
 	return nil
 }
 
-// AdminUserDelete 用户管理·软删除用户(标记is_del=1)
-// 软删除后无法登录、从用户列表/前台消失, 数据保留可恢复(数据库改回is_del=0)
-// 权限规则: 不可删除自己; 运维账号仅运维可删除
 func (s *adminSrv) AdminUserDelete(req *web.AdminUserDeleteReq) error {
 	if req.User == nil {
 		return web.ErrNoPermission
 	}
 	user, err := s.Ds.GetUserByID(req.ID)
-	if err != nil || user.Model == nil || user.ID <= 0 {
+	if err != nil {
 		return web.ErrNoExistUsername
 	}
-	if user.ID == req.User.ID {
-		return xerror.InvalidParams.WithDetails("不能删除当前登录账号")
+	if err := s.Ds.DeleteMember(req.User.ID, req.ID); err != nil {
+		return accessError(err)
 	}
-	// 运维账号保护: 与角色变更同规则
-	if user.HasRole(ms.RoleOperator) && !req.User.HasRole(ms.RoleOperator) {
-		return web.ErrRoleChangeNoPermission
-	}
-	if err := s.Ds.SoftDeleteUser(user); err != nil {
-		logrus.Errorf("Ds.SoftDeleteUser err: %s", err)
-		return web.ErrUserDeleteFailed
-	}
-	// 过期该用户缓存(info:id/info:name/profile:name)
-	onChangeUsernameEvent(user.ID, user.Username)
+	onChangeUsernameEvent(req.ID, user.Username)
 	return nil
 }
 
@@ -147,14 +130,16 @@ func (s *adminSrv) AdminUserList(req *web.AdminUserListReq) (*web.AdminUserListR
 	items := make([]*web.AdminUserItem, 0, len(users))
 	for _, user := range users {
 		items = append(items, &web.AdminUserItem{
-			ID:        user.ID,
-			Nickname:  user.Nickname,
-			Username:  user.Username,
-			Phone:     maskPhone(user.Phone),
-			Roles:     user.RoleList(),
-			Identity:  user.DisplayIdentity(),
-			Status:    user.Status,
-			IsAdmin:   user.IsAdmin,
+			ID:             user.ID,
+			Nickname:       user.Nickname,
+			Username:       user.Username,
+			Phone:          maskPhone(user.Phone),
+			Roles:          user.RoleList(),
+			AccountType:    user.AccountType,
+			MemberIdentity: user.MemberIdentity,
+			IsMentor:       user.IsMentor,
+			Status:         user.Status,
+
 			CreatedOn: user.CreatedOn,
 		})
 	}
@@ -168,14 +153,16 @@ func (s *adminSrv) AdminUserDetail(req *web.AdminUserDetailReq) (*web.AdminUserD
 		return nil, web.ErrNoExistUsername
 	}
 	return &web.AdminUserDetailResp{
-		ID:        user.ID,
-		Nickname:  user.Nickname,
-		Username:  user.Username,
-		Phone:     user.Phone,
-		Roles:     user.RoleList(),
-		Identity:  user.DisplayIdentity(),
-		Status:    user.Status,
-		IsAdmin:   user.IsAdmin,
+		ID:             user.ID,
+		Nickname:       user.Nickname,
+		Username:       user.Username,
+		Phone:          user.Phone,
+		Roles:          user.RoleList(),
+		AccountType:    user.AccountType,
+		MemberIdentity: user.MemberIdentity,
+		IsMentor:       user.IsMentor,
+		Status:         user.Status,
+
 		CreatedOn: user.CreatedOn,
 	}, nil
 }
@@ -186,57 +173,18 @@ func (s *adminSrv) AdminUserRoleChange(req *web.AdminUserRoleReq) error {
 	if req.User == nil {
 		return web.ErrNoPermission
 	}
-	valid := false
-	for _, r := range ms.AllRoles {
-		if req.Role == r {
-			valid = true
-			break
-		}
+	// Auditor is set with member access. The only standalone role removal is
+	// an Operator disabling a dedicated Admin; arbitrary grants are forbidden.
+	if req.Role != ms.RoleAdmin || req.Action != "remove" {
+		return web.ErrRoleChangeNoPermission
 	}
-	if !valid {
-		return xerror.InvalidParams.WithDetails("无效的管理角色: " + req.Role)
+	if err := s.Ds.RemoveAdminRole(req.User.ID, req.UserID); err != nil {
+		return accessError(err)
 	}
-	user, err := s.Ds.GetUserByID(req.UserID)
-	if err != nil || user.Model == nil || user.ID <= 0 {
-		return web.ErrNoExistUsername
-	}
-	// operator相关变更(授予/移除operator角色 或 修改运维账号)仅运维可操作
-	if req.Role == ms.RoleOperator || user.HasRole(ms.RoleOperator) {
-		if !req.User.HasRole(ms.RoleOperator) {
-			return web.ErrRoleChangeNoPermission
-		}
-	}
-	oldRoles := user.Roles
-	if req.Action == "add" {
-		user.AddRole(req.Role)
-	} else {
-		user.RemoveRole(req.Role)
-	}
-	if user.Roles == oldRoles {
-		// 幂等: 无变化直接成功
-		return nil
-	}
-	user.SyncIsAdmin()
-	if err := s.Ds.UpdateUser(user); err != nil {
-		logrus.Errorf("Ds.UpdateUser err: %s", err)
-		return web.ErrRoleChangeFailed
-	}
-	// 写角色变更日志(宽松处理错误)
-	if err := s.Ds.CreateUserRoleLog(&ms.UserRoleLog{
-		UserID:     user.ID,
-		OperatorID: req.User.ID,
-		OldRoles:   oldRoles,
-		NewRoles:   user.Roles,
-		Action:     req.Action,
-	}); err != nil {
-		logrus.Errorf("Ds.CreateUserRoleLog err: %s", err)
-	}
-	// 过期该用户缓存(info:id/info:name/profile:name)
-	onChangeUsernameEvent(user.ID, user.Username)
+	s.expireManagedUser(req.UserID)
 	return nil
 }
 
-// AdminUserRoleLogs 用户管理·角色变更记录
 func (s *adminSrv) AdminUserRoleLogs(req *web.AdminUserRoleLogsReq) (*web.AdminUserRoleLogsResp, error) {
 	limit, offset := req.PageSize, (req.Page-1)*req.PageSize
 	logs, total, err := s.Ds.ListUserRoleLogs(offset, limit)

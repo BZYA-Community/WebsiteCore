@@ -166,7 +166,7 @@ func tagsFrom(originTags []string) []string {
 
 // checkPermision 检查是否拥有者或管理员
 func checkPermision(user *ms.User, targetUserId int64) error {
-	if user == nil || (user.ID != targetUserId && !user.IsAdmin) {
+	if user == nil || (user.ID != targetUserId && !user.IsAdminLevel()) {
 		return web.ErrNoPermission
 	}
 	return nil

@@ -7,10 +7,14 @@ package core
 import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
 )
 
 // MessageService 消息服务
 type MessageService interface {
+	SendWhisper(msg *ms.Message) (*ms.Message, error)
+	WhisperPermission(senderID, receiverID int64) (*dbr.WhisperConversation, error)
+	SetWhisperBlock(actorID, peerID int64, blocked bool) error
 	CreateMessage(msg *ms.Message) (*ms.Message, error)
 	GetUnreadCount(userID int64) (int64, error)
 	GetMessageByID(id int64) (*ms.Message, error)

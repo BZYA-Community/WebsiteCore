@@ -14,10 +14,11 @@ const (
 	UserStatusNormal = dbr.UserStatusNormal
 	UserStatusClosed = dbr.UserStatusClosed
 
-	RoleOperator = dbr.RoleOperator
-	RoleAdmin    = dbr.RoleAdmin
-	RoleAuditor  = dbr.RoleAuditor
-	RoleMentor   = dbr.RoleMentor
+	MemberStudent = dbr.MemberStudent
+	MemberTeacher = dbr.MemberTeacher
+	RoleOperator  = dbr.RoleOperator
+	RoleAdmin     = dbr.RoleAdmin
+	RoleAuditor   = dbr.RoleAuditor
 
 	PostAuditPending  = dbr.PostAuditPending
 	PostAuditApproved = dbr.PostAuditApproved
@@ -40,3 +41,6 @@ type (
 	UserRoleLog         = dbr.UserRoleLog
 	Model               = dbr.Model
 )
+
+// Identity constructs a nullable member identity.
+func Identity(value string) *string { return &value }

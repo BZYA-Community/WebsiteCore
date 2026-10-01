@@ -108,12 +108,14 @@ func (s *pubSrv) Register(req *web.RegisterReq) (*web.RegisterResp, error) {
 		return nil, web.ErrUserRegisterFailed
 	}
 	user := &ms.User{
-		Nickname: req.Username,
-		Username: req.Username,
-		Password: password,
-		Avatar:   avatarURL,
-		Salt:     salt,
-		Status:   ms.UserStatusNormal,
+		AccountType:    "member",
+		MemberIdentity: ms.Identity(ms.MemberStudent),
+		Nickname:       req.Username,
+		Username:       req.Username,
+		Password:       password,
+		Avatar:         avatarURL,
+		Salt:           salt,
+		Status:         ms.UserStatusNormal,
 	}
 	user, err = s.Ds.CreateUser(user)
 	if err != nil {
@@ -160,7 +162,8 @@ func (s *pubSrv) Login(req *web.LoginReq) (*web.LoginResp, error) {
 		return nil, xerror.UnauthorizedTokenGenerate
 	}
 	return &web.LoginResp{
-		Token: token,
+		Token:              token,
+		MustChangePassword: user.MustChangePassword,
 	}, nil
 }
 

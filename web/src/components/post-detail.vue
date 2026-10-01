@@ -257,6 +257,7 @@
 </template>
 
 <script setup lang="ts">
+import { isAdmin } from "@/utils/identity";
 import { h, ref, onMounted, computed } from 'vue';
 import type { Component } from 'vue';
 import { NIcon, useDialog } from 'naive-ui';
@@ -340,7 +341,7 @@ const auditActing = ref(false);
 const isAuditor = computed(
   () =>
     userInfo.value.id > 0 &&
-    (userInfo.value.is_admin || (userInfo.value.roles || []).includes('auditor')),
+    (isAdmin(userInfo.value) || (userInfo.value.roles || []).includes('auditor')),
 );
 const showAuditBar = computed(
   () =>
@@ -376,7 +377,7 @@ const getVisibilityName = (v: number) => {
 const adminOptions = computed(() => {
   let options: DropdownOption[] = [];
   if (
-    !userInfo.value.is_admin &&
+    !isAdmin(userInfo.value) &&
     userInfo.value.id != props.post.user.id
   ) {
     // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
@@ -420,7 +421,7 @@ const adminOptions = computed(() => {
       icon: renderIcon(LockOpenOutline),
     });
   }
-  if (userInfo.value.is_admin) {
+  if (isAdmin(userInfo.value)) {
     if (post.value.is_top === 0) {
       options.push({
         label: t('post.action.stick'),

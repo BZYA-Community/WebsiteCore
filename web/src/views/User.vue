@@ -18,8 +18,11 @@
                                 class="top-tag" type="success" size="small" round>
                                 {{ t('user.followed') }}
                             </n-tag>
-                            <n-tag v-if="showIdentityBadge(user.identity)" class="top-tag" :type="identityTagType(user.identity)" size="small" round>
-                                {{ identityLabel(user.identity) }}
+                            <n-tag v-if="user.member_identity === 'teacher' && user.is_mentor" class="top-tag" type="success" size="small" round>
+                                {{ t('user.identity.mentor') }}
+                            </n-tag>
+                            <n-tag v-if="showIdentityBadge(user)" class="top-tag" :type="identityTagType(user)" size="small" round>
+                                {{ identityLabel(user) }}
                             </n-tag>
                         </div>
                         <div class="userinfo">
@@ -120,6 +123,7 @@
 </template>
 
 <script setup lang="ts">
+import { isAdmin } from "@/utils/identity";
 import { h, ref, reactive, watch, onMounted, computed } from 'vue';
 import { NIcon } from 'naive-ui';
 import type { Component, Ref } from 'vue';
@@ -168,7 +172,7 @@ const user = reactive<Item.UserInfo>({
 	avatar: '',
 	username: '',
 	nickname: '',
-	is_admin: false,
+
 	is_following: false,
 	created_on: 0,
 	follows: 0,
@@ -330,8 +334,9 @@ const loadUser = () => {
       user.avatar = res.avatar;
       user.username = res.username;
       user.nickname = res.nickname;
-      user.is_admin = res.is_admin;
-      user.identity = res.identity;
+      user.roles = res.roles;
+      user.member_identity = res.member_identity;
+      user.is_mentor = res.is_mentor;
       user.created_on = res.created_on;
       user.is_following = res.is_following;
       user.follows = res.follows;
@@ -380,7 +385,7 @@ const userOptions = computed(() => {
       icon: renderIcon(PaperPlaneOutline),
     });
   }
-  if (userInfo.value.is_admin) {
+  if (isAdmin(userInfo.value)) {
     if (user.status === 1) {
       options.push({
         label: t('user.userPage.actionBan'),

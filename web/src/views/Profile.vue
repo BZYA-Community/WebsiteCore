@@ -17,8 +17,11 @@
                     <div class="username">
                         <strong>{{ userInfo.nickname }}</strong>
                         <span> @{{ userInfo.username }} </span>
-                        <n-tag v-if="showIdentityBadge(userInfo.identity)" class="top-tag" :type="identityTagType(userInfo.identity)" size="small" round>
-                            {{ identityLabel(userInfo.identity) }}
+                        <n-tag v-if="showIdentityBadge(userInfo)" class="top-tag" :type="identityTagType(userInfo)" size="small" round>
+                            {{ identityLabel(userInfo) }}
+                        </n-tag>
+                        <n-tag v-if="userInfo.member_identity === 'teacher' && userInfo.is_mentor" class="top-tag" type="success" size="small" round>
+                            {{ t('user.identity.mentor') }}
                         </n-tag>
                     </div>
                     <div class="userinfo">

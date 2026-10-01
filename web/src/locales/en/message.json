@@ -26,6 +26,8 @@
     "systemUser": "System",
     "viewDetailLink": "View details: {url}",
     "viewProfileLink": "View profile: {url}",
-    "loadingNickname": "Loading..."
+    "loadingNickname": "Loading...",
+    "block": "Block member",
+    "unblock": "Unblock member"
   }
 }

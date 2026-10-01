@@ -26,6 +26,19 @@ jobs:
   backend:
     name: Backend Check
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.6
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: identity_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -46,6 +59,11 @@ jobs:
       # 单元测试(干净检出、无 config.yaml 的环境下也必须全绿, 见 #11)
       - name: Unit tests
         run: go test ./...
+
+      - name: PostgreSQL identity integration tests
+        env:
+          TEST_POSTGRES_DSN: host=127.0.0.1 port=5432 user=postgres dbname=identity_test sslmode=disable
+        run: go test -tags migration ./internal/dao/jinzhu/... ./internal/infra/migration/...
 
       - name: Install golangci-lint
         run: go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0

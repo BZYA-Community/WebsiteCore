@@ -26,6 +26,8 @@
     "systemUser": "系统",
     "viewDetailLink": "查看详情: {url}",
     "viewProfileLink": "查看主页: {url}",
-    "loadingNickname": "加载中…"
+    "loadingNickname": "加载中…",
+    "block": "屏蔽此成员",
+    "unblock": "解除屏蔽"
   }
 }

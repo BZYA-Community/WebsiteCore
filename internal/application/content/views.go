@@ -111,7 +111,7 @@ func (s *Views) CanViewTweet(user *ms.User, post any) bool {
 		return false
 	}
 	// 作者本人/管理员/审核员直接放行
-	if user != nil && (user.ID == userID || user.IsAdmin || user.HasRole(ms.RoleAuditor)) {
+	if user != nil && (user.ID == userID || user.IsAdminLevel() || user.HasRole(ms.RoleAuditor)) {
 		return true
 	}
 	// 其余情况要求帖子已过审
@@ -206,7 +206,7 @@ func (s *Views) RelationTypFrom(me *ms.User, username string) (res *cs.VistUser,
 		return
 	}
 	// visit by admin/other(好友功能已移除 不存在好友关系)
-	if me.IsAdmin {
+	if me.IsAdminLevel() {
 		res.RelTyp = cs.RelationAdmin
 	} else {
 		res.RelTyp = cs.RelationGuest

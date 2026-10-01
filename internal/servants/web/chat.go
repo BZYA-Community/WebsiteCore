@@ -14,11 +14,9 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
-	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
-	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/rueidis"
 	"github.com/sirupsen/logrus"
@@ -35,46 +33,6 @@ type chatSrv struct {
 
 func (s *chatSrv) Chain() gin.HandlersChain {
 	return gin.HandlersChain{chain.JWT()}
-}
-
-// canWhisper 身份组私信权限判定(发送入口与 history can_send 共用):
-// 游客(未绑手机)禁止发送; 道友↔道友绝对禁止(好友不豁免);
-// 道友→高级身份(导师/审核/管理/运维)B站式首条限制——对方回复前只能发一条;
-// 高级身份→任何人 自由。返回 nil 表示允许, 否则为具体拒绝原因(msg 即提示文案)
-// 依赖存储的判定查询出错时 fail-closed 返回错误(拒绝), 不静默放行(#15)
-func (s *chatSrv) canWhisper(sender, receiver *ms.User) *xerror.Error {
-	if sender.Phone == "" {
-		return web.ErrWhisperGuestNeedPhone
-	}
-	if sender.HasAnyRole() {
-		return nil
-	}
-	// 发送方为道友
-	if receiver.HasAnyRole() {
-		// 首条限制依赖存储查询, 查询出错时无法判定 → fail-closed 拒绝, 禁止吞错放行
-		has, err := s.Ds.HasWhispered(receiver.ID, sender.ID)
-		if err != nil {
-			logrus.Errorf("Ds.HasWhispered(%d, %d) err: %s", receiver.ID, sender.ID, err)
-			return web.ErrSendWhisperFailed
-		}
-		if has {
-			// 对方回复过, 解除限制
-			return nil
-		}
-		has, err = s.Ds.HasWhispered(sender.ID, receiver.ID)
-		if err != nil {
-			logrus.Errorf("Ds.HasWhispered(%d, %d) err: %s", sender.ID, receiver.ID, err)
-			return web.ErrSendWhisperFailed
-		}
-		if has {
-			return web.ErrWhisperOnePending
-		}
-		return nil
-	}
-	if receiver.Phone == "" {
-		return web.ErrWhisperPeerNoPhone
-	}
-	return web.ErrWhisperBetweenDaoyou
 }
 
 // GetChatContacts 会话列表(系统联系人单列置顶, 私信会话按最新消息倒序)
@@ -140,16 +98,17 @@ func (s *chatSrv) GetChatContacts(req *web.GetChatContactsReq) (*web.GetChatCont
 				continue
 			}
 			resp.Contacts = append(resp.Contacts, web.ChatContactItem{
-				UserID:      u.ID,
-				Username:    u.Username,
-				Nickname:    u.Nickname,
-				Avatar:      u.Avatar,
-				Roles:       u.RoleList(),
-				Identity:    dbr.IdentityOf(u.Roles, u.Phone),
-				LastContent: m.Content,
-				LastTime:    m.CreatedOn,
-				LastFromMe:  m.SenderUserID == req.Uid,
-				Unread:      unreadBySender[otherID],
+				UserID:         u.ID,
+				Username:       u.Username,
+				Nickname:       u.Nickname,
+				Avatar:         u.Avatar,
+				Roles:          u.PublicRoles(),
+				MemberIdentity: u.MemberIdentity,
+				IsMentor:       u.IsMentor,
+				LastContent:    m.Content,
+				LastTime:       m.CreatedOn,
+				LastFromMe:     m.SenderUserID == req.Uid,
+				Unread:         unreadBySender[otherID],
 			})
 		}
 	}
@@ -195,7 +154,8 @@ func (s *chatSrv) GetChatHistory(req *web.GetChatHistoryReq) (*web.GetChatHistor
 		}
 		resp.TotalRows = total
 		resp.CanSend = false
-		resp.CanSendTip = "系统通知不支持回复"
+		resp.CanSendTip = web.ErrSystemChatReadonly.Msg()
+		resp.CanSendCode = web.ErrSystemChatReadonly.StatusCode()
 		// 打开系统会话即全部置已读
 		if err := s.Ds.ReadSystemMessages(req.Uid); err != nil {
 			logrus.Errorf("Ds.ReadSystemMessages err: %s", err)
@@ -227,12 +187,13 @@ func (s *chatSrv) GetChatHistory(req *web.GetChatHistoryReq) (*web.GetChatHistor
 	}
 	resp.TotalRows = total
 	resp.Peer = &web.ChatContactItem{
-		UserID:   peer.ID,
-		Username: peer.Username,
-		Nickname: peer.Nickname,
-		Avatar:   peer.Avatar,
-		Roles:    peer.RoleList(),
-		Identity: dbr.IdentityOf(peer.Roles, peer.Phone),
+		UserID:         peer.ID,
+		Username:       peer.Username,
+		Nickname:       peer.Nickname,
+		Avatar:         peer.Avatar,
+		Roles:          peer.PublicRoles(),
+		MemberIdentity: peer.MemberIdentity,
+		IsMentor:       peer.IsMentor,
 	}
 	// 打开会话即标记对方发来的未读
 	if err := s.Ds.ReadWhispersFrom(req.Uid, peer.ID); err != nil {
@@ -240,9 +201,16 @@ func (s *chatSrv) GetChatHistory(req *web.GetChatHistoryReq) (*web.GetChatHistor
 	}
 	onMessageActionEvent(_messageActionRead, req.Uid)
 	// 附带发送权限(前端输入框引导, 后端发送时仍会强制校验)
-	if xerr := s.canWhisper(req.User, peer); xerr != nil {
+	conversation, permissionErr := s.Ds.WhisperPermission(req.User.ID, peer.ID)
+	if permissionErr != nil {
 		resp.CanSend = false
-		resp.CanSendTip = xerr.Msg()
+		resp.CanSendTip = accessError(permissionErr).Msg()
+		resp.CanSendCode = accessError(permissionErr).StatusCode()
+	}
+	resp.CanBlock = req.User.AccountType == "member" && peer.AccountType == "member"
+	if conversation != nil {
+		resp.Blocked = conversation.BlockedByLow || conversation.BlockedByHigh
+		resp.BlockedByMe = (req.User.ID == conversation.LowUserID && conversation.BlockedByLow) || (req.User.ID == conversation.HighUserID && conversation.BlockedByHigh)
 	}
 	return resp, nil
 }
@@ -297,9 +265,7 @@ func (s *chatSrv) SendChatMessage(req *web.SendChatMessageReq) (*web.SendChatMes
 		return nil, web.ErrNoExistUsername
 	}
 	// 身份组权限
-	if xerr := s.canWhisper(req.User, receiver); xerr != nil {
-		return nil, xerr
-	}
+
 	// 防重复发送: 同人同内容10秒窗口去重
 	dedupKey := fmt.Sprintf("paopao:chat:dedup:%d:%d:%x", req.User.ID, receiver.ID, md5.Sum([]byte(content)))
 	if err := s.ac.SetNx(dedupKey, []byte{1}, 10); err != nil {
@@ -311,10 +277,9 @@ func (s *chatSrv) SendChatMessage(req *web.SendChatMessageReq) (*web.SendChatMes
 		logrus.Errorf("ac.SetNx(whisper dedup) err: %s", err)
 		return nil, web.ErrSendWhisperFailed
 	}
-	// 每日频次限制已取消: 高级身份(导师/审核/管理/运维)私信不限量;
-	// 道友未获对方回复前受canWhisper首条限制约束, 获回复后亦不限量
+	// Permission, request state and insertion are checked atomically.
 	// 创建私信
-	msg, err := s.Ds.CreateMessage(&ms.Message{
+	msg, err := s.Ds.SendWhisper(&ms.Message{
 		SenderUserID:   req.User.ID,
 		ReceiverUserID: receiver.ID,
 		Type:           ms.MsgTypeWhisper,
@@ -322,8 +287,8 @@ func (s *chatSrv) SendChatMessage(req *web.SendChatMessageReq) (*web.SendChatMes
 		Content:        content,
 	})
 	if err != nil {
-		logrus.Errorf("Ds.CreateMessage(whisper) err: %s", err)
-		return nil, web.ErrSendWhisperFailed
+		logrus.Errorf("Ds.SendWhisper err: %s", err)
+		return nil, accessError(err)
 	}
 	// 缓存处理, 不需要处理错误
 	onMessageActionEvent(_messageActionSendWhisper, req.User.ID, receiver.ID)

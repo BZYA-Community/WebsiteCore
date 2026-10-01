@@ -18,9 +18,9 @@
                     </template>
                 </n-input>
                 <n-button type="primary" secondary round @click="doSearch">{{ t('common.search') }}</n-button>
-                <template v-if="userInfo.is_admin">
-                    <n-button secondary round @click="openGroupModal()">{{ t('course.list.createGroup') }}</n-button>
-                    <n-button secondary round type="info" @click="openCourseModal()">{{ t('course.list.createCourse') }}</n-button>
+                <template v-if="isAdmin(userInfo) || isTeacher(userInfo)">
+                    <n-button v-if="isAdmin(userInfo)" secondary round @click="openGroupModal()">{{ t('course.list.createGroup') }}</n-button>
+                    <n-button v-if="isTeacher(userInfo)" secondary round type="info" @click="openCourseModal()">{{ t('course.list.createCourse') }}</n-button>
                 </template>
             </div>
 
@@ -35,7 +35,8 @@
                         v-for="course in searchList"
                         :key="course.id"
                         :course="course"
-                        :is-admin="userInfo.is_admin"
+                        :can-edit="isAdmin(userInfo) || (isTeacher(userInfo) && course.teacher_id === userInfo.id)"
+:can-delete="isAdmin(userInfo)"
                         @edit="openCourseModal(course)"
                         @delete="execDeleteCourse(course)"
                     />
@@ -67,7 +68,7 @@
                             >
                                 {{ t('course.list.viewAll') }}
                             </n-button>
-                            <template v-if="userInfo.is_admin">
+                            <template v-if="isAdmin(userInfo)">
                                 <n-button text size="small" @click="openGroupModal(group)">{{ t('common.edit') }}</n-button>
                                 <n-popconfirm
                                     :negative-text="t('common.cancel')"
@@ -87,7 +88,8 @@
                             v-for="course in groupCourses[group.id] || []"
                             :key="course.id"
                             :course="course"
-                            :is-admin="userInfo.is_admin"
+                            :can-edit="isAdmin(userInfo) || (isTeacher(userInfo) && course.teacher_id === userInfo.id)"
+:can-delete="isAdmin(userInfo)"
                             @edit="openCourseModal(course)"
                             @delete="execDeleteCourse(course)"
                         />
@@ -107,7 +109,8 @@
                         v-for="course in drawerList"
                         :key="course.id"
                         :course="course"
-                        :is-admin="userInfo.is_admin"
+                        :can-edit="isAdmin(userInfo) || (isTeacher(userInfo) && course.teacher_id === userInfo.id)"
+:can-delete="isAdmin(userInfo)"
                         @edit="openCourseModal(course)"
                         @delete="execDeleteCourse(course)"
                     />
@@ -120,7 +123,7 @@
         </n-drawer>
 
         <!-- 分组编辑弹窗 -->
-        <n-modal v-model:show="groupModalShow" preset="card" :title="groupForm.id > 0 ? t('course.list.editGroup') : t('course.list.createGroup')" style="width: 420px">
+        <n-modal v-model:show="groupModalShow" preset="card" :title="groupForm.id > 0 ? t('course.list.editGroup') : t('course.list.createGroup')" style="width: min(420px, 94vw)">
             <n-form label-placement="left" label-width="80">
                 <n-form-item :label="t('course.list.groupName')" required>
                     <n-input v-model:value="groupForm.name" maxlength="64" show-count :placeholder="t('course.list.groupNamePlaceholder')" />
@@ -135,7 +138,7 @@
         </n-modal>
 
         <!-- 课程编辑弹窗 -->
-        <n-modal v-model:show="courseModalShow" preset="card" :title="courseForm.id > 0 ? t('course.list.editCourse') : t('course.list.createCourse')" style="width: 640px">
+        <n-modal v-model:show="courseModalShow" preset="card" :title="courseForm.id > 0 ? t('course.list.editCourse') : t('course.list.createCourse')" style="width: min(640px, 94vw)">
             <n-form label-placement="left" label-width="80">
                 <n-form-item :label="t('course.list.belongGroup')" required>
                     <n-select
@@ -157,7 +160,7 @@
                         :placeholder="t('course.list.courseIntroPlaceholder')"
                     />
                 </n-form-item>
-                <n-form-item :label="t('course.list.courseTeacher')" required>
+                <n-form-item v-if="isAdmin(userInfo)" :label="t('course.list.courseTeacher')" required>
                     <n-select
                         v-model:value="courseForm.teacher_id"
                         filterable
@@ -204,6 +207,7 @@
 </template>
 
 <script setup lang="ts">
+import { isAdmin, isTeacher } from "@/utils/identity";
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreUser } from '@/store/user';
@@ -213,6 +217,7 @@ import { SearchOutline } from '@vicons/ionicons5';
 import CourseCard from '@/components/course/course-card.vue';
 import {
   getCourseGroups,
+  getCourseTeachers,
   getCourseList,
   createCourseGroup,
   updateCourseGroup,
@@ -423,7 +428,7 @@ const courseSaving = ref(false);
 const courseForm = reactive({
   id: 0,
   group_id: null as number | null,
-  teacher_id: null as number | null,
+  teacher_id: userInfo.value.id as number | null,
   title: '',
   intro: '',
 });
@@ -438,8 +443,8 @@ const teacherLoading = ref(false);
 const searchTeachers = async (k: string) => {
   teacherLoading.value = true;
   try {
-    const res = await Api.v1.admin.get.user.list({ keyword: k, page: 1, page_size: 20 });
-    teacherOptions.value = (res.list || []).map((u: any) => ({
+    const res = await getCourseTeachers(k);
+    teacherOptions.value = (res.teachers || []).map((u) => ({
       label: `${u.nickname} (@${u.username})`,
       value: u.id,
     }));
@@ -589,7 +594,7 @@ const uploadVideo = async (file: File, ext: string) => {
 const openCourseModal = (course?: CourseItem) => {
   courseForm.id = course?.id || 0;
   courseForm.group_id = course?.group_id ?? null;
-  courseForm.teacher_id = course?.teacher_id ?? null;
+  courseForm.teacher_id = course?.teacher_id ?? userInfo.value.id;
   courseForm.title = course?.title || '';
   courseForm.intro = course?.intro || '';
   videoName.value = '';

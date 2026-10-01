@@ -33,13 +33,12 @@
     "labelStatus": "状态",
     "labelCreatedOn": "注册时间",
     "roleManagement": "角色管理",
-    "roleTip": "运维可管理所有角色；管理员可管理 导师/审核/管理员，不可变更运维账号。",
+    "roleTip": "管理员和运维可设置成员身份、Mentor 标记及审核权限；只有运维可创建、停用或恢复管理账户。取消 Mentor 后并转移全部课程，才能将 Teacher 降为 Student。",
     "roleChangeLog": "角色变更记录",
     "granted": "已授予",
     "notGranted": "未授予"
   },
   "role": {
-    "mentor": "导师",
     "auditor": "审核",
     "admin": "管理员",
     "operator": "运维"
@@ -66,5 +65,8 @@
     "deleteTitle": "删除用户",
     "deleteContent": "确定删除用户 {username}？删除后该用户无法登录、不再出现在列表与前台，历史数据保留（数据库可恢复）。",
     "deleted": "已删除"
-  }
+  },
+  "createAdmin": "创建管理账户",
+  "temporaryPassword": "临时密码",
+  "temporaryPasswordTip": "首次登录必须修改密码。管理账户不能转换为成员。"
 }

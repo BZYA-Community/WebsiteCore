@@ -3,18 +3,14 @@ import { useDialog } from "naive-ui";
 import { Api } from "../utils/request";
 import { useStoreUser } from '@/store/user';
 import i18n from '@/locales';
+import { isAdmin, isTeacher, type UserIdentity } from '@/utils/identity';
 
-/**
- * 私信入口可见性引导(仅前端引导, 后端仍强制校验):
- * 高级身份(导师/审核/管理员/运维)可对任何人发起; 道友只能对高级身份显示入口(道友↔道友禁止私信)
- */
-export const canWhisperUser = (user?: { roles?: string[]; is_admin?: boolean }) => {
-    const storeUser = useStoreUser();
-    const mePrivileged =
-        (storeUser.userInfo.roles || []).length > 0 || !!storeUser.userInfo.is_admin;
-    if (mePrivileged) return true;
-    if (!user) return true; // 对端信息不足时放行, 后端兜底
-    return (user.roles || []).length > 0 || !!user.is_admin;
+/** The server provides the final send permission for the current conversation. */
+export const canWhisperUser = (user?: UserIdentity) => {
+    const me = useStoreUser().userInfo;
+    if (!user) return true;
+    // Management conversations may already exist, so keep their history accessible.
+    return isAdmin(me) || isAdmin(user) || isTeacher(me) || isTeacher(user);
 };
 
 /**

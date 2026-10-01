@@ -1,7 +1,10 @@
 <template>
     <div>
         <main-nav :title="t('message.chat.title')" />
-        <div class="chat-page">
+        <div v-if="canBlock" class="chat-block-toolbar">
+            <n-button size="small" :loading="blockSaving" @click="toggleBlock">{{ blockedByMe ? t('message.chat.unblock') : t('message.chat.block') }}</n-button>
+        </div>
+        <div class="chat-page" :class="{ 'has-block-toolbar': canBlock }">
             <!--
                 vue-advanced-chat 为 Web Component:
                 1. 对象/数组型 props 必须 JSON.stringify, 否则组件内部 JSON.parse("[object Object]") 报错
@@ -61,6 +64,7 @@ const storeMain = useStoreMain();
 const route = useRoute();
 
 const {
+    canBlock, blockedByMe, blockSaving, toggleBlock,
     myId,
     rooms,
     messages,
@@ -127,6 +131,8 @@ onMounted(async () => {
 </script>
 
 <style lang="less" scoped>
+.chat-block-toolbar { display: flex; justify-content: flex-end; padding: 6px 12px; height: 40px; box-sizing: border-box; }
+.chat-page.has-block-toolbar { height: calc(100vh - 102px); }
 .chat-page {
     position: relative;
     // 100vh 减去顶栏; 聊天窗铺满剩余高度
@@ -146,6 +152,9 @@ onMounted(async () => {
     .chat-page {
         // 移动端顶栏更矮
         height: calc(100vh - 54px);
+        &.has-block-toolbar {
+            height: calc(100vh - 94px);
+        }
     }
 }
 </style>

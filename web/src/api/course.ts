@@ -221,3 +221,7 @@ export const getCourseUploadCredential = (params: {
     params,
   });
 };
+
+/** Only active Teachers can receive a course transfer. */
+export const getCourseTeachers = (keyword: string): Promise<{ teachers: Item.UserInfo[] }> =>
+    request({ method: 'get', url: '/v1/admin/course/teachers', params: { keyword } });

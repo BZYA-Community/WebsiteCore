@@ -33,13 +33,12 @@
     "labelStatus": "Status",
     "labelCreatedOn": "Registered",
     "roleManagement": "Role Management",
-    "roleTip": "Operators can manage all roles; admins can manage mentors, auditors, and admins, but cannot modify operator accounts.",
+    "roleTip": "Admins and Operators manage member identity, Mentor designation and Auditor access. Only Operators create, disable or restore Admin accounts. Remove Mentor and transfer all courses before demoting a Teacher.",
     "roleChangeLog": "Role Change Log",
     "granted": "Granted",
     "notGranted": "Not Granted"
   },
   "role": {
-    "mentor": "Mentor",
     "auditor": "Auditor",
     "admin": "Admin",
     "operator": "Operator"
@@ -66,5 +65,8 @@
     "deleteTitle": "Delete User",
     "deleteContent": "Are you sure you want to delete user {username}? Deleted users cannot log in and will no longer appear in lists or the front-end. Historical data is retained (recoverable from the database).",
     "deleted": "Deleted"
-  }
+  },
+  "createAdmin": "Create Admin account",
+  "temporaryPassword": "Temporary password",
+  "temporaryPasswordTip": "The Admin must change this password at first login. Management accounts cannot become members."
 }

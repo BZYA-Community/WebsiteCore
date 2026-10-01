@@ -88,10 +88,10 @@ var (
 	ErrSystemChatReadonly = xerror.NewError(50007, "系统通知不支持回复")
 	ErrDuplicateWhisper   = xerror.NewError(50008, "消息发送中, 请勿重复提交")
 	// 私信权限具体拒绝原因(响应仅透传msg不透传details, 故每种原因独立错误码)
-	ErrWhisperGuestNeedPhone = xerror.NewError(50009, "绑定手机号后才能发送私信")
+	ErrWhisperNeedPhone      = xerror.NewError(50009, "绑定手机号后才能发送私信")
 	ErrWhisperOnePending     = xerror.NewError(50010, "对方回复你之前，只能发送一条私信")
-	ErrWhisperPeerNoPhone    = xerror.NewError(50011, "对方还未绑定手机号，暂时无法接收私信")
-	ErrWhisperBetweenDaoyou  = xerror.NewError(50012, "道友之间不能发送私信，可以通过加好友和关注互动")
+	ErrWhisperIdentityDenied = xerror.NewError(50011, "当前双方身份不允许发送私信")
+	ErrWhisperBlocked        = xerror.NewError(50012, "此会话已被屏蔽")
 
 	ErrGetCollectionsFailed = xerror.NewError(60001, "获取收藏列表失败")
 	ErrGetStarsFailed       = xerror.NewError(60002, "获取点赞列表失败")
@@ -131,6 +131,7 @@ var (
 	ErrAuditPostFailed  = xerror.NewError(11002, "审核操作失败")
 	// 11003 运维保护: 非运维账号尝试变更运维相关角色 HTTP映射403
 	ErrRoleChangeNoPermission = xerror.NewError(11003, "无权变更该用户角色")
+	ErrTeacherInUse           = xerror.NewError(11008, "请先取消 Mentor 标记并转移全部课程")
 	ErrUserDeleteFailed       = xerror.NewError(11004, "删除用户失败")
 	ErrAuditCommentFailed     = xerror.NewError(11005, "评论审核操作失败")
 	ErrAuditNicknameFailed    = xerror.NewError(11006, "昵称审核操作失败")
