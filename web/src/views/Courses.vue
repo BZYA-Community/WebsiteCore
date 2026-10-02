@@ -20,7 +20,7 @@
                 <n-button type="primary" secondary round @click="doSearch">{{ t('common.search') }}</n-button>
                 <template v-if="isAdmin(userInfo) || isTeacher(userInfo)">
                     <n-button v-if="isAdmin(userInfo)" secondary round @click="openGroupModal()">{{ t('course.list.createGroup') }}</n-button>
-                    <n-button v-if="isTeacher(userInfo)" secondary round type="info" @click="openCourseModal()">{{ t('course.list.createCourse') }}</n-button>
+                    <n-button v-if="canCreateCourse(userInfo)" secondary round type="info" @click="openCourseModal()">{{ t('course.list.createCourse') }}</n-button>
                 </template>
             </div>
 
@@ -160,7 +160,7 @@
                         :placeholder="t('course.list.courseIntroPlaceholder')"
                     />
                 </n-form-item>
-                <n-form-item v-if="isAdmin(userInfo)" :label="t('course.list.courseTeacher')" required>
+                <n-form-item v-if="isAdmin(userInfo) && courseForm.id > 0" :label="t('course.list.courseTeacher')" required>
                     <n-select
                         v-model:value="courseForm.teacher_id"
                         filterable
@@ -207,7 +207,7 @@
 </template>
 
 <script setup lang="ts">
-import { isAdmin, isTeacher } from "@/utils/identity";
+import { isAdmin, isTeacher, canCreateCourse } from "@/utils/identity";
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreUser } from '@/store/user';

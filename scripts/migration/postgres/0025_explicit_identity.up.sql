@@ -18,9 +18,10 @@ ALTER TABLE p_user ADD CONSTRAINT user_identity_valid CHECK (
     OR (account_type = 'admin' AND member_identity IS NULL
         AND (roles = 'admin' OR (roles = '' AND status = 2)))
 );
-ALTER TABLE p_user ADD CONSTRAINT user_mentor_teacher CHECK (
-    NOT is_mentor OR (member_identity IS NOT NULL AND member_identity = 'teacher')
+ALTER TABLE p_user ADD CONSTRAINT user_mentor_member CHECK (
+    NOT is_mentor OR account_type = 'member'
 );
+CREATE UNIQUE INDEX single_operator_account ON p_user (account_type) WHERE account_type = 'operator';
 CREATE FUNCTION p_preserve_account_type() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
     IF NEW.account_type <> OLD.account_type THEN

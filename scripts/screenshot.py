@@ -1,7 +1,7 @@
 """Capture key identity pages on a disposable local instance (see development.md)."""
 import os
 from pathlib import Path
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 from verify_sidebar_830 import BASE, login
 
 OUT = Path(os.environ.get("E2E_SCREENSHOT_DIR", Path(__file__).parent / "shots"))
@@ -18,7 +18,8 @@ with sync_playwright() as p:
         for name, path in PAGES:
             page.goto(BASE + "/#" + path, wait_until="networkidle")
             page.locator(".content-wrap").wait_for()
-            page.screenshot(path=str(OUT / f"{name}-{width}.png"))
+            expect(page.locator(".n-spin-content--spinning")).to_have_count(0)
+            page.screenshot(path=str(OUT / f"{name}-{width}.png"), animations="disabled")
             print(f"saved {name}-{width}.png")
         context.close()
     browser.close()

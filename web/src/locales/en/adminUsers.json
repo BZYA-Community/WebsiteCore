@@ -33,7 +33,7 @@
     "labelStatus": "Status",
     "labelCreatedOn": "Registered",
     "roleManagement": "Role Management",
-    "roleTip": "Admins and Operators manage member identity, Mentor designation and Auditor access. Only Operators create, disable or restore Admin accounts. Remove Mentor and transfer all courses before demoting a Teacher.",
+    "roleTip": "Teacher, Mentor and Auditor access are independent. Teacher and Mentor may overlap. Transfer all courses before removing Teacher access or deleting an account; Mentor access does not require Teacher access.",
     "roleChangeLog": "Role Change Log",
     "granted": "Granted",
     "notGranted": "Not Granted"
@@ -65,6 +65,16 @@
     "deleteTitle": "Delete User",
     "deleteContent": "Are you sure you want to delete user {username}? Deleted users cannot log in and will no longer appear in lists or the front-end. Historical data is retained (recoverable from the database).",
     "deleted": "Deleted"
+  },
+  "permissions": {
+    "summary": "Six parallel groups; Teacher and Mentor may overlap. Every group has Student permissions. Only Operators and Admins bypass publication review; courses do not require review.",
+    "operator": "One account only, with all permissions, including system information and Admin creation.",
+    "admin": "Created by the Operator. Has management, review, course, messaging and publication bypass permissions, without access to system information.",
+    "auditor": "Can review other users' content and has all Student permissions. Own content still requires review.",
+    "teacher": "Can upload course videos and receive and reply to Student messages, with all Student permissions.",
+    "mentor": "Can receive and send messages, with all Student permissions. Mentor access alone does not allow course creation.",
+    "student": "Can publish posts and replies and contact Teachers or Mentors, but cannot initiate messages to other Students.",
+    "dedicated": "Operators and Admins inherit all member capabilities without separate Teacher, Mentor or Auditor grants."
   },
   "createAdmin": "Create Admin account",
   "temporaryPassword": "Temporary password",

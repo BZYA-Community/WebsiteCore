@@ -61,7 +61,7 @@ func TestIdentityDatabaseConstraints(t *testing.T) {
 	}{
 		{"member-without-identity", "member", "", nil, false},
 		{"admin-with-identity", "admin", "admin", "teacher", false},
-		{"student-mentor", "member", "", "student", true},
+		{"admin-mentor", "admin", "admin", nil, true},
 		{"dedicated-auditor", "auditor", "auditor", nil, false},
 		{"operator-admin", "operator", "operator,admin", nil, false},
 		{"admin-auditor", "admin", "admin,auditor", nil, false},
@@ -77,6 +77,17 @@ func TestIdentityDatabaseConstraints(t *testing.T) {
 	}
 	if _, err := db.Exec("INSERT INTO p_user (username) VALUES ('defaultstudent')"); err != nil {
 		t.Fatal(err)
+	}
+	for _, identity := range []string{"student", "teacher"} {
+		if _, err := db.Exec("INSERT INTO p_user (username, member_identity, is_mentor) VALUES ($1,$2,true)", identity+"-mentor", identity); err != nil {
+			t.Fatalf("independent or overlapping Mentor rejected: %v", err)
+		}
+	}
+	if _, err := db.Exec("INSERT INTO p_user (username, account_type, roles, member_identity) VALUES ('only-operator','operator','operator',NULL)"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec("INSERT INTO p_user (username, account_type, roles, member_identity) VALUES ('second-operator','operator','operator',NULL)"); err == nil {
+		t.Fatal("more than one Operator stored")
 	}
 	var identity string
 	if err := db.QueryRow("SELECT member_identity FROM p_user WHERE username='defaultstudent'").Scan(&identity); err != nil || identity != "student" {

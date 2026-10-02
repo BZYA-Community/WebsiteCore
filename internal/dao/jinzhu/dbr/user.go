@@ -116,17 +116,28 @@ func (u *User) IsStudent() bool {
 }
 
 func (u *User) CanManageUsers() bool  { return u.IsActive() && u.IsAdminLevel() }
-func (u *User) CanManageAdmins() bool { return u.CanManageUsers() && u.Roles == RoleOperator }
+func (u *User) CanCreateAdmin() bool  { return u.CanManageUsers() && u.Roles == RoleOperator }
+func (u *User) CanManageAdmins() bool { return u.CanManageUsers() }
 func (u *User) CanAudit() bool {
 	return u.IsActive() && (u.IsAdminLevel() || u.HasRole(RoleAuditor))
 }
+
 func (u *User) CanAuditUser(authorID int64) bool {
 	return u.CanAudit() && u.ID != authorID
 }
+
+func (u *User) CanViewSystemInfo() bool {
+	return u.CanManageUsers() && u.Roles == RoleOperator
+}
+
 func (u *User) CanPublishDirectly() bool {
+	return u.IsActive() && u.IsAdminLevel()
+}
+
+func (u *User) CanCreateCourse() bool {
 	return u.IsActive() && (u.IsTeacher() || u.IsAdminLevel())
 }
-func (u *User) CanCreateCourse() bool { return u.IsActive() && u.IsTeacher() }
+
 func (u *User) CanEditCourse(teacherID int64) bool {
 	return u.IsActive() && (u.IsAdminLevel() || (u.IsTeacher() && u.ID == teacherID))
 }
@@ -134,7 +145,7 @@ func (u *User) CanDeleteCourse() bool { return u.CanManageUsers() }
 
 // ValidIdentity mirrors the database check; missing identities never imply a visitor.
 func (u *User) ValidIdentity() bool {
-	if u == nil || (u.IsMentor && !u.IsTeacher()) {
+	if u == nil {
 		return false
 	}
 	switch u.AccountType {

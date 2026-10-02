@@ -53,7 +53,7 @@ This release deliberately does **not** migrate existing accounts. Before any sch
 
 Use a fresh disposable database for development, or explicitly plan a separate reset before adopting this release. Do not erase production accounts to make the check pass. Upgraded databases may contain users normally; the preflight recognizes the new schema. Downgrading 0025 likewise requires an empty user table.
 
-The new schema removes the legacy administrator boolean, constrains member identity / Mentor / role combinations, makes account type immutable, and stores conversation requests and blocking state. Apply migrations before bootstrapping the Operator.
+The new schema removes the legacy administrator boolean, allows Mentor access independently of Teacher access, constrains account/role combinations, makes account type immutable, enforces a single Operator with a unique partial index, and stores conversation requests and blocking state. Apply migrations before bootstrapping the Operator. During development of unmerged PR #102, the revised 0025 must be tested on a fresh disposable database; a database initialized by an earlier draft of that migration retains its earlier constraints.
 
 ### Adding a migration (contributors)
 

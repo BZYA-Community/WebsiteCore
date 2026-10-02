@@ -72,6 +72,7 @@
   "identity": {
     "operator": "Operator",
     "admin": "Admin",
+    "auditor": "Auditor",
     "mentor": "Mentor",
     "student": "Student",
     "teacher": "Teacher"

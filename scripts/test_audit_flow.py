@@ -7,14 +7,15 @@ def main():
     f = Fixture()
     admin = f.admin()
     student, auditor = f.user(), f.user(auditor=True)
-    teacher, mentor, teacher_auditor = f.user("teacher"), f.user("teacher", mentor=True), f.user("teacher", auditor=True)
+    teacher, mentor, teacher_auditor = f.user("teacher"), f.user(mentor=True), f.user("teacher", auditor=True)
+    teacher_mentor = f.user("teacher", mentor=True)
     course, _ = f.course(teacher)
-    root = f.data("POST", "/v1/post", teacher, f.content("public root"))
-    root_comment = f.data("POST", "/v1/post/comment", teacher, {**f.content("root comment"), "post_id": root["id"]})
-    root_course_comment = f.data("POST", "/v1/course/comment", teacher, {**f.content("root course comment"), "course_id": course["id"]})
+    root = f.data("POST", "/v1/post", admin, f.content("public root"))
+    root_comment = f.data("POST", "/v1/post/comment", admin, {**f.content("root comment"), "post_id": root["id"]})
+    root_course_comment = f.data("POST", "/v1/course/comment", admin, {**f.content("root course comment"), "course_id": course["id"]})
     png = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=")
     pending_post = None
-    for user, label, approved in [(student, "Student", 0), (auditor, "Student Auditor", 0), (teacher, "Teacher", 1), (mentor, "Mentor", 1), (teacher_auditor, "Teacher Auditor", 1), (admin, "Admin", 1), (f.operator, "Operator", 1)]:
+    for user, label, approved in [(student, "Student", 0), (auditor, "Auditor", 0), (teacher, "Teacher", 0), (mentor, "Mentor", 0), (teacher_auditor, "Teacher Auditor", 0), (teacher_mentor, "Teacher Mentor", 0), (admin, "Admin", 1), (f.operator, "Operator", 1)]:
         post = f.data("POST", "/v1/post", user, f.content(label + " post"))
         f.check(label + " publication policy", post["audit_status"] == approved)
         if user is auditor:
@@ -42,7 +43,7 @@ def main():
             f.check("self response exposes Auditor", current["roles"] == ["auditor"])
         public = f.data("GET", "/v1/user/profile?username=" + user["username"])
         f.check(label + " public response hides Auditor and legacy fields", "auditor" not in public["roles"] and "identity" not in public and "is_admin" not in public)
-        f.check(label + " public Mentor designation", public["is_mentor"] == (user is mentor))
+        f.check(label + " public Mentor designation", public["is_mentor"] == (user is mentor or user is teacher_mentor))
     f.access(auditor, "teacher", auditor=True)
     detail = f.data("GET", f"/v1/post?id={pending_post['id']}", auditor)
     f.check("identity promotion retains old pending submission", detail["audit_status"] == 0)

@@ -11,14 +11,14 @@ func identityUser(id int64, kind string) *User {
 	u := &User{Model: &Model{ID: id}, Status: UserStatusNormal, Phone: "test-bound", AccountType: "member"}
 	identity := MemberStudent
 	switch kind {
-	case "teacher", "mentor", "teacher-auditor":
+	case "teacher", "teacher-mentor", "teacher-auditor":
 		identity = MemberTeacher
 	case "admin", "operator":
 		u.AccountType, u.Roles = kind, kind
 		return u
 	}
 	u.MemberIdentity = &identity
-	u.IsMentor = kind == "mentor"
+	u.IsMentor = kind == "mentor" || kind == "teacher-mentor"
 	if strings.HasSuffix(kind, "auditor") {
 		u.Roles = RoleAuditor
 	}
@@ -26,22 +26,25 @@ func identityUser(id int64, kind string) *User {
 }
 
 func TestIdentityCapabilitiesAndPublicProjection(t *testing.T) {
-	for _, kind := range []string{"student", "student-auditor", "teacher", "mentor", "teacher-auditor", "admin", "operator"} {
+	for _, kind := range []string{"student", "student-auditor", "teacher", "mentor", "teacher-mentor", "teacher-auditor", "admin", "operator"} {
 		t.Run(kind, func(t *testing.T) {
 			u := identityUser(1, kind)
 			if !u.ValidIdentity() {
 				t.Fatal("valid identity rejected")
 			}
 			management := kind == "admin" || kind == "operator"
-			teacher := kind == "teacher" || kind == "mentor" || kind == "teacher-auditor"
-			if u.CanPublishDirectly() != (management || teacher) || u.CanCreateCourse() != teacher || u.CanManageUsers() != management {
+			teacher := kind == "teacher" || kind == "teacher-mentor" || kind == "teacher-auditor"
+			if u.CanPublishDirectly() != management || u.CanCreateCourse() != (management || teacher) || u.CanManageUsers() != management {
 				t.Fatal("unrelated roles granted publication or course capabilities")
 			}
 			if u.CanEditCourse(1) != (management || teacher) || u.CanEditCourse(2) != management || u.CanDeleteCourse() != management {
 				t.Fatal("course ownership not enforced")
 			}
-			if u.CanManageAdmins() != (kind == "operator") || u.CanAudit() != (management || strings.HasSuffix(kind, "auditor")) {
+			if u.CanCreateAdmin() != (kind == "operator") || u.CanManageAdmins() != management || u.CanAudit() != (management || strings.HasSuffix(kind, "auditor")) {
 				t.Fatal("inherited management capabilities incorrect")
+			}
+			if u.CanViewSystemInfo() != (kind == "operator") {
+				t.Fatal("system information must be restricted to the single Operator")
 			}
 			if u.CanAuditUser(u.ID) {
 				t.Fatal("self audit allowed")
@@ -56,7 +59,7 @@ func TestIdentityCapabilitiesAndPublicProjection(t *testing.T) {
 				}
 			}
 			u.Status = UserStatusClosed
-			if u.CanAudit() || u.CanPublishDirectly() || u.CanManageUsers() || u.CanCreateCourse() || u.CanEditCourse(1) {
+			if u.CanAudit() || u.CanPublishDirectly() || u.CanManageUsers() || u.CanCreateCourse() || u.CanEditCourse(1) || u.CanViewSystemInfo() || u.CanCreateAdmin() || u.CanManageAdmins() {
 				t.Fatal("banned user has capabilities")
 			}
 		})
@@ -64,13 +67,14 @@ func TestIdentityCapabilitiesAndPublicProjection(t *testing.T) {
 }
 
 func TestWhisperFirstContactMatrix(t *testing.T) {
-	kinds := []string{"student", "student-auditor", "teacher", "mentor", "teacher-auditor", "admin", "operator"}
+	kinds := []string{"student", "student-auditor", "teacher", "mentor", "teacher-mentor", "teacher-auditor", "admin", "operator"}
 	for _, from := range kinds {
 		for _, to := range kinds {
 			t.Run(from+"/"+to, func(t *testing.T) {
 				sender, receiver := identityUser(1, from), identityUser(2, to)
 				c := &WhisperConversation{LowUserID: 1, HighUserID: 2}
-				allowed := sender.IsAdminLevel() || sender.IsTeacher() || receiver.IsTeacher()
+				allowed := from == "admin" || from == "operator" || from == "mentor" || from == "teacher-mentor" ||
+					to == "teacher" || to == "mentor" || to == "teacher-mentor" || to == "teacher-auditor"
 				if err := c.CanSend(sender, receiver); (err == nil) != allowed {
 					t.Fatalf("first message: %v", err)
 				}

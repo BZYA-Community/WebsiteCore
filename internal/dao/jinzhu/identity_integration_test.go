@@ -41,6 +41,7 @@ func TestIdentityAccountAndCourseLifecycle(t *testing.T) {
 	student := createIdentityUser(t, db, "student", "student")
 	teacher := createIdentityUser(t, db, "teacher", "teacher")
 	other := createIdentityUser(t, db, "other", "teacher")
+	mentor := createIdentityUser(t, db, "mentor", "student")
 	_, err := users.CreateAdmin(admin.ID, &ms.User{Username: "forbidden"})
 	requireAccessError(t, err, dbr.ErrPermission)
 	managed, err := users.CreateAdmin(op.ID, &ms.User{Model: &dbr.Model{}, Username: "managed"})
@@ -50,8 +51,14 @@ func TestIdentityAccountAndCourseLifecycle(t *testing.T) {
 	if !managed.MustChangePassword || managed.MemberIdentity != nil || managed.Roles != ms.RoleAdmin {
 		t.Fatal("admin not dedicated or temporary password not enforced")
 	}
-	requireAccessError(t, users.ChangeAccountStatus(admin.ID, managed.ID, ms.UserStatusClosed), dbr.ErrPermission)
-	requireAccessError(t, users.RemoveAdminRole(op.ID, managed.ID), nil)
+	requireAccessError(t, users.ChangeAccountStatus(admin.ID, managed.ID, ms.UserStatusClosed), nil)
+	requireAccessError(t, users.ChangeAccountStatus(admin.ID, managed.ID, ms.UserStatusNormal), nil)
+	requireAccessError(t, users.ChangeAccountStatus(admin.ID, admin.ID, ms.UserStatusClosed), dbr.ErrPermission)
+	requireAccessError(t, users.RemoveAdminRole(admin.ID, admin.ID), dbr.ErrPermission)
+	requireAccessError(t, users.ChangeAccountStatus(admin.ID, op.ID, ms.UserStatusClosed), dbr.ErrPermission)
+	requireAccessError(t, users.RemoveAdminRole(admin.ID, op.ID), dbr.ErrPermission)
+	requireAccessError(t, users.ChangeAccountStatus(student.ID, managed.ID, ms.UserStatusClosed), dbr.ErrPermission)
+	requireAccessError(t, users.RemoveAdminRole(admin.ID, managed.ID), nil)
 	if err := db.First(managed, managed.ID).Error; err != nil {
 		t.Fatal(err)
 	}
@@ -60,10 +67,13 @@ func TestIdentityAccountAndCourseLifecycle(t *testing.T) {
 	}
 	requireAccessError(t, users.ChangeAccountStatus(op.ID, managed.ID, ms.UserStatusNormal), nil)
 	requireAccessError(t, users.ChangeMemberAccess(op.ID, managed.ID, ms.MemberTeacher, false, false), dbr.ErrPermission)
-	requireAccessError(t, users.ChangeMemberAccess(admin.ID, student.ID, ms.MemberStudent, true, false), dbr.ErrPermission)
+	requireAccessError(t, users.ChangeMemberAccess(admin.ID, mentor.ID, ms.MemberStudent, true, false), nil)
 	requireAccessError(t, users.ChangeMemberAccess(admin.ID, teacher.ID, ms.MemberTeacher, true, true), nil)
-	requireAccessError(t, users.ChangeMemberAccess(admin.ID, teacher.ID, ms.MemberStudent, false, false), dbr.ErrTeacherInUse)
-	requireAccessError(t, users.DeleteMember(admin.ID, teacher.ID), dbr.ErrTeacherInUse)
+	// Mentor is independent: removing Teacher does not require removing Mentor.
+	requireAccessError(t, users.ChangeMemberAccess(admin.ID, teacher.ID, ms.MemberStudent, true, true), nil)
+	if err := db.First(teacher, teacher.ID).Error; err != nil || teacher.IsTeacher() || !teacher.IsMentor {
+		t.Fatal("independent Mentor was not retained", err)
+	}
 	requireAccessError(t, users.ChangeMemberAccess(admin.ID, teacher.ID, ms.MemberTeacher, false, true), nil)
 	course, err := courses.CreateCourseAs(teacher.ID, &ms.Course{Model: &dbr.Model{}, Title: "Owned", TeacherID: other.ID})
 	if err != nil {
@@ -72,9 +82,17 @@ func TestIdentityAccountAndCourseLifecycle(t *testing.T) {
 	if course.TeacherID != teacher.ID {
 		t.Fatal("client controlled course owner")
 	}
-	for _, actor := range []*ms.User{student, admin, op} {
+	for _, actor := range []*ms.User{student, mentor} {
 		_, err = courses.CreateCourseAs(actor.ID, &ms.Course{Model: &dbr.Model{}, Title: "Forbidden"})
 		requireAccessError(t, err, dbr.ErrPermission)
+	}
+	for _, actor := range []*ms.User{admin, op} {
+		owned, err := courses.CreateCourseAs(actor.ID, &ms.Course{Model: &dbr.Model{}, Title: "Staff course", TeacherID: teacher.ID})
+		requireAccessError(t, err, nil)
+		if owned.TeacherID != actor.ID {
+			t.Fatal("staff course was not assigned to its creator")
+		}
+		requireAccessError(t, courses.DeleteCourseAs(actor.ID, owned), nil)
 	}
 	requireAccessError(t, courses.UpdateCourseAs(other.ID, course), dbr.ErrPermission)
 	requireAccessError(t, courses.UpdateCourseAs(teacher.ID, course), nil)
@@ -88,9 +106,13 @@ func TestIdentityAccountAndCourseLifecycle(t *testing.T) {
 	if err := db.Model(&ms.Course{}).Where("id = ?", course.ID).Count(&visible).Error; err != nil || visible != 1 {
 		t.Fatal("banning hid course", err)
 	}
-	for _, target := range []*ms.User{student, admin} {
+	for _, target := range []*ms.User{student, mentor} {
 		course.TeacherID = target.ID
 		requireAccessError(t, courses.UpdateCourseAs(admin.ID, course), dbr.ErrPermission)
+	}
+	for _, target := range []*ms.User{admin, op} {
+		course.TeacherID = target.ID
+		requireAccessError(t, courses.UpdateCourseAs(admin.ID, course), nil)
 	}
 	course.TeacherID = other.ID
 	requireAccessError(t, courses.UpdateCourseAs(admin.ID, course), nil)
@@ -98,6 +120,41 @@ func TestIdentityAccountAndCourseLifecycle(t *testing.T) {
 	requireAccessError(t, courses.UpdateCourseAs(admin.ID, course), dbr.ErrPermission)
 	requireAccessError(t, users.DeleteMember(admin.ID, teacher.ID), nil)
 	requireAccessError(t, courses.DeleteCourseAs(admin.ID, course), nil)
+	requireAccessError(t, users.DeleteMember(admin.ID, mentor.ID), nil)
+}
+
+func TestIndependentMentorChangesCancelOnlyInvalidRequests(t *testing.T) {
+	db, _ := testutil.Postgres(t, 25)
+	users, messages := &userManageSrv{db: db}, &messageSrv{db: db}
+	admin := createIdentityUser(t, db, "admin", "admin")
+	student := createIdentityUser(t, db, "student", "student")
+	mentor := createIdentityUser(t, db, "mentor", "student")
+	requireAccessError(t, users.ChangeMemberAccess(admin.ID, mentor.ID, ms.MemberStudent, true, false), nil)
+	send := func(from, to int64) error {
+		_, err := messages.SendWhisper(&ms.Message{Model: &dbr.Model{}, SenderUserID: from, ReceiverUserID: to, Content: "contact"})
+		return err
+	}
+	requireAccessError(t, send(mentor.ID, student.ID), nil)
+	// Adding Teacher keeps the Mentor request valid.
+	requireAccessError(t, users.ChangeMemberAccess(admin.ID, mentor.ID, ms.MemberTeacher, true, false), nil)
+	c, err := getConversation(db, mentor.ID, student.ID, false)
+	if err != nil || c.PendingSenderID == nil || *c.PendingSenderID != mentor.ID {
+		t.Fatalf("valid request lost on adding Teacher: %+v %v", c, err)
+	}
+	// Removing Mentor cancels its proactive contact; Teacher cannot re-initiate it.
+	requireAccessError(t, users.ChangeMemberAccess(admin.ID, mentor.ID, ms.MemberTeacher, false, false), nil)
+	c, err = getConversation(db, mentor.ID, student.ID, false)
+	if err != nil || c.PendingSenderID != nil {
+		t.Fatalf("invalid Mentor request survived: %+v %v", c, err)
+	}
+	requireAccessError(t, send(mentor.ID, student.ID), dbr.ErrWhisperIdentity)
+	requireAccessError(t, send(student.ID, mentor.ID), nil)
+	// Removing Teacher while retaining Mentor keeps an incoming request valid.
+	requireAccessError(t, users.ChangeMemberAccess(admin.ID, mentor.ID, ms.MemberStudent, true, false), nil)
+	requireAccessError(t, send(mentor.ID, student.ID), nil)
+	requireAccessError(t, send(student.ID, mentor.ID), nil)
+	requireAccessError(t, users.ChangeMemberAccess(admin.ID, mentor.ID, ms.MemberStudent, false, false), nil)
+	requireAccessError(t, send(student.ID, mentor.ID), dbr.ErrWhisperIdentity)
 }
 
 func TestWhisperPersistenceAndConcurrentFirstMessage(t *testing.T) {

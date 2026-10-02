@@ -71,7 +71,7 @@ func (s *courseManageSrv) DeleteCourseAs(actorID int64, course *ms.Course) error
 
 func (s *userManageSrv) ListCourseTeachers(keyword string) ([]*ms.User, error) {
 	var users []*ms.User
-	db := s.db.Where("member_identity = ? AND status = ?", ms.MemberTeacher, ms.UserStatusNormal)
+	db := s.db.Where("(member_identity = ? OR roles IN ?) AND status = ?", ms.MemberTeacher, []string{ms.RoleAdmin, ms.RoleOperator}, ms.UserStatusNormal)
 	if keyword != "" {
 		db = db.Where("username ILIKE ? OR nickname ILIKE ?", "%"+keyword+"%", "%"+keyword+"%")
 	}

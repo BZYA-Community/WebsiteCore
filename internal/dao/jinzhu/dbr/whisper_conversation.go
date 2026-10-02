@@ -4,7 +4,7 @@ import "errors"
 
 var (
 	ErrPermission      = errors.New("没有执行此操作的权限")
-	ErrTeacherInUse    = errors.New("请先取消 Mentor 标记并转移全部课程")
+	ErrTeacherInUse    = errors.New("请先转移全部课程后再移除老师身份或删除账号")
 	ErrWhisperPhone    = errors.New("请先绑定手机号后再发送私信")
 	ErrWhisperIdentity = errors.New("当前双方身份不允许发送私信")
 	ErrWhisperPending  = errors.New("请等待对方回复后再发送私信")
@@ -36,14 +36,16 @@ func (c *WhisperConversation) PairAllowed(a, b *User) bool {
 	if b.IsAdminLevel() {
 		return true
 	}
-	return (a.IsStudent() || a.IsTeacher()) && (b.IsStudent() || b.IsTeacher()) && (a.IsTeacher() || b.IsTeacher())
+	return (a.IsStudent() || a.IsTeacher()) && (b.IsStudent() || b.IsTeacher()) && (a.IsTeacher() || b.IsTeacher() || a.IsMentor || b.IsMentor)
 }
 
 func (c *WhisperConversation) CanRequest(sender, receiver *User) bool {
 	if !c.PairAllowed(sender, receiver) {
 		return false
 	}
-	return sender.IsAdminLevel() || sender.IsTeacher() || receiver.IsTeacher()
+	// All members inherit Student contact permissions. Mentor independently
+	// adds outgoing contact; Teacher adds receiving requests and replying.
+	return sender.IsAdminLevel() || sender.IsMentor || receiver.IsTeacher() || receiver.IsMentor
 }
 
 func (c *WhisperConversation) CanSend(sender, receiver *User) error {
@@ -63,7 +65,7 @@ func (c *WhisperConversation) CanSend(sender, receiver *User) error {
 	if !receiver.IsAdminLevel() && (c.BlockedByLow || c.BlockedByHigh) {
 		return ErrWhisperBlocked
 	}
-	if sender.IsStudent() && receiver.IsAdminLevel() && !c.AdminContacted {
+	if !sender.IsMentor && receiver.IsAdminLevel() && !c.AdminContacted {
 		return ErrWhisperIdentity
 	}
 	if c.Established {

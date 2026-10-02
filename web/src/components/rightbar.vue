@@ -78,14 +78,14 @@
                 </n-space>
             </div>
         </n-card>
-        <div class="site-info" v-if="isAdmin(userInfo)" ref="userInfoElement">
+        <div class="site-info" v-if="isOperator(userInfo)" ref="userInfoElement">
             <span class="site-info-item">{{ t('user.siteInfo', { registered: registerUserCount, online: onlineUserCount, maxOnline: historyMaxOnline, uptime: formatRelativeTime(serverUpTime) }) }}</span>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { isAdmin } from "@/utils/identity";
+import { isOperator } from "@/utils/identity";
 import { ref, onMounted, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
@@ -125,6 +125,7 @@ const rightHotTopicMaxSize = Number(
 );
 
 const loadSiteInfo = () => {
+  if (!isOperator(userInfo.value)) return;
   Api.v1.admin.get.site.status()
     .then((res) => {
       registerUserCount.value = res.register_user_count;
@@ -185,7 +186,7 @@ watch(
     if (to.refreshTopicFollow !== from.refreshTopicFollow || to.userLogined) {
       loadHotTags();
     }
-    if (isAdmin(userInfo.value)) {
+    if (isOperator(userInfo.value)) {
       loadSiteInfo();
     }
   },
@@ -205,7 +206,7 @@ const observer = new IntersectionObserver(
   },
 );
 onMounted(() => {
-  // 不知道为什么 store.isAdmin(userInfo) 在这里就是不起作用f*k，所以才用这么一种蹩脚的法子来凑合
+  // Observe only the Operator's system information panel.
   if (userInfoElement.value) {
     observer.observe(userInfoElement.value);
   }

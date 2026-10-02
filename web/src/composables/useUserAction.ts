@@ -3,14 +3,14 @@ import { useDialog } from "naive-ui";
 import { Api } from "../utils/request";
 import { useStoreUser } from '@/store/user';
 import i18n from '@/locales';
-import { isAdmin, isTeacher, type UserIdentity } from '@/utils/identity';
+import { isAdmin, isTeacher, isMentor, type UserIdentity } from '@/utils/identity';
 
 /** The server provides the final send permission for the current conversation. */
 export const canWhisperUser = (user?: UserIdentity) => {
     const me = useStoreUser().userInfo;
     if (!user) return true;
     // Management conversations may already exist, so keep their history accessible.
-    return isAdmin(me) || isAdmin(user) || isTeacher(me) || isTeacher(user);
+    return isAdmin(me) || isMentor(me) || isAdmin(user) || isTeacher(user) || isMentor(user);
 };
 
 /**

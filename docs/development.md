@@ -128,8 +128,9 @@ These hit a running local instance (default `http://127.0.0.1:8008`) and/or driv
 | Script | What it verifies |
 | --- | --- |
 | `test_audit_flow.py` | Comment / reply / nickname moderation flow end to end (API level) |
-| `test_course_flow.py` | Teacher ownership, course transfer, role lifecycle and forced first password change |
+| `test_course_flow.py` | Teacher/staff course ownership, transfers, Operator-only system information, role lifecycle and forced first password change |
 | `test_whisper_matrix.py` | Private-message permission matrix (phone binding required, peer-to-peer rules, first-message limits) |
+| `test_identity_ui.py` | Six groups, independent Teacher/Mentor switches, staff course entry, system information visibility and public badges at desktop/mobile widths |
 | `verify_sidebar_830.py` | No sidebar/content overlap at the 830px viewport breakpoint |
 | `measure_width.py` | Column layout at 7 viewports: 1920 / 1600 / 1366 / 1200 / 1000 / 821 / 375 |
 | `screenshot.py`, `screenshots_audit.py` | Page screenshots for manual visual comparison |

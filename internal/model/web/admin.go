@@ -15,7 +15,7 @@ type ChangeUserStatusReq struct {
 }
 
 type SiteInfoReq struct {
-	SimpleInfo `json:"-" binding:"-"`
+	BaseInfo `json:"-" binding:"-"`
 }
 
 type SiteInfoResp struct {

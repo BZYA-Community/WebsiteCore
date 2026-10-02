@@ -131,6 +131,6 @@
     "E90103": "Failed to like comment reply",
     "E90104": "Failed to dislike comment reply",
     "E10404": "Change your temporary password first",
-    "E11008": "Remove the Mentor designation and transfer all courses first."
+    "E11008": "Transfer all courses before removing Teacher access or deleting the account."
   }
 }

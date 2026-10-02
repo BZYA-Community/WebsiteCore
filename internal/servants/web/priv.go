@@ -265,7 +265,7 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 		Visibility: ms.PostVisibleT(req.Visibility.ToVisibleValue()),
 	}
 	// 内容审核开启时 普通用户(无任何管理角色)的非私密新帖进入待审核
-	// 教师及管理账号免审，学生审核员仍需审核。 私密帖仅自己可见不进审核队列
+	// 仅运维及管理员免审，其余成员均需审核。私密帖仅自己可见不进审核队列
 	// 注意: 免审路径必须显式置为已过审 PostAuditApproved(1) 否则零值0即待审核
 	if conf.AuditSetting.Enabled && !req.User.CanPublishDirectly() && post.Visibility != ms.PostVisitPrivate {
 		post.AuditStatus = ms.PostAuditPending

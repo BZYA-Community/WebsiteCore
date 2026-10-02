@@ -529,7 +529,7 @@ func (s *courseAdminSrv) buildCourse(groupID, teacherID int64, title, intro, vid
 	if _, err := s.Ds.GetCourseGroupByID(groupID); err != nil {
 		return nil, "", web.ErrCourseGroupNotExist
 	}
-	if teacher, err := s.Ds.GetUserByID(teacherID); err != nil || !teacher.IsTeacher() || ((exist == nil || exist.TeacherID != teacherID) && !teacher.IsActive()) {
+	if teacher, err := s.Ds.GetUserByID(teacherID); err != nil || (!teacher.IsTeacher() && !teacher.IsAdminLevel()) || ((exist == nil || exist.TeacherID != teacherID) && !teacher.IsActive()) {
 		return nil, "", web.ErrCourseTeacherInvalid
 	}
 	// 视频: 直传模式传对象键, 代理模式传完整URL, 统一归一化为键校验

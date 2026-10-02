@@ -3,6 +3,13 @@
         <main-nav :title="t('adminUsers.pageTitle')" />
 
         <n-card :title="t('adminUsers.pageTitle')" size="small" class="setting-card">
+            <n-space size="small" class="permission-groups">
+                <n-popover v-for="group in permissionGroups" :key="group" trigger="hover">
+                    <template #trigger><n-tag round size="small">{{ t(`user.identity.${group}`) }}</n-tag></template>
+                    {{ t(`adminUsers.permissions.${group}`) }}
+                </n-popover>
+            </n-space>
+            <p class="role-tip">{{ t('adminUsers.permissions.summary') }}</p>
             <n-spin :show="loading">
                 <div class="toolbar">
                     <n-input
@@ -66,7 +73,7 @@
                                     size="small"
                                     :type="identityTagType(detail)"
                                 >
-                                    {{ identityLabel(detail) }}
+                                    {{ identityLabel(detail, true) }}
                                 </n-tag>
                             </n-descriptions-item>
                             <n-descriptions-item :label="t('adminUsers.drawer.labelStatus')">
@@ -89,17 +96,18 @@
                                 {{ t('adminUsers.drawer.roleTip') }}
                             </div>
                             <n-form v-if="detail.account_type === 'member'" label-placement="top">
-                                <n-form-item :label="t('adminUsers.table.identity')">
-                                    <n-select v-model:value="access.member_identity" :options="identityOptions" />
+                                <n-form-item :label="t('user.identity.teacher')">
+                                    <n-switch v-model:value="teacherAccess" />
                                 </n-form-item>
                                 <n-form-item :label="t('user.identity.mentor')">
-                                    <n-switch v-model:value="access.is_mentor" :disabled="access.member_identity !== 'teacher'" />
+                                    <n-switch v-model:value="access.is_mentor" />
                                 </n-form-item>
                                 <n-form-item :label="t('adminUsers.role.auditor')">
                                     <n-switch v-model:value="access.is_auditor" />
                                 </n-form-item>
                                 <n-button type="primary" :loading="roleChanging" @click="saveAccess">{{ t('common.save') }}</n-button>
                             </n-form>
+                            <n-alert v-else type="info" :show-icon="false">{{ t('adminUsers.permissions.dedicated') }}</n-alert>
                             <n-space vertical size="small" class="role-list">
                                 <div
                                     v-for="role in manageableRoles(detail)"
@@ -189,7 +197,7 @@ import { NButton, NSpace, NTag, useDialog } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import { userInfo as fetchUserInfo } from '@/api/auth';
 import { formatTime } from '@/utils/formatTime';
-import { identityTagType, identityLabel } from '@/utils/identity';
+import { identityTagType, identityLabel, identityLabels } from '@/utils/identity';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { Api } from '@/utils/request';
@@ -246,20 +254,21 @@ const roleName = (role: string) => roleNameMap.value[role] ?? role;
 
 const detailTitle = ref(t('adminUsers.detailTitle', { name: '' }));
 
-// 运维账号在服务端享有全部角色管理权限，前端按同一规则禁用按钮
+// Only the Operator creates Admins; both management groups manage existing accounts.
 const selfIsOperator = () =>
     (userInfo.value.roles || []).includes('operator');
 
 const manageableRoles = (row: Partial<UserItem>) =>
-    row.account_type === 'admin' && selfIsOperator() && row.roles?.includes('admin') ? ['admin'] : [];
+    row.account_type === 'admin' && row.id !== userInfo.value.id && row.roles?.includes('admin') ? ['admin'] : [];
 const canManageRole = (row: Partial<UserItem>, role: string) =>
-    selfIsOperator() && row.account_type === 'admin' && role === 'admin';
+    isAdmin(userInfo.value) && row.id !== userInfo.value.id && row.account_type === 'admin' && role === 'admin';
 
 const access = reactive({ member_identity: 'student' as 'student' | 'teacher', is_mentor: false, is_auditor: false });
-const identityOptions = computed(() => [
-    { label: t('user.identity.student'), value: 'student' },
-    { label: t('user.identity.teacher'), value: 'teacher' },
-]);
+const permissionGroups = ['operator', 'admin', 'auditor', 'teacher', 'mentor', 'student'];
+const teacherAccess = computed({
+    get: () => access.member_identity === 'teacher',
+    set: (enabled: boolean) => { access.member_identity = enabled ? 'teacher' : 'student'; },
+});
 const saveAccess = async () => {
     if (!detail.value.id) return;
     roleChanging.value = true;
@@ -486,12 +495,17 @@ const userColumns = computed<DataTableColumns<UserItem>>(() => [
     {
         title: t('adminUsers.table.identity'),
         key: 'member_identity',
-        width: 90,
+        width: 150,
         render: (row) =>
             h(
-                NTag,
-                { round: true, size: 'small', type: identityTagType(row) },
-                { default: () => identityLabel(row) }
+                NSpace,
+                { size: 'small' },
+                {
+                    default: () => identityLabels(row, true).map((label) =>
+                        h(NTag, { round: true, size: 'small', type: identityTagType(row), key: label },
+                            { default: () => label }),
+                    ),
+                }
             ),
     },
     {
@@ -539,11 +553,10 @@ const userColumns = computed<DataTableColumns<UserItem>>(() => [
         key: 'actions',
         width: 200,
         render: (row) => {
-            // 不可操作自己; 运维账号仅运维可禁言/删除(与角色变更同规则)
+            // Management may disable other Admins, never itself or the Operator.
             const operable =
                 row.id !== userInfo.value.id &&
-                row.account_type !== 'operator' &&
-                (row.account_type === 'member' || selfIsOperator());
+                row.account_type !== 'operator';
             const buttons: Component[] = [
                 h(
                     NButton,
@@ -574,7 +587,7 @@ const userColumns = computed<DataTableColumns<UserItem>>(() => [
                             size: 'small',
                             quaternary: true,
                             type: 'error',
-                            disabled: row.account_type !== 'member' || !!row.is_mentor,
+                            disabled: row.account_type !== 'member',
                             onClick: () => handleUserDelete(row),
                         },
                         { default: () => t('common.delete') }

@@ -1,21 +1,29 @@
 # Explicit identity and permissions (#94)
 
-The issue is the accepted product specification. A member has exactly one
-Student/Teacher identity; Mentor is a Teacher designation. Operator and Admin
-are dedicated accounts. Auditor is an optional member permission, never a
-public badge or an exemption from moderation.
+The issue defines the initial specification. The human review confirmed on
+2026-10-03 supersedes its conflicting permission rules; see
+[the revised design](2026-10-03-parallel-identity-permissions-design.md).
+Operator, Admin, Auditor, Teacher, Mentor and Student are parallel product
+groups. Teacher and Mentor capabilities are independent and may overlap.
+Operator and Admin retain dedicated accounts and inherit all member capabilities.
+Only Operator can view system information and create Admins; only management
+accounts bypass publication review. Auditor remains private in public projections.
 
 ## Implementation
 
 - Use nullable `member_identity`, `is_mentor`, canonical `roles`, and an immutable
   internal `account_type` to retain an Admin account's kind after role removal.
+  `member_identity` expresses course access, while `is_mentor` independently
+  expresses proactive messaging. Neither flag implies the other.
   Database checks reject invalid combinations. Registration always creates a
-  Student; only the configured bootstrap creates Operators.
+  Student; only the configured bootstrap creates the single Operator, enforced
+  by a unique partial database index.
 - Replace role-presence and legacy boolean checks with explicit capabilities.
   Separate public user projections from self/admin responses.
 - Authorize account changes and course ownership changes inside transactions,
-  locking affected users in ascending ID order. A Teacher with courses or a
-  Mentor designation cannot be demoted or deleted; banning remains available.
+  locking affected users in ascending ID order. A course owner cannot lose
+  Teacher access or be deleted until courses are transferred; Mentor access
+  does not block either operation. Banning remains available.
 - Persist private-message state per unordered user pair. Lock both users, then
   the conversation; check current identities, phone binding and blocks; update
   pending/established state and insert the message in the same transaction.
@@ -29,8 +37,9 @@ public badge or an exemption from moderation.
 
 ## Alternatives considered
 
-Keeping `mentor` as a role or retaining compatibility fields contradicts the
-breaking API requirement. Deriving pending state from historical messages loses
+Retaining compatibility fields contradicts the breaking API requirement.
+Making Mentor an independent capability preserves existing wire fields while
+supporting the reviewed product groups. Deriving pending state from historical messages loses
 cancellation state and permits concurrent first messages; an explicit pair row
 is required. No new production dependency is needed.
 

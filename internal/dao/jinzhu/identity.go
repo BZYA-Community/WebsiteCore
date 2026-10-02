@@ -69,9 +69,6 @@ func cancelPending(tx *gorm.DB, userID int64) error {
 }
 
 func teacherReleased(tx *gorm.DB, user *ms.User) error {
-	if user.IsMentor {
-		return dbr.ErrTeacherInUse
-	}
 	var n int64
 	if err := tx.Model(&dbr.Course{}).Where("teacher_id = ?", user.ID).Count(&n).Error; err != nil {
 		return err
@@ -166,7 +163,7 @@ func (s *userManageSrv) RemoveAdminRole(actorID, userID int64) error {
 		if err != nil {
 			return err
 		}
-		if !users[actorID].CanManageAdmins() || users[userID].AccountType != "admin" {
+		if actorID == userID || !users[actorID].CanManageAdmins() || users[userID].AccountType != "admin" {
 			return dbr.ErrPermission
 		}
 		oldRoles := users[userID].Roles
@@ -211,7 +208,7 @@ func (s *userManageSrv) CreateAdmin(actorID int64, user *ms.User) (*ms.User, err
 		if err != nil {
 			return err
 		}
-		if !users[actorID].CanManageAdmins() {
+		if !users[actorID].CanCreateAdmin() {
 			return dbr.ErrPermission
 		}
 		user.AccountType, user.Roles, user.MemberIdentity, user.IsMentor = "admin", ms.RoleAdmin, nil, false

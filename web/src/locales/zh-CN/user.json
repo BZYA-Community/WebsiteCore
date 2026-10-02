@@ -72,8 +72,9 @@
   "identity": {
     "operator": "运维",
     "admin": "管理员",
+    "auditor": "审核",
     "mentor": "导师",
-    "student": "学生",
-    "teacher": "教师"
+    "student": "学生（道友）",
+    "teacher": "老师"
   }
 }

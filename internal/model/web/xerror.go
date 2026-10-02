@@ -131,7 +131,7 @@ var (
 	ErrAuditPostFailed  = xerror.NewError(11002, "审核操作失败")
 	// 11003 运维保护: 非运维账号尝试变更运维相关角色 HTTP映射403
 	ErrRoleChangeNoPermission = xerror.NewError(11003, "无权变更该用户角色")
-	ErrTeacherInUse           = xerror.NewError(11008, "请先取消 Mentor 标记并转移全部课程")
+	ErrTeacherInUse           = xerror.NewError(11008, "请先转移全部课程后再移除老师身份或删除账号")
 	ErrUserDeleteFailed       = xerror.NewError(11004, "删除用户失败")
 	ErrAuditCommentFailed     = xerror.NewError(11005, "评论审核操作失败")
 	ErrAuditNicknameFailed    = xerror.NewError(11006, "昵称审核操作失败")

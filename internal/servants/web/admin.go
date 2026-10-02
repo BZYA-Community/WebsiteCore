@@ -62,6 +62,9 @@ func (s *adminSrv) AdminUserDelete(req *web.AdminUserDeleteReq) error {
 }
 
 func (s *adminSrv) SiteInfo(req *web.SiteInfoReq) (*web.SiteInfoResp, error) {
+	if req.User == nil || !req.User.CanViewSystemInfo() {
+		return nil, web.ErrNoPermission
+	}
 	res, err := &web.SiteInfoResp{ServerUpTime: s.serverUpTime}, error(nil)
 	res.RegisterUserCount, err = s.Ds.GetRegisterUserCount()
 	if err != nil {
@@ -174,7 +177,7 @@ func (s *adminSrv) AdminUserRoleChange(req *web.AdminUserRoleReq) error {
 		return web.ErrNoPermission
 	}
 	// Auditor is set with member access. The only standalone role removal is
-	// an Operator disabling a dedicated Admin; arbitrary grants are forbidden.
+	// management disabling another dedicated Admin; arbitrary grants are forbidden.
 	if req.Role != ms.RoleAdmin || req.Action != "remove" {
 		return web.ErrRoleChangeNoPermission
 	}

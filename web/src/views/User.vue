@@ -18,11 +18,8 @@
                                 class="top-tag" type="success" size="small" round>
                                 {{ t('user.followed') }}
                             </n-tag>
-                            <n-tag v-if="user.member_identity === 'teacher' && user.is_mentor" class="top-tag" type="success" size="small" round>
-                                {{ t('user.identity.mentor') }}
-                            </n-tag>
-                            <n-tag v-if="showIdentityBadge(user)" class="top-tag" :type="identityTagType(user)" size="small" round>
-                                {{ identityLabel(user) }}
+                            <n-tag v-for="label in identityLabels(user)" :key="label" class="top-tag" :type="identityTagType(user)" size="small" round>
+                                {{ label }}
                             </n-tag>
                         </div>
                         <div class="userinfo">
@@ -123,7 +120,6 @@
 </template>
 
 <script setup lang="ts">
-import { isAdmin } from "@/utils/identity";
 import { h, ref, reactive, watch, onMounted, computed } from 'vue';
 import { NIcon } from 'naive-ui';
 import type { Component, Ref } from 'vue';
@@ -133,7 +129,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useDialog, DropdownOption } from 'naive-ui';
 import { MoreHorizFilled } from '@vicons/material';
 import { formatDate } from '@/utils/formatTime';
-import { identityTagType, showIdentityBadge, identityLabel } from '@/utils/identity';
+import { isAdmin, isOperator, identityTagType, identityLabels } from '@/utils/identity';
 import { prettyQuoteNum } from '@/utils/count';
 import {
   SettingsOutline,
@@ -385,7 +381,7 @@ const userOptions = computed(() => {
       icon: renderIcon(PaperPlaneOutline),
     });
   }
-  if (isAdmin(userInfo.value)) {
+  if (isAdmin(userInfo.value) && !isOperator(user)) {
     if (user.status === 1) {
       options.push({
         label: t('user.userPage.actionBan'),

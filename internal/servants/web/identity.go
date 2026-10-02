@@ -48,7 +48,7 @@ func (s *adminSrv) ChangeMemberAccess(req *web.MemberAccessReq) error {
 }
 
 func (s *adminSrv) CreateAdmin(req *web.CreateAdminReq) (*web.RegisterResp, error) {
-	if !req.User.CanManageAdmins() {
+	if !req.User.CanCreateAdmin() {
 		return nil, web.ErrNoPermission
 	}
 	pub := &pubSrv{DaoServant: s.DaoServant}
