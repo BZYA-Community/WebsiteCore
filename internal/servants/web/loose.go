@@ -201,6 +201,13 @@ func (s *looseSrv) userTweetsFromCache(req *web.GetUserTweetsReq, user *cs.VistU
 	switch req.Style {
 	case web.UserPostsStylePost, web.UserPostsStyleHighlight, web.UserPostsStyleMedia:
 		key = fmt.Sprintf("%s%d:%s:%s:%d:%d", s.prefixUserTweets, user.UserId, req.Style, user.RelTyp, req.Page, req.PageSize)
+	case web.UserPostsStyleStar:
+		// 星标列表按访问者身份逐帖过滤(关注关系 + 管理侧豁免), 缓存键必须区分访问者
+		viewer := int64(-1)
+		if req.User != nil {
+			viewer = req.User.ID
+		}
+		key = fmt.Sprintf("%s%d:%s:%d:%d:%d", s.prefixUserTweets, user.UserId, req.Style, viewer, req.Page, req.PageSize)
 	default:
 		meName := "_"
 		if user.RelTyp != cs.RelationGuest {
@@ -219,7 +226,7 @@ func (s *looseSrv) userTweetsFromCache(req *web.GetUserTweetsReq, user *cs.VistU
 }
 
 func (s *looseSrv) getUserStarTweets(req *web.GetUserTweetsReq, user *cs.VistUser) (*web.GetUserTweetsResp, error) {
-	stars, totalRows, err := s.Ds.ListUserStarTweets(user, req.PageSize, (req.Page-1)*req.PageSize)
+	stars, totalRows, err := s.Ds.ListUserStarTweets(user, req.User, req.PageSize, (req.Page-1)*req.PageSize)
 	if err != nil {
 		logrus.Errorf("getUserStarTweets err[1]: %s", err)
 		return nil, web.ErrGetStarsFailed

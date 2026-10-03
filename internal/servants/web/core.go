@@ -235,14 +235,9 @@ func (s *coreSrv) UserPhoneBind(req *web.UserPhoneBindReq) error {
 }
 
 func (s *coreSrv) GetStars(req *web.GetStarsReq) (*web.GetStarsResp, error) {
-	stars, err := s.Ds.GetUserPostStars(req.UserId, req.PageSize, (req.Page-1)*req.PageSize)
+	stars, totalRows, err := s.Ds.GetUserPostStarsWithCount(req.UserId, req.PageSize, (req.Page-1)*req.PageSize)
 	if err != nil {
-		logrus.Errorf("Ds.GetUserPostStars err: %s", err)
-		return nil, web.ErrGetStarsFailed
-	}
-	totalRows, err := s.Ds.GetUserPostStarCount(req.UserId)
-	if err != nil {
-		logrus.Errorf("Ds.GetUserPostStars err: %s", err)
+		logrus.Errorf("Ds.GetUserPostStarsWithCount err: %s", err)
 		return nil, web.ErrGetStarsFailed
 	}
 	var posts []*ms.Post
