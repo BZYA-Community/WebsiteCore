@@ -148,6 +148,8 @@ LocalOSS:
 
 Keep `"Migration"` in `Features.Default` (the image is built with the `migration` tag) so the schema is created on first boot. The dependency containers have no published ports at all — they are reachable only on the compose network.
 
+> **The `postgres` container starts with an empty database.** It only creates the `websitecore` database; the tables (`p_user`, `p_post`, ...) come from the migrations, which the `app` container applies on startup *only* when `"Migration"` is in `Features.Default` and the image carries the `migration` build tag (the Dockerfile above builds with `-tags 'embed migration'`). If you drop either, the app boots but every request fails with `relation "p_user" does not exist (SQLSTATE 42P01)` — login 401, register 500. To migrate manually instead, run `docker compose -f docker-compose.prod.yml run --rm app migrate`.
+
 ## 4. Launch and verify
 
 ```sh

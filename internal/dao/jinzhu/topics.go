@@ -6,6 +6,7 @@ package jinzhu
 
 import (
 	"errors"
+	"sort"
 	"strings"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
@@ -87,9 +88,7 @@ func (s *topicSrv) ListTags(typ cs.TagType, offset, limit int) (res cs.TagList, 
 }
 
 func (s *topicSrv) GetHotTags(userId int64, limit int, offset int) (cs.TagList, error) {
-	tags, err := s.listTags(&ms.ConditionsT{
-		"ORDER": "quote_num DESC",
-	}, limit, offset)
+	tags, err := s.listPublicTags(cs.TagTypeHot, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -97,13 +96,86 @@ func (s *topicSrv) GetHotTags(userId int64, limit int, offset int) (cs.TagList, 
 }
 
 func (s *topicSrv) GetNewestTags(userId int64, limit int, offset int) (cs.TagList, error) {
-	tags, err := s.listTags(&ms.ConditionsT{
-		"ORDER": "id DESC",
-	}, limit, offset)
+	tags, err := s.listPublicTags(cs.TagTypeNew, limit, offset)
 	if err != nil {
 		return nil, err
 	}
 	return s.tagsFormatA(userId, tags)
+}
+
+// listPublicTags returns only topics referenced by posts that a guest can read.
+// The persisted quote_num includes pending and non-public posts, so it cannot be
+// used for public discovery or ranking. This exact scan is suitable for the
+// current community size; at larger scale, replace it with a public-only
+// materialized counter or cache that is updated on audit/visibility changes.
+func (s *topicSrv) listPublicTags(typ cs.TagType, limit int, offset int) (cs.TagList, error) {
+	encodedTags, err := listPublicPostTagFields(s.db)
+	if err != nil {
+		return nil, err
+	}
+
+	counts := countPublicTagRefs(encodedTags)
+	if len(counts) == 0 {
+		return cs.TagList{}, nil
+	}
+
+	tagNames := make([]string, 0, len(counts))
+	for tag := range counts {
+		tagNames = append(tagNames, tag)
+	}
+	var tags []*dbr.Tag
+	if err := s.db.Where("is_del = ? AND tag IN ?", 0, tagNames).Find(&tags).Error; err != nil {
+		return nil, err
+	}
+	for _, tag := range tags {
+		tag.QuoteNum = counts[tag.Tag]
+	}
+
+	sort.Slice(tags, func(i, j int) bool {
+		if typ == cs.TagTypeHot && tags[i].QuoteNum != tags[j].QuoteNum {
+			return tags[i].QuoteNum > tags[j].QuoteNum
+		}
+		return tags[i].ID > tags[j].ID
+	})
+
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(tags) {
+		return cs.TagList{}, nil
+	}
+	tags = tags[offset:]
+	if limit > 0 && len(tags) > limit {
+		tags = tags[:limit]
+	}
+	return s.formatTags(tags)
+}
+
+func listPublicPostTagFields(db *gorm.DB) ([]string, error) {
+	var encodedTags []string
+	err := db.Model(&dbr.Post{}).
+		Where("is_del = ? AND audit_status = ? AND visibility = ?", 0, dbr.PostAuditApproved, dbr.PostVisitPublic).
+		Pluck("tags", &encodedTags).Error
+	return encodedTags, err
+}
+
+func countPublicTagRefs(encodedTags []string) map[string]int64 {
+	counts := make(map[string]int64)
+	for _, encoded := range encodedTags {
+		seen := make(map[string]struct{})
+		for _, rawTag := range strings.Split(encoded, ",") {
+			tag := strings.TrimSpace(rawTag)
+			if tag == "" {
+				continue
+			}
+			if _, exists := seen[tag]; exists {
+				continue
+			}
+			seen[tag] = struct{}{}
+			counts[tag]++
+		}
+	}
+	return counts
 }
 
 func (s *topicSrv) GetFollowTags(userId int64, isPin bool, limit int, offset int) (cs.TagList, error) {
@@ -149,37 +221,40 @@ func (s *topicSrv) GetFollowTags(userId int64, isPin bool, limit int, offset int
 
 func (s *topicSrv) listTags(conditions *ms.ConditionsT, limit int, offset int) (res cs.TagList, err error) {
 	// TODO: 优化查询方式，直接返回[]*core.Tag, 目前保持先转换一下
-	var (
-		tags []*dbr.Tag
-		item *cs.TagItem
-	)
+	var tags []*dbr.Tag
 	if tags, err = (&dbr.Tag{}).List(s.db, conditions, offset, limit); err == nil {
-		if len(tags) == 0 {
-			return
+		return s.formatTags(tags)
+	}
+	return
+}
+
+func (s *topicSrv) formatTags(tags []*dbr.Tag) (res cs.TagList, err error) {
+	if len(tags) == 0 {
+		return cs.TagList{}, nil
+	}
+	var item *cs.TagItem
+	tagMap := make(map[int64][]*cs.TagItem, len(tags))
+	for _, tag := range tags {
+		item = &cs.TagItem{
+			ID:       tag.ID,
+			UserID:   tag.UserID,
+			Tag:      tag.Tag,
+			QuoteNum: tag.QuoteNum,
 		}
-		tagMap := make(map[int64][]*cs.TagItem, len(tags))
-		for _, tag := range tags {
-			item = &cs.TagItem{
-				ID:       tag.ID,
-				UserID:   tag.UserID,
-				Tag:      tag.Tag,
-				QuoteNum: tag.QuoteNum,
-			}
-			tagMap[item.UserID] = append(tagMap[item.UserID], item)
-			res = append(res, item)
-		}
-		ids := make([]int64, 0, len(tagMap))
-		for userId := range tagMap {
-			ids = append(ids, userId)
-		}
-		userInfos, err := (&dbr.User{}).ListUserInfoById(s.db, ids)
-		if err != nil {
-			return nil, err
-		}
-		for _, userInfo := range userInfos {
-			for _, item = range tagMap[userInfo.ID] {
-				item.User = userInfo
-			}
+		tagMap[item.UserID] = append(tagMap[item.UserID], item)
+		res = append(res, item)
+	}
+	ids := make([]int64, 0, len(tagMap))
+	for userId := range tagMap {
+		ids = append(ids, userId)
+	}
+	userInfos, err := (&dbr.User{}).ListUserInfoById(s.db, ids)
+	if err != nil {
+		return nil, err
+	}
+	for _, userInfo := range userInfos {
+		for _, item = range tagMap[userInfo.ID] {
+			item.User = userInfo
 		}
 	}
 	return

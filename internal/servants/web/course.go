@@ -14,6 +14,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
+
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
@@ -91,7 +93,7 @@ func (s *courseLooseSrv) CourseList(req *web.CourseListReq) (*web.CourseListResp
 	if err != nil {
 		return nil, web.ErrGetCourseListFailed
 	}
-	return (*web.CourseListResp)(base.PageRespFrom(formated, req.Page, req.PageSize, total)), nil
+	return (*web.CourseListResp)(joint.PageRespFrom(formated, req.Page, req.PageSize, total)), nil
 }
 
 func (s *courseLooseSrv) CourseDetail(req *web.CourseDetailReq) (*web.CourseDetailResp, error) {
@@ -200,7 +202,7 @@ func (s *courseLooseSrv) CourseComments(req *web.CourseCommentsReq) (*web.Course
 		}
 		items = append(items, item)
 	}
-	return (*web.CourseCommentsResp)(base.PageRespFrom(items, req.Page, req.PageSize, total)), nil
+	return (*web.CourseCommentsResp)(joint.PageRespFrom(items, req.Page, req.PageSize, total)), nil
 }
 
 func (s *courseLooseSrv) CourseVideo(req *web.CourseVideoReq) (*web.CourseVideoResp, error) {

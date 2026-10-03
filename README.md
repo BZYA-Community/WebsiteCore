@@ -89,6 +89,8 @@ Key values:
 make migrate        # applies the embedded migrations
 ```
 
+**Required on a fresh database** — the dependency stack only creates an empty PostgreSQL database. Skipping this step means every request fails with `relation "p_user" does not exist (SQLSTATE 42P01)` (login 401, register 500). Re-run it after every upgrade that ships new migrations.
+
 ### 4. Build the frontend and run
 
 ```bash

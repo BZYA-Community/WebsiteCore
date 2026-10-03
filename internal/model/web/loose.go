@@ -10,7 +10,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/internal/transport/httpx"
 	"github.com/BZYA-Community/WebsiteCore/pkg/app"
 	"github.com/gin-gonic/gin"
 )
@@ -129,7 +129,7 @@ func (r *TweetCommentsReq) SetPageInfo(page int, pageSize int) {
 }
 
 func (r *TimelineReq) Bind(c *gin.Context) error {
-	user, _ := base.UserFrom(c)
+	user, _ := httpx.UserFrom(c)
 	r.BaseInfo = BaseInfo{
 		User: user,
 	}

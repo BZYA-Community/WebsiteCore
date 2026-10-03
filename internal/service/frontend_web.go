@@ -6,7 +6,6 @@ package service
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants"
@@ -36,21 +35,7 @@ func (s *frontendWebService) String() string {
 }
 
 func newFrontendWebServiceService() Service {
-	addr := conf.FrontendWebSetting.HttpIp + ":" + conf.FrontendWebSetting.HttpPort
-	server := httpServers.from(addr, func() *httpServer {
-		engine := newWebEngine()
-		return &httpServer{
-			baseServer: newBaseServe(),
-			e:          engine,
-			server: &http.Server{
-				Addr:           addr,
-				Handler:        engine,
-				ReadTimeout:    conf.FrontendWebSetting.GetReadTimeout(),
-				WriteTimeout:   conf.FrontendWebSetting.GetWriteTimeout(),
-				MaxHeaderBytes: 1 << 20,
-			},
-		}
-	})
+	server := sharedHTTPServer(conf.FrontendWebSetting, newWebEngine)
 	return &frontendWebService{
 		baseHttpService: &baseHttpService{
 			server: server,

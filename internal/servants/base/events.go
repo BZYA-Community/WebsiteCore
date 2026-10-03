@@ -5,6 +5,7 @@
 package base
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
@@ -37,7 +38,7 @@ type ExpireAnyRespEvent struct {
 
 type pushPostToSearchEvent struct {
 	event.UnimplementedEvent
-	fn   func(*ms.Post)
+	fn   func(*ms.Post) error
 	post *ms.Post
 }
 
@@ -115,9 +116,8 @@ func (p *pushPostToSearchEvent) Name() string {
 	return "servants.base.pushPostToSearchEvent"
 }
 
-func (p *pushPostToSearchEvent) Action() (err error) {
-	p.fn(p.post)
-	return
+func (p *pushPostToSearchEvent) Action() error {
+	return p.fn(p.post)
 }
 
 func (p *pushAllPostToSearchEvent) Name() string {
@@ -127,3 +127,13 @@ func (p *pushAllPostToSearchEvent) Name() string {
 func (p *pushAllPostToSearchEvent) Action() error {
 	return p.fn()
 }
+
+// Search writes stay asynchronous for HTTP callers; the application module
+// returns errors to the existing event manager for reporting.
+func (s *DaoServant) PushAllPostToSearch() {
+	events.OnEvent(&pushAllPostToSearchEvent{fn: func() error { return s.index.Sync(context.Background()) }})
+}
+func (s *DaoServant) PushPostToSearch(post *ms.Post) {
+	events.OnEvent(&pushPostToSearchEvent{fn: s.index.Put, post: post})
+}
+func (s *DaoServant) DeleteSearchPost(post *ms.Post) error { return s.index.Delete(post) }

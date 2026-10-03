@@ -89,6 +89,8 @@ cp config.yaml.sample config.yaml
 make migrate        # 用内嵌迁移脚本建出完整 schema
 ```
 
+**全新数据库必须执行此步** —— 依赖服务只会创建一个空的 PostgreSQL 库，不会自动建表。跳过这一步，所有接口都会报 `relation "p_user" does not exist (SQLSTATE 42P01)`（登录 401、注册 500）。之后每次升级到包含新迁移脚本的版本，也要重新执行一次。
+
 ### 4. 构建前端并运行
 
 ```bash
