@@ -15,6 +15,9 @@ def main():
         "mentor": f.user(mentor=True), "dual": f.user("teacher", mentor=True),
     }
     managed_admin = f.admin()
+    disabled_admin, revoked_admin = f.admin(), f.admin()
+    f.expect("Operator prepares stopped Admin", "POST", "/v1/admin/user/status", f.operator, {"id": disabled_admin["id"], "status": 2})
+    f.expect("Operator prepares revoked Admin", "POST", "/v1/admin/user/role", f.operator, {"user_id": revoked_admin["id"], "role": "admin", "action": "remove"})
     out = Path(os.environ.get("E2E_SCREENSHOT_DIR", Path(__file__).parent / "shots"))
     out.mkdir(parents=True, exist_ok=True)
 
@@ -40,17 +43,36 @@ def main():
                 labels = page.locator(".permission-groups .n-tag").all_text_contents()
                 f.check(group + " sees six parallel groups", labels == ["运维", "管理员", "审核", "老师", "导师", "学生（道友）"])
                 f.check(group + " Admin creation visibility", page.get_by_role("button", name="创建管理账户", exact=True).count() == int(group == "operator"))
-                if group == "admin":
-                    for target, can_disable in ((managed_admin, True), (user, False), (f.operator, False)):
-                        page.locator(".keyword-input input").fill(target["username"])
-                        with page.expect_response(lambda response: "/v1/admin/user/list?" in response.url):
-                            page.locator(".keyword-input input").press("Enter")
-                        ready(page)
-                        f.check("Admin lifecycle action for " + ("other Admin" if can_disable else "self/Operator"), page.get_by_role("button", name="禁言", exact=True).count() == int(can_disable))
-                    page.goto(f.base + "/#/u?s=" + f.operator["username"], wait_until="networkidle")
+                for target, action, allowed in (
+                    (managed_admin, "禁言", group == "operator"),
+                    (disabled_admin, "解封", group == "operator"),
+                    (revoked_admin, "解封", group == "operator"),
+                    (accounts["student"], "禁言", True),
+                    (user, "禁言", False),
+                    (f.operator, "禁言", False),
+                ):
+                    page.locator(".keyword-input input").fill(target["username"])
+                    with page.expect_response(lambda response: "/v1/admin/user/list?" in response.url):
+                        page.locator(".keyword-input input").press("Enter")
+                    ready(page)
+                    f.check(group + " account lifecycle action " + action, page.get_by_role("button", name=action, exact=True).count() == int(allowed))
+                    if target is managed_admin:
+                        page.get_by_role("button", name="详情", exact=True).click()
+                        drawer = page.locator(".n-drawer")
+                        expect(drawer).to_be_visible()
+                        f.check(group + " Admin revocation visibility", drawer.get_by_role("button", name="移除", exact=True).count() == int(group == "operator"))
+                        page.keyboard.press("Escape")
+                        expect(drawer).to_have_count(0)
+                for target, action, allowed in (
+                    (managed_admin, "禁言", group == "operator"),
+                    (disabled_admin, "解封", group == "operator"),
+                    (accounts["student"], "禁言", True),
+                    (f.operator, "禁言", False),
+                ):
+                    page.goto(f.base + "/#/u?s=" + target["username"], wait_until="networkidle")
                     ready(page)
                     page.locator(".user-opts button").click()
-                    f.check("Admin cannot disable Operator from public profile", page.get_by_text("禁言", exact=True).count() == 0)
+                    f.check(group + " public account lifecycle action " + action, page.get_by_text(action, exact=True).count() == int(allowed))
             if group in ("student", "teacher", "mentor", "dual"):
                 page.goto(f.base + "/#/u?s=" + accounts["student"]["username"], wait_until="networkidle")
                 ready(page)

@@ -11,7 +11,7 @@ updating GitHub.
 | Group | Added capabilities above Student |
 | --- | --- |
 | Operator | All capabilities, system information, Admin creation; only one account |
-| Admin | All member and management capabilities, without system information; created by Operator |
+| Admin | Member and content-management capabilities, without system information or Admin-account management; created by Operator |
 | Auditor | Review other users' content, without publication bypass |
 | Teacher | Create/upload own course, receive and reply to Student messages |
 | Mentor | Independently receive and initiate messages, without course access |
@@ -48,10 +48,10 @@ Student contact without Mentor access. All senders still require a bound phone;
 member pending limits and block semantics remain unchanged.
 
 System information is guarded by an Operator capability in the API and UI.
-Admin creation remains Operator-only. To apply the diagram's rule that Admin
-otherwise has the same permissions, both management groups can disable,
-restore or revoke other Admin accounts; neither can act on itself or the
-Operator. Creation and lifecycle management use separate capabilities.
+Admin creation and lifecycle management are Operator-only. The user explicitly
+confirmed that Admins cannot disable, restore or revoke other Admin accounts.
+Both management groups still manage member accounts; neither can act on itself
+or the Operator. Creation and lifecycle management use separate capabilities.
 The PostgreSQL migration allows independent Mentor access and adds a unique
 partial index for the Operator account. Empty-table preflight, immutable account
 types, forced first Admin password change and self-review denial remain intact.

@@ -381,7 +381,7 @@ const userOptions = computed(() => {
       icon: renderIcon(PaperPlaneOutline),
     });
   }
-  if (isAdmin(userInfo.value) && !isOperator(user)) {
+  if (isAdmin(userInfo.value) && (user.member_identity || (isOperator(userInfo.value) && user.roles?.includes('admin')))) {
     if (user.status === 1) {
       options.push({
         label: t('user.userPage.actionBan'),

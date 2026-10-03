@@ -254,14 +254,14 @@ const roleName = (role: string) => roleNameMap.value[role] ?? role;
 
 const detailTitle = ref(t('adminUsers.detailTitle', { name: '' }));
 
-// Only the Operator creates Admins; both management groups manage existing accounts.
+// Only the Operator creates, disables, restores or revokes Admin accounts.
 const selfIsOperator = () =>
     (userInfo.value.roles || []).includes('operator');
 
 const manageableRoles = (row: Partial<UserItem>) =>
-    row.account_type === 'admin' && row.id !== userInfo.value.id && row.roles?.includes('admin') ? ['admin'] : [];
+    selfIsOperator() && row.account_type === 'admin' && row.id !== userInfo.value.id && row.roles?.includes('admin') ? ['admin'] : [];
 const canManageRole = (row: Partial<UserItem>, role: string) =>
-    isAdmin(userInfo.value) && row.id !== userInfo.value.id && row.account_type === 'admin' && role === 'admin';
+    selfIsOperator() && row.id !== userInfo.value.id && row.account_type === 'admin' && role === 'admin';
 
 const access = reactive({ member_identity: 'student' as 'student' | 'teacher', is_mentor: false, is_auditor: false });
 const permissionGroups = ['operator', 'admin', 'auditor', 'teacher', 'mentor', 'student'];
@@ -553,10 +553,10 @@ const userColumns = computed<DataTableColumns<UserItem>>(() => [
         key: 'actions',
         width: 200,
         render: (row) => {
-            // Management may disable other Admins, never itself or the Operator.
+            // Admins manage members; only the Operator manages other Admins.
             const operable =
                 row.id !== userInfo.value.id &&
-                row.account_type !== 'operator';
+                (row.account_type === 'member' || (selfIsOperator() && row.account_type === 'admin'));
             const buttons: Component[] = [
                 h(
                     NButton,

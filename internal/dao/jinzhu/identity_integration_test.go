@@ -51,21 +51,43 @@ func TestIdentityAccountAndCourseLifecycle(t *testing.T) {
 	if !managed.MustChangePassword || managed.MemberIdentity != nil || managed.Roles != ms.RoleAdmin {
 		t.Fatal("admin not dedicated or temporary password not enforced")
 	}
-	requireAccessError(t, users.ChangeAccountStatus(admin.ID, managed.ID, ms.UserStatusClosed), nil)
-	requireAccessError(t, users.ChangeAccountStatus(admin.ID, managed.ID, ms.UserStatusNormal), nil)
+	assertManaged := func(status int, roles string) {
+		t.Helper()
+		var current ms.User
+		if err := db.First(&current, managed.ID).Error; err != nil {
+			t.Fatal(err)
+		}
+		if current.Status != status || current.Roles != roles || current.AccountType != "admin" || current.MemberIdentity != nil {
+			t.Fatal("unexpected managed Admin state")
+		}
+	}
+	requireAccessError(t, users.ChangeAccountStatus(admin.ID, managed.ID, ms.UserStatusClosed), dbr.ErrPermission)
+	requireAccessError(t, users.ChangeAccountStatus(admin.ID, managed.ID, ms.UserStatusNormal), dbr.ErrPermission)
+	requireAccessError(t, users.RemoveAdminRole(admin.ID, managed.ID), dbr.ErrPermission)
+	assertManaged(ms.UserStatusNormal, ms.RoleAdmin)
+	requireAccessError(t, users.ChangeAccountStatus(op.ID, managed.ID, ms.UserStatusClosed), nil)
+	assertManaged(ms.UserStatusClosed, ms.RoleAdmin)
+	requireAccessError(t, users.ChangeAccountStatus(admin.ID, managed.ID, ms.UserStatusNormal), dbr.ErrPermission)
+	requireAccessError(t, users.RemoveAdminRole(admin.ID, managed.ID), dbr.ErrPermission)
+	assertManaged(ms.UserStatusClosed, ms.RoleAdmin)
+	requireAccessError(t, users.ChangeAccountStatus(op.ID, managed.ID, ms.UserStatusNormal), nil)
+	assertManaged(ms.UserStatusNormal, ms.RoleAdmin)
 	requireAccessError(t, users.ChangeAccountStatus(admin.ID, admin.ID, ms.UserStatusClosed), dbr.ErrPermission)
 	requireAccessError(t, users.RemoveAdminRole(admin.ID, admin.ID), dbr.ErrPermission)
 	requireAccessError(t, users.ChangeAccountStatus(admin.ID, op.ID, ms.UserStatusClosed), dbr.ErrPermission)
 	requireAccessError(t, users.RemoveAdminRole(admin.ID, op.ID), dbr.ErrPermission)
 	requireAccessError(t, users.ChangeAccountStatus(student.ID, managed.ID, ms.UserStatusClosed), dbr.ErrPermission)
-	requireAccessError(t, users.RemoveAdminRole(admin.ID, managed.ID), nil)
+	requireAccessError(t, users.RemoveAdminRole(op.ID, managed.ID), nil)
 	if err := db.First(managed, managed.ID).Error; err != nil {
 		t.Fatal(err)
 	}
 	if managed.Status != ms.UserStatusClosed || managed.Roles != "" || managed.MemberIdentity != nil {
 		t.Fatal("removing admin converted it into member")
 	}
+	requireAccessError(t, users.ChangeAccountStatus(admin.ID, managed.ID, ms.UserStatusNormal), dbr.ErrPermission)
+	assertManaged(ms.UserStatusClosed, "")
 	requireAccessError(t, users.ChangeAccountStatus(op.ID, managed.ID, ms.UserStatusNormal), nil)
+	assertManaged(ms.UserStatusNormal, ms.RoleAdmin)
 	requireAccessError(t, users.ChangeMemberAccess(op.ID, managed.ID, ms.MemberTeacher, false, false), dbr.ErrPermission)
 	requireAccessError(t, users.ChangeMemberAccess(admin.ID, mentor.ID, ms.MemberStudent, true, false), nil)
 	requireAccessError(t, users.ChangeMemberAccess(admin.ID, teacher.ID, ms.MemberTeacher, true, true), nil)

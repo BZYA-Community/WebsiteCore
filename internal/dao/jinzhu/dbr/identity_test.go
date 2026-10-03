@@ -40,7 +40,7 @@ func TestIdentityCapabilitiesAndPublicProjection(t *testing.T) {
 			if u.CanEditCourse(1) != (management || teacher) || u.CanEditCourse(2) != management || u.CanDeleteCourse() != management {
 				t.Fatal("course ownership not enforced")
 			}
-			if u.CanCreateAdmin() != (kind == "operator") || u.CanManageAdmins() != management || u.CanAudit() != (management || strings.HasSuffix(kind, "auditor")) {
+			if u.CanCreateAdmin() != (kind == "operator") || u.CanManageAdmins() != (kind == "operator") || u.CanAudit() != (management || strings.HasSuffix(kind, "auditor")) {
 				t.Fatal("inherited management capabilities incorrect")
 			}
 			if u.CanViewSystemInfo() != (kind == "operator") {

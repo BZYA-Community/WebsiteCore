@@ -117,7 +117,7 @@ func (u *User) IsStudent() bool {
 
 func (u *User) CanManageUsers() bool  { return u.IsActive() && u.IsAdminLevel() }
 func (u *User) CanCreateAdmin() bool  { return u.CanManageUsers() && u.Roles == RoleOperator }
-func (u *User) CanManageAdmins() bool { return u.CanManageUsers() }
+func (u *User) CanManageAdmins() bool { return u.CanManageUsers() && u.Roles == RoleOperator }
 func (u *User) CanAudit() bool {
 	return u.IsActive() && (u.IsAdminLevel() || u.HasRole(RoleAuditor))
 }
