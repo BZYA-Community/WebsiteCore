@@ -516,6 +516,23 @@ func (s *tweetSrv) GetUserPostStars(userID int64, limit int, offset int) ([]*ms.
 	}, s.starListViewer(userID), limit, offset)
 }
 
+// GetUserPostStarsWithCount reuses one resolved viewer for both queries. This
+// keeps List and Count on the same authorization identity and avoids loading
+// the current user's admin/role fields twice for a single GetStars request.
+func (s *tweetSrv) GetUserPostStarsWithCount(userID int64, limit int, offset int) (res []*ms.PostStar, total int64, err error) {
+	star := &dbr.PostStar{
+		UserID: userID,
+	}
+	viewer := s.starListViewer(userID)
+	if total, err = star.Count(s.db, viewer, &dbr.ConditionsT{}); err != nil {
+		return
+	}
+	res, err = star.List(s.db, &dbr.ConditionsT{
+		"ORDER": s.db.NamingStrategy.TableName("PostStar") + ".id DESC",
+	}, viewer, limit, offset)
+	return
+}
+
 func (s *tweetSrv) ListUserStarTweets(user *cs.VistUser, viewer *ms.User, limit int, offset int) (res []*ms.PostStar, total int64, err error) {
 	star := &dbr.PostStar{
 		UserID: user.UserId,

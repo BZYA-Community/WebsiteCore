@@ -17,6 +17,7 @@ type TweetService interface {
 	GetUserPostStar(postID, userID int64) (*ms.PostStar, error)
 	GetUserPostStars(userID int64, limit int, offset int) ([]*ms.PostStar, error)
 	GetUserPostStarCount(userID int64) (int64, error)
+	GetUserPostStarsWithCount(userID int64, limit int, offset int) ([]*ms.PostStar, int64, error)
 	GetUserPostCollection(postID, userID int64) (*ms.PostCollection, error)
 	GetUserPostCollections(userID int64, offset, limit int) ([]*ms.PostCollection, error)
 	GetUserPostCollectionCount(userID int64) (int64, error)

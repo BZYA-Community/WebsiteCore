@@ -144,6 +144,14 @@ func TestGetUserPostStarsSelfPath(t *testing.T) {
 		{uid: 6, want: []int64{2, 3}},
 	}
 	for _, tc := range cases {
+		combined, combinedTotal, err := s.GetUserPostStarsWithCount(tc.uid, 10, 0)
+		if err != nil {
+			t.Fatalf("GetUserPostStarsWithCount(%d) error = %v", tc.uid, err)
+		}
+		if int(combinedTotal) != len(tc.want) || len(combined) != len(tc.want) {
+			t.Errorf("GetUserPostStarsWithCount(%d) returned %d/%d, want %d", tc.uid, len(combined), combinedTotal, len(tc.want))
+		}
+
 		res, err := s.GetUserPostStars(tc.uid, 10, 0)
 		if err != nil {
 			t.Fatalf("GetUserPostStars(%d) error = %v", tc.uid, err)
