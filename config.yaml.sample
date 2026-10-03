@@ -20,9 +20,9 @@ AliMail:
   BaseURL: https://alimail-cn.aliyuncs.com
   ClientID: ""
   ClientSecret: ""
-  SenderEmail: aiyouth@bza.edu.cn
-  SenderName: 少年学院
-  AllowedRecipientDomains: ["bza.edu.cn"] # add other trusted school domains when required
+  SenderEmail: ""
+  SenderName: WebsiteCore
+  AllowedRecipientDomains: [] # add only domains approved by this deployment
 
 WebServer:
   HttpIp: 0.0.0.0

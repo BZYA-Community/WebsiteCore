@@ -67,7 +67,7 @@ Enable exactly one backend. When no storage feature is enabled, `LocalOSS` is us
 | Feature | Status | Notes |
 | --- | --- | --- |
 | `Sms` | works | Phone-number binding via Juhe SMS (聚合数据); the only built-in provider. See [deploy/sms.md](deploy/sms.md). Without this flag, phone verification is a no-op — disable `AllowPhoneBind` on public sites. |
-| `Email` | works | Email verification through Alibaba Mail OpenAPI with `aiyouth@bza.edu.cn`; see [deploy/email.md](deploy/email.md). |
+| `Email` | works | Email verification through Alibaba Mail OAuth2 Mail OpenAPI (draft + send), configured per deployment; see [deploy/email.md](deploy/email.md). |
 
 ## Logging
 

@@ -1,15 +1,15 @@
 # Email verification with Alibaba Mail
 
-WebsiteCore can verify an account by sending a one-time code from the school mailbox. Email is an optional alternative verified contact method, not a mandatory identifier for every account. Existing phone-bound accounts remain active during migration, while new users can verify an approved email address instead of providing a phone number.
+WebsiteCore can verify an account by sending a one-time code from a deployment-controlled mailbox. Email is an optional alternative verified contact method, not a mandatory identifier for every account. Existing phone-bound accounts remain active during migration, while new users can verify a deployment-approved email address instead of providing a phone number.
 
 ## Alibaba Mail preparation
 
 1. In the Alibaba Mail domain administrator console, create an OpenAPI application.
 2. Grant only the mail-send permission (`Mail.Send.All`).
 3. Record its `client_id` and `client_secret` outside version control.
-4. Confirm that `aiyouth@bza.edu.cn` is an active mailbox allowed to send mail.
+4. Confirm that the configured sender is an active mailbox allowed to send through that OpenAPI application.
 
-The integration follows Alibaba Mail's OAuth2 client-credentials flow and its required two-step send flow: create a draft, then send that draft.
+This adapter uses Alibaba Mail OAuth2 client credentials and the Alibaba Mail API two-step flow: create a draft, then send that draft. It does not use Alibaba Cloud DirectMail and does not open an SMTP connection.
 
 - Authorization: <https://mailhelp.aliyun.com/docs/api/alibaba-mail-api>
 - Create and send a draft: <https://mailhelp.aliyun.com/docs/guides/examples/send-draft>
@@ -26,9 +26,9 @@ AliMail:
   BaseURL: https://alimail-cn.aliyuncs.com
   ClientID: "<application client_id>"
   ClientSecret: "<application client_secret>"
-  SenderEmail: aiyouth@bza.edu.cn
-  SenderName: 少年学院
-  AllowedRecipientDomains: ["bza.edu.cn"]
+  SenderEmail: sender@example.edu
+  SenderName: WebsiteCore
+  AllowedRecipientDomains: ["example.edu"]
 
 WebProfile:
   AllowEmailBind: true

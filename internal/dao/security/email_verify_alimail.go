@@ -66,14 +66,18 @@ func (s *aliMailEmailServant) SendEmailCaptcha(email, captcha string, expireMinu
 	if err != nil {
 		return err
 	}
-	bodyText := fmt.Sprintf("你的少年学院社区验证码是 %s，有效期 %d 分钟。请勿将验证码告诉他人。", captcha, expireMinutes)
+	siteName := strings.TrimSpace(s.senderName)
+	if siteName == "" {
+		siteName = "WebsiteCore"
+	}
+	bodyText := fmt.Sprintf("你的 %s 验证码是 %s，有效期 %d 分钟。请勿将验证码告诉他人。", siteName, captcha, expireMinutes)
 	payload := map[string]any{"message": map[string]any{
-		"subject":      "少年学院社区邮箱验证码",
-		"from":         map[string]string{"email": s.senderEmail, "name": s.senderName},
+		"subject":      siteName + " 邮箱验证码",
+		"from":         map[string]string{"email": s.senderEmail, "name": siteName},
 		"toRecipients": []map[string]string{{"email": email}},
 		"body": map[string]string{
 			"bodyText": bodyText,
-			"bodyHtml": fmt.Sprintf("<p>你的少年学院社区验证码是：</p><p style=\"font-size:28px;font-weight:700;letter-spacing:4px\">%s</p><p>有效期 %d 分钟。请勿将验证码告诉他人。</p>", html.EscapeString(captcha), expireMinutes),
+			"bodyHtml": fmt.Sprintf("<p>你的 %s 验证码是：</p><p style=\"font-size:28px;font-weight:700;letter-spacing:4px\">%s</p><p>有效期 %d 分钟。请勿将验证码告诉他人。</p>", html.EscapeString(siteName), html.EscapeString(captcha), expireMinutes),
 		},
 	}}
 	var draft aliMailDraft

@@ -5,9 +5,9 @@ AliMail:
   BaseURL: https://alimail-cn.aliyuncs.com
   ClientID: ""
   ClientSecret: "" # supply via protected deployment configuration; never commit the real secret
-  SenderEmail: aiyouth@bza.edu.cn
-  SenderName: 少年学院
-  AllowedRecipientDomains: ["bza.edu.cn"] # add other trusted school domains when required
+  SenderEmail: sender@example.edu
+  SenderName: WebsiteCore
+  AllowedRecipientDomains: ["example.edu"] # replace with domains approved by this deployment
 BigCacheIndex: # 使用BigCache缓存泡泡广场消息流
   MaxIndexPage: 1024            # 最大缓存页数, 必须是2^n, 代表最大同时缓存多少页数据
   HardMaxCacheSize: 256         # 最大缓存大小(MB), 0表示无限制

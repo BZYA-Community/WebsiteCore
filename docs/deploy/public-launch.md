@@ -25,7 +25,7 @@ Everything that must be true before a WebsiteCore instance accepts traffic from 
 - [ ] `App.RunMode` and `Logger.Level` set to `release` / `error`.
 - [ ] Content moderation is on: `Audit.Enabled: true`. For a youth community this is not optional — regular users' posts, comments, replies, and nickname changes must pass moderation before becoming public.
 - [ ] Decide registration policy: open (`WebProfile.AllowUserRegister`) vs. closed (`Web:DisallowUserRegister` feature). If open, moderation and reporting paths must be staffed.
-- [ ] Email verification: enable the `Email` feature, configure Alibaba Mail OAuth credentials and the approved recipient-domain allowlist, then verify a real delivery from `aiyouth@bza.edu.cn` ([email.md](email.md)). Keep `WebProfile.AllowEmailBind` disabled until this check passes.
+- [ ] Email verification: enable the `Email` feature, configure Alibaba Mail OAuth credentials and the approved recipient-domain allowlist, then verify a real delivery from the configured sender mailbox ([email.md](email.md)). Keep `WebProfile.AllowEmailBind` disabled until this check passes.
 - [ ] Legacy phone binding: either configure SMS properly ([sms.md](sms.md)) or disable `WebProfile.AllowPhoneBind`. Never leave it enabled without the `Sms` feature — any code would be accepted.
 - [ ] Daily private-message cap (`App.MaxWhisperDaily`) and captcha attempt limits are at sane values.
 - [ ] `client_max_body_size` in Nginx matches the largest upload you intend to allow.

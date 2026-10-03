@@ -23,7 +23,7 @@ func TestAliMailSendEmailCaptchaCreatesAndSendsDraft(t *testing.T) {
 				t.Fatalf("invalid token form: %v %v", r.Form, err)
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"access_token": "token", "expires_in": 3600})
-		case r.URL.Path == "/v2/users/aiyouth@bza.edu.cn/messages":
+		case r.URL.Path == "/v2/users/sender@example.edu/messages":
 			draftCalls.Add(1)
 			if r.Header.Get("Authorization") != "Bearer token" {
 				t.Fatalf("missing bearer token")
@@ -36,8 +36,11 @@ func TestAliMailSendEmailCaptchaCreatesAndSendsDraft(t *testing.T) {
 			if !strings.Contains(string(encoded), "123456") || !strings.Contains(string(encoded), "student@example.com") {
 				t.Fatalf("draft lacks recipient or code: %s", encoded)
 			}
+			if strings.Contains(string(encoded), "少年学院") || !strings.Contains(string(encoded), "Example Community") {
+				t.Fatalf("draft contains hard-coded branding or misses configured name: %s", encoded)
+			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"message": map[string]string{"id": "draft-id"}})
-		case r.URL.Path == "/v2/users/aiyouth@bza.edu.cn/messages/draft-id/send":
+		case r.URL.Path == "/v2/users/sender@example.edu/messages/draft-id/send":
 			sendCalls.Add(1)
 			w.WriteHeader(http.StatusOK)
 		default:
@@ -48,7 +51,7 @@ func TestAliMailSendEmailCaptchaCreatesAndSendsDraft(t *testing.T) {
 
 	service := &aliMailEmailServant{
 		baseURL: server.URL, clientID: "client", clientSecret: "secret",
-		senderEmail: "aiyouth@bza.edu.cn", senderName: "少年学院", client: server.Client(),
+		senderEmail: "sender@example.edu", senderName: "Example Community", client: server.Client(),
 	}
 	for i := 0; i < 2; i++ {
 		if err := service.SendEmailCaptcha("student@example.com", "123456", 5); err != nil {

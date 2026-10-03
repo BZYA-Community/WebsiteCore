@@ -76,9 +76,9 @@ AliMail:
   BaseURL: https://alimail-cn.aliyuncs.com
   ClientID: ""
   ClientSecret: ""
-  SenderEmail: aiyouth@bza.edu.cn
-  SenderName: 少年学院
-  AllowedRecipientDomains: ["bza.edu.cn"] # 按需增加学校认可的邮箱域，阻止临时邮箱滥用
+  SenderEmail: ""
+  SenderName: WebsiteCore
+  AllowedRecipientDomains: [] # 按部署方策略加入已审核邮箱域，空列表会安全拒绝所有收件地址
 Alipay: 
   AppID: "paopao-ce-app-id"
   InProduction: True
