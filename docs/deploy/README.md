@@ -9,6 +9,7 @@ This directory covers everything needed to run WebsiteCore, from a laptop develo
 | Run the project locally for development | [local.md](local.md) |
 | Understand `config.yaml`, feature flags, and admin-managed settings | [configuration.md](configuration.md) |
 | Set up PostgreSQL, run migrations, take backups | [database.md](database.md) |
+| Configure object storage (LocalOSS / AliOSS, CORS, direct uploads) | [object-storage.md](object-storage.md) |
 | Enable SMS verification (phone binding) | [sms.md](sms.md) |
 | Deploy to a server (recommended: native binary + Dockerized dependencies) | [production.md](production.md) |
 | Deploy everything with Docker Compose | [docker-compose.md](docker-compose.md) |
@@ -33,7 +34,7 @@ A WebsiteCore installation is a single Go binary plus three infrastructure servi
 - **Database** (required): PostgreSQL. See [database.md](database.md).
 - **Redis** (required): caching, counters, phone verification codes.
 - **Meilisearch** (optional but recommended): full-text search. When not enabled, search falls back to PostgreSQL `ILIKE` fuzzy matching.
-- **Object storage**: local disk (`LocalOSS`) by default; AliOSS is available via feature flags.
+- **Object storage**: local disk (`LocalOSS`) by default; AliOSS is available via feature flags. See [object-storage.md](object-storage.md).
 
 All three infrastructure services are typically run with Docker; the application itself runs as a native binary under systemd. This is the recommended production layout and is documented in [production.md](production.md). A fully containerized alternative is documented in [docker-compose.md](docker-compose.md).
 

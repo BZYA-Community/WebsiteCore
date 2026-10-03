@@ -45,6 +45,8 @@ This compiles the binary with `-tags migration` and runs the `migrate` subcomman
 
 A production binary built with `TAGS='embed migration'` can also migrate automatically at startup: add `"Migration"` to `Features.Default` and the schema is upgraded before the server starts. Without the build tag, requesting the `Migration` feature fails fast with an explicit error.
 
+> **Never skip this on a fresh database.** A newly started PostgreSQL instance contains no tables — the compose stack only creates the database itself. If the app runs against an unmigrated database, every request fails with `relation "p_user" does not exist (SQLSTATE 42P01)` (login returns 401, register returns 500). Run `make migrate` (or enable the `Migration` feature) before first use, and again after every upgrade that adds migration files.
+
 ### Adding a migration (contributors)
 
 Schema changes must go through migrations — never edit the production database by hand (see [../governance.md](../governance.md), section 6).

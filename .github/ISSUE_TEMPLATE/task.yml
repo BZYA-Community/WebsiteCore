@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Use this for work items with a defined outcome (as opposed to open-ended feature ideas).
-        Large tasks should link or include a written proposal, following the structure the community uses in `docs/governance.md`.
+        Large tasks should link or include a written proposal.
   - type: textarea
     id: summary
     attributes:

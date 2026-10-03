@@ -95,6 +95,8 @@ cd /opt/websitecore && sudo docker compose up -d --wait
 
 All ports are bound to `127.0.0.1`, so the services are reachable only from the server itself. See [database.md](database.md) for backup procedures.
 
+> **The database starts empty.** The compose stack only creates the `websitecore` database itself — the tables (`p_user`, `p_post`, ...) do not exist until migrations run. In this guide the schema is created automatically on first startup via the `Migration` feature (next step). If you skip it, every request fails with `relation "p_user" does not exist (SQLSTATE 42P01)` — login returns 401 and register returns 500. Manual alternative: `./paopao migrate` with a migration-tagged binary.
+
 ## 4. Write the application config
 
 Create `/opt/websitecore/config.yaml` (owner `websitecore`, mode `600`):

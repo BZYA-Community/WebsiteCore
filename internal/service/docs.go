@@ -6,7 +6,6 @@ package service
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants"
@@ -38,21 +37,7 @@ func (s *docsService) String() string {
 }
 
 func newDocsService() Service {
-	addr := conf.DocsServerSetting.HttpIp + ":" + conf.DocsServerSetting.HttpPort
-	server := httpServers.from(addr, func() *httpServer {
-		engine := newWebEngine()
-		return &httpServer{
-			baseServer: newBaseServe(),
-			e:          engine,
-			server: &http.Server{
-				Addr:           addr,
-				Handler:        engine,
-				ReadTimeout:    conf.DocsServerSetting.GetReadTimeout(),
-				WriteTimeout:   conf.DocsServerSetting.GetWriteTimeout(),
-				MaxHeaderBytes: 1 << 20,
-			},
-		}
-	})
+	server := sharedHTTPServer(conf.DocsServerSetting, newWebEngine)
 	return &docsService{
 		baseHttpService: &baseHttpService{
 			server: server,

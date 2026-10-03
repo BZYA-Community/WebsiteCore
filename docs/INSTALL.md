@@ -111,7 +111,10 @@ The artifact is written to `release/`. Deployment steps:
 
 1. Upload `release/paopao` (`paopao.exe` on Windows) together with `config.yaml` to the same directory on your server.
 2. Prepare the dependencies: PostgreSQL, Redis, and (optionally) Meilisearch, and point to them in `config.yaml`.
-3. Start the service:
+3. **Create the database schema** — a freshly started PostgreSQL instance is empty; without this step every request fails with `relation "p_user" does not exist (SQLSTATE 42P01)` (login returns 401, register returns 500). Either:
+   - **Automatic**: build with the `migration` tag and include `"Migration"` in `Features.Default` — the schema is created/upgraded on every startup; or
+   - **Manual**: run `./paopao migrate` once (requires a binary built with the `migration` tag), then re-run it after every upgrade that ships new migrations.
+4. Start the service:
 
 ```sh
 ./paopao serve
@@ -247,6 +250,7 @@ For production-oriented deployment references, see:
 - [deploy/docker-compose.md](deploy/docker-compose.md) - fully containerized alternative
 - [deploy/configuration.md](deploy/configuration.md) - full configuration reference
 - [deploy/database.md](deploy/database.md) - database deployment, migrations, backups
+- [deploy/object-storage.md](deploy/object-storage.md) - LocalOSS / AliOSS setup, bucket CORS, direct uploads
 - [deploy/sms.md](deploy/sms.md) - SMS platform configuration
 - [deploy/public-launch.md](deploy/public-launch.md) - pre-launch security and compliance checklist
 

@@ -122,7 +122,7 @@
                         :model-value="mdExcerptText(md.content)"
                         :theme="editorTheme"
                         no-mermaid
-                        no-katex
+                        no-html
                     />
                     <span
                         v-if="mdExcerptMore(md.content)"

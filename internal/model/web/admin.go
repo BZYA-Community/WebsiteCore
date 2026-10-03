@@ -5,7 +5,7 @@
 package web
 
 import (
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 )
 
 type ChangeUserStatusReq struct {
@@ -51,7 +51,7 @@ type AdminUserItem struct {
 	CreatedOn int64    `json:"created_on"`
 }
 
-type AdminUserListResp base.PageResp
+type AdminUserListResp joint.PageResp
 
 // AdminUserDetailReq 用户管理·用户详情
 type AdminUserDetailReq struct {
@@ -111,7 +111,7 @@ type AdminUserRoleLogItem struct {
 	CreatedOn    int64  `json:"created_on"`
 }
 
-type AdminUserRoleLogsResp base.PageResp
+type AdminUserRoleLogsResp joint.PageResp
 
 // AdminAuditPostsReq 审核队列·status: 0待审核 1已通过 2未通过 -1全部
 type AdminAuditPostsReq struct {
@@ -125,7 +125,7 @@ func (r *AdminAuditPostsReq) SetPageInfo(page, pageSize int) {
 	r.Page, r.PageSize = page, pageSize
 }
 
-type AdminAuditPostsResp base.PageResp
+type AdminAuditPostsResp joint.PageResp
 
 // AdminAuditPostReq 审核动作·action: approve通过 reject拒绝(需reason) delete删除
 type AdminAuditPostReq struct {
@@ -147,7 +147,7 @@ func (r *AdminAuditCommentsReq) SetPageInfo(page, pageSize int) {
 	r.Page, r.PageSize = page, pageSize
 }
 
-type AdminAuditCommentsResp base.PageResp
+type AdminAuditCommentsResp joint.PageResp
 
 // AdminAuditCommentReq 评论审核动作·comment_type: 0帖子评论 1帖子回复 2课程评论 3课程回复
 type AdminAuditCommentReq struct {
@@ -189,7 +189,7 @@ func (r *AdminAuditNicknamesReq) SetPageInfo(page, pageSize int) {
 	r.Page, r.PageSize = page, pageSize
 }
 
-type AdminAuditNicknamesResp base.PageResp
+type AdminAuditNicknamesResp joint.PageResp
 
 // AdminAuditNicknameReq 昵称审核动作
 type AdminAuditNicknameReq struct {
@@ -219,7 +219,7 @@ func (r *AdminAuditAvatarsReq) SetPageInfo(page, pageSize int) {
 	r.Page, r.PageSize = page, pageSize
 }
 
-type AdminAuditAvatarsResp base.PageResp
+type AdminAuditAvatarsResp joint.PageResp
 
 // AdminAuditAvatarReq 头像审核动作
 type AdminAuditAvatarReq struct {
@@ -262,4 +262,4 @@ type AdminAuditLogItem struct {
 	CreatedOn    int64  `json:"created_on"`
 }
 
-type AdminAuditLogsResp base.PageResp
+type AdminAuditLogsResp joint.PageResp
