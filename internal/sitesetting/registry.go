@@ -100,6 +100,7 @@ type confWebProfileSnapshot struct {
 	AllowTweetVideo         bool
 	AllowUserRegister       bool
 	AllowPhoneBind          bool
+	AllowEmailBind          bool
 	DefaultTweetMaxLength   int
 	TweetWebEllipsisSize    int
 	TweetMobileEllipsisSize int
@@ -136,7 +137,7 @@ type Definition struct {
 }
 
 var (
-	ReadonlyFields   = []string{"allow_user_register", "allow_phone_bind"}
+	ReadonlyFields   = []string{"allow_user_register", "allow_phone_bind", "allow_email_bind"}
 	bootstrapConfig  *bootstrapSnapshot
 	visibilityOption = []Option{{Label: "Public", Value: "public"}, {Label: "Following", Value: "following"}, {Label: "Private", Value: "private"}}
 )
@@ -183,6 +184,7 @@ func ensureBootstrapSnapshot() {
 			AllowTweetVideo:         conf.WebProfileSetting.AllowTweetVideo,
 			AllowUserRegister:       conf.WebProfileSetting.AllowUserRegister,
 			AllowPhoneBind:          conf.WebProfileSetting.AllowPhoneBind,
+			AllowEmailBind:          conf.WebProfileSetting.AllowEmailBind,
 			DefaultTweetMaxLength:   conf.WebProfileSetting.DefaultTweetMaxLength,
 			TweetWebEllipsisSize:    conf.WebProfileSetting.TweetWebEllipsisSize,
 			TweetMobileEllipsisSize: conf.WebProfileSetting.TweetMobileEllipsisSize,
@@ -211,6 +213,7 @@ func Registry() []Definition {
 		boolDef("web_profile.allow_tweet_video", "web", "profile", "Allow video posts", "Allow video uploads on posts.", ApplyModeLive, false, true, func() any { return conf.WebProfileSetting.AllowTweetVideo }, func() any { return bootstrapConfig.WebProfile.AllowTweetVideo }, func(v any) { conf.WebProfileSetting.AllowTweetVideo = v.(bool) }),
 		boolDef("web_profile.allow_user_register", "web", "profile", "Allow user registration", "Bootstrap-only registration gate from YAML/features.", ApplyModeBootstrapOnly, false, false, func() any { return conf.WebProfileSetting.AllowUserRegister }, func() any { return bootstrapConfig.WebProfile.AllowUserRegister }, nil),
 		boolDef("web_profile.allow_phone_bind", "web", "profile", "Allow phone binding", "Bootstrap-only phone binding gate from YAML/features.", ApplyModeBootstrapOnly, false, false, func() any { return conf.WebProfileSetting.AllowPhoneBind }, func() any { return bootstrapConfig.WebProfile.AllowPhoneBind }, nil),
+		boolDef("web_profile.allow_email_bind", "web", "profile", "Allow email binding", "Bootstrap-only email binding gate from YAML/features.", ApplyModeBootstrapOnly, false, false, func() any { return conf.WebProfileSetting.AllowEmailBind }, func() any { return bootstrapConfig.WebProfile.AllowEmailBind }, nil),
 		intDef("web_profile.default_tweet_max_length", "web", "profile", "Default tweet max length", "Maximum allowed tweet length.", ApplyModeLive, false, true, func() any { return conf.WebProfileSetting.DefaultTweetMaxLength }, func() any { return bootstrapConfig.WebProfile.DefaultTweetMaxLength }, func(v int) error { return between(v, 1, 2000, "default_tweet_max_length") }, func(v any) { conf.WebProfileSetting.DefaultTweetMaxLength = v.(int) }),
 		intDef("web_profile.tweet_web_ellipsis_size", "web", "profile", "Web ellipsis size", "Truncated feed length on web.", ApplyModeLive, false, true, func() any { return conf.WebProfileSetting.TweetWebEllipsisSize }, func() any { return bootstrapConfig.WebProfile.TweetWebEllipsisSize }, func(v int) error {
 			return between(v, 1, conf.WebProfileSetting.DefaultTweetMaxLength, "tweet_web_ellipsis_size")

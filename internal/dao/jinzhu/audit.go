@@ -30,9 +30,9 @@ func (s *auditSrv) GetUsersByAdminQuery(keyword string, offset, limit int) (res 
 	if kw != "" {
 		like := "%" + kw + "%"
 		if id, e := strconv.ParseInt(kw, 10, 64); e == nil {
-			db = db.Where("id = ? OR username LIKE ? OR nickname LIKE ? OR phone LIKE ?", id, like, like, like)
+			db = db.Where("id = ? OR username LIKE ? OR nickname LIKE ? OR email LIKE ? OR phone LIKE ?", id, like, like, like, like)
 		} else {
-			db = db.Where("username LIKE ? OR nickname LIKE ? OR phone LIKE ?", like, like, like)
+			db = db.Where("username LIKE ? OR nickname LIKE ? OR email LIKE ? OR phone LIKE ?", like, like, like, like)
 		}
 	}
 	if err = db.Count(&total).Error; err != nil {

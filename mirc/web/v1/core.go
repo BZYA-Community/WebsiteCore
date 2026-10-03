@@ -34,6 +34,9 @@ type Core struct {
 	// UserPhoneBind 绑定用户手机号
 	UserPhoneBind func(Post, web.UserPhoneBindReq) `mir:"user/phone"`
 
+	// UserEmailBind 绑定并验证用户邮箱
+	UserEmailBind func(Post, web.UserEmailBindReq) `mir:"user/email"`
+
 	// ChangePassword 修改密码
 	ChangePassword func(Post, web.ChangePasswordReq) `mir:"user/password"`
 

@@ -43,7 +43,7 @@ func (s *chatSrv) Chain() gin.HandlersChain {
 // 高级身份→任何人 自由。返回 nil 表示允许, 否则为具体拒绝原因(msg 即提示文案)
 // 依赖存储的判定查询出错时 fail-closed 返回错误(拒绝), 不静默放行(#15)
 func (s *chatSrv) canWhisper(sender, receiver *ms.User) *xerror.Error {
-	if sender.Phone == "" {
+	if sender.Email == "" && sender.Phone == "" {
 		return web.ErrWhisperGuestNeedPhone
 	}
 	if sender.HasAnyRole() {
@@ -71,7 +71,7 @@ func (s *chatSrv) canWhisper(sender, receiver *ms.User) *xerror.Error {
 		}
 		return nil
 	}
-	if receiver.Phone == "" {
+	if receiver.Email == "" && receiver.Phone == "" {
 		return web.ErrWhisperPeerNoPhone
 	}
 	return web.ErrWhisperBetweenDaoyou
@@ -145,7 +145,7 @@ func (s *chatSrv) GetChatContacts(req *web.GetChatContactsReq) (*web.GetChatCont
 				Nickname:    u.Nickname,
 				Avatar:      u.Avatar,
 				Roles:       u.RoleList(),
-				Identity:    dbr.IdentityOf(u.Roles, u.Phone),
+				Identity:    dbr.IdentityOf(u.Roles, u.Email, u.Phone),
 				LastContent: m.Content,
 				LastTime:    m.CreatedOn,
 				LastFromMe:  m.SenderUserID == req.Uid,
@@ -232,7 +232,7 @@ func (s *chatSrv) GetChatHistory(req *web.GetChatHistoryReq) (*web.GetChatHistor
 		Nickname: peer.Nickname,
 		Avatar:   peer.Avatar,
 		Roles:    peer.RoleList(),
-		Identity: dbr.IdentityOf(peer.Roles, peer.Phone),
+		Identity: dbr.IdentityOf(peer.Roles, peer.Email, peer.Phone),
 	}
 	// 打开会话即标记对方发来的未读
 	if err := s.Ds.ReadWhispersFrom(req.Uid, peer.ID); err != nil {

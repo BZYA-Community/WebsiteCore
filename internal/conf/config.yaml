@@ -72,6 +72,13 @@ SmsJuhe:
   Key:
   TplID:
   TplVal: "#code#=%s&#m#=%d"
+AliMail:
+  BaseURL: https://alimail-cn.aliyuncs.com
+  ClientID: ""
+  ClientSecret: ""
+  SenderEmail: ""
+  SenderName: WebsiteCore
+  AllowedRecipientDomains: [] # 按部署方策略加入已审核邮箱域，空列表会安全拒绝所有收件地址
 Alipay: 
   AppID: "paopao-ce-app-id"
   InProduction: True
@@ -175,6 +182,7 @@ WebProfile:
   AllowTweetVideo: true            # 是否允许视频推文
   AllowUserRegister: true          # 是否允许用户注册
   AllowPhoneBind: true             # 是否允许手机绑定
+  AllowEmailBind: false            # 邮件服务配置并实测后再开启邮箱绑定
   DefaultTweetMaxLength: 2000      # 推文允许输入的最大长度， 默认2000字，值的范围需要查询后端支持的最大字数
   TweetWebEllipsisSize: 400        # Web端推文作为feed显示的最长字数，默认400字
   TweetMobileEllipsisSize: 300     # 移动端推文作为feed显示的最长字数，默认300字

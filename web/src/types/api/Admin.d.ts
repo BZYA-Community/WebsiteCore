@@ -47,7 +47,7 @@ declare namespace Api {
                 user: {
                     /** 管理·搜索用户列表 */
                     list: (params: NetParams.UserListReq) => Promise<NetReq.UserListResp>;
-                    /** 管理·用户详情(完整手机号) */
+                    /** 管理·用户详情(完整联系方式) */
                     detail: (params: NetParams.UserDetailReq) => Promise<NetReq.UserDetailResp>;
                     /** 管理·角色变更记录 */
                     role: {
@@ -194,6 +194,7 @@ declare namespace Api {
                 nickname: string;
                 username: string;
                 phone: string;
+                email: string;
                 roles: string[];
                 identity: string;
                 status: 1 | 2;
@@ -380,6 +381,7 @@ declare namespace Api {
                 allow_tweet_video: boolean;
                 allow_user_register: boolean;
                 allow_phone_bind: boolean;
+				allow_email_bind: boolean;
                 default_tweet_max_length: number;
                 tweet_web_ellipsis_size: number;
                 tweet_mobile_ellipsis_size: number;

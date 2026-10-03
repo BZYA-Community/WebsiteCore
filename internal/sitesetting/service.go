@@ -115,6 +115,7 @@ func (s *Service) GetProfile(ctx context.Context) (*web.SiteProfileResp, error) 
 		AllowTweetVideo:         conf.WebProfileSetting.AllowTweetVideo,
 		AllowUserRegister:       conf.WebProfileSetting.AllowUserRegister,
 		AllowPhoneBind:          conf.WebProfileSetting.AllowPhoneBind,
+		AllowEmailBind:          conf.WebProfileSetting.AllowEmailBind,
 		DefaultTweetMaxLength:   conf.WebProfileSetting.DefaultTweetMaxLength,
 		TweetWebEllipsisSize:    conf.WebProfileSetting.TweetWebEllipsisSize,
 		TweetMobileEllipsisSize: conf.WebProfileSetting.TweetMobileEllipsisSize,

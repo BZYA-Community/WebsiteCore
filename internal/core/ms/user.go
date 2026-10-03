@@ -11,6 +11,7 @@ type (
 		Nickname    string   `json:"nickname"`
 		Avatar      string   `json:"avatar"`
 		Phone       string   `json:"phone,omitempty"`
+		Email       string   `json:"email,omitempty"`
 		Roles       []string `json:"roles,omitempty"`
 		Identity    string   `json:"identity,omitempty"`
 		IsFollowing bool     `json:"is_following"`

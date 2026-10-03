@@ -18,7 +18,8 @@ declare namespace Api {
             interface UserGetCaptcha {}
 
             interface UserPostCaptcha {
-                phone: string;
+				phone?: string;
+				email?: string;
                 img_captcha: string;
                 img_captcha_id: string;
             }

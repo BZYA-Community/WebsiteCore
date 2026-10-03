@@ -89,6 +89,8 @@ type RedisCache interface {
 	DelImgCaptcha(ctx context.Context, id string) error
 	GetCountSmsCaptcha(ctx context.Context, phone string) (int64, error)
 	IncrCountSmsCaptcha(ctx context.Context, phone string) error
+	GetCountEmailCaptcha(ctx context.Context, email string) (int64, error)
+	IncrCountEmailCaptcha(ctx context.Context, email string) error
 	GetCountLoginErr(ctx context.Context, id int64) (int64, error)
 	DelCountLoginErr(ctx context.Context, id int64) error
 	IncrCountLoginErr(ctx context.Context, id int64) error

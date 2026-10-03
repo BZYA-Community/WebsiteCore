@@ -20,6 +20,7 @@ import (
 
 var (
 	_enablePhoneVerify    bool
+	_enableEmailVerify    bool
 	_disallowUserRegister bool
 	_ds                   core.DataService
 	_ac                   core.AppCache
@@ -56,6 +57,7 @@ func RouteWeb(e *gin.Engine) {
 func lazyInitial() {
 	_onceInitial.Do(func() {
 		_enablePhoneVerify = cfg.If("Sms")
+		_enableEmailVerify = cfg.If("Email")
 		_disallowUserRegister = cfg.If("Web:DisallowUserRegister")
 		_maxCaptchaTimes = conf.AppSetting.MaxCaptchaTimes
 		_oss = dao.ObjectStorageService()

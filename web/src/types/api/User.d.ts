@@ -39,6 +39,8 @@ declare namespace Api {
                 unfollow: (data: NetParams.UnfollowUserReq) => Promise<NetReq.UnfollowUserResp>;
                 /** 绑定用户手机 */
                 phone: (data: NetParams.UserBindUserPhone) => Promise<NetParams.UserBindUserPhone>;
+				/** 绑定并验证邮箱 */
+				email: (data: NetParams.UserBindUserEmail) => Promise<void>;
                 /** 激活码激活 */
                 activate: (data: NetParams.UserActivation) => Promise<NetParams.UserActivation>;
                 /** 更改密码 */
@@ -102,6 +104,11 @@ declare namespace Api {
                 phone: string;
                 captcha: string;
             }
+
+			interface UserBindUserEmail {
+				email: string;
+				captcha: string;
+			}
 
             interface UserActivation {
                 activate_code: string;

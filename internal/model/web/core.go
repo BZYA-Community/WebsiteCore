@@ -41,6 +41,7 @@ type UserInfoResp struct {
 	Status      int      `json:"status"`
 	Avatar      string   `json:"avatar"`
 	Phone       string   `json:"phone"`
+	Email       string   `json:"email"`
 	IsAdmin     bool     `json:"is_admin"`
 	Roles       []string `json:"roles"`
 	Identity    string   `json:"identity"`
@@ -83,6 +84,12 @@ type UserPhoneBindReq struct {
 	BaseInfo `json:"-" binding:"-"`
 	Phone    string `json:"phone" form:"phone" binding:"required"`
 	Captcha  string `json:"captcha" form:"captcha" binding:"required"`
+}
+
+type UserEmailBindReq struct {
+	BaseInfo `json:"-" binding:"-"`
+	Email    string `json:"email" form:"email" binding:"required,email,max=254"`
+	Captcha  string `json:"captcha" form:"captcha" binding:"required,len=6,numeric"`
 }
 
 type ChangePasswordReq struct {

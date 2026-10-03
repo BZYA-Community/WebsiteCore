@@ -10,6 +10,8 @@ declare namespace Item {
     avatar: string;
     /** 用户手机号 */
     phone?: string;
+	/** 已验证邮箱（仅本人返回） */
+	email?: string;
     /** 激活码 */
     activation?: string;
     /** 是否为管理员 */

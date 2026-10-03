@@ -13,6 +13,17 @@ App:
 Features:
   Default: ["Web", "Frontend:EmbedWeb", "Meili", "LocalOSS", "Postgres", "BigCacheIndex", "LoggerFile"]
 
+# Email verification (optional): add "Email" to Features.Default, then set
+# credentials from the Alibaba Mail domain administrator console. Never commit
+# a real ClientSecret.
+AliMail:
+  BaseURL: https://alimail-cn.aliyuncs.com
+  ClientID: ""
+  ClientSecret: ""
+  SenderEmail: ""
+  SenderName: WebsiteCore
+  AllowedRecipientDomains: [] # add only domains approved by this deployment
+
 WebServer:
   HttpIp: 0.0.0.0
   HttpPort: 8008

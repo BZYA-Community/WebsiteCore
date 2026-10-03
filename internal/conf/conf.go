@@ -37,6 +37,7 @@ var (
 	BigCacheIndexSetting    *bigCacheIndexConf
 	RedisCacheIndexSetting  *redisCacheIndexConf
 	SmsJuheSetting          *smsJuheConf
+	AliMailSetting          *aliMailConf
 	TweetSearchSetting      *tweetSearchConf
 	MeiliSetting            *meiliConf
 	ObjectStorage           *objectStorageConf
@@ -78,6 +79,7 @@ func setupSetting(suite []string, noDefault bool) error {
 		"BigCacheIndex":     &BigCacheIndexSetting,
 		"RedisCacheIndex":   &RedisCacheIndexSetting,
 		"SmsJuhe":           &SmsJuheSetting,
+		"AliMail":           &AliMailSetting,
 		"Pyroscope":         &PyroscopeSetting,
 		"Sentry":            &sentrySetting,
 		"Logger":            &loggerSetting,

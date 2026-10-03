@@ -25,7 +25,7 @@ type SiteInfoResp struct {
 	ServerUpTime      int64 `json:"server_up_time"`
 }
 
-// AdminUserListReq 用户管理·搜索用户列表(keyword匹配ID/用户名/昵称/手机号)
+// AdminUserListReq 用户管理·搜索用户列表(keyword匹配ID/用户名/昵称/邮箱/手机号)
 type AdminUserListReq struct {
 	BaseInfo `form:"-" binding:"-"`
 	Keyword  string `form:"keyword"`
@@ -37,12 +37,13 @@ func (r *AdminUserListReq) SetPageInfo(page, pageSize int) {
 	r.Page, r.PageSize = page, pageSize
 }
 
-// AdminUserItem 用户列表条目(手机号脱敏显示)
+// AdminUserItem 用户列表条目(联系方式脱敏显示)
 type AdminUserItem struct {
 	ID        int64    `json:"id"`
 	Nickname  string   `json:"nickname"`
 	Username  string   `json:"username"`
 	Phone     string   `json:"phone"`
+	Email     string   `json:"email"`
 	Roles     []string `json:"roles"`
 	Identity  string   `json:"identity"`
 	Status    int      `json:"status"`
@@ -58,12 +59,13 @@ type AdminUserDetailReq struct {
 	ID       int64 `form:"id" binding:"required"`
 }
 
-// AdminUserDetailResp 用户详情(管理级可见完整手机号)
+// AdminUserDetailResp 用户详情(管理级可见完整联系方式)
 type AdminUserDetailResp struct {
 	ID        int64    `json:"id"`
 	Nickname  string   `json:"nickname"`
 	Username  string   `json:"username"`
 	Phone     string   `json:"phone"`
+	Email     string   `json:"email"`
 	Roles     []string `json:"roles"`
 	Identity  string   `json:"identity"`
 	Status    int      `json:"status"`

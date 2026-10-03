@@ -153,6 +153,11 @@ type smsJuheConf struct {
 	TplVal  string
 }
 
+type aliMailConf struct {
+	BaseURL, ClientID, ClientSecret, SenderEmail, SenderName string
+	AllowedRecipientDomains                                  []string
+}
+
 type tweetSearchConf struct {
 	MaxUpdateQPS int
 	MinWorker    int
@@ -245,6 +250,7 @@ type WebProfileConf struct {
 	AllowTweetVideo         bool   `json:"allow_tweet_video"`
 	AllowUserRegister       bool   `json:"allow_user_register"`
 	AllowPhoneBind          bool   `json:"allow_phone_bind"`
+	AllowEmailBind          bool   `json:"allow_email_bind"`
 	DefaultTweetMaxLength   int    `json:"default_tweet_max_length"`
 	TweetWebEllipsisSize    int    `json:"tweet_web_ellipsis_size"`
 	TweetMobileEllipsisSize int    `json:"tweet_mobile_ellipsis_size"`

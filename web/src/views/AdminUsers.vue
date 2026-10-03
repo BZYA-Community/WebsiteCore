@@ -57,7 +57,10 @@
                                 {{ detail.username }}
                             </n-descriptions-item>
                             <n-descriptions-item :label="t('adminUsers.drawer.labelPhone')">
-                                {{ detail.phone }}
+                                {{ detail.phone || '-' }}
+                            </n-descriptions-item>
+                            <n-descriptions-item :label="t('adminUsers.drawer.labelEmail')">
+                                {{ detail.email || '-' }}
                             </n-descriptions-item>
                             <n-descriptions-item :label="t('adminUsers.drawer.labelIdentity')">
                                 <n-tag
@@ -438,6 +441,13 @@ const userColumns = computed<DataTableColumns<UserItem>>(() => [
         key: 'phone',
         width: 130,
         render: (row) => row.phone || '-',
+    },
+    {
+        title: t('adminUsers.table.email'),
+        key: 'email',
+        width: 190,
+        ellipsis: { tooltip: true },
+        render: (row) => row.email || '-',
     },
     {
         title: t('adminUsers.table.identity'),

@@ -7,18 +7,18 @@
     "nicknamePlaceholder": "请输入昵称",
     "username": "用户名"
   },
-  "phone": {
-    "title": "手机号",
-    "rebind": "换绑手机",
-    "alertTitle": "手机绑定提示",
-    "alertContent": "成功绑定手机后，才能进行换头像、发动态、回复等交互~",
+  "email": {
+    "title": "邮箱验证",
+    "rebind": "更换邮箱",
+    "alertTitle": "邮箱验证提示",
+    "alertContent": "邮箱验证是手机验证之外的可选方式。请使用站点认可的邮箱域；验证码由本站配置的发件邮箱发送。",
     "bindNow": "立即绑定",
-    "label": "手机号",
-    "placeholder": "请输入中国大陆手机号",
+    "label": "邮箱地址",
+    "placeholder": "请输入学校认可的邮箱",
     "imgCaptchaLabel": "图形验证码",
     "imgCaptchaPlaceholder": "请输入图形验证码后获取验证码",
-    "smsLabel": "短信验证码",
-    "smsPlaceholder": "请输入收到的短信验证码",
+    "codeLabel": "邮件验证码",
+    "codePlaceholder": "请输入邮件中的 6 位验证码",
     "resend": "{seconds}s后重新发送",
     "send": "发送验证码",
     "bind": "绑定",
@@ -64,8 +64,8 @@
     "submitted": "昵称修改已提交"
   },
   "rule": {
-    "phoneRequired": "请输入手机号",
-    "smsRequired": "请输入手机验证码",
+    "emailRequired": "请输入有效的邮箱地址",
+    "emailCodeRequired": "请输入邮件验证码",
     "activationRequired": "请输入激活码",
     "newPasswordRequired": "请输入新密码",
     "oldPasswordRequired": "请输入旧密码",

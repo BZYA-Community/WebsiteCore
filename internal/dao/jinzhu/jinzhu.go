@@ -53,6 +53,7 @@ func NewDataService() (core.DataService, core.VersionInfo) {
 	lazyInitial()
 	db := conf.MustGormDB()
 	pvs := security.NewPhoneVerifyService()
+	evs := security.NewEmailVerifyService()
 	tms := newTweetMetricServentA(db)
 	ums := newUserMetricServentA(db)
 	cms := newCommentMetricServentA(db)
@@ -75,7 +76,7 @@ func NewDataService() (core.DataService, core.VersionInfo) {
 		SiteAdminService:       newAuditService(db),
 		FollowingManageService: newFollowingManageService(db),
 		UserRelationService:    newUserRelationService(db),
-		SecurityService:        newSecurityService(db, pvs),
+		SecurityService:        newSecurityService(db, pvs, evs),
 		AttachmentCheckService: security.NewAttachmentCheckService(),
 	}
 	return cache.NewCacheDataService(ds), ds

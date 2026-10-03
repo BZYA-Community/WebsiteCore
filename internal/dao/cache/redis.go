@@ -20,6 +20,7 @@ const (
 	_countLoginErrKey     = "paopao_count_login_err"
 	_imgCaptchaKey        = "paopao_img_captcha:"
 	_smsCaptchaKey        = "paopao_sms_captcha"
+	_emailCaptchaKey      = "paopao_email_captcha:"
 	_countWhisperKey      = "paopao_whisper_key"
 )
 
@@ -114,6 +115,19 @@ func (r *redisCache) IncrCountSmsCaptcha(ctx context.Context, phone string) (err
 		currentTime := time.Now()
 		endTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 23, 59, 59, 0, currentTime.Location())
 		err = r.c.Do(ctx, r.c.B().Expire().Key(_smsCaptchaKey+phone).Seconds(int64(endTime.Sub(currentTime)/time.Second)).Build()).Error()
+	}
+	return
+}
+
+func (r *redisCache) GetCountEmailCaptcha(ctx context.Context, email string) (int64, error) {
+	return r.c.Do(ctx, r.c.B().Get().Key(_emailCaptchaKey+email).Build()).AsInt64()
+}
+
+func (r *redisCache) IncrCountEmailCaptcha(ctx context.Context, email string) (err error) {
+	if err = r.c.Do(ctx, r.c.B().Incr().Key(_emailCaptchaKey+email).Build()).Error(); err == nil {
+		now := time.Now()
+		end := time.Date(now.Year(), now.Month(), now.Day(), 23, 59, 59, 0, now.Location())
+		err = r.c.Do(ctx, r.c.B().Expire().Key(_emailCaptchaKey+email).Seconds(int64(end.Sub(now)/time.Second)).Build()).Error()
 	}
 	return
 }

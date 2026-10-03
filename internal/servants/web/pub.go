@@ -10,10 +10,13 @@ import (
 	"encoding/base64"
 	"image/color"
 	"image/png"
+	"net/mail"
 	"regexp"
+	"strings"
 	"unicode/utf8"
 
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/infra/avatar"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
@@ -31,6 +34,7 @@ import (
 const (
 	_MaxLoginErrTimes = 10
 	_MaxPhoneCaptcha  = 10
+	_MaxEmailCaptcha  = 10
 )
 
 type pubSrv struct {
@@ -47,6 +51,33 @@ func (s *pubSrv) SendCaptcha(req *web.SendCaptchaReq) error {
 		return web.ErrErrorCaptchaPassword
 	}
 	s.Redis.DelImgCaptcha(ctx, req.ImgCaptchaID)
+	if req.Email != "" {
+		if !_enableEmailVerify || !conf.WebProfileSetting.AllowEmailBind {
+			return web.ErrEmailVerifyDisabled
+		}
+		address, err := mail.ParseAddress(strings.TrimSpace(req.Email))
+		if err != nil || !strings.EqualFold(address.Address, strings.TrimSpace(req.Email)) {
+			return web.ErrGetEmailCaptchaError
+		}
+		email := strings.ToLower(address.Address)
+		if conf.AliMailSetting == nil || !isAllowedEmailDomain(email, conf.AliMailSetting.AllowedRecipientDomains) {
+			return web.ErrGetEmailCaptchaError
+		}
+		if count, _ := s.Redis.GetCountEmailCaptcha(ctx, email); count >= _MaxEmailCaptcha {
+			return web.ErrTooManyEmailCaptchaSend
+		}
+		if err := s.Ds.SendEmailCaptcha(email); err != nil {
+			logrus.Errorf("send email captcha failed: %v", err)
+			return web.ErrGetEmailCaptchaError
+		}
+		if err := s.Redis.IncrCountEmailCaptcha(ctx, email); err != nil {
+			logrus.Errorf("count email captcha failed: %v", err)
+		}
+		return nil
+	}
+	if req.Phone == "" {
+		return web.ErrGetPhoneCaptchaError
+	}
 
 	// 今日频次限制
 	if count, _ := s.Redis.GetCountSmsCaptcha(ctx, req.Phone); count >= _MaxPhoneCaptcha {
@@ -60,6 +91,21 @@ func (s *pubSrv) SendCaptcha(req *web.SendCaptchaReq) error {
 	s.Redis.IncrCountSmsCaptcha(ctx, req.Phone)
 
 	return nil
+}
+
+func isAllowedEmailDomain(email string, allowedDomains []string) bool {
+	parts := strings.Split(email, "@")
+	if len(parts) != 2 || len(allowedDomains) == 0 {
+		return false
+	}
+	domain := strings.ToLower(strings.TrimSuffix(strings.TrimSpace(parts[1]), "."))
+	for _, allowed := range allowedDomains {
+		allowed = strings.ToLower(strings.TrimSuffix(strings.TrimSpace(allowed), "."))
+		if allowed != "" && (domain == allowed || strings.HasSuffix(domain, "."+allowed)) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *pubSrv) GetCaptcha() (*web.GetCaptchaResp, error) {

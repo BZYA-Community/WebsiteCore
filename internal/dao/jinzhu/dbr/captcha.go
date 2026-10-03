@@ -9,6 +9,7 @@ import "gorm.io/gorm"
 type Captcha struct {
 	*Model
 	Phone     string `json:"phone"`
+	Email     string `json:"email" gorm:"index"`
 	Captcha   string `json:"captcha"`
 	UseTimes  int    `json:"use_times"`
 	ExpiredOn int64  `json:"expired_on"`
@@ -31,6 +32,8 @@ func (c *Captcha) Get(db *gorm.DB) (*Captcha, error) {
 	}
 	if c.Phone != "" {
 		db = db.Where("phone = ?", c.Phone)
+	} else if c.Email != "" {
+		db = db.Where("email = ?", c.Email)
 	}
 
 	err := db.Last(&captcha).Error

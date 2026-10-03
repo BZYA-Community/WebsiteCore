@@ -39,6 +39,7 @@ func newUserManageService(db *gorm.DB, ums core.UserMetricServantA) core.UserMan
 			fmt.Sprintf("%s.username", _user_),
 			fmt.Sprintf("%s.nickname", _user_),
 			fmt.Sprintf("%s.phone", _user_),
+			fmt.Sprintf("%s.email", _user_),
 			fmt.Sprintf("%s.status", _user_),
 			fmt.Sprintf("%s.avatar", _user_),
 			fmt.Sprintf("%s.is_admin", _user_),
@@ -84,6 +85,10 @@ func (s *userManageSrv) GetUserByPhone(phone string) (*ms.User, error) {
 		Phone: phone,
 	}
 	return user.Get(s.db)
+}
+
+func (s *userManageSrv) GetUserByEmail(email string) (*ms.User, error) {
+	return (&dbr.User{Email: email}).Get(s.db)
 }
 
 func (s *userManageSrv) GetUsersByIDs(ids []int64) ([]*ms.User, error) {

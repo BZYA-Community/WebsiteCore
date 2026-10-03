@@ -21,8 +21,8 @@ func newAuthorizationManageService(db *gorm.DB) core.AuthorizationManageService 
 }
 
 func (s *authorizationManageSrv) IsAllow(user *ms.User, action *ms.Action) bool {
-	// user is activation if had bind phone
-	isActivation := (len(user.Phone) != 0)
+	// Existing phone-bound accounts remain active during the email migration.
+	isActivation := user.Email != "" || user.Phone != ""
 	// 好友功能已移除: isFriend恒为false
 	return action.Act.IsAllow(user, action.UserId, false, isActivation)
 }

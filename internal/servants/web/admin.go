@@ -136,6 +136,10 @@ func maskPhone(phone string) string {
 	return dbr.MaskPhone(phone)
 }
 
+func maskEmail(email string) string {
+	return dbr.MaskEmail(email)
+}
+
 // AdminUserList 用户管理·搜索用户列表
 func (s *adminSrv) AdminUserList(req *web.AdminUserListReq) (*web.AdminUserListResp, error) {
 	limit, offset := req.PageSize, (req.Page-1)*req.PageSize
@@ -151,6 +155,7 @@ func (s *adminSrv) AdminUserList(req *web.AdminUserListReq) (*web.AdminUserListR
 			Nickname:  user.Nickname,
 			Username:  user.Username,
 			Phone:     maskPhone(user.Phone),
+			Email:     maskEmail(user.Email),
 			Roles:     user.RoleList(),
 			Identity:  user.DisplayIdentity(),
 			Status:    user.Status,
@@ -172,6 +177,7 @@ func (s *adminSrv) AdminUserDetail(req *web.AdminUserDetailReq) (*web.AdminUserD
 		Nickname:  user.Nickname,
 		Username:  user.Username,
 		Phone:     user.Phone,
+		Email:     user.Email,
 		Roles:     user.RoleList(),
 		Identity:  user.DisplayIdentity(),
 		Status:    user.Status,

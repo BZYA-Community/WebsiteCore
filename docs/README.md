@@ -20,6 +20,7 @@ Start here if you are looking for anything beyond the project overview in the [r
 | [deploy/database.md](deploy/database.md) | PostgreSQL setup, migrations, backup and restore |
 | [deploy/object-storage.md](deploy/object-storage.md) | Object storage: LocalOSS / AliOSS, CORS, direct uploads, troubleshooting |
 | [deploy/sms.md](deploy/sms.md) | SMS provider (Juhe) and phone-binding configuration |
+| [deploy/email.md](deploy/email.md) | Alibaba Mail email verification and migration from phone binding |
 | [deploy/production.md](deploy/production.md) | Recommended production layout: native binary + Dockerized dependencies + Nginx |
 | [deploy/docker-compose.md](deploy/docker-compose.md) | Fully containerized alternative |
 | [deploy/public-launch.md](deploy/public-launch.md) | Checklist before opening a site to the public internet |

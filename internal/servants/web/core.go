@@ -5,7 +5,9 @@
 package web
 
 import (
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -21,6 +23,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 var (
@@ -68,7 +71,7 @@ func (s *coreSrv) GetUserInfo(req *web.UserInfoReq) (*web.UserInfoResp, error) {
 		Avatar:      user.Avatar,
 		IsAdmin:     user.IsAdmin,
 		Roles:       dbr.SplitRoles(user.Roles),
-		Identity:    dbr.IdentityOf(user.Roles, user.Phone),
+		Identity:    dbr.IdentityOf(user.Roles, user.Email, user.Phone),
 		CreatedOn:   user.CreatedOn,
 		Follows:     follows,
 		Followings:  followings,
@@ -76,6 +79,9 @@ func (s *coreSrv) GetUserInfo(req *web.UserInfoReq) (*web.UserInfoResp, error) {
 	}
 	if user.Phone != "" {
 		resp.Phone = dbr.MaskPhone(user.Phone)
+	}
+	if req.User != nil && req.User.ID == user.ID {
+		resp.Email = user.Email
 	}
 	return resp, nil
 }
@@ -229,6 +235,42 @@ func (s *coreSrv) UserPhoneBind(req *web.UserPhoneBindReq) error {
 	if err := s.Ds.UpdateUser(user); err != nil {
 		// TODO: 优化错误处理逻辑，失败后上面的逻辑也应该回退
 		logrus.Errorf("Ds.UpdateUser err: %s", err)
+		return xerror.ServerError
+	}
+	return nil
+}
+
+func (s *coreSrv) UserEmailBind(req *web.UserEmailBindReq) error {
+	if !_enableEmailVerify || !conf.WebProfileSetting.AllowEmailBind {
+		return web.ErrEmailVerifyDisabled
+	}
+	email := strings.ToLower(strings.TrimSpace(req.Email))
+	if conf.AliMailSetting == nil || !isAllowedEmailDomain(email, conf.AliMailSetting.AllowedRecipientDomains) {
+		return web.ErrEmailDomainNotAllowed
+	}
+	u, err := s.Ds.GetUserByEmail(email)
+	if err == nil && u.Model != nil && u.ID != 0 && u.ID != req.User.ID {
+		return web.ErrExistedUserEmail
+	}
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		logrus.Errorf("check bound email failed: %v", err)
+		return xerror.ServerError
+	}
+	verified, err := s.Ds.VerifyEmailCaptcha(email, req.Captcha, _maxCaptchaTimes)
+	if err != nil {
+		if errors.Is(err, core.ErrEmailCaptchaMaxAttempts) {
+			return web.ErrMaxEmailCaptchaUseTimes
+		}
+		logrus.Errorf("verify email captcha failed: %v", err)
+		return web.ErrErrorEmailCaptcha
+	}
+	if !verified {
+		return web.ErrErrorEmailCaptcha
+	}
+	user := req.User
+	user.Email = email
+	if err := s.Ds.UpdateUser(user); err != nil {
+		logrus.Errorf("bind email failed: %v", err)
 		return xerror.ServerError
 	}
 	return nil

@@ -5,16 +5,26 @@
 package core
 
 import (
+	"errors"
 	"time"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 )
+
+var ErrEmailCaptchaMaxAttempts = errors.New("email captcha reached maximum attempts")
 
 // SecurityService 安全相关服务
 type SecurityService interface {
 	GetLatestPhoneCaptcha(phone string) (*ms.Captcha, error)
 	UsePhoneCaptcha(captcha *ms.Captcha) error
 	SendPhoneCaptcha(phone string) error
+	VerifyEmailCaptcha(email, captcha string, maxAttempts int) (bool, error)
+	SendEmailCaptcha(email string) error
+}
+
+// EmailVerifyService sends one-time verification codes to an email address.
+type EmailVerifyService interface {
+	SendEmailCaptcha(email, captcha string, expireMinutes int) error
 }
 
 // AttachmentCheckService 附件检测服务

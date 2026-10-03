@@ -10,7 +10,8 @@ type GetCaptchaResp struct {
 }
 
 type SendCaptchaReq struct {
-	Phone        string `json:"phone" form:"phone" binding:"required"`
+	Phone        string `json:"phone" form:"phone"`
+	Email        string `json:"email" form:"email"`
 	ImgCaptcha   string `json:"img_captcha" form:"img_captcha" binding:"required"`
 	ImgCaptchaID string `json:"img_captcha_id" form:"img_captcha_id" binding:"required"`
 }

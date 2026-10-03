@@ -33,6 +33,7 @@ type User struct {
 	Nickname string `json:"nickname"`
 	Username string `json:"username"`
 	Phone    string `json:"phone"`
+	Email    string `json:"email" gorm:"uniqueIndex:idx_user_email_not_empty,where:email <> ''"`
 	Password string `json:"password"`
 	Salt     string `json:"salt"`
 	Status   int    `json:"status"`
@@ -111,12 +112,19 @@ func (u *User) SyncIsAdmin() {
 
 // DisplayIdentity 显示身份: 运维 > 管理员 > 审核 > 导师 > 道友 > 游客
 func (u *User) DisplayIdentity() string {
-	return IdentityOf(u.Roles, u.Phone)
+	return IdentityOf(u.Roles, u.Email, u.Phone)
 }
 
 // IdentityOf 根据管理角色与手机号绑定状态计算显示身份
-func IdentityOf(roles, phone string) string {
-	u := User{Roles: roles, Phone: phone}
+func IdentityOf(roles string, verifiedContacts ...string) string {
+	u := User{Roles: roles}
+	verified := false
+	for _, contact := range verifiedContacts {
+		if contact != "" {
+			verified = true
+			break
+		}
+	}
 	switch {
 	case u.HasRole(RoleOperator):
 		return "运维"
@@ -126,7 +134,7 @@ func IdentityOf(roles, phone string) string {
 		return "审核"
 	case u.HasRole(RoleMentor):
 		return "导师"
-	case u.Phone != "":
+	case verified:
 		return "道友"
 	default:
 		return "游客"
@@ -145,6 +153,16 @@ func MaskPhone(phone string) string {
 		return phone
 	}
 	return phone[:3] + "****" + phone[len(phone)-4:]
+}
+
+// MaskEmail 邮箱脱敏，保留首字符和完整域名。
+func MaskEmail(email string) string {
+	parts := strings.SplitN(email, "@", 2)
+	if len(parts) != 2 || parts[0] == "" {
+		return email
+	}
+	local := []rune(parts[0])
+	return string(local[0]) + "***@" + parts[1]
 }
 
 // AddRole 追加管理角色(已持有则幂等) 返回是否发生变化，角色保持 AllRoles 层级排序
@@ -193,6 +211,8 @@ func (u *User) Get(db *gorm.DB) (*User, error) {
 	var user User
 	if u.Model != nil && u.Model.ID > 0 {
 		db = db.Where("id= ? AND is_del = ?", u.Model.ID, 0)
+	} else if u.Email != "" {
+		db = db.Where("email = ? AND is_del = ?", u.Email, 0)
 	} else if u.Phone != "" {
 		db = db.Where("phone = ? AND is_del = ?", u.Phone, 0)
 	} else {

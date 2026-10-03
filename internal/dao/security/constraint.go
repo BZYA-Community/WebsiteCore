@@ -9,4 +9,5 @@ import (
 var (
 	_ core.AttachmentCheckService = (*attachmentCheckServant)(nil)
 	_ core.PhoneVerifyService     = (*juheSmsServant)(nil)
+	_ core.EmailVerifyService     = (*aliMailEmailServant)(nil)
 )

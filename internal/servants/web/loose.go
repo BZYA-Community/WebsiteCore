@@ -354,7 +354,7 @@ func (s *looseSrv) GetUserProfile(req *web.GetUserProfileReq) (*web.GetUserProfi
 		Avatar:      he.Avatar,
 		IsAdmin:     he.IsAdmin,
 		Roles:       dbr.SplitRoles(he.Roles),
-		Identity:    dbr.IdentityOf(he.Roles, he.Phone),
+		Identity:    dbr.IdentityOf(he.Roles, he.Email, he.Phone),
 		IsFollowing: isFollowing,
 		CreatedOn:   he.CreatedOn,
 		Follows:     follows,

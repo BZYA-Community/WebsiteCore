@@ -17,7 +17,7 @@ func Priv() gin.HandlerFunc {
 			if u, exist := c.Get("USER"); exist {
 				if user, ok := u.(*ms.User); ok {
 					if user.Status == ms.UserStatusNormal {
-						if user.Phone == "" {
+						if user.Email == "" && user.Phone == "" {
 							response := app.NewResponse(c)
 							response.ToErrorResponse(_errAccountNoPhoneBind)
 							c.Abort()

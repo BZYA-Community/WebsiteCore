@@ -110,6 +110,7 @@ declare namespace NetReq {
     allow_tweet_video?: boolean;
     allow_user_register?: boolean;
     allow_phone_bind?: boolean;
+	allow_email_bind?: boolean;
     default_tweet_max_length?: number;
     default_tweet_ellipsis_size?: number;
     default_tweet_visibility?: string;
