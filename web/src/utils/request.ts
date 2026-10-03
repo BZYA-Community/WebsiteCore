@@ -1,6 +1,6 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { useStoreMain } from '@/store/main';
-import { TOKEN_KEY } from '@/store/user';
+import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { translateErrMsg } from '@/locales/errorCodes';
 
 const service = axios.create({
@@ -34,7 +34,12 @@ service.interceptors.response.use(
 	(error = {}) => {
 		const { response = {} } = error || {};
 		// 重定向
-		if (+response?.status === 401) {
+		if (+response?.data?.code === 10404) {
+			// The mandatory password dialog explains this state. Background
+			// timeline/count requests must not stack identical error toasts.
+			const storeUser = useStoreUser();
+			if (storeUser.userLogined) storeUser.userInfo.must_change_password = true;
+		} else if (+response?.status === 401) {
 			localStorage.removeItem(TOKEN_KEY);
 
 			if (response?.data.code !== 10005) {

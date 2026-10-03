@@ -18,8 +18,8 @@
                                 class="top-tag" type="success" size="small" round>
                                 {{ t('user.followed') }}
                             </n-tag>
-                            <n-tag v-if="showIdentityBadge(user.identity)" class="top-tag" :type="identityTagType(user.identity)" size="small" round>
-                                {{ identityLabel(user.identity) }}
+                            <n-tag v-for="label in identityLabels(user)" :key="label" class="top-tag" :type="identityTagType(user)" size="small" round>
+                                {{ label }}
                             </n-tag>
                         </div>
                         <div class="userinfo">
@@ -129,7 +129,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useDialog, DropdownOption } from 'naive-ui';
 import { MoreHorizFilled } from '@vicons/material';
 import { formatDate } from '@/utils/formatTime';
-import { identityTagType, showIdentityBadge, identityLabel } from '@/utils/identity';
+import { isAdmin, isOperator, identityTagType, identityLabels } from '@/utils/identity';
 import { prettyQuoteNum } from '@/utils/count';
 import {
   SettingsOutline,
@@ -168,7 +168,7 @@ const user = reactive<Item.UserInfo>({
 	avatar: '',
 	username: '',
 	nickname: '',
-	is_admin: false,
+
 	is_following: false,
 	created_on: 0,
 	follows: 0,
@@ -330,8 +330,9 @@ const loadUser = () => {
       user.avatar = res.avatar;
       user.username = res.username;
       user.nickname = res.nickname;
-      user.is_admin = res.is_admin;
-      user.identity = res.identity;
+      user.roles = res.roles;
+      user.member_identity = res.member_identity;
+      user.is_mentor = res.is_mentor;
       user.created_on = res.created_on;
       user.is_following = res.is_following;
       user.follows = res.follows;
@@ -380,7 +381,7 @@ const userOptions = computed(() => {
       icon: renderIcon(PaperPlaneOutline),
     });
   }
-  if (userInfo.value.is_admin) {
+  if (isAdmin(userInfo.value) && (user.member_identity || (isOperator(userInfo.value) && user.roles?.includes('admin')))) {
     if (user.status === 1) {
       options.push({
         label: t('user.userPage.actionBan'),

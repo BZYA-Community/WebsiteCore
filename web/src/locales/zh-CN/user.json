@@ -74,7 +74,7 @@
     "admin": "管理员",
     "auditor": "审核",
     "mentor": "导师",
-    "fellow": "道友",
-    "guest": "游客"
+    "student": "学生（道友）",
+    "teacher": "老师"
   }
 }

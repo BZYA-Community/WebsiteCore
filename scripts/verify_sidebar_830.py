@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """侧栏830px视口重叠验证(本地测试环境专用): 管理员10项菜单时用户卡片不得压在菜单上."""
 import json, os, urllib.request
+import sys
 from playwright.sync_api import sync_playwright
 
 BASE = "http://127.0.0.1:8008"
-SHOTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "shots")
+SHOTS = os.environ.get("E2E_SCREENSHOT_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "shots"))
 
 def login(u):
     r = urllib.request.Request(BASE + "/v1/auth/login", method="POST")
     r.add_header("Content-Type", "application/json")
-    d = json.dumps({"username": u, "password": "Test1234!"}).encode()
+    d = json.dumps({"username": u, "password": os.environ["E2E_OPERATOR_PASSWORD"]}).encode()
     with urllib.request.urlopen(r, d) as resp:
         body = json.loads(resp.read())
     assert body["code"] == 0, body
@@ -35,7 +36,7 @@ def measure(page):
 
 def main():
     os.makedirs(SHOTS, exist_ok=True)
-    token = login("testaudit")
+    token = login(os.environ["E2E_OPERATOR_USERNAME"])
     fails = 0
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -60,6 +61,7 @@ def main():
             ctx.close()
         browser.close()
     print("RESULT:", "FAIL" if fails else "ALL PASS")
+    return 1 if fails else 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

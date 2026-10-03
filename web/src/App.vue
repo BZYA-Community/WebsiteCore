@@ -35,6 +35,7 @@
                     </div>
                     <!-- 登录/注册公共组件 -->
                     <auth />
+                    <force-password-change />
                 </div>
             </n-dialog-provider>
         </n-message-provider>
@@ -44,6 +45,7 @@
 
 <script setup lang="ts">
 import { onMounted, computed } from 'vue';
+import ForcePasswordChange from '@/components/force-password-change.vue';
 import { useStoreMain } from '@/store/main';
 import { darkTheme, zhCN, enUS, dateZhCN, dateEnUS } from 'naive-ui';
 import { getSiteProfile } from '@/api/site';

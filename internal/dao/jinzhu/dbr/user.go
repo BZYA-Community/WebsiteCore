@@ -1,6 +1,5 @@
 // Copyright 2022 ROC. All rights reserved.
-// Use of this source code is governed by a MIT style
-// license that can be found in the LICENSE file.
+// Use of this source code is governed by a MIT style license.
 
 package dbr
 
@@ -17,75 +16,70 @@ const (
 	UserStatusClosed
 )
 
-// 管理角色(存储于 p_user.roles 逗号分隔) 基础身份游客/道友由手机号绑定状态推导不落库
 const (
-	RoleOperator = "operator" // 运维
-	RoleAdmin    = "admin"    // 管理员
-	RoleAuditor  = "auditor"  // 审核
-	RoleMentor   = "mentor"   // 导师
+	RoleOperator  = "operator"
+	RoleAdmin     = "admin"
+	RoleAuditor   = "auditor"
+	MemberStudent = "student"
+	MemberTeacher = "teacher"
 )
 
-// AllRoles 可由后台分配的管理角色
-var AllRoles = []string{RoleMentor, RoleAuditor, RoleAdmin, RoleOperator}
+var AllRoles = []string{RoleAuditor, RoleAdmin, RoleOperator}
 
 type User struct {
 	*Model
 	Nickname string `json:"nickname"`
 	Username string `json:"username"`
 	Phone    string `json:"phone"`
-	Password string `json:"password"`
-	Salt     string `json:"salt"`
+	Password string `json:"-"`
+	Salt     string `json:"-"`
 	Status   int    `json:"status"`
 	Avatar   string `json:"avatar"`
-	IsAdmin  bool   `json:"is_admin"`
-	Roles    string `json:"roles"`
-	// PendingNickname 昵称变更暂存: 提交后先存此处 审核通过才写入Nickname
-	// json:"-" 避免对外泄露未审核内容
-	PendingNickname string `json:"-"`
-	// PendingAvatar 头像变更暂存: 提交后先存此处 审核通过才写入Avatar
-	// json:"-" 避免对外泄露未审核内容
-	PendingAvatar string `json:"-"`
+	Roles    string `json:"-"`
+	// AccountType is immutable. A disabled Admin never becomes a member.
+	AccountType        string  `json:"-"`
+	MemberIdentity     *string `json:"member_identity"`
+	IsMentor           bool    `json:"is_mentor"`
+	MustChangePassword bool    `json:"-"`
+	PendingNickname    string  `json:"-"`
+	PendingAvatar      string  `json:"-"`
 }
 
 type UserFormated struct {
-	ID          int64    `db:"id" json:"id"`
-	Nickname    string   `json:"nickname"`
-	Username    string   `json:"username"`
-	Status      int      `json:"status"`
-	Avatar      string   `json:"avatar"`
-	IsAdmin     bool     `json:"is_admin"`
-	Roles       []string `json:"roles"`
-	Identity    string   `json:"identity"`
-	IsFollowing bool     `json:"is_following"`
+	ID             int64    `db:"id" json:"id"`
+	Nickname       string   `json:"nickname"`
+	Username       string   `json:"username"`
+	Status         int      `json:"status"`
+	Avatar         string   `json:"avatar"`
+	Roles          []string `json:"roles"`
+	MemberIdentity *string  `json:"member_identity"`
+	IsMentor       bool     `json:"is_mentor"`
+	IsFollowing    bool     `json:"is_following"`
 }
 
+// Format is a public projection: Auditor is private even for content authors.
 func (u *User) Format() *UserFormated {
-	if u.Model != nil {
-		return &UserFormated{
-			ID:       u.ID,
-			Nickname: u.Nickname,
-			Username: u.Username,
-			Status:   u.Status,
-			Avatar:   u.Avatar,
-			IsAdmin:  u.IsAdmin,
-			Roles:    u.RoleList(),
-			Identity: u.DisplayIdentity(),
-		}
+	if u == nil || u.Model == nil {
+		return nil
 	}
-
-	return nil
+	return &UserFormated{
+		ID: u.ID, Nickname: u.Nickname, Username: u.Username,
+		Status: u.Status, Avatar: u.Avatar, Roles: u.PublicRoles(),
+		MemberIdentity: u.MemberIdentity, IsMentor: u.IsMentor,
+	}
 }
 
-// RoleList 返回用户的管理角色列表
 func (u *User) RoleList() []string {
-	if u.Roles == "" {
+	if u == nil || u.Roles == "" {
 		return []string{}
 	}
 	return strings.Split(u.Roles, ",")
 }
 
-// HasRole 判断用户是否拥有指定管理角色
 func (u *User) HasRole(role string) bool {
+	if u == nil {
+		return false
+	}
 	for _, r := range u.RoleList() {
 		if r == role {
 			return true
@@ -94,99 +88,85 @@ func (u *User) HasRole(role string) bool {
 	return false
 }
 
-// HasAnyRole 是否拥有任意管理角色(导师/审核/管理员/运维)
-func (u *User) HasAnyRole() bool {
-	return u.Roles != ""
-}
-
-// IsAdminLevel 管理级身份(运维/管理员) 与 is_admin 布尔语义保持一致
-func (u *User) IsAdminLevel() bool {
-	return u.HasRole(RoleOperator) || u.HasRole(RoleAdmin)
-}
-
-// SyncIsAdmin 角色变更后同步 is_admin 布尔 保持既有 IsAdmin 权限触点兼容
-func (u *User) SyncIsAdmin() {
-	u.IsAdmin = u.IsAdminLevel()
-}
-
-// DisplayIdentity 显示身份: 运维 > 管理员 > 审核 > 导师 > 道友 > 游客
-func (u *User) DisplayIdentity() string {
-	return IdentityOf(u.Roles, u.Phone)
-}
-
-// IdentityOf 根据管理角色与手机号绑定状态计算显示身份
-func IdentityOf(roles, phone string) string {
-	u := User{Roles: roles, Phone: phone}
-	switch {
-	case u.HasRole(RoleOperator):
-		return "运维"
-	case u.HasRole(RoleAdmin):
-		return "管理员"
-	case u.HasRole(RoleAuditor):
-		return "审核"
-	case u.HasRole(RoleMentor):
-		return "导师"
-	case u.Phone != "":
-		return "道友"
+func PublicRoles(roles string) []string {
+	switch roles {
+	case RoleOperator, RoleAdmin:
+		return []string{roles}
 	default:
-		return "游客"
+		return []string{}
 	}
 }
 
-// SplitRoles 解析逗号分隔的角色串为列表
-func SplitRoles(roles string) []string {
-	u := User{Roles: roles}
-	return u.RoleList()
+func (u *User) PublicRoles() []string { return PublicRoles(u.Roles) }
+
+func (u *User) IsActive() bool {
+	return u != nil && u.Model != nil && u.ID > 0 && u.IsDel == 0 && u.Status == UserStatusNormal
 }
 
-// MaskPhone 手机号脱敏 138****1234，过短则原样返回
+func (u *User) IsAdminLevel() bool {
+	return u != nil && u.MemberIdentity == nil && (u.Roles == RoleOperator || u.Roles == RoleAdmin)
+}
+
+func (u *User) IsTeacher() bool {
+	return u != nil && u.MemberIdentity != nil && *u.MemberIdentity == MemberTeacher && !u.IsAdminLevel()
+}
+
+func (u *User) IsStudent() bool {
+	return u != nil && u.MemberIdentity != nil && *u.MemberIdentity == MemberStudent && !u.IsAdminLevel()
+}
+
+func (u *User) CanManageUsers() bool  { return u.IsActive() && u.IsAdminLevel() }
+func (u *User) CanCreateAdmin() bool  { return u.CanManageUsers() && u.Roles == RoleOperator }
+func (u *User) CanManageAdmins() bool { return u.CanManageUsers() && u.Roles == RoleOperator }
+func (u *User) CanAudit() bool {
+	return u.IsActive() && (u.IsAdminLevel() || u.HasRole(RoleAuditor))
+}
+
+func (u *User) CanAuditUser(authorID int64) bool {
+	return u.CanAudit() && u.ID != authorID
+}
+
+func (u *User) CanViewSystemInfo() bool {
+	return u.CanManageUsers() && u.Roles == RoleOperator
+}
+
+func (u *User) CanPublishDirectly() bool {
+	return u.IsActive() && u.IsAdminLevel()
+}
+
+func (u *User) CanCreateCourse() bool {
+	return u.IsActive() && (u.IsTeacher() || u.IsAdminLevel())
+}
+
+func (u *User) CanEditCourse(teacherID int64) bool {
+	return u.IsActive() && (u.IsAdminLevel() || (u.IsTeacher() && u.ID == teacherID))
+}
+func (u *User) CanDeleteCourse() bool { return u.CanManageUsers() }
+
+// ValidIdentity mirrors the database check; missing identities never imply a visitor.
+func (u *User) ValidIdentity() bool {
+	if u == nil {
+		return false
+	}
+	switch u.AccountType {
+	case "member":
+		return (u.IsStudent() || u.IsTeacher()) && (u.Roles == "" || u.Roles == RoleAuditor)
+	case "operator":
+		return u.MemberIdentity == nil && !u.IsMentor && u.Roles == RoleOperator
+	case "admin":
+		return u.MemberIdentity == nil && !u.IsMentor && (u.Roles == RoleAdmin || (u.Roles == "" && u.Status == UserStatusClosed))
+	default:
+		return false
+	}
+}
+
+func SplitRoles(roles string) []string { return (&User{Roles: roles}).RoleList() }
+
 func MaskPhone(phone string) string {
 	if len(phone) < 7 {
 		return phone
 	}
 	return phone[:3] + "****" + phone[len(phone)-4:]
-}
-
-// AddRole 追加管理角色(已持有则幂等) 返回是否发生变化，角色保持 AllRoles 层级排序
-func (u *User) AddRole(role string) bool {
-	if u.HasRole(role) {
-		return false
-	}
-	u.Roles = strings.Join(sortRoles(append(u.RoleList(), role)), ",")
-	return true
-}
-
-// RemoveRole 移除管理角色(未持有则幂等) 返回是否发生变化
-func (u *User) RemoveRole(role string) bool {
-	roles := u.RoleList()
-	res := make([]string, 0, len(roles))
-	found := false
-	for _, r := range roles {
-		if r == role {
-			found = true
-			continue
-		}
-		res = append(res, r)
-	}
-	if !found {
-		return false
-	}
-	u.Roles = strings.Join(res, ",")
-	return true
-}
-
-// sortRoles 按角色等级排序便于稳定展示
-func sortRoles(roles []string) []string {
-	res := make([]string, 0, len(roles))
-	for _, ar := range AllRoles {
-		for _, r := range roles {
-			if r == ar {
-				res = append(res, r)
-				break
-			}
-		}
-	}
-	return res
 }
 
 func (u *User) Get(db *gorm.DB) (*User, error) {
@@ -238,8 +218,20 @@ func (u *User) Create(db *gorm.DB) (*User, error) {
 	return u, err
 }
 
-func (u *User) Update(db *gorm.DB) error {
-	return db.Model(&User{}).Where("id = ? AND is_del = ?", u.Model.ID, 0).Save(u).Error
+// Update writes only the submitted profile fields. A stale nickname request must
+// never restore an old password, first-login flag, or administrative privileges.
+func (u *User) Update(db *gorm.DB, fields ...string) error {
+	if len(fields) == 0 {
+		return ErrPermission
+	}
+	for _, field := range fields {
+		switch field {
+		case "nickname", "phone", "password", "salt", "avatar", "pending_nickname", "pending_avatar", "must_change_password":
+		default:
+			return ErrPermission
+		}
+	}
+	return db.Model(&User{}).Where("id = ? AND is_del = ?", u.ID, 0).Select(fields).Updates(u).Error
 }
 
 // Delete 软删除用户(标记is_del=1): 无法登录/查询, 数据保留可恢复

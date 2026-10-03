@@ -27,6 +27,7 @@ type CourseAdmin interface {
 	DeleteCourseGroup(*web.DeleteCourseGroupReq) error
 	UpdateCourseGroup(*web.UpdateCourseGroupReq) error
 	CreateCourseGroup(*web.CourseGroupReq) (*dbr.CourseGroupFormated, error)
+	CourseTeachers(*web.CourseTeachersReq) (*web.CourseTeachersResp, error)
 
 	mustEmbedUnimplementedCourseAdminServant()
 }
@@ -148,6 +149,20 @@ func RegisterCourseAdminServant(e *gin.Engine, s CourseAdmin) {
 		resp, err := s.CreateCourseGroup(req)
 		s.Render(c, resp, err)
 	})
+	router.Handle("GET", "admin/course/teachers", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.CourseTeachersReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.CourseTeachers(req)
+		s.Render(c, resp, err)
+	})
 }
 
 // UnimplementedCourseAdminServant can be embedded to have forward compatible implementations.
@@ -186,6 +201,10 @@ func (UnimplementedCourseAdminServant) UpdateCourseGroup(req *web.UpdateCourseGr
 }
 
 func (UnimplementedCourseAdminServant) CreateCourseGroup(req *web.CourseGroupReq) (*dbr.CourseGroupFormated, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedCourseAdminServant) CourseTeachers(req *web.CourseTeachersReq) (*web.CourseTeachersResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

@@ -13,9 +13,10 @@ export const useStoreUser = defineStore('user', () => {
         follows: 0,
         followings: 0,
         tweets_count: 0,
-        is_admin: false,
         roles: [] as string[],
-        identity: '',
+        member_identity: null,
+        is_mentor: false,
+        must_change_password: false,
     });
 
     const userLogined = computed(() => userInfo.value.id > 0);
@@ -37,9 +38,10 @@ export const useStoreUser = defineStore('user', () => {
             follows: 0,
             followings: 0,
             tweets_count: 0,
-            is_admin: false,
             roles: [],
-            identity: '',
+            member_identity: null,
+            is_mentor: false,
+            must_change_password: false,
         };
     }
 

@@ -4,7 +4,9 @@ declare namespace Api {
 
         interface Api {
             post: {
+                accounts: (params: { username: string; temporary_password: string }) => Promise<{ id: number; username: string }>;
                 user: {
+                    access: (params: { user_id: number; member_identity: 'student' | 'teacher'; is_mentor: boolean; is_auditor: boolean }) => Promise<void>;
                     /** 管理·用户禁言/解禁 */
                     status: (params: NetParams.UserStatusReq) => Promise<NetReq.UserChangeStatus>;
                     /** 管理·变更用户角色 */
@@ -78,7 +80,7 @@ declare namespace Api {
 
             interface UserRoleChangeReq {
                 user_id: number;
-                role: 'mentor' | 'auditor' | 'admin' | 'operator';
+                role: 'admin';
                 action: 'add' | 'remove';
             }
 
@@ -190,14 +192,17 @@ declare namespace Api {
             }
 
             interface UserItem {
+account_type: 'member' | 'admin' | 'operator';
                 id: number;
                 nickname: string;
                 username: string;
                 phone: string;
                 roles: string[];
-                identity: string;
+    member_identity?: 'student' | 'teacher' | null;
+    is_mentor?: boolean;
+
                 status: 1 | 2;
-                is_admin: boolean;
+
                 created_on: number;
             }
 

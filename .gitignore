@@ -15,6 +15,7 @@ __debug_bin
 /.custom
 /run.sh
 scripts/shots/
+__pycache__/
 
 # 本地测试二进制(勿提交)
 paopao-*.exe

@@ -64,6 +64,9 @@ func (s *auditSrv) AuditPostAction(req *web.AdminAuditPostReq) error {
 	if err != nil || post.Model == nil || post.ID <= 0 {
 		return web.ErrGetPostFailed
 	}
+	if !req.User.CanAuditUser(post.UserID) {
+		return web.ErrNoPermission
+	}
 	oldStatus := uint8(post.AuditStatus)
 
 	switch req.Action {
@@ -306,6 +309,13 @@ func (s *auditSrv) AuditCommentAction(req *web.AdminAuditCommentReq) error {
 	}
 	if req.Action == "reject" && len(req.Reason) == 0 {
 		return xerror.InvalidParams.WithDetails("拒绝操作需要填写原因")
+	}
+	authorID, authorErr := s.auditCommentAuthor(req.CommentType, req.ID)
+	if authorErr != nil {
+		return authorErr
+	}
+	if !req.User.CanAuditUser(authorID) {
+		return web.ErrNoPermission
 	}
 	newStatus := int(ms.PostAuditApproved)
 	if req.Action == "reject" {
@@ -695,6 +705,9 @@ func (s *auditSrv) AuditNicknameAction(req *web.AdminAuditNicknameReq) error {
 	if err != nil || user.Model == nil || user.ID <= 0 {
 		return xerror.InvalidParams.WithDetails("用户不存在")
 	}
+	if !req.User.CanAuditUser(user.ID) {
+		return web.ErrNoPermission
+	}
 	if user.PendingNickname == "" {
 		return xerror.InvalidParams.WithDetails("该用户没有待审核的昵称变更")
 	}
@@ -770,6 +783,9 @@ func (s *auditSrv) AuditAvatarAction(req *web.AdminAuditAvatarReq) error {
 	user, err := s.Ds.GetUserByID(req.UserID)
 	if err != nil || user.Model == nil || user.ID <= 0 {
 		return xerror.InvalidParams.WithDetails("用户不存在")
+	}
+	if !req.User.CanAuditUser(user.ID) {
+		return web.ErrNoPermission
 	}
 	if user.PendingAvatar == "" {
 		return xerror.InvalidParams.WithDetails("该用户没有待审核的头像变更")

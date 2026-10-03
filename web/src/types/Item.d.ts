@@ -1,5 +1,6 @@
 declare namespace Item {
   interface UserInfo {
+    must_change_password?: boolean;
     /** 用户UID */
     id: number;
     /** 用户名 */
@@ -12,12 +13,12 @@ declare namespace Item {
     phone?: string;
     /** 激活码 */
     activation?: string;
-    /** 是否为管理员 */
-    is_admin: boolean;
-    /** 管理角色列表 operator/admin/auditor/mentor */
+
+    /** 管理角色列表 operator/admin/auditor */
     roles?: string[];
-    /** 显示身份 运维/管理员/审核/导师/道友/游客 */
-    identity?: string;
+    member_identity?: 'student' | 'teacher' | null;
+    is_mentor?: boolean;
+
     /** 是否关注 */
     is_following: boolean;
     /** 加入时间 */
@@ -145,7 +146,9 @@ declare namespace Item {
     avatar: string;
     phone?: string;
     roles?: string[];
-    identity?: string;
+    member_identity?: 'student' | 'teacher' | null;
+    is_mentor?: boolean;
+
     is_following: boolean;
     created_on: number;
   }
@@ -307,7 +310,9 @@ declare namespace Item {
     nickname: string;
     avatar: string;
     roles: string[];
-    identity: string;
+    member_identity?: 'student' | 'teacher' | null;
+    is_mentor?: boolean;
+
     last_content: string;
     last_time: number;
     last_from_me: boolean;

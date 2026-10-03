@@ -1,5 +1,5 @@
 import { computed, onBeforeUnmount, ref } from 'vue';
-import { Api } from '@/utils/request';
+import { Api, request } from '@/utils/request';
 import { useStoreUser } from '@/store/user';
 import { useStoreProfile } from '@/store/profile';
 import { formatRelativeTime } from '@/utils/formatTime';
@@ -66,7 +66,10 @@ export function useChatRooms() {
   const messagesLoaded = ref(false);
   const loadingRooms = ref(false);
   const activeRoomId = ref('');
-  const canSend = ref(true);
+  const canBlock = ref(false);
+  const blockedByMe = ref(false);
+  const blockSaving = ref(false);
+  const canSend = ref(false);
   const canSendTip = ref('');
   const sending = ref(false);
 
@@ -173,6 +176,7 @@ export function useChatRooms() {
       page,
       page_size: PAGE_SIZE,
     });
+    if (activeRoomId.value !== roomId) return;
     pageState.set(roomId, { page, total: res.total_rows });
 
     if (!isSystem && res.peer) {
@@ -193,7 +197,11 @@ export function useChatRooms() {
       }
     }
     canSend.value = res.can_send;
-    canSendTip.value = res.can_send_tip || '';
+    canBlock.value = !!res.can_block;
+    blockedByMe.value = !!res.blocked_by_me;
+    canSendTip.value = res.can_send_code
+      ? t(`errors.codes.E${res.can_send_code}`)
+      : res.can_send_tip || '';
 
     const items = res.messages.map((m) => toMessage(m, isSystem));
     if (page <= 1) {
@@ -232,6 +240,9 @@ export function useChatRooms() {
     activeRoomId.value = roomId;
     const reset = detail.options?.reset;
     if (reset) {
+      canSend.value = false;
+      canBlock.value = false;
+      blockedByMe.value = false;
       messages.value = [];
       messagesLoaded.value = false;
       canSendTip.value = '';
@@ -266,7 +277,7 @@ export function useChatRooms() {
         content,
       });
       // 本地回显, 轮询会 reconcile 已读态
-      messages.value = [
+      if (activeRoomId.value === roomId) messages.value = [
         ...messages.value,
         {
           _id: String(res.message_id),
@@ -284,6 +295,7 @@ export function useChatRooms() {
         tempRooms.delete(roomId);
       }
       loadContacts();
+      await loadHistory(roomId, 1, true);
     } catch (err) {
       // 错误提示由 axios 拦截器统一 toast(含后端权限文案)
       console.log('send chat message error:', err);
@@ -303,7 +315,8 @@ export function useChatRooms() {
         nickname: seed?.nickname || t('message.chat.loadingNickname'),
         avatar: seed?.avatar || '',
         roles: seed?.roles || [],
-        identity: seed?.identity || '',
+        member_identity: seed?.member_identity ?? null,
+        is_mentor: !!seed?.is_mentor,
         last_content: '',
         last_time: Math.floor(Date.now() / 1000),
         last_from_me: false,
@@ -341,7 +354,20 @@ export function useChatRooms() {
 
   onBeforeUnmount(stopPolling);
 
+  const toggleBlock = async () => {
+    if (!canBlock.value || blockSaving.value) return;
+    const roomId = activeRoomId.value;
+    blockSaving.value = true;
+    try {
+      await request({ method: 'post', url: '/v1/user/chat/block', data: { user_id: Number(roomId), blocked: !blockedByMe.value } });
+      await loadHistory(roomId, 1);
+    } catch (_err) {
+      // Errors are displayed by the request interceptor.
+    } finally { blockSaving.value = false; }
+  };
+
   return {
+    canBlock, blockedByMe, blockSaving, toggleBlock,
     myId,
     myName,
     rooms,

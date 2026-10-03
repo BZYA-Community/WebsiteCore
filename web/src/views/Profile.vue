@@ -17,8 +17,8 @@
                     <div class="username">
                         <strong>{{ userInfo.nickname }}</strong>
                         <span> @{{ userInfo.username }} </span>
-                        <n-tag v-if="showIdentityBadge(userInfo.identity)" class="top-tag" :type="identityTagType(userInfo.identity)" size="small" round>
-                            {{ identityLabel(userInfo.identity) }}
+                        <n-tag v-for="label in identityLabels(userInfo)" :key="label" class="top-tag" :type="identityTagType(userInfo)" size="small" round>
+                            {{ label }}
                         </n-tag>
                     </div>
                     <div class="userinfo">
@@ -125,7 +125,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useDialog, DropdownOption } from 'naive-ui';
 import { formatDate } from '@/utils/formatTime';
 import { useChatJump } from '@/composables/useUserAction';
-import { identityTagType, showIdentityBadge, identityLabel } from '@/utils/identity';
+import { identityTagType, identityLabels } from '@/utils/identity';
 import { prettyQuoteNum } from '@/utils/count';
 import InfiniteLoading from 'v3-infinite-loading';
 import { SettingsOutline } from '@vicons/ionicons5';

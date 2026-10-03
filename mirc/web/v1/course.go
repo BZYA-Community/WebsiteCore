@@ -40,7 +40,8 @@ type CoursePriv struct {
 
 // CourseAdmin 课程管理服务(管理员/运维)
 type CourseAdmin struct {
-	Schema `mir:"v1,chain"`
+	CourseTeachers func(Get, web.CourseTeachersReq) web.CourseTeachersResp `mir:"admin/course/teachers"`
+	Schema         `mir:"v1,chain"`
 
 	// CreateCourseGroup 创建课程分组
 	CreateCourseGroup func(Post, web.CourseGroupReq) web.CourseGroupResp `mir:"admin/course/group"`

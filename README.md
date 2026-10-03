@@ -40,8 +40,8 @@ WebsiteCore is a self-hosted micro-community / forum system: a Go backend (Gin +
 
 ## Features
 
-- **Identity groups and RBAC**: guest / member / mentor / auditor / admin / operator, with backend user management (role changes, mute, soft delete) and full audit trails
-- **Content moderation**: posts from regular users enter a review queue; mentor and above are exempt; rejection returns content to private with resubmission; results are notified in-site
+- **Explicit identity and permissions**: Student / Teacher members, optional Teacher-only Mentor flag, member-only Auditor permission, and dedicated Admin / Operator accounts. Phone binding never determines identity.
+- **Content moderation**: student posts, comments, replies, nicknames and avatars enter a review queue when moderation is enabled; teachers and management publish directly. Auditors cannot review their own submissions.
 - **In-site messaging (Bilibili-style)**: session list with pinned system contacts, standalone chat window, read/unread state, paginated history, and messaging rules derived from identity groups
 - **System notification session**: follow / comment / reply / moderation / management notices unified into one conversation, with jump links to posts and profiles
 - **Courses and long-form content**: course groups, play counts, signed playback, Markdown long-form posts, topics, trending searches

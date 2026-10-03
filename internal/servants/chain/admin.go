@@ -14,7 +14,7 @@ func Admin() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if user, exist := c.Get("USER"); exist {
 			if userModel, ok := user.(*ms.User); ok {
-				if userModel.Status == ms.UserStatusNormal && userModel.IsAdmin {
+				if userModel.Status == ms.UserStatusNormal && userModel.IsAdminLevel() {
 					c.Next()
 					return
 				}
@@ -33,7 +33,7 @@ func Auditor() gin.HandlerFunc {
 		if user, exist := c.Get("USER"); exist {
 			if userModel, ok := user.(*ms.User); ok {
 				if userModel.Status == ms.UserStatusNormal &&
-					(userModel.IsAdmin || userModel.HasRole(ms.RoleAuditor)) {
+					(userModel.IsAdminLevel() || userModel.HasRole(ms.RoleAuditor)) {
 					c.Next()
 					return
 				}

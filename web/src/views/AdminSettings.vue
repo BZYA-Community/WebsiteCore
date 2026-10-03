@@ -314,6 +314,7 @@
 </template>
 
 <script setup lang="ts">
+import { isAdmin } from "@/utils/identity";
 import { computed, onMounted, reactive, ref } from "vue";
 import { storeToRefs } from "pinia";
 import { useRouter } from "vue-router";
@@ -723,7 +724,7 @@ const ensureAdminAccess = async () => {
         }
     }
 
-    if (!userInfo.value.is_admin) {
+    if (!isAdmin(userInfo.value)) {
         router.replace({
             name: "404",
         });

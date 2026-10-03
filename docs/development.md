@@ -111,15 +111,26 @@ Frontend feature flags (`VITE_ALLOW_*`, `VITE_DEFAULT_*` in `web/.env`) mirror t
 make test        # or: go test ./...
 ```
 
+### PostgreSQL integration tests
+
+Use a local disposable PostgreSQL database and export `TEST_POSTGRES_DSN` for a user allowed to create schemas. Each test uses its own schema and drops only that schema on completion. CI runs these tests against its PostgreSQL service.
+
+```sh
+go test -tags migration ./internal/dao/jinzhu/... ./internal/infra/migration/...
+```
+
+These verify migration refusal without writes (including soft-deleted users), upgrade/downgrade, database constraints, role lifecycle, course ownership, concurrent first messages and permission changes. Without the environment variable they skip explicitly.
+
 ### End-to-end and verification scripts (`scripts/`)
 
-These hit a running local instance (default `http://127.0.0.1:8008`) and/or drive a headless browser with Playwright. Install prerequisites with `pip install playwright requests && playwright install chromium` (check each script header for exact needs and seeded accounts).
+These hit a running local instance (default `http://127.0.0.1:8008`) and/or drive a headless browser with Playwright. Install test prerequisites with `pip install playwright "psycopg[binary]" && playwright install chromium`. Use a disposable local instance with moderation enabled. Set `E2E_OPERATOR_USERNAME`, `E2E_OPERATOR_PASSWORD` and `TEST_POSTGRES_DSN` for that instance; optionally set `E2E_BASE_URL` (default above) and `E2E_SCREENSHOT_DIR`. Never commit credentials. API fixtures create random accounts via the API and bind synthetic phone values directly in the test database; no SMS provider or preseeded member accounts are needed.
 
 | Script | What it verifies |
 | --- | --- |
 | `test_audit_flow.py` | Comment / reply / nickname moderation flow end to end (API level) |
-| `test_course_flow.py` | Course module flows (two-phase; needs `daoyou1`/`daoyou2`/`testaudit` accounts) |
+| `test_course_flow.py` | Teacher/staff course ownership, transfers, Operator-only system information, role lifecycle and forced first password change |
 | `test_whisper_matrix.py` | Private-message permission matrix (phone binding required, peer-to-peer rules, first-message limits) |
+| `test_identity_ui.py` | Six groups, independent Teacher/Mentor switches, staff course entry, system information visibility and public badges at desktop/mobile widths |
 | `verify_sidebar_830.py` | No sidebar/content overlap at the 830px viewport breakpoint |
 | `measure_width.py` | Column layout at 7 viewports: 1920 / 1600 / 1366 / 1200 / 1000 / 821 / 375 |
 | `screenshot.py`, `screenshots_audit.py` | Page screenshots for manual visual comparison |

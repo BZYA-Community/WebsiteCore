@@ -15,10 +15,11 @@ import time
 import urllib.request
 
 from playwright.sync_api import sync_playwright
+from identity_test_client import Fixture
 
 BASE = "http://127.0.0.1:8008"
-POST_ID = 1080018050
-SHOTS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "shots")
+POST_ID = 0
+SHOTS = os.environ.get("E2E_SCREENSHOT_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "shots"))
 
 PASS = 0
 FAIL = 0
@@ -46,12 +47,6 @@ def call(method, path, token=None, body=None):
         return json.loads(resp.read().decode("utf-8"))
 
 
-def login(u):
-    r = call("POST", "/v1/auth/login", body={"username": u, "password": "Test1234!"})
-    assert r.get("code") == 0, "login %s failed: %s" % (u, r)
-    return r["data"]["token"]
-
-
 def shot(page, name):
     page.screenshot(path=os.path.join(SHOTS, name), full_page=True)
     print("  [shot] %s" % name)
@@ -59,8 +54,12 @@ def shot(page, name):
 
 def main():
     os.makedirs(SHOTS, exist_ok=True)
-    token_a = login("testaudit")
-    token_1 = login("daoyou1")
+    global POST_ID
+    fixture = Fixture()
+    auditor = fixture.user(auditor=True)
+    student = fixture.user()
+    token_a, token_1 = auditor["token"], student["token"]
+    POST_ID = fixture.data("POST", "/v1/post", fixture.operator, fixture.content("Audit screenshot fixture"))["id"]
 
     # 造数: 一条待审核评论 + 一个待审核昵称(队列截图内容)
     stamp = int(time.time()) % 10000
@@ -132,7 +131,7 @@ def main():
         page.wait_for_timeout(800)
         body = page.inner_text("body")
         check("昵称队列含待审核条目", ("昵称待审%d" % stamp) in body)
-        check("昵称队列含daoyou1", "daoyou1" in body)
+        check("昵称队列含学生账号", student["username"] in body)
         shot(page, "04-audit-nicknames.png")
         ctx.close()
 
@@ -141,10 +140,10 @@ def main():
         ctx = browser.new_context(viewport={"width": 1280, "height": 900}, locale="zh-CN")
         ctx.add_init_script("localStorage.setItem('PAOPAO_TOKEN','%s')" % token_a)
         page = ctx.new_page()
-        page.goto(BASE + "/#/u?s=daoyou1", wait_until="networkidle")
+        page.goto(BASE + "/#/u?s=" + student["username"], wait_until="networkidle")
         page.wait_for_timeout(800)
         body = page.inner_text("body")
-        check("用户主页展示daoyou1", "daoyou1" in body)
+        check("用户主页展示学生账号", student["username"] in body)
         shot(page, "05-user-profile.png")
         ctx.close()
 

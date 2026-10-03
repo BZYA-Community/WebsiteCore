@@ -44,7 +44,7 @@ Everyone — including maintainers — goes through PRs. **Direct pushes to `mai
 ```sh
 go build ./...           # syntax / compilation check — must be clean
 go vet ./...
-golangci-lint run ./...  # v1.64.8, same as CI
+golangci-lint run ./...  # v2.14.0, same as CI
 go test ./...
 ```
 
@@ -53,7 +53,7 @@ Additional checks when you touch the corresponding areas:
 | You changed... | Also run / verify |
 | --- | --- |
 | `mirc/` (API definitions) | `make gen-mir`, and confirm `auto/` contains no hand edits |
-| Database schema | Migration pair for **both** dialects under `scripts/migration/{postgres,mysql}/`, verified locally with a `migration`-tagged build (`make migrate`) |
+| Database schema | PostgreSQL migration pair under `scripts/migration/postgres/`, verified locally with a `migration`-tagged build (`make migrate`) and the database integration tests in `docs/development.md` |
 | Configuration keys | `internal/conf/config.yaml` (embedded) and `config.yaml.sample` updated together |
 | Behavior covered by E2E scripts | The relevant `scripts/test_*.py`, paste PASS/FAIL counts into the PR |
 

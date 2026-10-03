@@ -1,60 +1,98 @@
-# -*- coding: utf-8 -*-
-"""私信权限矩阵验证(本地测试环境专用).
+"""Issue #94 private-message API regression suite. See identity_test_client.py."""
+import concurrent.futures
+import secrets
+from identity_test_client import Fixture
 
-前置: 服务运行于 127.0.0.1:8008; daoyou1/daoyou2/testaudit 已绑定手机号(私信发送前提).
-规则: 未绑手机禁发; 道友互发禁止; 道友->有角色者首条限制(对方回复后解除且不限量); 有角色者不限量.
-"""
-import json, urllib.request, urllib.error
 
-BASE = "http://127.0.0.1:8008"
-PASS = FAIL = 0
-def check(name, cond, detail=""):
-    global PASS, FAIL
-    if cond: PASS += 1; print("  [PASS] %s" % name)
-    else: FAIL += 1; print("  [FAIL] %s  %s" % (name, detail))
+def main():
+    f = Fixture()
+    admin = f.admin()
+    student = f.user(auditor=True)
+    other = f.user()
+    teacher = f.user("teacher", mentor=True, auditor=True)
+    nop = f.user("teacher", phone=False)
+    mentor = f.user(mentor=True)
+    teacher_only = f.user("teacher")
 
-def call(method, path, token=None, body=None):
-    req = urllib.request.Request(BASE+path, method=method)
-    if token: req.add_header("Authorization", "Bearer "+token)
-    data = json.dumps(body).encode() if body is not None else None
-    if data: req.add_header("Content-Type", "application/json")
-    try:
-        with urllib.request.urlopen(req, data=data) as resp: return resp.status, json.loads(resp.read())
-    except urllib.error.HTTPError as e:
-        try: return e.code, json.loads(e.read())
-        except Exception: return e.code, {}
+    def send(a, b, code=0, label="message"):
+        return f.expect(label, "POST", "/v1/user/chat/send", a, {"user_id": b["id"], "content": secrets.token_hex(12)}, code)
 
-def login(u):
-    st, r = call("POST", "/v1/auth/login", body={"username": u, "password": "Test1234!"})
-    assert r.get("code") == 0, r
-    return r["data"]["token"]
+    send(student, other, 50011, "Student Auditor cannot contact Student")
+    send(student, admin, 50011, "Student cannot initiate Admin contact")
+    send(teacher_only, other, 50011, "Teacher cannot initiate plain Student contact")
+    send(teacher_only, admin, 50011, "Teacher cannot initiate Admin contact")
+    send(student, mentor, label="Student can contact independent Mentor")
+    send(mentor, student, label="independent Mentor can reply")
+    send(mentor, other, label="independent Mentor can initiate Student contact")
+    send(mentor, admin, label="independent Mentor can initiate Admin contact")
+    f.access(mentor, "teacher", mentor=True)
+    send(mentor, other, 50010, "adding Teacher preserves valid Mentor pending")
+    f.access(mentor, "teacher", mentor=False)
+    send(mentor, other, 50011, "removing Mentor cancels invalid outgoing pending")
+    send(other, mentor, label="Student can initiate to remaining Teacher")
+    f.access(mentor, "student", mentor=True)
+    send(mentor, other, label="removing Teacher retains independent Mentor reply")
+    send(mentor, other, label="independent Mentor established conversation")
+    f.access(mentor, "student")
+    send(mentor, other, 50011, "removing both abilities makes Student pair readonly")
+    send(student, teacher_only, label="Student can contact Teacher")
+    send(teacher_only, student, label="Teacher can reply to Student")
+    send(teacher_only, nop, label="Teacher inherits Student contact to Teacher")
+    send(teacher, nop, label="Teacher Mentor can contact unbound receiver")
+    send(teacher, nop, 50010, "Mentor has one pending limit")
+    send(nop, teacher, 50009, "receiver needs phone to reply")
+    f.phone(nop, True)
+    send(nop, teacher, label="reply establishes conversation")
+    send(teacher, nop, label="established send 1")
+    send(teacher, nop, label="established send 2")
+    send(teacher, admin, label="Teacher Mentor can request Admin")
+    send(teacher, admin, 50010, "Teacher Mentor to Admin pending limit")
+    send(admin, teacher, label="Admin reply")
+    send(admin, student, label="Admin initiates Student contact")
+    send(admin, student, label="Admin has no first-message limit")
+    send(student, admin, label="Student can reply after Admin contact")
+    f.expect("members cannot block Admin", "POST", "/v1/user/chat/block", student, {"user_id": admin["id"], "blocked": True}, 20007)
 
-u1, u2, auditor = login("daoyou1"), login("daoyou2"), login("testaudit")
+    def concurrent_send(i):
+        return f.call("POST", "/v1/user/chat/send", other, {"user_id": teacher["id"], "content": "concurrent-" + str(i)})["code"]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=12) as pool:
+        codes = list(pool.map(concurrent_send, range(12)))
+    f.check("concurrent distinct first messages commit exactly once", codes.count(0) == 1 and codes.count(50010) == 11)
+    history = f.data("GET", f"/v1/user/chat/history?user_id={teacher['id']}", other)
+    f.check("pending history exposes one message and read-only input", history["total_rows"] == 1 and not history["can_send"])
+    f.check("chat peer hides Auditor", history["peer"]["roles"] == [])
+    f.data("POST", "/v1/user/chat/block", teacher, {"user_id": other["id"], "blocked": True})
+    send(other, teacher, 50012, "block denies sender")
+    send(teacher, other, 50012, "block denies receiver")
+    f.data("POST", "/v1/user/chat/block", teacher, {"user_id": other["id"], "blocked": False})
+    send(other, teacher, label="unblock requires new request")
+    send(other, teacher, 50010, "cancelled request was not established")
+    send(teacher, other, label="new reply establishes")
+    f.data("POST", "/v1/user/chat/block", other, {"user_id": teacher["id"], "blocked": True})
+    f.data("POST", "/v1/user/chat/block", other, {"user_id": teacher["id"], "blocked": False})
+    send(other, teacher, label="unblock restores established 1")
+    send(other, teacher, label="unblock restores established 2")
+    f.access(teacher, "teacher", mentor=False)
+    f.access(teacher, "student")
+    send(other, teacher, 50011, "identity downgrade makes established readonly")
+    f.access(teacher, "teacher")
+    send(other, teacher, label="identity restore preserves established 1")
+    send(other, teacher, label="identity restore preserves established 2")
+    pending = f.user("teacher")
+    send(student, pending)
+    f.access(pending, "student")
+    f.access(pending, "teacher")
+    send(student, pending, label="invalid pending cancelled across identity change")
+    f.data("POST", "/v1/admin/user/status", f.operator, {"id": pending["id"], "status": 2})
+    send(student, pending, 50011, "member cannot contact banned receiver")
+    send(admin, pending, label="Admin can contact banned receiver")
+    f.data("POST", "/v1/admin/user/status", f.operator, {"id": pending["id"], "status": 1})
+    send(student, pending, label="ban cancels pending before restoration")
+    f.phone(admin, False)
+    send(admin, student, 50009, "Admin also needs sender phone")
+    f.expect("system notifications remain readonly", "POST", "/v1/user/chat/send", student, {"user_id": 0, "content": "test"}, 50007)
+    return f.finish()
 
-print("== 0. 好友API已移除 ==")
-st, r = call("GET", "/v1/user/contacts?page=1&page_size=5", u1)
-check("GET /v1/user/contacts 404", st == 404, "%s %s" % (st, r))
-st, r = call("POST", "/v1/friend/requesting", u1, {"user_id": 13, "greetings": "hi"})
-check("POST /v1/friend/requesting 404", st == 404, "%s %s" % (st, r))
 
-print("== 1. 私信权限矩阵 ==")
-st, r = call("POST", "/v1/user/chat/send", u1, {"user_id": 13, "content": "道友间私信测试A"})
-check("道友→道友 被拒", r.get("code") != 0, r)
-st, r = call("POST", "/v1/user/chat/send", u1, {"user_id": 12, "content": "首条私信-请教问题"})
-check("道友→审核员 首条成功", r.get("code") == 0, r)
-st, r = call("POST", "/v1/user/chat/send", u1, {"user_id": 12, "content": "第二条-未获回复前"})
-check("道友→审核员 未回复前第二条被拒", r.get("code") != 0, r)
-st, r = call("POST", "/v1/user/chat/send", auditor, {"user_id": 11, "content": "审核员回复: 可以的"})
-check("审核员→道友 回复成功", r.get("code") == 0, r)
-ok3 = True
-for i in range(3):
-    st, r = call("POST", "/v1/user/chat/send", u1, {"user_id": 12, "content": "回复后连发%d" % (i+1)})
-    ok3 = ok3 and r.get("code") == 0
-check("道友获回复后连发3条全部成功(无日限)", ok3)
-ok3 = True
-for i in range(3):
-    st, r = call("POST", "/v1/user/chat/send", auditor, {"user_id": 13, "content": "高级身份连发%d" % (i+1)})
-    ok3 = ok3 and r.get("code") == 0
-check("审核员连发3条全部成功(不限量)", ok3)
-
-print("\nPASS=%d FAIL=%d" % (PASS, FAIL))
+if __name__ == "__main__":
+    raise SystemExit(main())

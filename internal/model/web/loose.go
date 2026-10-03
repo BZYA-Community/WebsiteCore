@@ -84,19 +84,20 @@ type GetUserProfileReq struct {
 }
 
 type GetUserProfileResp struct {
-	ID          int64    `json:"id"`
-	Nickname    string   `json:"nickname"`
-	Username    string   `json:"username"`
-	Status      int      `json:"status"`
-	Avatar      string   `json:"avatar"`
-	IsAdmin     bool     `json:"is_admin"`
-	Roles       []string `json:"roles"`
-	Identity    string   `json:"identity"`
-	IsFollowing bool     `json:"is_following"`
-	CreatedOn   int64    `json:"created_on"`
-	Follows     int64    `json:"follows"`
-	Followings  int64    `json:"followings"`
-	TweetsCount int      `json:"tweets_count"`
+	ID       int64  `json:"id"`
+	Nickname string `json:"nickname"`
+	Username string `json:"username"`
+	Status   int    `json:"status"`
+	Avatar   string `json:"avatar"`
+
+	Roles          []string `json:"roles"`
+	MemberIdentity *string  `json:"member_identity"`
+	IsMentor       bool     `json:"is_mentor"`
+	IsFollowing    bool     `json:"is_following"`
+	CreatedOn      int64    `json:"created_on"`
+	Follows        int64    `json:"follows"`
+	Followings     int64    `json:"followings"`
+	TweetsCount    int      `json:"tweets_count"`
 }
 
 type TopicListReq struct {

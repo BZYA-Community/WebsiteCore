@@ -157,7 +157,7 @@ Audit:
   Enabled: true   # defaults to true when the section is absent
 ```
 
-When enabled, posts/comments/replies/nickname changes from regular users enter a moderation queue and become public only after approval; users with the Mentor role or above are exempt. Every decision is written to an audit log. Editable live from the admin UI (audit group). For a youth-oriented community this should stay enabled.
+When enabled, public posts/comments/replies and nickname/avatar changes from all non-management members (including Teachers, Mentors and Auditors) enter a moderation queue and become public only after approval. Only Admins and the Operator are exempt. Course videos do not require review; course comments remain moderated UGC. Every decision is written to an audit log. Editable live from the admin UI (audit group). For a youth-oriented community this should stay enabled.
 
 ### Bootstrap operator account (`Operator`)
 

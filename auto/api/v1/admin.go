@@ -43,6 +43,8 @@ type Admin interface {
 	GetSiteSettings() (*web.SiteSettingsResp, error)
 	SiteInfo(*web.SiteInfoReq) (*web.SiteInfoResp, error)
 	ChangeUserStatus(*web.ChangeUserStatusReq) error
+	CreateAdmin(*web.CreateAdminReq) (*web.RegisterResp, error)
+	ChangeMemberAccess(*web.MemberAccessReq) error
 
 	mustEmbedUnimplementedAdminServant()
 }
@@ -208,6 +210,33 @@ func RegisterAdminServant(e *gin.Engine, s Admin) {
 		}
 		s.Render(c, nil, s.ChangeUserStatus(req))
 	})
+	router.Handle("POST", "admin/accounts", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.CreateAdminReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.CreateAdmin(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("POST", "admin/user/access", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.MemberAccessReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		s.Render(c, nil, s.ChangeMemberAccess(req))
+	})
 }
 
 // UnimplementedAdminServant can be embedded to have forward compatible implementations.
@@ -262,6 +291,14 @@ func (UnimplementedAdminServant) SiteInfo(req *web.SiteInfoReq) (*web.SiteInfoRe
 }
 
 func (UnimplementedAdminServant) ChangeUserStatus(req *web.ChangeUserStatusReq) error {
+	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAdminServant) CreateAdmin(req *web.CreateAdminReq) (*web.RegisterResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAdminServant) ChangeMemberAccess(req *web.MemberAccessReq) error {
 	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

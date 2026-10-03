@@ -80,7 +80,7 @@
                     </n-popconfirm>
                     <n-popconfirm
                         v-if="
-                            userInfo.is_admin ||
+                            isAdmin(userInfo) ||
                             userInfo.id === comment.user.id
                         "
                         :negative-text="t('common.cancel')"
@@ -145,6 +145,7 @@
 </template>
 
 <script setup lang="ts">
+import { isAdmin } from "@/utils/identity";
 import { ref, computed } from 'vue';
 import { useStoreMain } from '@/store/main';
 import { useStoreUser } from '@/store/user';

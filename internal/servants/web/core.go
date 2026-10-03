@@ -42,7 +42,7 @@ func (s *coreSrv) Chain() gin.HandlersChain {
 }
 
 func (s *coreSrv) SyncSearchIndex(req *web.SyncSearchIndexReq) error {
-	if req.User != nil && req.User.IsAdmin {
+	if req.User != nil && req.User.IsAdminLevel() {
 		s.PushAllPostToSearch()
 	} else {
 		logrus.Warnf("sync search index need admin permision user: %#v", req.User)
@@ -61,18 +61,20 @@ func (s *coreSrv) GetUserInfo(req *web.UserInfoReq) (*web.UserInfoResp, error) {
 		return nil, web.ErrGetFollowCountFailed
 	}
 	resp := &web.UserInfoResp{
-		Id:          user.ID,
-		Nickname:    user.Nickname,
-		Username:    user.Username,
-		Status:      user.Status,
-		Avatar:      user.Avatar,
-		IsAdmin:     user.IsAdmin,
-		Roles:       dbr.SplitRoles(user.Roles),
-		Identity:    dbr.IdentityOf(user.Roles, user.Phone),
-		CreatedOn:   user.CreatedOn,
-		Follows:     follows,
-		Followings:  followings,
-		TweetsCount: user.TweetsCount,
+		Id:                 user.ID,
+		MustChangePassword: req.User.MustChangePassword,
+		Nickname:           user.Nickname,
+		Username:           user.Username,
+		Status:             user.Status,
+		Avatar:             user.Avatar,
+
+		Roles:          dbr.SplitRoles(user.Roles),
+		MemberIdentity: user.MemberIdentity,
+		IsMentor:       user.IsMentor,
+		CreatedOn:      user.CreatedOn,
+		Follows:        follows,
+		Followings:     followings,
+		TweetsCount:    user.TweetsCount,
 	}
 	if user.Phone != "" {
 		resp.Phone = dbr.MaskPhone(user.Phone)
@@ -226,7 +228,7 @@ func (s *coreSrv) UserPhoneBind(req *web.UserPhoneBindReq) error {
 	// 执行绑定
 	user := req.User
 	user.Phone = req.Phone
-	if err := s.Ds.UpdateUser(user); err != nil {
+	if err := s.Ds.UpdateUser(user, "phone"); err != nil {
 		// TODO: 优化错误处理逻辑，失败后上面的逻辑也应该回退
 		logrus.Errorf("Ds.UpdateUser err: %s", err)
 		return xerror.ServerError
@@ -269,8 +271,12 @@ func (s *coreSrv) ChangePassword(req *web.ChangePasswordReq) error {
 		return web.ErrErrorOldPassword
 	}
 	// 更新入库
+	if validPassword(user.Password, req.Password) {
+		return xerror.InvalidParams.WithDetails("新密码不能与旧密码相同")
+	}
+	user.MustChangePassword = false
 	user.Password, user.Salt = encryptPasswordAndSalt(req.Password)
-	if err := s.Ds.UpdateUser(user); err != nil {
+	if err := s.Ds.UpdateUser(user, "password", "salt", "must_change_password"); err != nil {
 		logrus.Errorf("Ds.UpdateUser err: %s", err)
 		return xerror.ServerError
 	}
@@ -308,10 +314,10 @@ func (s *coreSrv) ChangeNickname(req *web.ChangeNicknameReq) error {
 		return web.ErrNicknameLengthLimit
 	}
 	user := req.User
-	// 审核开关: 无管理角色的用户昵称变更先暂存 待审核通过后生效(见auditSrv)
-	if conf.AuditSetting.Enabled && !user.HasAnyRole() {
+	// 审核开关: Student昵称变更先暂存 待审核通过后生效(见auditSrv)
+	if conf.AuditSetting.Enabled && !user.CanPublishDirectly() {
 		user.PendingNickname = req.Nickname
-		if err := s.Ds.UpdateUser(user); err != nil {
+		if err := s.Ds.UpdateUser(user, "pending_nickname"); err != nil {
 			logrus.Errorf("Ds.UpdateUser err: %s", err)
 			return xerror.ServerError
 		}
@@ -320,7 +326,7 @@ func (s *coreSrv) ChangeNickname(req *web.ChangeNicknameReq) error {
 		return nil
 	}
 	user.Nickname = req.Nickname
-	if err := s.Ds.UpdateUser(user); err != nil {
+	if err := s.Ds.UpdateUser(user, "nickname"); err != nil {
 		logrus.Errorf("Ds.UpdateUser err: %s", err)
 		return xerror.ServerError
 	}
@@ -348,10 +354,10 @@ func (s *coreSrv) ChangeAvatar(req *web.ChangeAvatarReq) (resp *web.ChangeAvatar
 		return resp, xerror.ServerError
 	}
 	user := req.User
-	// 审核开关: 无管理角色的用户头像变更先暂存 待审核通过后生效(见auditSrv)
-	if conf.AuditSetting.Enabled && !user.HasAnyRole() {
+	// 审核开关: Student头像变更先暂存 待审核通过后生效(见auditSrv)
+	if conf.AuditSetting.Enabled && !user.CanPublishDirectly() {
 		user.PendingAvatar = req.Avatar
-		if err := s.Ds.UpdateUser(user); err != nil {
+		if err := s.Ds.UpdateUser(user, "pending_avatar"); err != nil {
 			logrus.Errorf("Ds.UpdateUser failed: %s", err)
 			return resp, xerror.ServerError
 		}
@@ -361,7 +367,7 @@ func (s *coreSrv) ChangeAvatar(req *web.ChangeAvatarReq) (resp *web.ChangeAvatar
 	}
 	oldAvatar := user.Avatar
 	user.Avatar = req.Avatar
-	if err := s.Ds.UpdateUser(user); err != nil {
+	if err := s.Ds.UpdateUser(user, "avatar"); err != nil {
 		logrus.Errorf("Ds.UpdateUser failed: %s", err)
 		return resp, xerror.ServerError
 	}

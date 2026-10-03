@@ -112,7 +112,7 @@ const actionOpts = computed(() => {
   let options: DropdownOption[] = [];
 
   // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
-  if (canWhisperUser({ roles: props.contact.roles })) {
+  if (canWhisperUser(props.contact)) {
     options.push({
       label: t('user.actionWhisper', { username: props.contact.username }),
       key: 'whisper',
@@ -149,14 +149,15 @@ const handleAction = (item: 'follow' | 'unfollow' | 'whisper') => {
         avatar: props.contact.avatar,
         username: props.contact.username,
         nickname: props.contact.nickname,
-        is_admin: false,
+
         is_following: false,
         created_on: 0,
         follows: 0,
         followings: 0,
         status: 1,
         roles: props.contact.roles || [],
-        identity: props.contact.identity || '',
+        member_identity: props.contact.member_identity ?? null,
+        is_mentor: !!props.contact.is_mentor,
       };
       emit('send-whisper', user);
       break;

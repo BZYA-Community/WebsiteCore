@@ -32,7 +32,7 @@ func (s *shipIndexSrv) IndexPosts(user *ms.User, offset int, limit int) (*ms.Ind
 	}
 	if user == nil {
 		predicates["visibility = ?"] = []any{dbr.PostVisitPublic}
-	} else if !user.IsAdmin {
+	} else if !user.IsAdminLevel() {
 		// 好友功能已移除: 好友可见与私密帖统一仅作者本人可见
 		args := []any{dbr.PostVisitPublic, dbr.PostVisitPrivate, dbr.PostVisitFriend, user.ID}
 		predicates["visibility = ? OR (visibility IN ? AND user_id = ?)"] = args

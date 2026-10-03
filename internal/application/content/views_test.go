@@ -48,9 +48,9 @@ func TestReadPolicyAcrossRepresentations(t *testing.T) {
 		{"public guest", nil, ms.PostVisitPublic, ms.PostAuditApproved, true},
 		{"pending guest", nil, ms.PostVisitPublic, ms.PostAuditPending, false},
 		{"pending author", user(10, ""), ms.PostVisitPrivate, ms.PostAuditPending, true},
-		{"pending admin", &ms.User{Model: &ms.Model{ID: 20}, IsAdmin: true}, ms.PostVisitPrivate, ms.PostAuditPending, true},
+		{"pending admin", &ms.User{Model: &ms.Model{ID: 20}, Roles: ms.RoleAdmin, Status: ms.UserStatusNormal}, ms.PostVisitPrivate, ms.PostAuditPending, true},
 		{"pending auditor", user(20, ms.RoleAuditor), ms.PostVisitPrivate, ms.PostAuditPending, true},
-		{"mentor private", user(20, ms.RoleMentor), ms.PostVisitPrivate, ms.PostAuditApproved, false},
+		{"teacher private", &ms.User{Model: &ms.Model{ID: 20}, MemberIdentity: ms.Identity(ms.MemberTeacher), IsMentor: true}, ms.PostVisitPrivate, ms.PostAuditApproved, false},
 		{"following guest", nil, ms.PostVisitFollowing, ms.PostAuditApproved, false},
 		{"following user", user(20, ""), ms.PostVisitFollowing, ms.PostAuditApproved, true},
 		{"legacy friend", user(20, ""), ms.PostVisitFriend, ms.PostAuditApproved, false},
@@ -128,7 +128,7 @@ func TestProfileRelationUsesAuthenticatedIdentity(t *testing.T) {
 	}{
 		{self, "me", cs.RelationSelf},
 		{nil, "me", cs.RelationGuest},
-		{&ms.User{Model: &ms.Model{ID: 20}, Username: "admin", IsAdmin: true}, "me", cs.RelationAdmin},
+		{&ms.User{Model: &ms.Model{ID: 20}, Username: "admin", Roles: ms.RoleAdmin, Status: ms.UserStatusNormal}, "me", cs.RelationAdmin},
 		{user(20, ""), "me", cs.RelationGuest},
 	} {
 		got, err := views.RelationTypFrom(tc.viewer, tc.name)

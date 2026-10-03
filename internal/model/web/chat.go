@@ -15,16 +15,17 @@ type GetChatContactsReq struct {
 
 // ChatContactItem 会话条目(user_id=0 为系统联系人)
 type ChatContactItem struct {
-	UserID      int64    `json:"user_id"`
-	Username    string   `json:"username"`
-	Nickname    string   `json:"nickname"`
-	Avatar      string   `json:"avatar"`
-	Roles       []string `json:"roles"`
-	Identity    string   `json:"identity"`
-	LastContent string   `json:"last_content"`
-	LastTime    int64    `json:"last_time"`
-	LastFromMe  bool     `json:"last_from_me"`
-	Unread      int64    `json:"unread"`
+	UserID         int64    `json:"user_id"`
+	Username       string   `json:"username"`
+	Nickname       string   `json:"nickname"`
+	Avatar         string   `json:"avatar"`
+	Roles          []string `json:"roles"`
+	MemberIdentity *string  `json:"member_identity"`
+	IsMentor       bool     `json:"is_mentor"`
+	LastContent    string   `json:"last_content"`
+	LastTime       int64    `json:"last_time"`
+	LastFromMe     bool     `json:"last_from_me"`
+	Unread         int64    `json:"unread"`
 }
 
 type GetChatContactsResp struct {
@@ -56,11 +57,15 @@ type ChatHistoryItem struct {
 }
 
 type GetChatHistoryResp struct {
-	Messages   []ChatHistoryItem `json:"messages"`
-	Peer       *ChatContactItem  `json:"peer,omitempty"`
-	CanSend    bool              `json:"can_send"`
-	CanSendTip string            `json:"can_send_tip"`
-	TotalRows  int64             `json:"total_rows"`
+	CanBlock    bool              `json:"can_block"`
+	Blocked     bool              `json:"blocked"`
+	BlockedByMe bool              `json:"blocked_by_me"`
+	Messages    []ChatHistoryItem `json:"messages"`
+	Peer        *ChatContactItem  `json:"peer,omitempty"`
+	CanSend     bool              `json:"can_send"`
+	CanSendTip  string            `json:"can_send_tip"`
+	CanSendCode int               `json:"can_send_code"`
+	TotalRows   int64             `json:"total_rows"`
 }
 
 // SendChatMessageReq 发送私信(user_id=0 系统会话会返回只读错误, 故不加 required)
@@ -72,4 +77,10 @@ type SendChatMessageReq struct {
 
 type SendChatMessageResp struct {
 	MessageID int64 `json:"message_id"`
+}
+
+type WhisperBlockReq struct {
+	BaseInfo `json:"-" binding:"-"`
+	UserID   int64 `json:"user_id" binding:"required"`
+	Blocked  bool  `json:"blocked"`
 }

@@ -61,6 +61,7 @@
 </template>
 
 <script setup lang="ts">
+import { isAdmin } from "@/utils/identity";
 import { h, ref, watch, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
@@ -183,7 +184,7 @@ const menuOptions = computed(() => {
     icon: () => h(SettingsOutline),
     href: '/setting',
   });
-  if (userInfo.value.is_admin) {
+  if (isAdmin(userInfo.value)) {
     options.push({
       label: t('nav.adminSettings'),
       key: 'admin-settings',
@@ -197,7 +198,7 @@ const menuOptions = computed(() => {
       href: '/admin/users',
     });
   }
-  if (userInfo.value.is_admin || userInfo.value.roles?.includes('auditor')) {
+  if (isAdmin(userInfo.value) || userInfo.value.roles?.includes('auditor')) {
     options.push({
       label: t('nav.adminAudit'),
       key: 'admin-audit',

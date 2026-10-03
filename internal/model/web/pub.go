@@ -21,7 +21,8 @@ type LoginReq struct {
 }
 
 type LoginResp struct {
-	Token string `json:"token"`
+	Token              string `json:"token"`
+	MustChangePassword bool   `json:"must_change_password"`
 }
 
 type RegisterReq struct {

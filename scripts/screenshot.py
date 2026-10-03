@@ -1,34 +1,26 @@
-# -*- coding: utf-8 -*-
-"""桌面端页面截图: 首页/长文编辑页/帖子详情(MD帖)"""
-import sys
-from playwright.sync_api import sync_playwright
-
+"""Capture key identity pages on a disposable local instance (see development.md)."""
 import os
+from pathlib import Path
+from playwright.sync_api import expect, sync_playwright
+from verify_sidebar_830 import BASE, login
 
-BASE = 'http://127.0.0.1:8008'
-OUT = 'E:/Forum/paopao-ce/scripts/shots'
-TOKEN = os.environ.get('PAOPAO_TOKEN', '')
-
-PAGES = [
-    ('home.png', f'{BASE}/#/', None),
-    ('compose-md.png', f'{BASE}/#/compose-md', TOKEN),
-    ('post-md.png', f'{BASE}/#/post?id=1080018043', None),
-]
-
+OUT = Path(os.environ.get("E2E_SCREENSHOT_DIR", Path(__file__).parent / "shots"))
+OUT.mkdir(parents=True, exist_ok=True)
+PAGES = [("home", "/"), ("courses", "/courses"), ("users", "/admin/users"),
+         ("audit", "/admin/audit"), ("messages", "/messages")]
+token = login(os.environ["E2E_OPERATOR_USERNAME"])
 with sync_playwright() as p:
     browser = p.chromium.launch()
-    for name, url, token in PAGES:
-        ctx = browser.new_context(viewport={'width': 1600, 'height': 1000})
-        if token:
-            ctx.add_init_script(f"localStorage.setItem('PAOPAO_TOKEN', '{token}')")
-        page = ctx.new_page()
-        try:
-            page.goto(url, wait_until='networkidle', timeout=30000)
-        except Exception:
-            pass  # networkidle 超时也继续截已渲染内容
-        page.wait_for_timeout(1500)
-        page.screenshot(path=f'{OUT}/{name}', full_page=False)
-        print(f'saved {name}')
-        ctx.close()
+    for width in (1600, 375):
+        context = browser.new_context(viewport={"width": width, "height": 900}, locale="zh-CN")
+        context.add_init_script("localStorage.setItem('PAOPAO_TOKEN', %s)" % __import__("json").dumps(token))
+        page = context.new_page()
+        for name, path in PAGES:
+            page.goto(BASE + "/#" + path, wait_until="networkidle")
+            page.locator(".content-wrap").wait_for()
+            expect(page.locator(".n-spin-content--spinning")).to_have_count(0)
+            page.screenshot(path=str(OUT / f"{name}-{width}.png"), animations="disabled")
+            print(f"saved {name}-{width}.png")
+        context.close()
     browser.close()
-print('done')
+print("RESULT: 10 screenshots saved")

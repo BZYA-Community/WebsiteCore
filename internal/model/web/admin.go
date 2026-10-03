@@ -15,7 +15,7 @@ type ChangeUserStatusReq struct {
 }
 
 type SiteInfoReq struct {
-	SimpleInfo `json:"-" binding:"-"`
+	BaseInfo `json:"-" binding:"-"`
 }
 
 type SiteInfoResp struct {
@@ -39,15 +39,17 @@ func (r *AdminUserListReq) SetPageInfo(page, pageSize int) {
 
 // AdminUserItem 用户列表条目(手机号脱敏显示)
 type AdminUserItem struct {
-	ID        int64    `json:"id"`
-	Nickname  string   `json:"nickname"`
-	Username  string   `json:"username"`
-	Phone     string   `json:"phone"`
-	Roles     []string `json:"roles"`
-	Identity  string   `json:"identity"`
-	Status    int      `json:"status"`
-	IsAdmin   bool     `json:"is_admin"`
-	CreatedOn int64    `json:"created_on"`
+	ID             int64    `json:"id"`
+	Nickname       string   `json:"nickname"`
+	Username       string   `json:"username"`
+	Phone          string   `json:"phone"`
+	Roles          []string `json:"roles"`
+	AccountType    string   `json:"account_type"`
+	MemberIdentity *string  `json:"member_identity"`
+	IsMentor       bool     `json:"is_mentor"`
+	Status         int      `json:"status"`
+
+	CreatedOn int64 `json:"created_on"`
 }
 
 type AdminUserListResp joint.PageResp
@@ -60,15 +62,17 @@ type AdminUserDetailReq struct {
 
 // AdminUserDetailResp 用户详情(管理级可见完整手机号)
 type AdminUserDetailResp struct {
-	ID        int64    `json:"id"`
-	Nickname  string   `json:"nickname"`
-	Username  string   `json:"username"`
-	Phone     string   `json:"phone"`
-	Roles     []string `json:"roles"`
-	Identity  string   `json:"identity"`
-	Status    int      `json:"status"`
-	IsAdmin   bool     `json:"is_admin"`
-	CreatedOn int64    `json:"created_on"`
+	ID             int64    `json:"id"`
+	Nickname       string   `json:"nickname"`
+	Username       string   `json:"username"`
+	Phone          string   `json:"phone"`
+	Roles          []string `json:"roles"`
+	AccountType    string   `json:"account_type"`
+	MemberIdentity *string  `json:"member_identity"`
+	IsMentor       bool     `json:"is_mentor"`
+	Status         int      `json:"status"`
+
+	CreatedOn int64 `json:"created_on"`
 }
 
 // AdminUserRoleReq 用户管理·变更用户角色

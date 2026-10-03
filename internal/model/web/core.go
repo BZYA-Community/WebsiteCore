@@ -35,19 +35,21 @@ type UserInfoReq struct {
 }
 
 type UserInfoResp struct {
-	Id          int64    `json:"id"`
-	Nickname    string   `json:"nickname"`
-	Username    string   `json:"username"`
-	Status      int      `json:"status"`
-	Avatar      string   `json:"avatar"`
-	Phone       string   `json:"phone"`
-	IsAdmin     bool     `json:"is_admin"`
-	Roles       []string `json:"roles"`
-	Identity    string   `json:"identity"`
-	CreatedOn   int64    `json:"created_on"`
-	Follows     int64    `json:"follows"`
-	Followings  int64    `json:"followings"`
-	TweetsCount int      `json:"tweets_count"`
+	MustChangePassword bool   `json:"must_change_password"`
+	Id                 int64  `json:"id"`
+	Nickname           string `json:"nickname"`
+	Username           string `json:"username"`
+	Status             int    `json:"status"`
+	Avatar             string `json:"avatar"`
+	Phone              string `json:"phone"`
+
+	Roles          []string `json:"roles"`
+	MemberIdentity *string  `json:"member_identity"`
+	IsMentor       bool     `json:"is_mentor"`
+	CreatedOn      int64    `json:"created_on"`
+	Follows        int64    `json:"follows"`
+	Followings     int64    `json:"followings"`
+	TweetsCount    int      `json:"tweets_count"`
 }
 
 type GetMessagesReq struct {
@@ -136,6 +138,10 @@ func (r *UserInfoReq) Bind(c *gin.Context) error {
 		return xerror.UnauthorizedAuthNotExist
 	}
 	r.Username = username
+	r.User, exist = httpx.UserFrom(c)
+	if !exist {
+		return xerror.UnauthorizedAuthNotExist
+	}
 	return nil
 }
 

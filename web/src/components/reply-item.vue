@@ -40,7 +40,7 @@
             <div class="timestamp">
                 {{ props.reply.ip_loc }}
                 <n-popconfirm v-if="
-                    userInfo.is_admin ||
+                    isAdmin(userInfo) ||
                     userInfo.id === props.reply.user.id
                 " :negative-text="t('common.cancel')" :positive-text="t('common.confirm')" @positive-click="execDelAction">
                     <template #trigger>
@@ -101,6 +101,7 @@
 </template>
 
 <script setup lang="ts">
+import { isAdmin } from "@/utils/identity";
 import { ref } from 'vue';
 import { useStoreMain } from '@/store/main';
 import { Trash } from '@vicons/tabler';

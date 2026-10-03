@@ -16,7 +16,7 @@
 - [ ] `golangci-lint run ./...` clean
 - [ ] `go test ./...` all green
 - [ ] Touched `mirc/`: ran `make gen-mir`, no hand edits in `auto/`
-- [ ] Touched schema: migration pair in **both** `scripts/migration/{postgres,mysql}/`, verified with a `migration`-tagged build
+- [ ] Touched schema: PostgreSQL migration pair in `scripts/migration/postgres/`, verified with a `migration`-tagged build
 - [ ] Touched config: `internal/conf/config.yaml` and `config.yaml.sample` updated together
 - [ ] No build artifacts committed
 
@@ -34,7 +34,7 @@
 <!-- Paste the summary/count lines from each script's output. Explain anything not run. -->
 
 - [ ] `scripts/test_audit_flow.py`: PASS=__ FAIL=__
-- [ ] `scripts/test_course_flow.py` (two-phase): PASS=__ FAIL=__
+- [ ] `scripts/test_course_flow.py`: PASS=__ FAIL=__
 - [ ] `scripts/test_whisper_matrix.py`: PASS=__ FAIL=__
 
 ## Impact

@@ -3,6 +3,13 @@
         <main-nav :title="t('adminUsers.pageTitle')" />
 
         <n-card :title="t('adminUsers.pageTitle')" size="small" class="setting-card">
+            <n-space size="small" class="permission-groups">
+                <n-popover v-for="group in permissionGroups" :key="group" trigger="hover">
+                    <template #trigger><n-tag round size="small">{{ t(`user.identity.${group}`) }}</n-tag></template>
+                    {{ t(`adminUsers.permissions.${group}`) }}
+                </n-popover>
+            </n-space>
+            <p class="role-tip">{{ t('adminUsers.permissions.summary') }}</p>
             <n-spin :show="loading">
                 <div class="toolbar">
                     <n-input
@@ -21,6 +28,7 @@
                     >
                         {{ t('common.search') }}
                     </n-button>
+                    <n-button v-if="selfIsOperator()" @click="adminModal = true">{{ t('adminUsers.createAdmin') }}</n-button>
                 </div>
 
                 <n-data-table
@@ -37,7 +45,7 @@
             </n-spin>
         </n-card>
 
-        <n-drawer v-model:show="detailShow" :width="460" placement="right">
+        <n-drawer v-model:show="detailShow" width="min(460px, 100vw)" placement="right">
             <n-drawer-content :title="detailTitle" closable>
                 <n-spin :show="detailLoading">
                     <n-space vertical size="large">
@@ -63,9 +71,9 @@
                                 <n-tag
                                     round
                                     size="small"
-                                    :type="identityTagType(detail.identity)"
+                                    :type="identityTagType(detail)"
                                 >
-                                    {{ identityLabel(detail.identity) }}
+                                    {{ identityLabel(detail, true) }}
                                 </n-tag>
                             </n-descriptions-item>
                             <n-descriptions-item :label="t('adminUsers.drawer.labelStatus')">
@@ -87,6 +95,19 @@
                             <div class="role-tip">
                                 {{ t('adminUsers.drawer.roleTip') }}
                             </div>
+                            <n-form v-if="detail.account_type === 'member'" label-placement="top">
+                                <n-form-item :label="t('user.identity.teacher')">
+                                    <n-switch v-model:value="teacherAccess" />
+                                </n-form-item>
+                                <n-form-item :label="t('user.identity.mentor')">
+                                    <n-switch v-model:value="access.is_mentor" />
+                                </n-form-item>
+                                <n-form-item :label="t('adminUsers.role.auditor')">
+                                    <n-switch v-model:value="access.is_auditor" />
+                                </n-form-item>
+                                <n-button type="primary" :loading="roleChanging" @click="saveAccess">{{ t('common.save') }}</n-button>
+                            </n-form>
+                            <n-alert v-else type="info" :show-icon="false">{{ t('adminUsers.permissions.dedicated') }}</n-alert>
                             <n-space vertical size="small" class="role-list">
                                 <div
                                     v-for="role in manageableRoles(detail)"
@@ -154,10 +175,19 @@
                 </n-spin>
             </n-drawer-content>
         </n-drawer>
+        <n-modal v-model:show="adminModal" preset="card" :title="t('adminUsers.createAdmin')" style="width: min(440px, 94vw)">
+            <n-form>
+                <n-form-item :label="t('adminUsers.table.username')"><n-input v-model:value="adminForm.username" /></n-form-item>
+                <n-form-item :label="t('adminUsers.temporaryPassword')"><n-input v-model:value="adminForm.temporary_password" type="password" autocomplete="new-password" /></n-form-item>
+                <n-alert type="info">{{ t('adminUsers.temporaryPasswordTip') }}</n-alert>
+            </n-form>
+            <template #footer><n-button type="primary" :loading="adminSaving" @click="createAdminAccount">{{ t('common.confirm') }}</n-button></template>
+        </n-modal>
     </div>
 </template>
 
 <script setup lang="ts">
+import { isAdmin } from "@/utils/identity";
 import { computed, h, onMounted, reactive, ref } from 'vue';
 import type { Component } from 'vue';
 import { storeToRefs } from 'pinia';
@@ -167,7 +197,7 @@ import { NButton, NSpace, NTag, useDialog } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import { userInfo as fetchUserInfo } from '@/api/auth';
 import { formatTime } from '@/utils/formatTime';
-import { identityTagType, identityLabel } from '@/utils/identity';
+import { identityTagType, identityLabel, identityLabels } from '@/utils/identity';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { Api } from '@/utils/request';
@@ -192,7 +222,7 @@ const detailShow = ref(false);
 const detail = ref<Partial<UserItem>>({});
 const roleLogItems = ref<RoleLogItem[]>([]);
 
-const allRoles = ['mentor', 'auditor', 'admin', 'operator'] as const;
+
 
 const userPagination = reactive({
     page: 1,
@@ -215,7 +245,6 @@ const roleLogPagination = reactive({
 });
 
 const roleNameMap = computed<Record<string, string>>(() => ({
-    mentor: t('adminUsers.role.mentor'),
     auditor: t('adminUsers.role.auditor'),
     admin: t('adminUsers.role.admin'),
     operator: t('adminUsers.role.operator'),
@@ -225,27 +254,48 @@ const roleName = (role: string) => roleNameMap.value[role] ?? role;
 
 const detailTitle = ref(t('adminUsers.detailTitle', { name: '' }));
 
-// 运维账号在服务端享有全部角色管理权限，前端按同一规则禁用按钮
+// Only the Operator creates, disables, restores or revokes Admin accounts.
 const selfIsOperator = () =>
     (userInfo.value.roles || []).includes('operator');
 
-const manageableRoles = (row: Partial<UserItem>) => {
-    // 非运维不展示运维角色入口
-    if (!selfIsOperator()) {
-        return allRoles.filter((role) => role !== 'operator');
-    }
-    return allRoles;
-};
+const manageableRoles = (row: Partial<UserItem>) =>
+    selfIsOperator() && row.account_type === 'admin' && row.id !== userInfo.value.id && row.roles?.includes('admin') ? ['admin'] : [];
+const canManageRole = (row: Partial<UserItem>, role: string) =>
+    selfIsOperator() && row.id !== userInfo.value.id && row.account_type === 'admin' && role === 'admin';
 
-const canManageRole = (row: Partial<UserItem>, role: string) => {
-    if (row.id === userInfo.value.id) {
-        // 不允许改动自己的角色，避免误操作锁死管理入口
-        return false;
-    }
-    if (selfIsOperator()) {
-        return true;
-    }
-    return role !== 'operator' && !(row.roles || []).includes('operator');
+const access = reactive({ member_identity: 'student' as 'student' | 'teacher', is_mentor: false, is_auditor: false });
+const permissionGroups = ['operator', 'admin', 'auditor', 'teacher', 'mentor', 'student'];
+const teacherAccess = computed({
+    get: () => access.member_identity === 'teacher',
+    set: (enabled: boolean) => { access.member_identity = enabled ? 'teacher' : 'student'; },
+});
+const saveAccess = async () => {
+    if (!detail.value.id) return;
+    roleChanging.value = true;
+    try {
+        await Api.v1.admin.post.user.access({ user_id: detail.value.id, ...access });
+        await loadDetail(detail.value.id);
+        await loadUsers();
+        await loadRoleLogs();
+        window.$message.success(t('adminUsers.dialog.roleUpdated'));
+    } catch (_err) {
+        // Errors are displayed by the request interceptor.
+    } finally { roleChanging.value = false; }
+};
+const adminModal = ref(false);
+const adminSaving = ref(false);
+const adminForm = reactive({ username: '', temporary_password: '' });
+const createAdminAccount = async () => {
+    adminSaving.value = true;
+    try {
+        await Api.v1.admin.post.accounts(adminForm);
+        adminForm.username = '';
+        adminForm.temporary_password = '';
+        adminModal.value = false;
+        await loadUsers();
+    } catch (_err) {
+        // Keep the form open so the operator can correct the input.
+    } finally { adminSaving.value = false; }
 };
 
 const loadUsers = async () => {
@@ -285,6 +335,9 @@ const loadDetail = async (id: number) => {
     detailLoading.value = true;
     try {
         detail.value = await Api.v1.admin.get.user.detail({ id });
+        access.member_identity = detail.value.member_identity || 'student';
+        access.is_mentor = !!detail.value.is_mentor;
+        access.is_auditor = !!detail.value.roles?.includes('auditor');
     } catch (_err) {
         // do nothing
     } finally {
@@ -322,7 +375,7 @@ const handleRoleChange = (row: Partial<UserItem>, role: string) => {
                 await Api.v1.admin.post.user.role({
                     user_id: row.id as number,
                     role: role as Api.Admin.NetParams.UserRoleChangeReq['role'],
-                    action: has ? 'remove' : 'add',
+                    action: 'remove',
                 });
                 window.$message.success(t('adminUsers.dialog.roleUpdated'));
                 await loadDetail(row.id as number);
@@ -441,13 +494,18 @@ const userColumns = computed<DataTableColumns<UserItem>>(() => [
     },
     {
         title: t('adminUsers.table.identity'),
-        key: 'identity',
-        width: 90,
+        key: 'member_identity',
+        width: 150,
         render: (row) =>
             h(
-                NTag,
-                { round: true, size: 'small', type: identityTagType(row.identity) },
-                { default: () => identityLabel(row.identity) }
+                NSpace,
+                { size: 'small' },
+                {
+                    default: () => identityLabels(row, true).map((label) =>
+                        h(NTag, { round: true, size: 'small', type: identityTagType(row), key: label },
+                            { default: () => label }),
+                    ),
+                }
             ),
     },
     {
@@ -495,10 +553,10 @@ const userColumns = computed<DataTableColumns<UserItem>>(() => [
         key: 'actions',
         width: 200,
         render: (row) => {
-            // 不可操作自己; 运维账号仅运维可禁言/删除(与角色变更同规则)
+            // Admins manage members; only the Operator manages other Admins.
             const operable =
                 row.id !== userInfo.value.id &&
-                (selfIsOperator() || !(row.roles || []).includes('operator'));
+                (row.account_type === 'member' || (selfIsOperator() && row.account_type === 'admin'));
             const buttons: Component[] = [
                 h(
                     NButton,
@@ -529,6 +587,7 @@ const userColumns = computed<DataTableColumns<UserItem>>(() => [
                             size: 'small',
                             quaternary: true,
                             type: 'error',
+                            disabled: row.account_type !== 'member',
                             onClick: () => handleUserDelete(row),
                         },
                         { default: () => t('common.delete') }
@@ -614,7 +673,7 @@ const ensureAdminAccess = async () => {
         }
     }
 
-    if (!userInfo.value.is_admin) {
+    if (!isAdmin(userInfo.value)) {
         router.replace({
             name: '404',
         });
@@ -641,10 +700,12 @@ onMounted(async () => {
 
 .toolbar {
     display: flex;
+    flex-wrap: wrap;
     gap: 12px;
     margin-bottom: 12px;
 
     .keyword-input {
+        flex: 1 1 180px;
         max-width: 320px;
     }
 }

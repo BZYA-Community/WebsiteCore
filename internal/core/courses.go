@@ -27,6 +27,9 @@ type CourseService interface {
 
 // CourseManageService 课程管理服务(管理员/运维)
 type CourseManageService interface {
+	CreateCourseAs(actorID int64, course *ms.Course) (*ms.Course, error)
+	UpdateCourseAs(actorID int64, course *ms.Course) error
+	DeleteCourseAs(actorID int64, course *ms.Course) error
 	CreateCourseGroup(g *ms.CourseGroup) (*ms.CourseGroup, error)
 	UpdateCourseGroup(g *ms.CourseGroup) error
 	// DeleteCourseGroup 分组硬删除(调用方需先校验分组下无课程)

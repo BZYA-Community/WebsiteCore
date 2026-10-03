@@ -27,7 +27,7 @@ The schema is defined by versioned SQL migrations under `scripts/migration/`:
 
 ```text
 scripts/migration/
-└── postgres/   0001_initialize_schema ... 0023_remove_friendship   (23 pairs)
+└── postgres/   0001_initialize_schema ... 0025_explicit_identity   (25 pairs)
 ```
 
 Each migration is a pair of `NNNN_name.up.sql` / `NNNN_name.down.sql` files, embedded into the binary at build time (only when the `migration` build tag is present) and executed by [golang-migrate](https://github.com/golang-migrate/migrate). The applied version is tracked in the `p_schema_migrations` table (`Database.TablePrefix` + `schema_migrations`).
@@ -46,6 +46,14 @@ This compiles the binary with `-tags migration` and runs the `migrate` subcomman
 A production binary built with `TAGS='embed migration'` can also migrate automatically at startup: add `"Migration"` to `Features.Default` and the schema is upgraded before the server starts. Without the build tag, requesting the `Migration` feature fails fast with an explicit error.
 
 > **Never skip this on a fresh database.** A newly started PostgreSQL instance contains no tables — the compose stack only creates the database itself. If the app runs against an unmigrated database, every request fails with `relation "p_user" does not exist (SQLSTATE 42P01)` (login returns 401, register returns 500). Run `make migrate` (or enable the `Migration` feature) before first use, and again after every upgrade that adds migration files.
+
+### Identity reset in migration 0025
+
+This release deliberately does **not** migrate existing accounts. Before any schema/version/data write, the application checks the old user table including soft-deleted rows. If it contains even one row, migration exits with an error; no implicit mapping from phone, old roles or administrator flags is performed. Migration 0025 repeats the empty-table guard under a table lock.
+
+Use a fresh disposable database for development, or explicitly plan a separate reset before adopting this release. Do not erase production accounts to make the check pass. Upgraded databases may contain users normally; the preflight recognizes the new schema. Downgrading 0025 likewise requires an empty user table.
+
+The new schema removes the legacy administrator boolean, allows Mentor access independently of Teacher access, constrains account/role combinations, makes account type immutable, enforces a single Operator with a unique partial index, and stores conversation requests and blocking state. Apply migrations before bootstrapping the Operator. During development of unmerged PR #102, the revised 0025 must be tested on a fresh disposable database; a database initialized by an earlier draft of that migration retains its earlier constraints.
 
 ### Adding a migration (contributors)
 
