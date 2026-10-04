@@ -38,6 +38,8 @@
                 :multiple="true"
                 :max="9"
                 :action="uploadGateway"
+                :accept="uploadAccept(uploadType)"
+                :disabled="processing > 0"
                 :headers="{
                     Authorization: uploadToken,
                 }"
@@ -109,6 +111,7 @@
                         </n-button>
                         <n-button
                             :loading="submitting"
+                            :disabled="processing > 0"
                             @click="submitPost"
                             type="primary"
                             secondary
@@ -167,6 +170,8 @@
 
 
 <script setup lang="ts">
+import { uploadAccept } from '@/utils/media-upload';
+import { useMediaUpload } from '@/composables/useMediaUpload';
 import { onMounted, computed, ref } from 'vue';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
@@ -256,6 +261,7 @@ const changeContent = (v: string) => {
   }
 };
 const setUploadType = (type: string) => {
+  if (processing.value) return;
   uploadType.value = type;
 };
 const updateUpload = (list: UploadFileInfo[]) => {
@@ -274,32 +280,16 @@ const updateUpload = (list: UploadFileInfo[]) => {
   }
   fileQueue.value = list;
 };
-const beforeUpload = async (data: any) => {
-  // 图片类型校验
-  if (
-    uploadType.value === 'public/image' &&
-    !['image/png', 'image/jpg', 'image/jpeg', 'image/gif'].includes(
-      (data.file as any).file?.type,
-    )
-  ) {
-    window.$message.warning(t('comment.upload.imageFormatError'));
-    return false;
-  }
-
-  if (
-    uploadType.value === 'image' &&
-    (data.file as any).file?.size > 10485760
-  ) {
-    window.$message.warning(t('comment.upload.imageSizeError'));
-    return false;
-  }
-
-  return true;
-};
+const { processing, prepareUpload } = useMediaUpload();
+const beforeUpload = (data: { file: UploadFileInfo }) => prepareUpload(data, uploadType.value);
 const finishUpload = ({ file, event }: any): any => {
   try {
     let data = JSON.parse(event.target?.response);
 
+    if (data.code !== 0) {
+      failUpload({ file, event });
+      return { status: 'error' };
+    }
     if (data.code === 0) {
       if (uploadType.value === 'public/image') {
         imageContents.value.push({
@@ -340,6 +330,7 @@ const focusComment = () => {
   showBtn.value = true;
 };
 const cancelComment = () => {
+  if (processing.value) return;
   showBtn.value = false;
   // 置空
   uploadRef.value?.clear();
@@ -350,6 +341,7 @@ const cancelComment = () => {
 
 // 发布动态
 const submitPost = () => {
+  if (processing.value) return;
   if (content.value.trim().length === 0) {
     window.$message.warning(t('comment.msg.contentRequired'));
     return;

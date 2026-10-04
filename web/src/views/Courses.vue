@@ -174,9 +174,11 @@
                         <n-upload
                             :show-file-list="false"
                             :custom-request="noopUpload"
+                            accept=".mp4,video/mp4"
+                            :disabled="videoUploading"
                             @before-upload="beforeVideoPick"
                         >
-                            <n-button secondary>
+                            <n-button secondary :disabled="videoUploading">
                                 {{ videoName || t('course.list.selectVideoHint') }}
                             </n-button>
                         </n-upload>
@@ -186,6 +188,8 @@
                             :percentage="videoProgress"
                             :show-indicator="true"
                         />
+                        <span v-if="videoUploading">{{ videoProcessing ? t('course.list.videoProcessing') : t('media.uploading') }}</span>
+                        <n-button v-if="videoUploading" size="small" @click="videoController?.abort()">{{ t('common.cancel') }}</n-button>
                         <span v-if="videoReady" class="video-ready">{{ courseForm.id > 0 ? t('course.list.videoReadyChanged') : t('course.list.videoReadyUploaded') }}</span>
                     </div>
                 </n-form-item>
@@ -204,7 +208,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import { COURSE_VIDEO_SOURCE_LIMIT, compressImage, compressVideo } from '@/utils/media-upload';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreUser } from '@/store/user';
 import { storeToRefs } from 'pinia';
@@ -220,7 +225,6 @@ import {
   createCourse,
   updateCourse,
   deleteCourse,
-  getCourseUploadCredential,
   type CourseGroup,
   type CourseItem,
 } from '@/api/course';
@@ -450,10 +454,17 @@ const searchTeachers = async (k: string) => {
   }
 };
 
-// 视频上传(直传优先, 代理回退)
+// 视频在浏览器转码，后端校验后经统一存储接口保存。
 const videoName = ref('');
 const videoUploading = ref(false);
 const videoProgress = ref(0);
+const videoProcessing = ref(false);
+let videoController: AbortController | undefined;
+watch(courseModalShow, (show) => { if (!show) videoController?.abort(); });
+onBeforeUnmount(() => {
+  videoController?.abort();
+  if (coverPreview.value.startsWith("blob:")) URL.revokeObjectURL(coverPreview.value);
+});
 const videoReady = ref(false);
 const videoKeyOrUrl = ref('');
 // 封面(canvas截帧)
@@ -467,126 +478,136 @@ const noopUpload = (_options: UploadCustomRequestOptions) => {
 
 const beforeVideoPick = async (data: any) => {
   const file: File | undefined = data.file?.file;
-  if (!file) return false;
+  if (!file || videoUploading.value) return false;
   const ext = '.' + (file.name.split('.').pop() || '').toLowerCase();
-  if (!['.mp4', '.mov'].includes(ext)) {
+  if (ext !== '.mp4') {
     window.$message.warning(t('course.list.videoFormatError'));
     return false;
   }
-  if (file.size > 1024 * 1024 * 500) {
+  if (file.size > COURSE_VIDEO_SOURCE_LIMIT) {
     window.$message.warning(t('course.list.videoSizeError'));
     return false;
   }
   videoName.value = file.name;
   videoReady.value = false;
-  // 用本地文件截帧生成封面(避免OSS跨域污染canvas)
-  captureCover(file);
-  await uploadVideo(file, ext);
+  videoKeyOrUrl.value = '';
+  coverUrl.value = '';
+  if (coverPreview.value.startsWith('blob:')) URL.revokeObjectURL(coverPreview.value);
+  coverPreview.value = '';
+  await uploadVideo(file);
   return false;
 };
 
-// canvas截取视频约1秒处画面作为封面
-const captureCover = (file: File) => {
+// Release the element/object URL before uploading the resulting cover.
+const captureCover = (file: File, signal: AbortSignal): Promise<Blob | null> => new Promise((resolve) => {
   const url = URL.createObjectURL(file);
   const video = document.createElement('video');
+  let done = false;
+  const finish = (blob: Blob | null = null) => {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    signal.removeEventListener('abort', cancel);
+    video.onloadeddata = video.onseeked = video.onerror = null;
+    video.removeAttribute('src');
+    video.load();
+    URL.revokeObjectURL(url);
+    resolve(blob);
+  };
+  const cancel = () => finish();
+  const timer = setTimeout(cancel, 10000);
+  signal.addEventListener('abort', cancel, { once: true });
   video.muted = true;
   video.playsInline = true;
   video.preload = 'auto';
-  video.src = url;
-  const cleanup = () => URL.revokeObjectURL(url);
-  video.addEventListener('loadeddata', () => {
-    video.currentTime = Math.min(1, (video.duration || 2) / 2);
-  });
-  video.addEventListener('seeked', () => {
+  video.onloadeddata = () => { video.currentTime = Math.min(1, video.duration / 2); };
+  video.onseeked = () => {
     try {
       const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 360;
-      canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((b) => {
-        cleanup();
-        if (!b) return;
-        coverBlob.value = b;
-        if (coverPreview.value) URL.revokeObjectURL(coverPreview.value);
-        coverPreview.value = URL.createObjectURL(b);
-        // 封面即时上传到图床(复用公开图片通道)
-        uploadCover(b);
-      }, 'image/jpeg', 0.85);
-    } catch (_err) {
-      cleanup();
-    }
-  });
-  video.addEventListener('error', cleanup);
-};
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d')?.drawImage(video, 0, 0);
+      canvas.toBlob(finish, 'image/jpeg', 0.95);
+    } catch { finish(); }
+  };
+  video.onerror = cancel;
+  video.src = url;
+  if (signal.aborted) finish();
+});
 
-// 封面走现有附件图片上传
-const uploadCover = async (blob: Blob) => {
+const uploadCover = async (file: File, signal: AbortSignal) => {
   try {
+    const blob = await captureCover(file, signal);
+    if (!blob || signal.aborted) return;
+    const cover = await compressImage(new File([blob], 'cover.jpg', { type: 'image/jpeg' }), 'public/course-image', { signal });
     const form = new FormData();
-    form.append('type', 'public/image');
-    form.append('file', new File([blob], 'cover.jpg', { type: 'image/jpeg' }));
+    form.append('type', 'public/course-image');
+    form.append('file', cover);
+    if (courseForm.id > 0) form.append('course_id', String(courseForm.id));
     const res = await axios.post(
-      import.meta.env.VITE_HOST + '/v1/attachment',
-      form,
-      { headers: { Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY) } },
+      import.meta.env.VITE_HOST + '/v1/attachment', form,
+      { signal, headers: { Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY) } },
     );
-    if (res.data?.code === 0) {
-      coverUrl.value = res.data.data.content;
-    }
-  } catch (_err) {
-    window.$message.warning(t('course.list.coverGenFailed'));
+    signal.throwIfAborted();
+    if (res.data?.code !== 0) throw new Error(res.data?.msg);
+    coverUrl.value = res.data.data.content;
+    coverBlob.value = cover;
+    if (coverPreview.value.startsWith('blob:')) URL.revokeObjectURL(coverPreview.value);
+    coverPreview.value = URL.createObjectURL(cover);
+  } catch {
+    if (!signal.aborted) window.$message.warning(t('course.list.coverGenFailed'));
   }
 };
 
-// 视频上传: 先取凭证, direct=浏览器直传AliOSS / proxy=后端中转
-const uploadVideo = async (file: File, ext: string) => {
+const uploadVideo = async (file: File) => {
   videoUploading.value = true;
+  videoProcessing.value = true;
   videoProgress.value = 0;
+  const controller = new AbortController();
+  videoController = controller;
+  let prepared: Awaited<ReturnType<typeof compressVideo>> | undefined;
   try {
-    const cred = await getCourseUploadCredential({ ext });
-    if (cred.mode === 'direct' && cred.host && cred.key) {
-      const form = new FormData();
-      form.append('key', cred.key);
-      form.append('policy', cred.policy!);
-      form.append('OSSAccessKeyId', cred.access_key_id!);
-      form.append('Signature', cred.signature!);
-      form.append('success_action_status', '200');
-      form.append('file', file);
-      await axios.post(cred.host, form, {
+    prepared = await compressVideo(file, 'course/video', {
+      signal: controller.signal,
+      onProgress: (value) => { videoProgress.value = value; },
+    });
+    videoProcessing.value = false;
+    videoProgress.value = 0;
+    const form = new FormData();
+    form.append('file', prepared.file);
+    const res = await axios.post(import.meta.env.VITE_HOST + '/v1/admin/course/video', form, {
+        signal: controller.signal,
+        headers: { Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY) },
         onUploadProgress: (e) => {
           if (e.total) videoProgress.value = Math.round((e.loaded * 100) / e.total);
         },
       });
-      videoKeyOrUrl.value = cred.key;
-    } else {
-      const form = new FormData();
-      form.append('file', file);
-      const res = await axios.post(
-        import.meta.env.VITE_HOST + '/v1/admin/course/video',
-        form,
-        {
-          headers: { Authorization: 'Bearer ' + localStorage.getItem(TOKEN_KEY) },
-          onUploadProgress: (e) => {
-            if (e.total) videoProgress.value = Math.round((e.loaded * 100) / e.total);
-          },
-        },
-      );
-      if (res.data?.code !== 0) {
-        throw new Error(res.data?.msg || t('course.upload.failed'));
-      }
-      videoKeyOrUrl.value = res.data.data.video_url;
+    controller.signal.throwIfAborted();
+    if (res.data?.code !== 0) {
+      throw new Error([res.data?.msg, ...(res.data?.details || [])].filter(Boolean).join(': ') || t('course.upload.failed'));
     }
+    await uploadCover(prepared.file, controller.signal);
+    controller.signal.throwIfAborted();
+    videoKeyOrUrl.value = res.data.data.video_url;
     videoReady.value = true;
     window.$message.success(t('course.list.videoUploadDone'));
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const canceled = controller.signal.aborted;
+    controller.abort();
     videoName.value = '';
-    window.$message.error(err?.message || t('course.list.videoUploadFailed'));
+    if (!canceled) {
+      window.$message.error(err instanceof Error ? err.message : t('course.list.videoUploadFailed'));
+    }
   } finally {
+    await prepared?.dispose().catch(() => {});
+    videoController = undefined;
+    videoProcessing.value = false;
     videoUploading.value = false;
   }
 };
 
 const openCourseModal = (course?: CourseItem) => {
+  if (videoUploading.value) return;
   courseForm.id = course?.id || 0;
   courseForm.group_id = course?.group_id ?? null;
   courseForm.teacher_id = course?.teacher_id ?? null;

@@ -5,7 +5,10 @@
 package web
 
 import (
+	"context"
 	"mime/multipart"
+
+	"github.com/BZYA-Community/WebsiteCore/internal/application/media"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 
@@ -166,15 +169,15 @@ type DeleteCourseReq struct {
 	ID       int64 `json:"id" binding:"required"`
 }
 
-// CourseUploadCredentialReq 获取视频上传凭证: AliOSS返回直传policy, 其他OSS返回proxy模式
+// CourseUploadCredentialReq 获取视频上传模式；浏览器转码后由后端校验并写入 OSS。
 type CourseUploadCredentialReq struct {
 	BaseInfo `form:"-" binding:"-"`
 	Ext      string `form:"ext" binding:"required"`
 }
 
 type CourseUploadCredentialResp struct {
-	Mode string `json:"mode"` // direct=浏览器直传OSS / proxy=后端中转上传
-	// 以下仅 direct 模式返回
+	Mode string `json:"mode"` // proxy=后端校验并上传
+	// 保留旧客户端字段；服务端不再签发绕过校验的直传凭证。
 	Host        string `json:"host,omitempty"`
 	AccessKeyID string `json:"access_key_id,omitempty"`
 	Policy      string `json:"policy,omitempty"`
@@ -186,6 +189,8 @@ type CourseUploadCredentialResp struct {
 // UploadCourseVideoReq 代理模式视频上传(multipart)
 type UploadCourseVideoReq struct {
 	SimpleInfo  `json:"-" binding:"-"`
+	Context     context.Context `json:"-"`
+	Cleanup     func()          `json:"-"`
 	File        multipart.File
 	FileSize    int64
 	FileExt     string
@@ -201,6 +206,15 @@ func (r *UploadCourseVideoReq) Bind(c *gin.Context) (xerr error) {
 	if !exist {
 		return xerror.UnauthorizedAuthNotExist
 	}
+	cleanup, err := parseUpload(c, media.CourseVideoLimit)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if xerr != nil {
+			cleanup()
+		}
+	}()
 	file, fileHeader, err := c.Request.FormFile("file")
 	if err != nil {
 		return ErrFileUploadFailed
@@ -210,21 +224,15 @@ func (r *UploadCourseVideoReq) Bind(c *gin.Context) (xerr error) {
 			file.Close()
 		}
 	}()
-	// 课程视频上限500MB(代理上传受HTTP读写超时约束, 生产环境建议Ali直传)
-	if fileHeader.Size > 1024*1024*500 {
-		return ErrFileInvalidSize.WithDetails("课程视频最大允许500MB")
+	if fileHeader.Size <= 0 || fileHeader.Size > media.CourseVideoLimit {
+		return ErrFileInvalidSize.WithDetails("课程视频不得超过1GB")
 	}
-	contentType := fileHeader.Header.Get("Content-Type")
-	var fileExt string
-	switch contentType {
-	case "video/mp4":
-		fileExt = ".mp4"
-	case "video/quicktime":
-		fileExt = ".mov"
-	default:
-		return ErrFileInvalidExt.WithDetails("课程视频仅允许 mp4/mov 类型")
+	fileExt, contentType, err := uploadFileFormat(file, fileHeader.Size, "course/video")
+	if err != nil {
+		return err
 	}
 	r.SimpleInfo = SimpleInfo{Uid: userId}
 	r.File, r.FileSize, r.FileExt, r.ContentType = file, fileHeader.Size, fileExt, contentType
+	r.Context, r.Cleanup = c.Request.Context(), cleanup
 	return nil
 }

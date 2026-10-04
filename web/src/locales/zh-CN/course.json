@@ -31,8 +31,6 @@
   "loginBanner": "登录后，精彩更多",
   "deleteSuccess": "删除成功",
   "upload": {
-    "imageFormatError": "图片仅允许 png/jpg/gif 格式",
-    "imageSizeError": "图片大小不能超过10MB",
     "failed": "上传失败"
   },
   "list": {
@@ -64,7 +62,7 @@
     "teacherSearchPlaceholder": "输入用户名/昵称搜索",
     "courseVideo": "课程视频",
     "changeVideo": "更换视频",
-    "selectVideoHint": "选择视频文件(mp4/mov, ≤500MB)",
+    "selectVideoHint": "选择 MP4 视频（原文件最大1GB）",
     "videoReadyChanged": "✓ 视频已更换",
     "videoReadyUploaded": "✓ 视频已上传",
     "courseCover": "课程封面",
@@ -73,15 +71,16 @@
     "bottomLine": "我是有底线的",
     "inputGroupName": "请输入分组名称",
     "saveSuccess": "保存成功",
-    "videoFormatError": "课程视频仅允许 mp4/mov 格式",
-    "videoSizeError": "课程视频最大允许500MB",
+    "videoFormatError": "课程视频仅允许 MP4 格式",
+    "videoSizeError": "课程视频原文件不得超过1GB",
     "coverGenFailed": "封面生成失败, 可稍后重试或编辑课程更换",
     "videoUploadDone": "视频上传完成",
     "videoUploadFailed": "视频上传失败",
     "selectGroupRequired": "请选择分组",
     "inputCourseTitle": "请输入课程标题",
     "selectTeacherRequired": "请选择课程老师",
-    "uploadVideoRequired": "请上传课程视频"
+    "uploadVideoRequired": "请上传课程视频",
+    "videoProcessing": "正在浏览器中转码视频…"
   },
   "detail": {
     "title": "课程详情",

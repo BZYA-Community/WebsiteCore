@@ -33,11 +33,14 @@
                 :multiple="true"
                 :max="9"
                 :action="uploadGateway"
+                :accept="uploadAccept(uploadType)"
+                :disabled="processing > 0"
                 :headers="{
                     Authorization: uploadToken,
                 }"
                 :data="{
                     type: uploadType,
+                    course_id: props.courseId,
                 }"
                 :file-list="fileQueue"
                 @before-upload="beforeUpload"
@@ -53,7 +56,7 @@
                                 :disabled="fileQueue.length === 9"
                                 @click="
                                     () => {
-                                        setUploadType('public/image');
+                                        setUploadType('public/course-image');
                                         handleClick();
                                     }
                                 "
@@ -100,6 +103,7 @@
                         </n-button>
                         <n-button
                             :loading="submitting"
+                            :disabled="processing > 0"
                             @click="submitPost"
                             type="primary"
                             secondary
@@ -148,6 +152,8 @@
 
 
 <script setup lang="ts">
+import { uploadAccept } from '@/utils/media-upload';
+import { useMediaUpload } from '@/composables/useMediaUpload';
 import { computed, ref } from 'vue';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
@@ -184,7 +190,7 @@ const loading = ref(false);
 const submitting = ref(false);
 const content = ref('');
 const uploadRef = ref<UploadInst>();
-const uploadType = ref('public/image');
+const uploadType = ref('public/course-image');
 const fileQueue = ref<UploadFileInfo[]>([]);
 const imageContents = ref<{ id: string; content: string }[]>([]);
 const allowUserRegister = ref(
@@ -236,6 +242,7 @@ const changeContent = (v: string) => {
   }
 };
 const setUploadType = (type: string) => {
+  if (processing.value) return;
   uploadType.value = type;
 };
 const updateUpload = (list: UploadFileInfo[]) => {
@@ -254,34 +261,18 @@ const updateUpload = (list: UploadFileInfo[]) => {
   }
   fileQueue.value = list;
 };
-const beforeUpload = async (data: any) => {
-  // 图片类型校验
-  if (
-    uploadType.value === 'public/image' &&
-    !['image/png', 'image/jpg', 'image/jpeg', 'image/gif'].includes(
-      (data.file as any).file?.type,
-    )
-  ) {
-    window.$message.warning(t('course.upload.imageFormatError'));
-    return false;
-  }
-
-  if (
-    uploadType.value === 'image' &&
-    (data.file as any).file?.size > 10485760
-  ) {
-    window.$message.warning(t('course.upload.imageSizeError'));
-    return false;
-  }
-
-  return true;
-};
+const { processing, prepareUpload } = useMediaUpload();
+const beforeUpload = (data: { file: UploadFileInfo }) => prepareUpload(data, uploadType.value);
 const finishUpload = ({ file, event }: any): any => {
   try {
     let data = JSON.parse(event.target?.response);
 
+    if (data.code !== 0) {
+      failUpload({ file, event });
+      return { status: 'error' };
+    }
     if (data.code === 0) {
-      if (uploadType.value === 'public/image') {
+      if (uploadType.value === 'public/course-image') {
         imageContents.value.push({
           id: file.id,
           content: data.data.content,
@@ -320,6 +311,7 @@ const focusComment = () => {
   showBtn.value = true;
 };
 const cancelComment = () => {
+  if (processing.value) return;
   showBtn.value = false;
   // 置空
   uploadRef.value?.clear();
@@ -330,6 +322,7 @@ const cancelComment = () => {
 
 // 发布评论
 const submitPost = () => {
+  if (processing.value) return;
   if (content.value.trim().length === 0) {
     window.$message.warning(t('course.comment.inputRequired'));
     return;

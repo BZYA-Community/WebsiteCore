@@ -44,7 +44,12 @@ jobs:
         run: go build ./...
 
       # 单元测试(干净检出、无 config.yaml 的环境下也必须全绿, 见 #11)
+      - name: Install video test fixture generator
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Unit tests
+        env:
+          REQUIRE_FFMPEG_TESTS: '1'
         run: go test ./...
 
       - name: Install golangci-lint

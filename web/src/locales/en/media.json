@@ -1,0 +1,12 @@
+{
+  "sourceSize": "The original file must be non-empty and no larger than {limit} MB.",
+  "outputSize": "The processed file exceeds {limit} MB. Please choose a smaller file.",
+  "imageFormat": "Only PNG and JPEG images are allowed.",
+  "videoFormat": "Please select a valid MP4 video.",
+  "unsupportedImage": "This browser cannot encode WebP images. Please update your browser.",
+  "unsupportedVideo": "This browser cannot decode this video or encode H.264. Please retry in a supported browser.",
+  "storageUnavailable": "Browser temporary storage is unavailable for this large video. Check storage space or use another browser.",
+  "processing": "Processing the file in your browser…",
+  "uploading": "Uploading…",
+  "failed": "Media processing failed. Check the file and try again."
+}

@@ -25,6 +25,8 @@
                 :multiple="true"
                 :max="9"
                 :action="uploadGateway"
+                :accept="uploadAccept(uploadType)"
+                :disabled="processing > 0"
                 :headers="{
                     Authorization: uploadToken,
                 }"
@@ -175,6 +177,7 @@
 
                         <n-button
                             :loading="submitting"
+                            :disabled="processing > 0"
                             @click="submitPost"
                             type="primary"
                             secondary
@@ -218,6 +221,8 @@
 </template>
 
 <script setup lang="ts">
+import { uploadAccept } from '@/utils/media-upload';
+import { useMediaUpload } from '@/composables/useMediaUpload';
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
@@ -241,7 +246,6 @@ import { createPost } from '@/api/post';
 import { parsePostTag } from '@/utils/content';
 import { MD_MAX_LENGTH, mdTheme } from '@/utils/markdown';
 import { userInfo as fetchUserInfo } from '@/api/auth';
-import { isZipFile } from '@/utils/isZipFile';
 import type { UploadFileInfo, UploadInst } from 'naive-ui';
 import { VisibilityEnum, PostItemTypeEnum } from '@/utils/IEnum';
 
@@ -334,6 +338,7 @@ const changeContent = (v: string) => {
 };
 
 const setUploadType = (type: string) => {
+  if (processing.value) return;
   uploadType.value = type;
 };
 
@@ -353,57 +358,16 @@ const updateUpload = (list: UploadFileInfo[]) => {
   }
   fileQueue.value = list;
 };
-const beforeUpload = async (data: any) => {
-  // 图片类型校验
-  if (
-    uploadType.value === 'public/image' &&
-    ![
-      'image/webp',
-      'image/png',
-      'image/jpg',
-      'image/jpeg',
-      'image/gif',
-    ].includes(data.file.file?.type)
-  ) {
-    window.$message.warning(t('compose.imageFormatError'));
-    return false;
-  }
-
-  if (uploadType.value === 'image' && data.file.file?.size > 10485760) {
-    window.$message.warning(t('compose.imageSizeError'));
-    return false;
-  }
-
-  // 视频类型校验
-  if (
-    uploadType.value === 'public/video' &&
-    !['video/mp4', 'video/quicktime'].includes(data.file.file?.type)
-  ) {
-    window.$message.warning(t('compose.videoFormatError'));
-    return false;
-  }
-
-  if (uploadType.value === 'public/video' && data.file.file?.size > 104857600) {
-    window.$message.warning(t('compose.videoSizeError'));
-    return false;
-  }
-  // 附件类型校验
-  if (uploadType.value === 'attachment' && !(await isZipFile(data.file.file))) {
-    window.$message.warning(t('compose.attachmentFormatError'));
-    return false;
-  }
-
-  if (uploadType.value === 'attachment' && data.file.file?.size > 104857600) {
-    window.$message.warning(t('compose.attachmentSizeError'));
-    return false;
-  }
-
-  return true;
-};
+const { processing, prepareUpload } = useMediaUpload();
+const beforeUpload = (data: { file: UploadFileInfo }) => prepareUpload(data, uploadType.value);
 const finishUpload = ({ file, event }: any): any => {
   try {
     let data = JSON.parse(event.target?.response);
 
+    if (data.code !== 0) {
+      failUpload({ file, event });
+      return { status: 'error' };
+    }
     if (data.code === 0) {
       if (uploadType.value === 'public/image') {
         imageContents.value.push({
@@ -462,6 +426,7 @@ const removeUpload = ({ file }: any) => {
 
 // 发布Markdown长文
 const submitPost = () => {
+  if (processing.value) return;
   if (content.value.trim().length === 0) {
     window.$message.warning(t('compose.contentRequired'));
     return;

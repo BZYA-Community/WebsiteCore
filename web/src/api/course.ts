@@ -79,13 +79,7 @@ export interface PageResp<T> {
 }
 
 export interface UploadCredential {
-  mode: 'direct' | 'proxy';
-  host?: string;
-  access_key_id?: string;
-  policy?: string;
-  signature?: string;
-  key?: string;
-  expire?: number;
+  mode: 'proxy';
 }
 
 /** 课程分组列表(含各组课程数) */
@@ -211,7 +205,7 @@ export const deleteCourse = (data: { id: number }): Promise<unknown> => {
   return request({ method: 'post', url: '/v1/admin/course/delete', data });
 };
 
-/** 获取视频上传凭证(AliOSS返回直传policy, 其他返回proxy) */
+/** 获取视频上传模式（所有存储统一通过后端处理） */
 export const getCourseUploadCredential = (params: {
   ext: string;
 }): Promise<UploadCredential> => {

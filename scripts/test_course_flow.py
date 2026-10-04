@@ -6,6 +6,10 @@
 """
 import json
 import os
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
 import urllib.request
 import urllib.error
 
@@ -46,10 +50,18 @@ def call(method, path, token=None, body=None, raw=False):
 
 
 def upload_mp4(token):
-    """代理模式上传一个最小mp4(仅含ftyp头, 供API级验证)"""
+    """生成浏览器输出规格的真实视频；空 ftyp 头不能作为有效上传样本。"""
     boundary = "----coursetestboundary"
-    # 最小ftyp box
-    payload = b"\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom"
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        raise RuntimeError("Install FFmpeg to generate the synthetic MP4 test fixture")
+    with tempfile.TemporaryDirectory(prefix="course-media-test-") as folder:
+        path = Path(folder) / "test.mp4"
+        subprocess.run([ffmpeg, "-v", "error", "-f", "lavfi", "-i",
+                        "testsrc2=size=320x180:rate=30000/1001", "-t", "0.4",
+                        "-c:v", "libx264", "-pix_fmt", "yuv420p", str(path)],
+                       check=True, timeout=30)
+        payload = path.read_bytes()
     body = (
         "--%s\r\nContent-Disposition: form-data; name=\"file\"; filename=\"t.mp4\"\r\n"
         "Content-Type: video/mp4\r\n\r\n" % boundary

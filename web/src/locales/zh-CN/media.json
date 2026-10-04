@@ -1,0 +1,12 @@
+{
+  "sourceSize": "原文件不能为空，且不得超过 {limit} MB",
+  "outputSize": "处理后的文件超过 {limit} MB，请选用较小的文件",
+  "imageFormat": "图片仅允许 PNG、JPEG 格式",
+  "videoFormat": "请选择有效的 MP4 视频文件",
+  "unsupportedImage": "当前浏览器无法生成 WebP 图片，请更新浏览器后重试",
+  "unsupportedVideo": "当前浏览器不支持此视频的解码或 H.264 编码，请在支持的浏览器中重试",
+  "storageUnavailable": "浏览器临时存储不可用，无法处理大视频，请检查存储空间或更换浏览器",
+  "processing": "正在浏览器中处理文件…",
+  "uploading": "正在上传…",
+  "failed": "文件处理失败，请检查文件格式后重试"
+}

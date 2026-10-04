@@ -50,7 +50,7 @@
   },
   "avatar": {
     "formatError": "头像仅允许 png/jpg 格式",
-    "sizeError": "原图大小不能超过10MB",
+    "sizeError": "头像原文件不得超过5MB",
     "updateSuccess": "头像更新成功",
     "uploadFailed": "上传失败",
     "cropTitle": "裁剪头像",

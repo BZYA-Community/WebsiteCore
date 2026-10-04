@@ -38,8 +38,6 @@
     "like": "赞"
   },
   "upload": {
-    "imageFormatError": "图片仅允许 png/jpg/gif 格式",
-    "imageSizeError": "图片大小不能超过10MB",
     "uploadFailed": "上传失败"
   }
 }

@@ -5,6 +5,7 @@
 package web
 
 import (
+	"context"
 	"fmt"
 	"mime/multipart"
 	"net/http"
@@ -162,6 +163,9 @@ type DeleteCommentReplyReq struct {
 
 type UploadAttachmentReq struct {
 	SimpleInfo  `json:"-" binding:"-"`
+	Context     context.Context `json:"-"`
+	Cleanup     func()          `json:"-"`
+	CourseID    int64
 	UploadType  string
 	ContentType string
 	File        multipart.File
@@ -240,6 +244,15 @@ func (r *UploadAttachmentReq) Bind(c *gin.Context) (xerr error) {
 		return xerror.UnauthorizedAuthNotExist
 	}
 
+	cleanup, err := parseUpload(c, 60<<20)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if xerr != nil {
+			cleanup()
+		}
+	}()
 	uploadType := c.Request.FormValue("type")
 	file, fileHeader, err := c.Request.FormFile("file")
 	if err != nil {
@@ -254,8 +267,7 @@ func (r *UploadAttachmentReq) Bind(c *gin.Context) (xerr error) {
 	if err := fileCheck(uploadType, fileHeader.Size); err != nil {
 		return err
 	}
-	contentType := fileHeader.Header.Get("Content-Type")
-	fileExt, xerr := getFileExt(contentType)
+	fileExt, contentType, xerr := uploadFileFormat(file, fileHeader.Size, uploadType)
 	if xerr != nil {
 		return xerr
 	}
@@ -264,6 +276,8 @@ func (r *UploadAttachmentReq) Bind(c *gin.Context) (xerr error) {
 	}
 	r.UploadType, r.ContentType = uploadType, contentType
 	r.File, r.FileSize, r.FileExt = file, fileHeader.Size, fileExt
+	r.Context, r.Cleanup = c.Request.Context(), cleanup
+	r.CourseID = convert.StrTo(c.Request.FormValue("course_id")).MustInt64()
 	return nil
 }
 

@@ -5,14 +5,12 @@
 package web
 
 import (
-	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
+	"io"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/BZYA-Community/WebsiteCore/internal/application/media"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 
@@ -25,7 +23,6 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
 	"github.com/BZYA-Community/WebsiteCore/pkg/utils"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
-	"github.com/alimy/tryst/cfg"
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid/v5"
 	"github.com/sirupsen/logrus"
@@ -575,58 +572,25 @@ func (s *courseAdminSrv) DeleteCourse(req *web.DeleteCourseReq) error {
 	return nil
 }
 
-// CourseUploadCredential 视频上传凭证: AliOSS返回PostObject直传签名, 其他OSS返回proxy(走后端中转)
+// CourseUploadCredential keeps the endpoint for existing clients. All storage
+// providers use proxy mode so direct uploads cannot bypass media validation.
 func (s *courseAdminSrv) CourseUploadCredential(req *web.CourseUploadCredentialReq) (*web.CourseUploadCredentialResp, error) {
-	var fileExt string
-	switch strings.ToLower(req.Ext) {
-	case ".mp4", "mp4":
-		fileExt = ".mp4"
-	case ".mov", "mov":
-		fileExt = ".mov"
-	default:
-		return nil, web.ErrCourseVideoInvalid.WithDetails("课程视频仅允许 mp4/mov 类型")
+	if strings.ToLower(strings.TrimPrefix(req.Ext, ".")) != "mp4" {
+		return nil, web.ErrCourseVideoInvalid.WithDetails("课程视频仅允许 MP4 格式")
 	}
-	if !cfg.If("AliOSS") {
-		return &web.CourseUploadCredentialResp{Mode: "proxy"}, nil
-	}
-	objectKey := courseVideoPrefix + time.Now().Format("200601") + "/" + uuid.Must(uuid.NewV4()).String() + fileExt
-	// Ali OSS PostObject policy: 标准表单直传签名(密钥不出服务端)
-	expiration := time.Now().Add(10 * time.Minute).UTC().Format("2006-01-02T15:04:05.000Z")
-	policyBytes, err := json.Marshal(map[string]any{
-		"expiration": expiration,
-		"conditions": []any{
-			map[string]string{"bucket": conf.AliOSSSetting.Bucket},
-			[]string{"eq", "$key", objectKey},
-			[]any{"content-length-range", 1, 524288000}, // 500MB
-			[]string{"eq", "$success_action_status", "200"},
-		},
-	})
-	if err != nil {
-		logrus.Errorf("marshal oss policy err: %s", err)
-		return nil, web.ErrCourseUploadCredentialFailed
-	}
-	policy := base64.StdEncoding.EncodeToString(policyBytes)
-	mac := hmac.New(sha1.New, []byte(conf.AliOSSSetting.AccessKeySecret))
-	mac.Write([]byte(policy))
-	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
-	// 直传地址用Endpoint而非Domain(Domain可能是CDN/自定义域名)
-	host := fmt.Sprintf("https://%s.%s", conf.AliOSSSetting.Bucket, conf.AliOSSSetting.Endpoint)
-	return &web.CourseUploadCredentialResp{
-		Mode:        "direct",
-		Host:        host,
-		AccessKeyID: conf.AliOSSSetting.AccessKeyID,
-		Policy:      policy,
-		Signature:   signature,
-		Key:         objectKey,
-		Expire:      time.Now().Add(10 * time.Minute).Unix(),
-	}, nil
+	return &web.CourseUploadCredentialResp{Mode: "proxy"}, nil
 }
 
-// UploadCourseVideo 代理模式上传课程视频(非AliOSS或直传不可用时)
 func (s *courseAdminSrv) UploadCourseVideo(req *web.UploadCourseVideoReq) (*web.UploadCourseVideoResp, error) {
+	if req.Cleanup != nil {
+		defer req.Cleanup()
+	}
 	defer req.File.Close()
-	objectKey := courseVideoPrefix + time.Now().Format("200601") + "/" + uuid.Must(uuid.NewV4()).String() + req.FileExt
-	objectURL, err := s.oss.PutObject(objectKey, req.File, req.FileSize, req.ContentType, false)
+	if err := media.ValidateVideo(uploadContext(req.Context), req.File, media.CourseVideoLimit); err != nil {
+		return nil, mediaUploadError(err, media.CourseVideoLimit)
+	}
+	objectKey := courseVideoPrefix + time.Now().Format("200601") + "/" + uuid.Must(uuid.NewV4()).String() + ".mp4"
+	objectURL, err := s.oss.PutObject(objectKey, io.NopCloser(req.File), req.FileSize, "video/mp4", false)
 	if err != nil {
 		logrus.Errorf("oss.PutObject err: %s", err)
 		return nil, web.ErrFileUploadFailed

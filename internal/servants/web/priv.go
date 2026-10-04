@@ -5,13 +5,13 @@
 package web
 
 import (
-	"image"
 	"io"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
+	"github.com/BZYA-Community/WebsiteCore/internal/application/media"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
@@ -23,17 +23,17 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/pkg/utils"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/alimy/tryst/cfg"
-	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid/v5"
 	"github.com/sirupsen/logrus"
 )
 
 var _uploadAttachmentTypeMap = map[string]ms.AttachmentType{
-	"public/image":  ms.AttachmentTypeImage,
-	"public/avatar": ms.AttachmentTypeImage,
-	"public/video":  ms.AttachmentTypeVideo,
-	"attachment":    ms.AttachmentTypeOther,
+	"public/image":        ms.AttachmentTypeImage,
+	"public/course-image": ms.AttachmentTypeImage,
+	"public/avatar":       ms.AttachmentTypeImage,
+	"public/video":        ms.AttachmentTypeVideo,
+	"attachment":          ms.AttachmentTypeOther,
 }
 
 type privSrv struct {
@@ -133,16 +133,56 @@ func (s *privSrv) PinTopic(req *web.PinTopicReq) (*web.PinTopicResp, error) {
 }
 
 func (s *privSrv) UploadAttachment(req *web.UploadAttachmentReq) (*web.UploadAttachmentResp, error) {
+	if req.Cleanup != nil {
+		defer req.Cleanup()
+	}
 	defer req.File.Close()
+	if req.UploadType == "public/course-image" {
+		if req.CourseID > 0 {
+			course, err := s.Ds.GetCourseByID(req.CourseID)
+			if err != nil || course == nil || course.Model == nil || course.ID <= 0 {
+				return nil, web.ErrCourseNotExist
+			}
+		} else {
+			// Cover uploads before a course exists use the same permission as
+			// the course administration endpoints; comments reference a course.
+			user, err := s.Ds.GetUserByID(req.Uid)
+			if err != nil || user == nil || !user.IsAdmin {
+				return nil, web.ErrNoPermission
+			}
+		}
+	}
+	var data io.ReadSeeker = req.File
+	size, contentType, ext := req.FileSize, req.ContentType, req.FileExt
+	switch req.UploadType {
+	case "public/image", "public/avatar", "public/course-image":
+		limit := media.AttachmentLimit
+		if req.UploadType == "public/course-image" {
+			limit = media.CourseImageLimit
+		}
+		if err := media.ValidateImage(uploadContext(req.Context), req.File, limit); err != nil {
+			return nil, mediaUploadError(err, limit)
+		}
+		contentType, ext = "image/webp", ".webp"
+	case "public/video":
+		if err := media.ValidateVideo(uploadContext(req.Context), req.File, media.VideoLimit); err != nil {
+			return nil, mediaUploadError(err, media.VideoLimit)
+		}
+		contentType, ext = "video/mp4", ".mp4"
+	case "attachment":
+		if size <= 0 || size > media.AttachmentLimit {
+			return nil, web.ErrFileInvalidSize
+		}
+	default:
+		return nil, xerror.InvalidParams
+	}
 
 	// 生成随机路径
 	randomPath := uuid.Must(uuid.NewV4()).String()
-	ossSavePath := req.UploadType + "/" + generatePath(randomPath[:8]) + "/" + randomPath[9:] + req.FileExt
-	// NOTE: 注意这里将req.File Wrap到一个io.Reader的实例对象中是为了避免下游接口去主动调Close，req.File本身是实现了
-	// io.Closer接口的，有的下游接口会断言传参是否实现了io.Closer接口，如果实现了会主动去调，我们这里因为下文中可能还要继续
-	// 使用req.File所以应避免下游Close，否则会出现潜在的bug，比如这里的场景就是传一个超大的图片(>10MB)可能就会触发bug了。
-	data := io.NopCloser(req.File)
-	objectUrl, err := s.oss.PutObject(ossSavePath, data, req.FileSize, req.ContentType, false)
+	ossSavePath := req.UploadType + "/" + generatePath(randomPath[:8]) + "/" + randomPath[9:] + ext
+	// Storage adapters may close their reader; retain ownership until metadata
+	// is read and temporary files are removed.
+	objectUrl, err := s.oss.PutObject(ossSavePath, io.NopCloser(data), size, contentType, false)
 	if err != nil {
 		logrus.Errorf("oss.putObject err: %s", err)
 		return nil, web.ErrFileUploadFailed
@@ -151,26 +191,25 @@ func (s *privSrv) UploadAttachment(req *web.UploadAttachmentReq) (*web.UploadAtt
 	// 构造附件Model
 	attachment := &ms.Attachment{
 		UserID:   req.Uid,
-		FileSize: req.FileSize,
+		FileSize: size,
 		Content:  objectUrl,
 		Type:     _uploadAttachmentTypeMap[req.UploadType],
 	}
 	if attachment.Type == ms.AttachmentTypeImage {
-		var src image.Image
-		src, err = imaging.Decode(req.File)
-		if err == nil {
-			attachment.ImgWidth, attachment.ImgHeight = getImageSize(src.Bounds())
-		}
+		attachment.ImgWidth, attachment.ImgHeight = attachmentImageSize(data)
 	}
-	attachment.ID, err = s.Ds.CreateAttachment(attachment)
+	_, err = s.Ds.CreateAttachment(attachment)
 	if err != nil {
 		logrus.Errorf("Ds.CreateAttachment err: %s", err)
+		if cleanupErr := s.oss.DeleteObject(s.oss.ObjectKey(objectUrl)); cleanupErr != nil {
+			logrus.Errorf("remove failed attachment: %s", cleanupErr)
+		}
 		return nil, web.ErrFileUploadFailed
 	}
 
 	return &web.UploadAttachmentResp{
 		UserID:    req.Uid,
-		FileSize:  req.FileSize,
+		FileSize:  size,
 		ImgWidth:  attachment.ImgWidth,
 		ImgHeight: attachment.ImgHeight,
 		Type:      attachment.Type,

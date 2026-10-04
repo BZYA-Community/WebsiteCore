@@ -31,8 +31,6 @@
   "loginBanner": "Log in for more content",
   "deleteSuccess": "Deleted successfully",
   "upload": {
-    "imageFormatError": "Only png/jpg/gif images are allowed",
-    "imageSizeError": "Image size cannot exceed 10MB",
     "failed": "Upload failed"
   },
   "list": {
@@ -64,7 +62,7 @@
     "teacherSearchPlaceholder": "Search by username / nickname",
     "courseVideo": "Course Video",
     "changeVideo": "Replace Video",
-    "selectVideoHint": "Select video file (mp4/mov, ≤500MB)",
+    "selectVideoHint": "Select an MP4 video (original file up to 1 GB)",
     "videoReadyChanged": "✓ Video replaced",
     "videoReadyUploaded": "✓ Video uploaded",
     "courseCover": "Course Cover",
@@ -73,15 +71,16 @@
     "bottomLine": "You've reached the end",
     "inputGroupName": "Please enter a group name",
     "saveSuccess": "Saved successfully",
-    "videoFormatError": "Only mp4/mov video formats are allowed",
-    "videoSizeError": "Video size cannot exceed 500MB",
+    "videoFormatError": "Course videos must be MP4",
+    "videoSizeError": "Original course videos must not exceed 1 GB.",
     "coverGenFailed": "Cover generation failed. Try again later or edit the course to replace it",
     "videoUploadDone": "Video upload complete",
     "videoUploadFailed": "Video upload failed",
     "selectGroupRequired": "Please select a group",
     "inputCourseTitle": "Please enter a course title",
     "selectTeacherRequired": "Please select a teacher",
-    "uploadVideoRequired": "Please upload a course video"
+    "uploadVideoRequired": "Please upload a course video",
+    "videoProcessing": "Transcoding video in your browser…"
   },
   "detail": {
     "title": "Course Details",

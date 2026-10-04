@@ -339,6 +339,7 @@
 </template>
 
 <script setup lang="ts">
+import { IMAGE_SOURCE_LIMIT, IMAGE_MIME_TYPES, compressImage } from '@/utils/media-upload';
 import { onMounted, ref, reactive, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
@@ -420,12 +421,12 @@ const beforeUpload = (data: any) => {
     return false;
   }
   // 图片类型校验
-  if (!['image/png', 'image/jpg', 'image/jpeg'].includes(file.type)) {
+  if (!IMAGE_MIME_TYPES.includes(file.type)) {
     window.$message.warning(t('setting.avatar.formatError'));
     return false;
   }
-  // 源文件大小上限 10MB(裁剪后输出为 512px 内 PNG, 体积远小于此)
-  if (file.size > 10485760) {
+  // 裁剪和压缩前检查原文件，头像与普通图片同为 5 MiB。
+  if (file.size > IMAGE_SOURCE_LIMIT) {
     window.$message.warning(t('setting.avatar.sizeError'));
     return false;
   }
@@ -443,8 +444,8 @@ const handleCropConfirm = async (blob: Blob) => {
     formData.append('type', 'public/avatar');
     formData.append(
       'file',
-      new File([blob], 'avatar.png', { type: 'image/png' }),
-      'avatar.png',
+      await compressImage(new File([blob], 'avatar.png', { type: 'image/png' }), 'public/avatar'),
+      'avatar.webp',
     );
     const uploadRes = await request<FormData, { content: string }>({
       method: 'post',
