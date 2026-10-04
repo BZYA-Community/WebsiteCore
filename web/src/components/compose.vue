@@ -56,8 +56,9 @@
                                     fileQueue.length === 9
                                 "
                                 @click="
-                                    () => {
+                                    async () => {
                                         setUploadType('public/image');
+                                        await nextTick();
                                         handleClick();
                                     }
                                 "
@@ -86,8 +87,9 @@
                                     fileQueue.length === 9
                                 "
                                 @click="
-                                    () => {
+                                    async () => {
                                         setUploadType('public/video');
+                                        await nextTick();
                                         handleClick();
                                     }
                                 "
@@ -116,8 +118,9 @@
                                     fileQueue.length === 9
                                 "
                                 @click="
-                                    () => {
+                                    async () => {
                                         setUploadType('attachment');
+                                        await nextTick();
                                         handleClick();
                                     }
                                 "
@@ -285,7 +288,7 @@
 <script setup lang="ts">
 import { uploadAccept } from '@/utils/media-upload';
 import { useMediaUpload } from '@/composables/useMediaUpload';
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
