@@ -32,7 +32,10 @@ func (p *PostCollection) Get(db *gorm.DB) (*PostCollection, error) {
 		db = db.Where(tn+"user_id = ?", p.UserID)
 	}
 
-	db = p.withVisiblePost(db.Joins("Post")).Order(clause.OrderByColumn{Column: clause.Column{Table: "Post", Name: "id"}, Desc: true})
+	// This lookup drives the authenticated collect/uncollect toggle. It must find
+	// the user's active relation even when the post is pending or rejected;
+	// action authorization is enforced separately before either mutation.
+	db = db.Where(tn+"is_del = ?", 0)
 	err := db.First(&star).Error
 	if err != nil {
 		return &star, err

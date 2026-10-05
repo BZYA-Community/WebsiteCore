@@ -63,4 +63,16 @@ func TestPostCollectionListUsesCurrentVisibility(t *testing.T) {
 	if len(got) != 3 || count != 3 {
 		t.Fatalf("list=%d count=%d, want 3 visible collections", len(got), count)
 	}
+
+	// Visibility filtering belongs to list/count. The toggle identity lookup
+	// must still find an existing collection on a pending post, otherwise every
+	// click inserts another row and the user cannot uncollect it.
+	pending := &PostCollection{PostID: posts[1].ID, UserID: viewer}
+	found, err := pending.Get(db)
+	if err != nil {
+		t.Fatalf("get pending-post collection: %v", err)
+	}
+	if found.PostID != posts[1].ID || found.UserID != viewer {
+		t.Fatalf("unexpected collection identity: post=%d user=%d", found.PostID, found.UserID)
+	}
 }
