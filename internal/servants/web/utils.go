@@ -179,7 +179,7 @@ func canReplyToComment(auditStatus ms.PostAuditT, authorID int64, viewer *ms.Use
 	if auditStatus == ms.PostAuditApproved {
 		return true
 	}
-	if viewer == nil {
+	if auditStatus != ms.PostAuditPending || viewer == nil {
 		return false
 	}
 	return viewer.ID == authorID || viewer.IsAdmin || viewer.HasRole(ms.RoleAuditor)
