@@ -116,6 +116,13 @@ func TestGetUserPostStarsSelfPath(t *testing.T) {
 			t.Fatalf("create post %d: %v", p.id, err)
 		}
 	}
+	deletedPost := &dbr.Post{Model: &dbr.Model{ID: 5}, UserID: 1, Visibility: dbr.PostVisitPublic, AuditStatus: dbr.PostAuditApproved}
+	if err := db.Create(deletedPost).Error; err != nil {
+		t.Fatalf("create deleted post: %v", err)
+	}
+	if err := db.Delete(deletedPost).Error; err != nil {
+		t.Fatalf("soft delete post: %v", err)
+	}
 
 	// 普通用户(2)星标全部 4 篇: 只能看见 公开已过审 + 自己作者维度的私密待审帖
 	for _, p := range posts {
@@ -126,7 +133,7 @@ func TestGetUserPostStarsSelfPath(t *testing.T) {
 	}
 	// 管理员(5)与审核员(6)各自星标 好友可见 与 待审公开帖: 豁免应放行
 	for _, uid := range []int64{5, 6} {
-		for _, pid := range []int64{2, 3} {
+		for _, pid := range []int64{2, 3, 5} {
 			star := &dbr.PostStar{Model: &dbr.Model{ID: uid*10 + pid}, PostID: pid, UserID: uid}
 			if err := db.Omit("Post").Create(star).Error; err != nil {
 				t.Fatalf("create star user=%d post=%d: %v", uid, pid, err)

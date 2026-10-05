@@ -102,7 +102,7 @@ func (p *PostStar) List(db *gorm.DB, conditions *ConditionsT, viewer *User, limi
 			db = db.Where(tn+k, v)
 		}
 	}
-	db = db.Joins("Post")
+	db = db.Joins("Post").Where(clause.Eq{Column: clause.Column{Table: "Post", Name: "is_del"}, Value: 0})
 	if cond, args := canViewPostCond(db, viewer); cond != "" {
 		db = db.Where(cond, args...)
 	}
@@ -124,7 +124,7 @@ func (p *PostStar) Count(db *gorm.DB, viewer *User, conditions *ConditionsT) (re
 			db = db.Where(tn+k, v)
 		}
 	}
-	db = db.Joins("Post")
+	db = db.Joins("Post").Where(clause.Eq{Column: clause.Column{Table: "Post", Name: "is_del"}, Value: 0})
 	if cond, args := canViewPostCond(db, viewer); cond != "" {
 		db = db.Where(cond, args...)
 	}
