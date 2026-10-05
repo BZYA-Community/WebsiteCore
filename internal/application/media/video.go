@@ -10,18 +10,20 @@ import (
 )
 
 type videoTrack struct {
-	handler             string
-	timescale           uint32
-	width, height       uint16
-	avc, config, timing bool
-	minDelta, maxDelta  uint32
-	samples             uint64
-	ticks               uint64
+	handler                                 string
+	timescale                               uint32
+	width, height                           uint16
+	avc, config, timing                     bool
+	minDelta, maxDelta                      uint32
+	samples                                 uint64
+	ticks                                   uint64
+	nalLength                               int
+	sampleSizes, sampleChunks, chunkOffsets *mp4.BoxInfo
 }
 
-// ValidateVideo checks the MP4 container, AVC sample entry, resolution and
+// ValidateVideo checks the MP4 container, AVC parameter sets, sample bounds and
 // constant frame timing without loading the video into RAM or running a server
-// encoder. Browser output is a non-fragmented MP4 with a primary video track.
+// decoder. Browser output is a non-fragmented MP4 with a primary video track.
 func ValidateVideo(ctx context.Context, source io.ReadSeeker, limit int64) error {
 	size, err := checkSize(source, limit)
 	if err != nil {
@@ -30,6 +32,7 @@ func ValidateVideo(ctx context.Context, source io.ReadSeeker, limit int64) error
 	defer func() { _, _ = source.Seek(0, io.SeekStart) }()
 	// Bound boxes before go-mp4 automatically unmarshals ftyp.
 	var haveFTYP, haveMDAT bool
+	var mediaRanges []videoRange
 	topLevelBoxes := 0
 	for offset := int64(0); offset < size; {
 		topLevelBoxes++
@@ -51,6 +54,7 @@ func ValidateVideo(ctx context.Context, source io.ReadSeeker, limit int64) error
 			haveFTYP = true
 		case "mdat":
 			haveMDAT = bi.Size > bi.HeaderSize
+			mediaRanges = append(mediaRanges, videoRange{bi.Offset + bi.HeaderSize, bi.Offset + bi.Size})
 		case "moof", "keys":
 			return ErrInvalid
 		}
@@ -119,7 +123,31 @@ func ValidateVideo(ctx context.Context, source io.ReadSeeker, limit int64) error
 				return h.Expand(track)
 			}
 		case "moov/trak/mdia/minf/stbl/stsd/avc1/avcC":
-			track.config = h.BoxInfo.Size > h.BoxInfo.HeaderSize+7
+			if track.config || h.BoxInfo.Size > 65536 {
+				return nil, ErrInvalid
+			}
+			payload := make([]byte, h.BoxInfo.Size-h.BoxInfo.HeaderSize)
+			if _, err := io.ReadFull(source, payload); err != nil {
+				return nil, ErrInvalid
+			}
+			if err := track.readAVCConfig(payload); err != nil {
+				return nil, err
+			}
+			track.config = true
+		case "moov/trak/mdia/minf/stbl/stsz", "moov/trak/mdia/minf/stbl/stsc",
+			"moov/trak/mdia/minf/stbl/stco", "moov/trak/mdia/minf/stbl/co64":
+			field := &track.chunkOffsets
+			switch h.BoxInfo.Type.String() {
+			case "stsz":
+				field = &track.sampleSizes
+			case "stsc":
+				field = &track.sampleChunks
+			}
+			if *field != nil {
+				return nil, ErrInvalid
+			}
+			bi := h.BoxInfo
+			*field = &bi
 		case "moov/trak/mdia/minf/stbl/stts":
 			// Stream the run-length table rather than allocating an entry per frame.
 			var header [8]byte
@@ -180,6 +208,9 @@ func ValidateVideo(ctx context.Context, source io.ReadSeeker, limit int64) error
 		// Allow timestamp rounding, not a 30 fps stream mislabelled as 29.97.
 		if math.Abs(float64(t.ticks)-float64(t.samples)*float64(t.timescale)*1001/30000) > 1.01 {
 			return ErrInvalid
+		}
+		if err := t.validateSamples(ctx, source, mediaRanges); err != nil {
+			return err
 		}
 	}
 	if videoCount != 1 {

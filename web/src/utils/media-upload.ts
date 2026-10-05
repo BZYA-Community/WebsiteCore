@@ -1,5 +1,6 @@
 import i18n from '@/locales';
 import imageWorkerURL from 'browser-image-compression/dist/browser-image-compression.js?url';
+import { cancelOnVideoOutputLimit } from './video-output-limit';
 
 export const IMAGE_SOURCE_LIMIT = 5 * 1024 * 1024;
 export const VIDEO_SOURCE_LIMIT = 30 * 1024 * 1024;
@@ -85,7 +86,9 @@ export const compressVideo = async (file: File, kind: string, options: Processin
   let dispose = async () => {};
   let abortOutput = async () => {};
   let conversion: Awaited<ReturnType<typeof Conversion.init>> | undefined;
-  const cancel = () => { void conversion?.cancel().catch(() => {}); };
+  let cancellation: Promise<void> | undefined;
+  let outputError: () => Error | undefined = () => undefined;
+  const cancel = () => { cancellation ??= conversion?.cancel().catch(() => {}); };
   options.signal?.addEventListener('abort', cancel, { once: true });
   try {
     const video = await input.getPrimaryVideoTrack();
@@ -124,12 +127,9 @@ export const compressVideo = async (file: File, kind: string, options: Processin
       const buffer = new BufferTarget();
       target = buffer;
       readResult = async () => new Blob([buffer.buffer!], { type: 'video/mp4' });
-      // Stop output expansion while encoding, rather than allocating an
-      // unbounded BufferTarget and checking its size only after finalization.
-      target.on('write', ({ end }) => {
-        if (end > uploadLimit(kind)) throw new Error(t('media.outputSize', { limit: uploadLimit(kind) / 1024 / 1024 }));
-      });
     }
+    outputError = cancelOnVideoOutputLimit(target, uploadLimit(kind), cancel,
+      () => new Error(t('media.outputSize', { limit: uploadLimit(kind) / 1024 / 1024 })));
     const output = new Output({ format: new Mp4OutputFormat({ fastStart: false }), target });
     conversion = await Conversion.init({
       input, output, tracks: 'primary', tags: {}, showWarnings: false,
@@ -145,15 +145,17 @@ export const compressVideo = async (file: File, kind: string, options: Processin
     options.signal?.throwIfAborted();
     conversion.onProgress = (value) => options.onProgress?.(Math.round(value * 100));
     await conversion.execute();
+    if (outputError()) throw outputError();
     options.signal?.throwIfAborted();
     const result = await readResult();
     checkOutputSize(result, kind);
     return { file: new File([result], outputName(file, '.mp4'), { type: 'video/mp4' }), dispose };
   } catch (error) {
-    await conversion?.cancel().catch(() => {});
+    cancel();
+    await cancellation;
     await abortOutput();
     await dispose().catch(() => {});
-    throw error;
+    throw outputError() ?? error;
   } finally {
     options.signal?.removeEventListener('abort', cancel);
     input.dispose();

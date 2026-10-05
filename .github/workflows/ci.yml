@@ -83,6 +83,12 @@ jobs:
       - name: i18n locale packs (missing/unused/parity)
         run: npm run i18n:check
 
+      - name: Install video test fixture generator
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Video output cancellation regression
+        run: npm run test:media
+
       - name: Syntax check (build)
         run: npm run build
 

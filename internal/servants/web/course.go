@@ -520,12 +520,13 @@ func (s *courseAdminSrv) buildCourse(groupID, teacherID int64, title, intro, vid
 		return nil, "", web.ErrCourseVideoInvalid
 	}
 	if exist == nil || exist.VideoURL == "" || s.oss.ObjectKey(exist.VideoURL) != videoKey {
-		// 新上传的对象: 校验存在并转持久
-		if ok, err := s.oss.IsObjectExist(videoKey); err != nil || !ok {
-			return nil, "", web.ErrCourseVideoInvalid
-		}
+		// 代理上传可能只写入临时目录；先转持久，再校验正式对象。
 		if err := s.oss.PersistObject(videoKey); err != nil {
 			logrus.Warnf("oss.PersistObject(%s) err: %s", videoKey, err)
+			return nil, "", web.ErrCourseVideoInvalid
+		}
+		if ok, err := s.oss.IsObjectExist(videoKey); err != nil || !ok {
+			return nil, "", web.ErrCourseVideoInvalid
 		}
 	}
 	course := &ms.Course{

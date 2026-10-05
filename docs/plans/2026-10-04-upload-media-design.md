@@ -37,7 +37,7 @@
 
 - 移除存在已知漏洞的 imaging 1.6.2，引入 bild 0.17.1 的图像编解码注册；元数据探测使用 `image.DecodeConfig`，避免仅为读取尺寸解码整幅图像。
 - browser-image-compression（MIT）处理图片；Mediabunny（MPL-2.0）处理视频，避免把完整 FFmpeg WASM 运行时放进前端。保持依赖许可文件，未修改库源文件。
-- go-mp4 1.7.3（MIT）只用于后端容器校验。只解析需要的元数据及帧时间，不将完整视频读入内存。
+- go-mp4 1.7.3（MIT）用于后端容器校验。另按样本表流式检查 AVC NAL 单元，并从 SPS 读取实际尺寸、与容器尺寸交叉核对；不将完整视频读入内存。
 - 视频处理需要安全上下文（HTTPS 或 localhost）、WebCodecs H.264 编码能力；课程还需要 OPFS 及可用临时空间。不支持时提示失败，不回退上传未经处理的原文件。
 - 反向代理应允许 1 GiB 文件加 multipart 开销，并匹配上传超时。后端生产环境不依赖 FFmpeg；FFmpeg 仅用于生成独立测试样本。
 
