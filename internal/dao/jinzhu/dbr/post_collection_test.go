@@ -38,6 +38,7 @@ func TestPostCollectionListUsesCurrentVisibility(t *testing.T) {
 		{Model: &Model{}, UserID: 30, Visibility: PostVisitFollowing, AuditStatus: PostAuditApproved},
 		{Model: &Model{}, UserID: 40, Visibility: PostVisitFollowing, AuditStatus: PostAuditApproved},
 		{Model: &Model{}, UserID: viewer, Visibility: PostVisitPrivate, AuditStatus: PostAuditPending},
+		{Model: &Model{}, UserID: 50, Visibility: PostVisitPublic, AuditStatus: PostAuditApproved},
 	}
 	for _, post := range posts {
 		if err := db.Create(post).Error; err != nil {
@@ -48,6 +49,11 @@ func TestPostCollectionListUsesCurrentVisibility(t *testing.T) {
 		}
 	}
 	if err := db.Create(&Following{Model: &Model{}, UserId: viewer, FollowId: 30}).Error; err != nil {
+		t.Fatal(err)
+	}
+	// Joined associations do not inherit Post's soft-delete scope. Keep a
+	// collection pointing at a deleted post to prove List/Count exclude it.
+	if err := db.Model(posts[5]).Update("is_del", 1).Error; err != nil {
 		t.Fatal(err)
 	}
 

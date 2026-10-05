@@ -110,6 +110,7 @@ func (p *PostCollection) Count(db *gorm.DB, conditions *ConditionsT) (int64, err
 }
 
 func (p *PostCollection) withVisiblePost(db *gorm.DB) *gorm.DB {
+	db = db.Where(clause.Eq{Column: clause.Column{Table: "Post", Name: "is_del"}, Value: 0})
 	following := db.Session(&gorm.Session{NewDB: true}).Model(&Following{}).Select("1").
 		Where("user_id = ? AND follow_id = ?", p.UserID, clause.Column{Table: "Post", Name: "user_id"})
 	return db.Where(
