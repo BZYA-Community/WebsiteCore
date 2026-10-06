@@ -56,7 +56,8 @@
 </template>
 
 <script setup lang="ts">
-import { h } from 'vue';
+import { computed, h } from 'vue';
+import { useStoreUser } from '@/store/user';
 import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { NIcon, useDialog, DropdownOption } from 'naive-ui';
@@ -71,6 +72,7 @@ import UserAction, { canWhisperUser } from '@/composables/useUserAction';
 
 const { t } = useI18n();
 const dialog = useDialog();
+const storeUser = useStoreUser();
 
 const props = withDefaults(
   defineProps<{
@@ -112,7 +114,7 @@ const actionOpts = computed(() => {
   let options: DropdownOption[] = [];
 
   // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
-  if (canWhisperUser({ roles: props.contact.roles })) {
+  if (canWhisperUser()) {
     options.push({
       label: t('user.actionWhisper', { username: props.contact.username }),
       key: 'whisper',
@@ -120,6 +122,7 @@ const actionOpts = computed(() => {
     });
   }
 
+  if (!storeUser.hasPermission('community.interact')) return options;
   if (props.contact.is_following) {
     options.push({
       label: t('user.actionUnfollow', { username: props.contact.username }),
@@ -149,13 +152,11 @@ const handleAction = (item: 'follow' | 'unfollow' | 'whisper') => {
         avatar: props.contact.avatar,
         username: props.contact.username,
         nickname: props.contact.nickname,
-        is_admin: false,
         is_following: false,
         created_on: 0,
         follows: 0,
         followings: 0,
         status: 1,
-        roles: props.contact.roles || [],
         identity: props.contact.identity || '',
       };
       emit('send-whisper', user);

@@ -133,7 +133,7 @@ export const playCourse = (data: {
   return request({ method: 'post', url: '/v1/course/play', data });
 };
 
-/** 发布课程评论(无角色用户进入审核) */
+/** 发布课程问答(由免审核权限决定是否进入审核) */
 export const createCourseComment = (data: {
   course_id: number;
   contents: { content: string; type: number; sort: number }[];

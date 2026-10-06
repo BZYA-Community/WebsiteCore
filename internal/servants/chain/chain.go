@@ -13,12 +13,12 @@ import (
 )
 
 var (
-	_ums     core.UserManageService
+	_ums     core.DataService
 	_ac      core.AppCache
 	_onceUms sync.Once
 )
 
-func userManageService() core.UserManageService {
+func userManageService() core.DataService {
 	_onceUms.Do(func() {
 		_ums = dao.DataService()
 		_ac = cache.NewAppCache()

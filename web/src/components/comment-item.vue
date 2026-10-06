@@ -54,7 +54,7 @@
                         {{  comment.ip_loc}}
                     </span>
                     <n-popconfirm
-                        v-if="userInfo.id === postUserId"
+                        v-if="storeUser.hasPermission('content.manage') || (storeUser.hasPermission('post.create') && userInfo.id === postUserId)"
                         :negative-text="t('common.cancel')"
                         :positive-text="t('common.confirm')"
                         @positive-click="execHightlightAction"
@@ -80,8 +80,8 @@
                     </n-popconfirm>
                     <n-popconfirm
                         v-if="
-                            userInfo.is_admin ||
-                            userInfo.id === comment.user.id
+                            storeUser.hasPermission('content.manage') ||
+                            (storeUser.hasPermission('comment.create') && userInfo.id === comment.user.id)
                         "
                         :negative-text="t('common.cancel')"
                         :positive-text="t('common.confirm')"

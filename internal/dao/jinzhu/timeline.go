@@ -15,7 +15,6 @@ import (
 )
 
 type shipIndexSrv struct {
-	ams core.AuthorizationManageService
 	ths core.TweetHelpService
 	db  *gorm.DB
 }
@@ -27,14 +26,18 @@ type simpleIndexPostsSrv struct {
 
 // IndexPosts 根据userId查询广场推文列表，简单做到不同用户的主页都是不同的；
 func (s *shipIndexSrv) IndexPosts(user *ms.User, offset int, limit int) (*ms.IndexTweetList, error) {
+	if user != nil && !user.HasPermission("post.view") {
+		return &ms.IndexTweetList{Tweets: []*ms.PostFormated{}}, nil
+	}
 	predicates := dbr.Predicates{
-		"ORDER": []any{"is_top DESC, latest_replied_on DESC"},
+		"ORDER":            []any{"is_top DESC, latest_replied_on DESC"},
+		"audit_status = ?": []any{ms.PostAuditApproved},
 	}
 	if user == nil {
 		predicates["visibility = ?"] = []any{dbr.PostVisitPublic}
-	} else if !user.IsAdmin {
+	} else if !user.HasPermission("content.view_private") {
 		// 好友功能已移除: 好友可见与私密帖统一仅作者本人可见
-		args := []any{dbr.PostVisitPublic, dbr.PostVisitPrivate, dbr.PostVisitFriend, user.ID}
+		args := []any{dbr.PostVisitPublic, []ms.PostVisibleT{dbr.PostVisitPrivate, dbr.PostVisitFriend}, user.ID}
 		predicates["visibility = ? OR (visibility IN ? AND user_id = ?)"] = args
 	}
 
@@ -60,10 +63,14 @@ func (s *shipIndexSrv) IndexPosts(user *ms.User, offset int, limit int) (*ms.Ind
 }
 
 // simpleCacheIndexGetPosts simpleCacheIndex 专属获取广场推文列表函数
-func (s *simpleIndexPostsSrv) IndexPosts(_user *ms.User, offset int, limit int) (*ms.IndexTweetList, error) {
+func (s *simpleIndexPostsSrv) IndexPosts(user *ms.User, offset int, limit int) (*ms.IndexTweetList, error) {
+	if user != nil && !user.HasPermission("post.view") {
+		return &ms.IndexTweetList{Tweets: []*ms.PostFormated{}}, nil
+	}
 	predicates := dbr.Predicates{
-		"visibility = ?": []any{dbr.PostVisitPublic},
-		"ORDER":          []any{"is_top DESC, latest_replied_on DESC"},
+		"visibility = ?":   []any{dbr.PostVisitPublic},
+		"audit_status = ?": []any{ms.PostAuditApproved},
+		"ORDER":            []any{"is_top DESC, latest_replied_on DESC"},
 	}
 
 	posts, err := (&dbr.Post{}).Fetch(s.db, predicates, offset, limit)
@@ -93,9 +100,8 @@ func (s *simpleIndexPostsSrv) TweetTimeline(userId int64, offset int, limit int)
 	return nil, debug.ErrNotImplemented
 }
 
-func newShipIndexService(db *gorm.DB, ams core.AuthorizationManageService, ths core.TweetHelpService) core.IndexPostsService {
+func newShipIndexService(db *gorm.DB, ths core.TweetHelpService) core.IndexPostsService {
 	return &shipIndexSrv{
-		ams: ams,
 		ths: ths,
 		db:  db,
 	}

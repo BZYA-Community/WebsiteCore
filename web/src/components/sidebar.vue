@@ -63,6 +63,7 @@
 <script setup lang="ts">
 import { h, ref, watch, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { routePermissions } from '@/router';
 import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { NIcon, NBadge, useMessage } from 'naive-ui';
@@ -138,97 +139,19 @@ onMounted(() => {
     storeMain.triggerCollapsedRight(document.body.clientWidth <= 1140);
   };
 });
-const menuOptions = computed(() => {
-  const options = [
-    {
-      label: t('nav.home'),
-      key: 'home',
-      icon: () => h(HomeOutline),
-      href: '/',
-    },
-    {
-      label: t('nav.topic'),
-      key: 'topic',
-      icon: () => h(Hash),
-      href: '/topic',
-    },
-    {
-      label: t('nav.courses'),
-      key: 'courses',
-      icon: () => h(VideocamOutline),
-      href: '/courses',
-    },
-  ];
-  options.push({
-    label: t('nav.profile'),
-    key: 'profile',
-    icon: () => h(LeafOutline),
-    href: '/profile',
-  });
-  options.push({
-    label: t('nav.messages'),
-    key: 'messages',
-    icon: () => h(ChatbubblesOutline),
-    href: '/messages',
-  });
-  options.push({
-    label: t('nav.collection'),
-    key: 'collection',
-    icon: () => h(BookmarksOutline),
-    href: '/collection',
-  });
-  options.push({
-    label: t('nav.setting'),
-    key: 'setting',
-    icon: () => h(SettingsOutline),
-    href: '/setting',
-  });
-  if (userInfo.value.is_admin) {
-    options.push({
-      label: t('nav.adminSettings'),
-      key: 'admin-settings',
-      icon: () => h(ConstructOutline),
-      href: '/admin/settings',
-    });
-    options.push({
-      label: t('nav.adminUsers'),
-      key: 'admin-users',
-      icon: () => h(PeopleCircleOutline),
-      href: '/admin/users',
-    });
-  }
-  if (userInfo.value.is_admin || userInfo.value.roles?.includes('auditor')) {
-    options.push({
-      label: t('nav.adminAudit'),
-      key: 'admin-audit',
-      icon: () => h(ShieldCheckmarkOutline),
-      href: '/admin/audit',
-    });
-  }
-
-  return userInfo.value.id > 0
-    ? options
-    : [
-        {
-          label: t('nav.home'),
-          key: 'home',
-          icon: () => h(HomeOutline),
-          href: '/',
-        },
-        {
-          label: t('nav.topic'),
-          key: 'topic',
-          icon: () => h(Hash),
-          href: '/topic',
-        },
-        {
-          label: t('nav.courses'),
-          key: 'courses',
-          icon: () => h(VideocamOutline),
-          href: '/courses',
-        },
-      ];
-});
+const menuOptions = computed(() => [
+  { label: t('nav.home'), key: 'home', icon: () => h(HomeOutline), href: '/' },
+  { label: t('nav.topic'), key: 'topic', icon: () => h(Hash), href: '/topic' },
+  { label: t('nav.courses'), key: 'courses', icon: () => h(VideocamOutline), href: '/courses' },
+  { label: t('nav.profile'), key: 'profile', icon: () => h(LeafOutline), href: '/profile', login: true },
+  { label: t('nav.messages'), key: 'messages', icon: () => h(ChatbubblesOutline), href: '/messages', login: true },
+  { label: t('nav.collection'), key: 'collection', icon: () => h(BookmarksOutline), href: '/collection', login: true },
+  { label: t('nav.setting'), key: 'setting', icon: () => h(SettingsOutline), href: '/setting', login: true },
+  { label: t('nav.adminSettings'), key: 'admin-settings', icon: () => h(ConstructOutline), href: '/admin/settings', login: true },
+  { label: t('nav.adminUsers'), key: 'admin-users', icon: () => h(PeopleCircleOutline), href: '/admin/users', login: true },
+  { label: t('nav.adminAudit'), key: 'admin-audit', icon: () => h(ShieldCheckmarkOutline), href: '/admin/audit', login: true },
+].filter((option) => (!option.login || storeUser.userLogined) &&
+  (!routePermissions[option.key] || storeUser.hasAnyPermission(routePermissions[option.key]))));
 
 const renderMenuLabel = (option: AnyObject) => {
   if ('href' in option) {
@@ -282,8 +205,9 @@ const triggerAuth = (key: string) => {
   storeMain.triggerAuth(true);
   storeMain.triggerAuthKey(key);
 };
-const handleLogout = () => {
+const handleLogout = async () => {
   storeUser.userLogout();
+  await storeUser.loadSession();
   storeMain.doRefresh();
   goHome();
 };

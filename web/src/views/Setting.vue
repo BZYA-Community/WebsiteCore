@@ -9,10 +9,10 @@
                     :src="userInfo.avatar"
                 />
                 <n-upload
-                    v-if="!profile.allowPhoneBind || (
+                    v-if="storeUser.hasPermission('profile.edit') && (!profile.allowPhoneBind || (
                         profile.allowPhoneBind &&
                         userInfo.phone &&
-                        userInfo.phone.length > 0)
+                        userInfo.phone.length > 0))
                     "
                     ref="avatarRef"
                     :show-file-list="false"
@@ -48,7 +48,7 @@
                     round
                     type="success"
                     size="small"
-                    v-if="!showNicknameEdit && (!profile.allowPhoneBind || (
+                    v-if="storeUser.hasPermission('profile.edit') && !showNicknameEdit && (!profile.allowPhoneBind || (
                         profile.allowPhoneBind &&
                         userInfo.phone &&
                         userInfo.phone.length > 0 &&
@@ -618,7 +618,7 @@ const handleNicknameChange = () => {
     .then(async (_res) => {
       showNicknameEdit.value = false;
       // 昵称可能需要审核: 重新拉取用户信息以恢复服务端权威昵称
-      // 返回昵称==提交值说明立即生效(管理角色) 否则处于待审核状态
+      // 返回昵称==提交值说明立即生效(免审核权限) 否则处于待审核状态
       try {
         const fresh = await fetchUserInfo();
         storeUser.updateUserinfo(fresh);

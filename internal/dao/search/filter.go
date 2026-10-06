@@ -9,13 +9,15 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 )
 
-type tweetSearchFilter struct {
-	ams core.AuthorizationManageService
-}
+type tweetSearchFilter struct{}
 
 func (s *tweetSearchFilter) filterResp(user *ms.User, resp *core.QueryResp) {
-	// 管理员不过滤
-	if user != nil && user.IsAdmin {
+	if user != nil && !user.HasPermission("post.view") {
+		resp.Items, resp.Total = []*ms.PostFormated{}, 0
+		return
+	}
+	// Only explicit private-content access bypasses visibility filtering.
+	if user != nil && user.HasPermission("content.view_private") {
 		return
 	}
 

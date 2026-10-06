@@ -7,8 +7,6 @@ declare namespace Api {
                 user: {
                     /** 管理·用户禁言/解禁 */
                     status: (params: NetParams.UserStatusReq) => Promise<NetReq.UserChangeStatus>;
-                    /** 管理·变更用户角色 */
-                    role: (params: NetParams.UserRoleChangeReq) => Promise<NetReq.UserRoleChangeResp>;
                     /** 管理·软删除用户 */
                     delete: (params: NetParams.UserDeleteReq) => Promise<NetReq.UserDeleteResp>;
                 },
@@ -49,10 +47,7 @@ declare namespace Api {
                     list: (params: NetParams.UserListReq) => Promise<NetReq.UserListResp>;
                     /** 管理·用户详情(完整手机号) */
                     detail: (params: NetParams.UserDetailReq) => Promise<NetReq.UserDetailResp>;
-                    /** 管理·角色变更记录 */
-                    role: {
-                        logs: (params: NetParams.PageReq) => Promise<NetReq.UserRoleLogsResp>;
-                    }
+
                 },
                 audit: {
                     /** 审核·帖子队列 */
@@ -74,12 +69,6 @@ declare namespace Api {
             interface UserStatusReq {
                 id: number;
                 status: number;
-            }
-
-            interface UserRoleChangeReq {
-                user_id: number;
-                role: 'mentor' | 'auditor' | 'admin' | 'operator';
-                action: 'add' | 'remove';
             }
 
             interface UserDeleteReq {
@@ -171,7 +160,6 @@ declare namespace Api {
         namespace NetReq {
             interface UserChangeStatus {}
 
-            interface UserRoleChangeResp {}
 
             interface UserDeleteResp {}
 
@@ -194,10 +182,11 @@ declare namespace Api {
                 nickname: string;
                 username: string;
                 phone: string;
-                roles: string[];
                 identity: string;
+                identity_groups: Item.IdentityGroup[];
+                permissions: string[];
+                is_operator: boolean;
                 status: 1 | 2;
-                is_admin: boolean;
                 created_on: number;
             }
 
@@ -207,23 +196,6 @@ declare namespace Api {
             }
 
             interface UserDetailResp extends UserItem {}
-
-            interface UserRoleLogItem {
-                id: number;
-                user_id: number;
-                username: string;
-                operator_id: number;
-                operator_name: string;
-                old_roles: string;
-                new_roles: string;
-                action: string;
-                created_on: number;
-            }
-
-            interface UserRoleLogsResp {
-                list: UserRoleLogItem[];
-                pager: Pager;
-            }
 
             interface AuditPostItem {
                 id: number;

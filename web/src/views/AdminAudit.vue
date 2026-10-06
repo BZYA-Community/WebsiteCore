@@ -117,7 +117,7 @@
                                     {{ t('adminAudit.action.viewType', { type: commentTypeText(row.comment_type) }) }}
                                 </n-button>
                                 <n-button
-                                    size="tiny"
+                                    v-if="storeUser.hasPermission('content.review')" size="tiny"
                                     quaternary
                                     type="success"
                                     :loading="acting"
@@ -126,7 +126,7 @@
                                     {{ t('adminAudit.action.approve') }}
                                 </n-button>
                                 <n-button
-                                    size="tiny"
+                                    v-if="storeUser.hasPermission('content.review')" size="tiny"
                                     quaternary
                                     type="error"
                                     @click.stop="openReject('comment', row)"
@@ -184,7 +184,7 @@
                                     {{ t('adminAudit.action.viewHome') }}
                                 </n-button>
                                 <n-button
-                                    size="tiny"
+                                    v-if="storeUser.hasPermission('content.review')" size="tiny"
                                     quaternary
                                     type="success"
                                     :loading="acting"
@@ -193,7 +193,7 @@
                                     {{ t('adminAudit.action.approve') }}
                                 </n-button>
                                 <n-button
-                                    size="tiny"
+                                    v-if="storeUser.hasPermission('content.review')" size="tiny"
                                     quaternary
                                     type="error"
                                     @click.stop="openReject('nickname', row)"
@@ -251,7 +251,7 @@
                                     {{ t('adminAudit.action.viewHome') }}
                                 </n-button>
                                 <n-button
-                                    size="tiny"
+                                    v-if="storeUser.hasPermission('content.review')" size="tiny"
                                     quaternary
                                     type="success"
                                     :loading="acting"
@@ -260,7 +260,7 @@
                                     {{ t('adminAudit.action.approve') }}
                                 </n-button>
                                 <n-button
-                                    size="tiny"
+                                    v-if="storeUser.hasPermission('content.review')" size="tiny"
                                     quaternary
                                     type="error"
                                     @click.stop="openReject('avatar', row)"
@@ -327,17 +327,13 @@
 
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref } from 'vue';
-import { storeToRefs } from 'pinia';
-import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { NTag } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
-import { userInfo as fetchUserInfo } from '@/api/auth';
 import { formatTime } from '@/utils/formatTime';
 import { mdPlainText } from '@/utils/markdown';
-import { useStoreMain } from '@/store/main';
-import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { Api } from '@/utils/request';
+import { useStoreUser } from '@/store/user';
 
 type AuditPostItem = Api.Admin.NetReq.AuditPostItem;
 type AuditCommentItem = Api.Admin.NetReq.AuditCommentItem;
@@ -345,11 +341,8 @@ type AuditNicknameItem = Api.Admin.NetReq.AuditNicknameItem;
 type AuditAvatarItem = Api.Admin.NetReq.AuditAvatarItem;
 type AuditLogItem = Api.Admin.NetReq.AuditLogItem;
 
-const storeMain = useStoreMain();
-const storeUser = useStoreUser();
-const { userInfo } = storeToRefs(storeUser);
-const router = useRouter();
 const { t } = useI18n();
+const storeUser = useStoreUser();
 
 const loading = ref(false);
 const acting = ref(false);
@@ -904,44 +897,7 @@ const logColumns = computed<DataTableColumns<AuditLogItem>>(() => [
     },
 ]);
 
-const ensureAuditAccess = async () => {
-    if (!localStorage.getItem(TOKEN_KEY) && userInfo.value.id === 0) {
-        storeMain.triggerAuth(true);
-        storeMain.triggerAuthKey('signin');
-        router.replace({
-            name: 'home',
-        });
-        return false;
-    }
-
-    if (userInfo.value.id === 0) {
-        try {
-            const currentUser = await fetchUserInfo();
-            storeUser.updateUserinfo(currentUser);
-        } catch (_err) {
-            storeUser.userLogout();
-            router.replace({
-                name: 'home',
-            });
-            return false;
-        }
-    }
-
-    if (!userInfo.value.is_admin && !userInfo.value.roles?.includes('auditor')) {
-        router.replace({
-            name: '404',
-        });
-        return false;
-    }
-
-    return true;
-};
-
 onMounted(async () => {
-    const allowed = await ensureAuditAccess();
-    if (!allowed) {
-        return;
-    }
     loadActiveTab();
 });
 </script>

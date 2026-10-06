@@ -7,9 +7,8 @@ import (
 )
 
 var (
-	_ core.AuthorizationManageService = (*authorizationManageSrv)(nil)
-	_ core.CommentService             = (*commentSrv)(nil)
-	_ core.CommentManageService       = (*commentManageSrv)(nil)
+	_ core.CommentService       = (*commentSrv)(nil)
+	_ core.CommentManageService = (*commentManageSrv)(nil)
 
 	_ core.FollowingManageService = (*followingManageSrv)(nil)
 

@@ -14,29 +14,23 @@ const (
 	UserStatusNormal = dbr.UserStatusNormal
 	UserStatusClosed = dbr.UserStatusClosed
 
-	RoleOperator = dbr.RoleOperator
-	RoleAdmin    = dbr.RoleAdmin
-	RoleAuditor  = dbr.RoleAuditor
-	RoleMentor   = dbr.RoleMentor
-
 	PostAuditPending  = dbr.PostAuditPending
 	PostAuditApproved = dbr.PostAuditApproved
 	PostAuditRejected = dbr.PostAuditRejected
 )
 
-// AllRoles 可由后台分配的管理角色
-var AllRoles = dbr.AllRoles
-
 type (
-	User                = dbr.User
-	Post                = dbr.Post
-	PostAuditT          = dbr.PostAuditT
-	ConditionsT         = dbr.ConditionsT
-	PostFormated        = dbr.PostFormated
-	UserFormated        = dbr.UserFormated
-	PostContentFormated = dbr.PostContentFormated
-	AuditLog            = dbr.AuditLog
-	AuditCommentRow     = dbr.AuditCommentRow
-	UserRoleLog         = dbr.UserRoleLog
-	Model               = dbr.Model
+	User                 = dbr.User
+	IdentityGroup        = dbr.IdentityGroup
+	IdentityOperationLog = dbr.IdentityOperationLog
+	Post                 = dbr.Post
+	PostAuditT           = dbr.PostAuditT
+	ConditionsT          = dbr.ConditionsT
+	PostFormated         = dbr.PostFormated
+	UserFormated         = dbr.UserFormated
+	PostContentFormated  = dbr.PostContentFormated
+	AuditLog             = dbr.AuditLog
+	AuditCommentRow      = dbr.AuditCommentRow
+	UserRoleLog          = dbr.UserRoleLog
+	Model                = dbr.Model
 )

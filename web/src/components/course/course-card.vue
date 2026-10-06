@@ -17,7 +17,7 @@
                 <span class="comments">{{ t('course.card.commentCount', { count: course.comment_count }) }}</span>
             </div>
         </div>
-        <div v-if="isAdmin" class="admin-ops" @click.stop>
+        <div v-if="canManage" class="admin-ops" @click.stop>
             <n-button text size="tiny" @click="emit('edit')">{{ t('common.edit') }}</n-button>
             <n-popconfirm
                 :negative-text="t('common.cancel')"
@@ -44,10 +44,10 @@ const { t } = useI18n();
 const props = withDefaults(
   defineProps<{
     course: CourseItem;
-    isAdmin?: boolean;
+    canManage?: boolean;
   }>(),
   {
-    isAdmin: false,
+    canManage: false,
   },
 );
 

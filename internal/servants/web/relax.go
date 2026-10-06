@@ -30,7 +30,7 @@ func (s *relaxChain) ChainGetUnreadMsgCount() gin.HandlersChain {
 }
 
 func (s *relaxSrv) Chain() gin.HandlersChain {
-	return gin.HandlersChain{chain.JwtSurely()}
+	return gin.HandlersChain{chain.JWT(), chain.Authorize()}
 }
 
 func (s *relaxSrv) GetUnreadMsgCount(req *web.GetUnreadMsgCountReq) (*web.GetUnreadMsgCountResp, error) {

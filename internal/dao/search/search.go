@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func NewMeiliTweetSearchService(ams core.AuthorizationManageService) (core.TweetSearchService, core.VersionInfo) {
+func NewMeiliTweetSearchService() (core.TweetSearchService, core.VersionInfo) {
 	s := conf.MeiliSetting
 	client := meilisearch.NewClient(meilisearch.ClientConfig{
 		Host:   s.Endpoint(),
@@ -40,9 +40,6 @@ func NewMeiliTweetSearchService(ams core.AuthorizationManageService) (core.Tweet
 	}
 
 	mts := &meiliTweetSearchServant{
-		tweetSearchFilter: tweetSearchFilter{
-			ams: ams,
-		},
 		client:       client,
 		index:        client.Index(s.Index),
 		publicFilter: fmt.Sprintf("visibility=%d", core.PostVisitPublic),
@@ -51,11 +48,8 @@ func NewMeiliTweetSearchService(ams core.AuthorizationManageService) (core.Tweet
 }
 
 // NewSqlTweetSearchService SQL 直查搜索（无外部搜索引擎时的默认回退实现）
-func NewSqlTweetSearchService(ams core.AuthorizationManageService) (core.TweetSearchService, core.VersionInfo) {
+func NewSqlTweetSearchService() (core.TweetSearchService, core.VersionInfo) {
 	sts := &sqlTweetSearchServant{
-		tweetSearchFilter: tweetSearchFilter{
-			ams: ams,
-		},
 		db: conf.MustGormDB(),
 	}
 	return sts, sts

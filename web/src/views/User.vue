@@ -168,7 +168,7 @@ const user = reactive<Item.UserInfo>({
 	avatar: '',
 	username: '',
 	nickname: '',
-	is_admin: false,
+	is_operator: false,
 	is_following: false,
 	created_on: 0,
 	follows: 0,
@@ -330,7 +330,7 @@ const loadUser = () => {
       user.avatar = res.avatar;
       user.username = res.username;
       user.nickname = res.nickname;
-      user.is_admin = res.is_admin;
+      user.is_operator = !!res.is_operator;
       user.identity = res.identity;
       user.created_on = res.created_on;
       user.is_following = res.is_following;
@@ -373,14 +373,14 @@ const userOptions = computed(() => {
   }
   let options: DropdownOption[] = [];
   // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
-  if (canWhisperUser(user)) {
+  if (canWhisperUser()) {
     options.push({
       label: t('user.userPage.actionWhisperLabel'),
       key: 'whisper',
       icon: renderIcon(PaperPlaneOutline),
     });
   }
-  if (userInfo.value.is_admin) {
+  if (storeUser.hasPermission('user.manage') && (!user.is_operator || userInfo.value.is_operator)) {
     if (user.status === 1) {
       options.push({
         label: t('user.userPage.actionBan'),
@@ -395,6 +395,7 @@ const userOptions = computed(() => {
       });
     }
   }
+  if (!storeUser.hasPermission('community.interact')) return options;
   if (user.is_following) {
     options.push({
       label: t('user.userPage.unfollow'),

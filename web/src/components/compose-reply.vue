@@ -11,7 +11,7 @@
                     </n-icon>
                     <span class="upvote-count">{{ thumbsUpCount }}</span>
                 </div>
-                <div v-if="userLogined" class="action-item hover" @click.stop="handleThumbsUp">
+                <div v-if="userLogined && storeUser.hasPermission('community.interact')" class="action-item hover" @click.stop="handleThumbsUp">
                     <n-icon size="medium">
                         <thumb-up-outlined v-if="!hasThumbsUp" />
                         <thumb-up-twotone v-if="hasThumbsUp" class="show" />
@@ -23,22 +23,22 @@
                         <thumb-down-outlined />
                     </n-icon>
                 </div>
-                <div v-if="userLogined" class="action-item hover" @click.stop="handleThumbsDown">
+                <div v-if="userLogined && storeUser.hasPermission('community.interact')" class="action-item hover" @click.stop="handleThumbsDown">
                     <n-icon size="medium">
                         <thumb-down-outlined v-if="!hasThumbsDown" />
                         <thumb-down-twotone v-if="hasThumbsDown" class="show" />
                     </n-icon>
                 </div>
-                <span class="show reply-btn" v-if="userLogined && !showReply" @click="switchReply(true)">
+                <span class="show reply-btn" v-if="storeUser.hasPermission('comment.create') && userLogined && !showReply" @click="switchReply(true)">
                     {{ t('comment.action.reply') }}
                 </span>
-                <span class="hide reply-btn" v-if="userLogined && showReply" @click="switchReply(false)">
+                <span class="hide reply-btn" v-if="storeUser.hasPermission('comment.create') && userLogined && showReply" @click="switchReply(false)">
                     {{ t('common.cancel') }}
                 </span>
             </div>
         </div>
 
-        <div class="reply-input-wrap" v-if="showReply">
+        <div class="reply-input-wrap" v-if="showReply && storeUser.hasPermission('comment.create')">
             <n-input-group>
                 <n-input ref="inputInstRef" size="small" :placeholder="
                     props.atUsername

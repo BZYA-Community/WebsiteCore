@@ -30,14 +30,15 @@ type (
 
 // UserInfo 用户基本信息
 type UserInfo struct {
-	ID        int64  `json:"id"`
-	Nickname  string `json:"nickname"`
-	Username  string `json:"username"`
-	Status    int    `json:"status"`
-	Avatar    string `json:"avatar"`
-	IsAdmin   bool   `json:"is_admin"`
-	Roles     string `json:"roles"`
-	CreatedOn int64  `json:"created_on"`
+	ID         int64  `json:"id"`
+	Nickname   string `json:"nickname"`
+	Username   string `json:"username"`
+	Status     int    `json:"status"`
+	Avatar     string `json:"avatar"`
+	IsAdmin    bool   `json:"is_admin"`
+	Roles      string `json:"roles"`
+	IsOperator bool   `json:"is_operator"`
+	CreatedOn  int64  `json:"created_on"`
 }
 
 type UserProfile struct {
@@ -49,6 +50,7 @@ type UserProfile struct {
 	Avatar      string `json:"avatar"`
 	IsAdmin     bool   `json:"is_admin"`
 	Roles       string `json:"roles"`
+	IsOperator  bool   `json:"is_operator"`
 	CreatedOn   int64  `json:"created_on"`
 	TweetsCount int    `json:"tweets_count"`
 }

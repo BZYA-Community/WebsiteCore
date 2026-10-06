@@ -34,6 +34,7 @@ type dataSrv struct {
 	core.CourseManageService
 	core.TrendsManageServantA
 	core.UserManageService
+	core.IdentityService
 	core.UserMetricServantA
 	core.FollowingManageService
 	core.UserRelationService
@@ -72,6 +73,7 @@ func NewDataService() (core.DataService, core.VersionInfo) {
 		CourseManageService:    newCourseManageService(db),
 		TrendsManageServantA:   newTrendsManageServentA(db),
 		UserManageService:      newUserManageService(db, ums),
+		IdentityService:        newIdentityService(db),
 		SiteAdminService:       newAuditService(db),
 		FollowingManageService: newFollowingManageService(db),
 		UserRelationService:    newUserRelationService(db),
@@ -91,10 +93,6 @@ func NewWebDataServantA() (core.WebDataServantA, core.VersionInfo) {
 		TweetHelpServantA:   newTweetHelpServantA(db),
 	}
 	return ds, ds
-}
-
-func NewAuthorizationManageService() core.AuthorizationManageService {
-	return newAuthorizationManageService(conf.MustGormDB())
 }
 
 func (s *dataSrv) Name() string {

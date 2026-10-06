@@ -1,6 +1,6 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { useStoreMain } from '@/store/main';
-import { TOKEN_KEY } from '@/store/user';
+import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { translateErrMsg } from '@/locales/errorCodes';
 
 const service = axios.create({
@@ -28,17 +28,21 @@ service.interceptors.response.use(
 		if (+code === 0) {
 			return data || {};
 		} else {
-			Promise.reject(response?.data || {});
+			window.$message?.error(translateErrMsg(response?.data?.code, response?.data?.msg));
+			return Promise.reject(response?.data || {});
 		}
 	},
 	(error = {}) => {
 		const { response = {} } = error || {};
 		// 重定向
 		if (+response?.status === 401) {
-			localStorage.removeItem(TOKEN_KEY);
+			const currentToken = localStorage.getItem(TOKEN_KEY);
+			const requestToken = error.config?.headers?.get?.('Authorization') ?? error.config?.headers?.Authorization;
+			if (currentToken && requestToken !== `Bearer ${currentToken}`) return Promise.reject(response?.data || {});
+			useStoreUser().userLogout();
 
 			if (response?.data.code !== 10005) {
-				window.$message.warning(
+				window.$message?.warning(
 					translateErrMsg(response?.data?.code, response?.data?.msg, 'errors.authFailed'),
 				);
 			} else {
@@ -46,7 +50,7 @@ service.interceptors.response.use(
 				useStoreMain().triggerAuth(true);
 			}
 		} else {
-			window.$message.error(translateErrMsg(response?.data?.code, response?.data?.msg));
+			window.$message?.error(translateErrMsg(response?.data?.code, response?.data?.msg));
 		}
 		return Promise.reject(response?.data || {});
 	},

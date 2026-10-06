@@ -6,15 +6,16 @@ package web
 
 import (
 	"crypto/md5"
+	"errors"
 	"fmt"
 	"strings"
 	"unicode/utf8"
 
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
+	"github.com/BZYA-Community/WebsiteCore/internal/authz"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
-	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
@@ -34,47 +35,41 @@ type chatSrv struct {
 }
 
 func (s *chatSrv) Chain() gin.HandlersChain {
-	return gin.HandlersChain{chain.JWT()}
+	return gin.HandlersChain{chain.JWT(), chain.Authorize()}
 }
 
-// canWhisper 身份组私信权限判定(发送入口与 history can_send 共用):
-// 游客(未绑手机)禁止发送; 道友↔道友绝对禁止(好友不豁免);
-// 道友→高级身份(导师/审核/管理/运维)B站式首条限制——对方回复前只能发一条;
-// 高级身份→任何人 自由。返回 nil 表示允许, 否则为具体拒绝原因(msg 即提示文案)
-// 依赖存储的判定查询出错时 fail-closed 返回错误(拒绝), 不静默放行(#15)
+// canWhisper is shared by sending and history's can_send indicator.
+// Initiation permits one pending message; an incoming message requires reply permission.
 func (s *chatSrv) canWhisper(sender, receiver *ms.User) *xerror.Error {
-	if sender.Phone == "" {
-		return web.ErrWhisperGuestNeedPhone
+	if sender == nil || receiver == nil || receiver.Status != ms.UserStatusNormal || sender.ID == receiver.ID {
+		return web.ErrNoPermission
 	}
-	if sender.HasAnyRole() {
-		return nil
+	if !sender.HasPermission(authz.MessageInitiate) && !sender.HasPermission(authz.MessageReply) {
+		return web.ErrNoPermission
 	}
-	// 发送方为道友
-	if receiver.HasAnyRole() {
-		// 首条限制依赖存储查询, 查询出错时无法判定 → fail-closed 拒绝, 禁止吞错放行
-		has, err := s.Ds.HasWhispered(receiver.ID, sender.ID)
-		if err != nil {
-			logrus.Errorf("Ds.HasWhispered(%d, %d) err: %s", receiver.ID, sender.ID, err)
-			return web.ErrSendWhisperFailed
-		}
-		if has {
-			// 对方回复过, 解除限制
+	hasReply, err := s.Ds.HasWhispered(receiver.ID, sender.ID)
+	if err != nil {
+		logrus.Errorf("Ds.HasWhispered(%d, %d) err: %s", receiver.ID, sender.ID, err)
+		return web.ErrSendWhisperFailed
+	}
+	if hasReply {
+		if sender.HasPermission(authz.MessageReply) {
 			return nil
 		}
-		has, err = s.Ds.HasWhispered(sender.ID, receiver.ID)
-		if err != nil {
-			logrus.Errorf("Ds.HasWhispered(%d, %d) err: %s", sender.ID, receiver.ID, err)
-			return web.ErrSendWhisperFailed
-		}
-		if has {
-			return web.ErrWhisperOnePending
-		}
-		return nil
+		return web.ErrNoPermission
 	}
-	if receiver.Phone == "" {
-		return web.ErrWhisperPeerNoPhone
+	if !sender.HasPermission(authz.MessageInitiate) {
+		return web.ErrNoPermission
 	}
-	return web.ErrWhisperBetweenDaoyou
+	hasPending, err := s.Ds.HasWhispered(sender.ID, receiver.ID)
+	if err != nil {
+		logrus.Errorf("Ds.HasWhispered(%d, %d) err: %s", sender.ID, receiver.ID, err)
+		return web.ErrSendWhisperFailed
+	}
+	if hasPending {
+		return web.ErrWhisperOnePending
+	}
+	return nil
 }
 
 // GetChatContacts 会话列表(系统联系人单列置顶, 私信会话按最新消息倒序)
@@ -145,7 +140,7 @@ func (s *chatSrv) GetChatContacts(req *web.GetChatContactsReq) (*web.GetChatCont
 				Nickname:    u.Nickname,
 				Avatar:      u.Avatar,
 				Roles:       u.RoleList(),
-				Identity:    dbr.IdentityOf(u.Roles, u.Phone),
+				Identity:    u.DisplayIdentity(),
 				LastContent: m.Content,
 				LastTime:    m.CreatedOn,
 				LastFromMe:  m.SenderUserID == req.Uid,
@@ -232,7 +227,7 @@ func (s *chatSrv) GetChatHistory(req *web.GetChatHistoryReq) (*web.GetChatHistor
 		Nickname: peer.Nickname,
 		Avatar:   peer.Avatar,
 		Roles:    peer.RoleList(),
-		Identity: dbr.IdentityOf(peer.Roles, peer.Phone),
+		Identity: peer.DisplayIdentity(),
 	}
 	// 打开会话即标记对方发来的未读
 	if err := s.Ds.ReadWhispersFrom(req.Uid, peer.ID); err != nil {
@@ -274,8 +269,11 @@ func (s *chatSrv) batchSenderInfo(msgs []*ms.MessageFormated) map[int64]struct{ 
 	return info
 }
 
-// SendChatMessage 发送私信(身份组权限后端强制)
+// SendChatMessage enforces current permissions and conversation state.
 func (s *chatSrv) SendChatMessage(req *web.SendChatMessageReq) (*web.SendChatMessageResp, error) {
+	if req.User == nil {
+		return nil, web.ErrNoPermission
+	}
 	// 系统会话只读
 	if req.UserID == 0 {
 		return nil, web.ErrSystemChatReadonly
@@ -296,7 +294,7 @@ func (s *chatSrv) SendChatMessage(req *web.SendChatMessageReq) (*web.SendChatMes
 	if err != nil || receiver.Model == nil || receiver.ID <= 0 {
 		return nil, web.ErrNoExistUsername
 	}
-	// 身份组权限
+	// Permission and conversation checks.
 	if xerr := s.canWhisper(req.User, receiver); xerr != nil {
 		return nil, xerr
 	}
@@ -311,8 +309,6 @@ func (s *chatSrv) SendChatMessage(req *web.SendChatMessageReq) (*web.SendChatMes
 		logrus.Errorf("ac.SetNx(whisper dedup) err: %s", err)
 		return nil, web.ErrSendWhisperFailed
 	}
-	// 每日频次限制已取消: 高级身份(导师/审核/管理/运维)私信不限量;
-	// 道友未获对方回复前受canWhisper首条限制约束, 获回复后亦不限量
 	// 创建私信
 	msg, err := s.Ds.CreateMessage(&ms.Message{
 		SenderUserID:   req.User.ID,
@@ -322,6 +318,12 @@ func (s *chatSrv) SendChatMessage(req *web.SendChatMessageReq) (*web.SendChatMes
 		Content:        content,
 	})
 	if err != nil {
+		if errors.Is(err, core.ErrWhisperOnePending) {
+			return nil, web.ErrWhisperOnePending
+		}
+		if errors.Is(err, authz.ErrDenied) {
+			return nil, web.ErrNoPermission
+		}
 		logrus.Errorf("Ds.CreateMessage(whisper) err: %s", err)
 		return nil, web.ErrSendWhisperFailed
 	}

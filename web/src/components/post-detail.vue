@@ -216,7 +216,7 @@
                     <n-space justify="space-between">
                         <div
                             class="opt-item hover"
-                            @click.stop="handlePostStar"
+                            @click.stop="handlePostStar" :aria-disabled="!storeUser.hasPermission('community.interact')"
                         >
                             <n-icon size="20" class="opt-item-icon">
                                 <heart-outline v-if="!hasStarred" />
@@ -232,7 +232,7 @@
                         </div>
                         <div
                             class="opt-item hover"
-                            @click.stop="handlePostCollection"
+                            @click.stop="handlePostCollection" :aria-disabled="!storeUser.hasPermission('community.interact')"
                         >
                             <n-icon size="20" class="opt-item-icon">
                                 <bookmark-outline v-if="!hasCollected" />
@@ -340,7 +340,7 @@ const auditActing = ref(false);
 const isAuditor = computed(
   () =>
     userInfo.value.id > 0 &&
-    (userInfo.value.is_admin || (userInfo.value.roles || []).includes('auditor')),
+    storeUser.hasPermission('content.review'),
 );
 const showAuditBar = computed(
   () =>
@@ -376,17 +376,18 @@ const getVisibilityName = (v: number) => {
 const adminOptions = computed(() => {
   let options: DropdownOption[] = [];
   if (
-    !userInfo.value.is_admin &&
-    userInfo.value.id != props.post.user.id
+    !storeUser.hasPermission('content.manage') &&
+    (userInfo.value.id != props.post.user.id || !storeUser.hasPermission('post.create'))
   ) {
-    // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
-    if (canWhisperUser(props.post.user)) {
+    // The server decides whether an existing conversation permits a reply.
+    if (canWhisperUser()) {
       options.push({
         label: t('post.menu.whisper', { user: props.post.user.username }),
         key: 'whisper',
         icon: renderIcon(PaperPlaneOutline),
       });
     }
+    if (!storeUser.hasPermission('community.interact')) return options;
     if (props.post.user.is_following) {
       options.push({
         label: t('post.menu.unfollowUser', { user: props.post.user.username }),
@@ -420,7 +421,7 @@ const adminOptions = computed(() => {
       icon: renderIcon(LockOpenOutline),
     });
   }
-  if (userInfo.value.is_admin) {
+  if (storeUser.hasPermission('content.manage')) {
     if (post.value.is_top === 0) {
       options.push({
         label: t('post.action.stick'),
@@ -723,6 +724,7 @@ const execVisibilityAction = () => {
     });
 };
 const handlePostStar = () => {
+  if (!storeUser.hasPermission('community.interact')) return;
   postStar({
     id: post.value.id,
   })
@@ -745,6 +747,7 @@ const handlePostStar = () => {
     });
 };
 const handlePostCollection = () => {
+  if (!storeUser.hasPermission('community.interact')) return;
   postCollection({
     id: post.value.id,
   })

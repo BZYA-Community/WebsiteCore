@@ -18,8 +18,8 @@
                     </template>
                 </n-input>
                 <n-button type="primary" secondary round @click="doSearch">{{ t('common.search') }}</n-button>
-                <template v-if="userInfo.is_admin">
-                    <n-button secondary round @click="openGroupModal()">{{ t('course.list.createGroup') }}</n-button>
+                <template v-if="storeUser.hasAnyPermission(['course.manage', 'course.manage_own'])">
+                    <n-button v-if="storeUser.hasPermission('course.manage')" secondary round @click="openGroupModal()">{{ t('course.list.createGroup') }}</n-button>
                     <n-button secondary round type="info" @click="openCourseModal()">{{ t('course.list.createCourse') }}</n-button>
                 </template>
             </div>
@@ -35,7 +35,7 @@
                         v-for="course in searchList"
                         :key="course.id"
                         :course="course"
-                        :is-admin="userInfo.is_admin"
+                        :can-manage="canManageCourse(course)"
                         @edit="openCourseModal(course)"
                         @delete="execDeleteCourse(course)"
                     />
@@ -67,7 +67,7 @@
                             >
                                 {{ t('course.list.viewAll') }}
                             </n-button>
-                            <template v-if="userInfo.is_admin">
+                            <template v-if="storeUser.hasPermission('course.manage')">
                                 <n-button text size="small" @click="openGroupModal(group)">{{ t('common.edit') }}</n-button>
                                 <n-popconfirm
                                     :negative-text="t('common.cancel')"
@@ -87,7 +87,7 @@
                             v-for="course in groupCourses[group.id] || []"
                             :key="course.id"
                             :course="course"
-                            :is-admin="userInfo.is_admin"
+                            :can-manage="canManageCourse(course)"
                             @edit="openCourseModal(course)"
                             @delete="execDeleteCourse(course)"
                         />
@@ -107,7 +107,7 @@
                         v-for="course in drawerList"
                         :key="course.id"
                         :course="course"
-                        :is-admin="userInfo.is_admin"
+                        :can-manage="canManageCourse(course)"
                         @edit="openCourseModal(course)"
                         @delete="execDeleteCourse(course)"
                     />
@@ -160,6 +160,7 @@
                 <n-form-item :label="t('course.list.courseTeacher')" required>
                     <n-select
                         v-model:value="courseForm.teacher_id"
+                        :disabled="!storeUser.hasPermission('course.manage') || !storeUser.hasPermission('user.manage')"
                         filterable
                         remote
                         :options="teacherOptions"
@@ -171,7 +172,7 @@
                 </n-form-item>
                 <n-form-item :label="courseForm.id > 0 ? t('course.list.changeVideo') : t('course.list.courseVideo')" :required="courseForm.id === 0">
                     <div class="video-upload-wrap">
-                        <n-upload
+                        <n-upload v-if="storeUser.hasPermission('course.upload') && storeUser.hasAnyPermission(['course.manage', 'course.manage_own'])"
                             :show-file-list="false"
                             :custom-request="noopUpload"
                             @before-upload="beforeVideoPick"
@@ -233,6 +234,7 @@ const { t } = useI18n();
 const title = computed(() => t('course.list.title'));
 const storeUser = useStoreUser();
 const { userInfo } = storeToRefs(storeUser);
+const canManageCourse = (course: CourseItem) => storeUser.hasPermission('course.manage') || (storeUser.hasPermission('course.manage_own') && course.teacher_id === userInfo.value.id);
 
 // ===== 分组浏览 =====
 const groups = ref<CourseGroup[]>([]);
@@ -436,6 +438,7 @@ const groupOptions = computed(() =>
 const teacherOptions = ref<{ label: string; value: number }[]>([]);
 const teacherLoading = ref(false);
 const searchTeachers = async (k: string) => {
+  if (!storeUser.hasPermission('user.manage')) return;
   teacherLoading.value = true;
   try {
     const res = await Api.v1.admin.get.user.list({ keyword: k, page: 1, page_size: 20 });
@@ -521,6 +524,7 @@ const captureCover = (file: File) => {
 
 // 封面走现有附件图片上传
 const uploadCover = async (blob: Blob) => {
+  if (!storeUser.hasPermission('content.upload')) return;
   try {
     const form = new FormData();
     form.append('type', 'public/image');
@@ -589,7 +593,7 @@ const uploadVideo = async (file: File, ext: string) => {
 const openCourseModal = (course?: CourseItem) => {
   courseForm.id = course?.id || 0;
   courseForm.group_id = course?.group_id ?? null;
-  courseForm.teacher_id = course?.teacher_id ?? null;
+  courseForm.teacher_id = course?.teacher_id ?? userInfo.value.id;
   courseForm.title = course?.title || '';
   courseForm.intro = course?.intro || '';
   videoName.value = '';
@@ -607,7 +611,7 @@ const openCourseModal = (course?: CourseItem) => {
       },
     ];
   } else {
-    teacherOptions.value = [];
+    teacherOptions.value = [{ label: userInfo.value.nickname || userInfo.value.username, value: userInfo.value.id }];
   }
   courseModalShow.value = true;
 };

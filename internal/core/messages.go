@@ -5,9 +5,13 @@
 package core
 
 import (
+	"errors"
+
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 )
+
+var ErrWhisperOnePending = errors.New("recipient must reply before another whisper")
 
 // MessageService 消息服务
 type MessageService interface {

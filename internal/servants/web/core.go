@@ -38,15 +38,14 @@ type coreSrv struct {
 }
 
 func (s *coreSrv) Chain() gin.HandlersChain {
-	return gin.HandlersChain{chain.JWT()}
+	return gin.HandlersChain{chain.JWT(), chain.Authorize()}
 }
 
 func (s *coreSrv) SyncSearchIndex(req *web.SyncSearchIndexReq) error {
-	if req.User != nil && req.User.IsAdmin {
-		s.PushAllPostToSearch()
-	} else {
-		logrus.Warnf("sync search index need admin permision user: %#v", req.User)
+	if !req.User.HasPermission("site.manage") {
+		return web.ErrNoPermission
 	}
+	s.PushAllPostToSearch()
 	return nil
 }
 
@@ -61,18 +60,21 @@ func (s *coreSrv) GetUserInfo(req *web.UserInfoReq) (*web.UserInfoResp, error) {
 		return nil, web.ErrGetFollowCountFailed
 	}
 	resp := &web.UserInfoResp{
-		Id:          user.ID,
-		Nickname:    user.Nickname,
-		Username:    user.Username,
-		Status:      user.Status,
-		Avatar:      user.Avatar,
-		IsAdmin:     user.IsAdmin,
-		Roles:       dbr.SplitRoles(user.Roles),
-		Identity:    dbr.IdentityOf(user.Roles, user.Phone),
-		CreatedOn:   user.CreatedOn,
-		Follows:     follows,
-		Followings:  followings,
-		TweetsCount: user.TweetsCount,
+		Id:             user.ID,
+		Nickname:       user.Nickname,
+		Username:       user.Username,
+		Status:         user.Status,
+		Avatar:         user.Avatar,
+		IsAdmin:        req.User.HasPermission("user.manage"),
+		IsOperator:     req.User.IsOperator,
+		IdentityGroups: req.User.GroupList(),
+		Permissions:    req.User.PermissionList(),
+		Roles:          req.User.RoleList(),
+		Identity:       req.User.DisplayIdentity(),
+		CreatedOn:      user.CreatedOn,
+		Follows:        follows,
+		Followings:     followings,
+		TweetsCount:    user.TweetsCount,
 	}
 	if user.Phone != "" {
 		resp.Phone = dbr.MaskPhone(user.Phone)
@@ -204,7 +206,10 @@ func (s *coreSrv) UserPhoneBind(req *web.UserPhoneBindReq) error {
 		return web.ErrExistedUserPhone
 	}
 
-	// 如果禁止phone verify 则允许通过任意验证码
+	// A disabled verification channel must never accept an arbitrary code.
+	if !_enablePhoneVerify {
+		return web.ErrNoPermission
+	}
 	if _enablePhoneVerify {
 		c, err := s.Ds.GetLatestPhoneCaptcha(req.Phone)
 		if err != nil {
@@ -226,7 +231,7 @@ func (s *coreSrv) UserPhoneBind(req *web.UserPhoneBindReq) error {
 	// 执行绑定
 	user := req.User
 	user.Phone = req.Phone
-	if err := s.Ds.UpdateUser(user); err != nil {
+	if err := s.Ds.UpdateUser(user, "phone"); err != nil {
 		// TODO: 优化错误处理逻辑，失败后上面的逻辑也应该回退
 		logrus.Errorf("Ds.UpdateUser err: %s", err)
 		return xerror.ServerError
@@ -270,7 +275,7 @@ func (s *coreSrv) ChangePassword(req *web.ChangePasswordReq) error {
 	}
 	// 更新入库
 	user.Password, user.Salt = encryptPasswordAndSalt(req.Password)
-	if err := s.Ds.UpdateUser(user); err != nil {
+	if err := s.Ds.UpdateUser(user, "password", "salt"); err != nil {
 		logrus.Errorf("Ds.UpdateUser err: %s", err)
 		return xerror.ServerError
 	}
@@ -308,10 +313,10 @@ func (s *coreSrv) ChangeNickname(req *web.ChangeNicknameReq) error {
 		return web.ErrNicknameLengthLimit
 	}
 	user := req.User
-	// 审核开关: 无管理角色的用户昵称变更先暂存 待审核通过后生效(见auditSrv)
-	if conf.AuditSetting.Enabled && !user.HasAnyRole() {
+	// Nickname changes without publication exemption wait for review.
+	if conf.AuditSetting.Enabled && !user.HasPermission("content.publish_unreviewed") {
 		user.PendingNickname = req.Nickname
-		if err := s.Ds.UpdateUser(user); err != nil {
+		if err := s.Ds.UpdateUser(user, "pending_nickname"); err != nil {
 			logrus.Errorf("Ds.UpdateUser err: %s", err)
 			return xerror.ServerError
 		}
@@ -320,7 +325,8 @@ func (s *coreSrv) ChangeNickname(req *web.ChangeNicknameReq) error {
 		return nil
 	}
 	user.Nickname = req.Nickname
-	if err := s.Ds.UpdateUser(user); err != nil {
+	user.PendingNickname = ""
+	if err := s.Ds.UpdateUser(user, "nickname", "pending_nickname"); err != nil {
 		logrus.Errorf("Ds.UpdateUser err: %s", err)
 		return xerror.ServerError
 	}
@@ -348,10 +354,10 @@ func (s *coreSrv) ChangeAvatar(req *web.ChangeAvatarReq) (resp *web.ChangeAvatar
 		return resp, xerror.ServerError
 	}
 	user := req.User
-	// 审核开关: 无管理角色的用户头像变更先暂存 待审核通过后生效(见auditSrv)
-	if conf.AuditSetting.Enabled && !user.HasAnyRole() {
+	// Avatar changes without publication exemption wait for review.
+	if conf.AuditSetting.Enabled && !user.HasPermission("content.publish_unreviewed") {
 		user.PendingAvatar = req.Avatar
-		if err := s.Ds.UpdateUser(user); err != nil {
+		if err := s.Ds.UpdateUser(user, "pending_avatar"); err != nil {
 			logrus.Errorf("Ds.UpdateUser failed: %s", err)
 			return resp, xerror.ServerError
 		}
@@ -361,7 +367,8 @@ func (s *coreSrv) ChangeAvatar(req *web.ChangeAvatarReq) (resp *web.ChangeAvatar
 	}
 	oldAvatar := user.Avatar
 	user.Avatar = req.Avatar
-	if err := s.Ds.UpdateUser(user); err != nil {
+	user.PendingAvatar = ""
+	if err := s.Ds.UpdateUser(user, "avatar", "pending_avatar"); err != nil {
 		logrus.Errorf("Ds.UpdateUser failed: %s", err)
 		return resp, xerror.ServerError
 	}

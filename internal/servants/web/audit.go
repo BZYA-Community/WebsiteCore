@@ -28,7 +28,7 @@ type auditSrv struct {
 }
 
 func (s *auditSrv) Chain() gin.HandlersChain {
-	return gin.HandlersChain{chain.JWT(), chain.Auditor()}
+	return gin.HandlersChain{chain.JWT(), chain.Authorize()}
 }
 
 // ListAuditPosts 审核队列

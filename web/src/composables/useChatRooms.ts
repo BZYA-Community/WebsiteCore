@@ -66,7 +66,7 @@ export function useChatRooms() {
   const messagesLoaded = ref(false);
   const loadingRooms = ref(false);
   const activeRoomId = ref('');
-  const canSend = ref(true);
+  const canSend = ref(false);
   const canSendTip = ref('');
   const sending = ref(false);
 
@@ -302,7 +302,7 @@ export function useChatRooms() {
         username: seed?.username || '',
         nickname: seed?.nickname || t('message.chat.loadingNickname'),
         avatar: seed?.avatar || '',
-        roles: seed?.roles || [],
+        identity_groups: seed?.identity_groups || [],
         identity: seed?.identity || '',
         last_content: '',
         last_time: Math.floor(Date.now() / 1000),

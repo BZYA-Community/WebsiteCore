@@ -39,7 +39,7 @@
                 @update:file-list="updateUpload"
             >
                 <div class="compose-md-toolbar">
-                    <div class="attachment">
+                    <div class="attachment" v-if="storeUser.hasPermission('content.upload')">
                         <n-upload-trigger #="{ handleClick }" abstract>
                             <n-button
                                 :disabled="

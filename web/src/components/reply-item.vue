@@ -40,8 +40,8 @@
             <div class="timestamp">
                 {{ props.reply.ip_loc }}
                 <n-popconfirm v-if="
-                    userInfo.is_admin ||
-                    userInfo.id === props.reply.user.id
+                    storeUser.hasPermission('content.manage') ||
+                    (storeUser.hasPermission('comment.create') && userInfo.id === props.reply.user.id)
                 " :negative-text="t('common.cancel')" :positive-text="t('common.confirm')" @positive-click="execDelAction">
                     <template #trigger>
                         <n-button quaternary circle size="tiny" class="del-btn">

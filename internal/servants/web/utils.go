@@ -164,10 +164,16 @@ func tagsFrom(originTags []string) []string {
 	return tags
 }
 
-// checkPermision 检查是否拥有者或管理员
+// checkPermision checks ownership or explicit content-management permission.
 func checkPermision(user *ms.User, targetUserId int64) error {
-	if user == nil || (user.ID != targetUserId && !user.IsAdmin) {
+	if user == nil || (user.ID != targetUserId && !user.HasPermission("content.manage")) {
 		return web.ErrNoPermission
 	}
 	return nil
+}
+
+// A hidden parent can only receive replies from its author or a reviewer.
+func canReplyToComment(user *ms.User, authorID int64, status ms.PostAuditT) bool {
+	return user != nil && user.HasPermission("comment.create") &&
+		(status == ms.PostAuditApproved || user.ID == authorID || user.HasPermission("content.review"))
 }

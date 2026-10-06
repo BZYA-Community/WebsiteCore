@@ -27,7 +27,7 @@ type trendsSrv struct {
 }
 
 func (s *trendsSrv) Chain() gin.HandlersChain {
-	return gin.HandlersChain{chain.JWT()}
+	return gin.HandlersChain{chain.JWT(), chain.Authorize()}
 }
 
 func (s *trendsSrv) GetIndexTrends(req *web.GetIndexTrendsReq) (res *web.GetIndexTrendsResp, _ error) {

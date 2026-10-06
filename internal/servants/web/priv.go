@@ -55,7 +55,7 @@ func (s *privChain) ChainCreateTweet() (res gin.HandlersChain) {
 }
 
 func (s *privSrv) Chain() gin.HandlersChain {
-	return gin.HandlersChain{chain.JWT(), chain.Priv()}
+	return gin.HandlersChain{chain.JWT(), chain.Authorize()}
 }
 
 func (s *privSrv) ThumbsDownTweetReply(req *web.TweetReplyThumbsReq) error {
@@ -229,6 +229,9 @@ func validTweetContents(contents []*web.PostContentItem) error {
 }
 
 func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, xerr error) {
+	if req.User == nil || !req.User.HasPermission("post.create") {
+		return nil, web.ErrNoPermission
+	}
 	// 基础内容校验(空/纯空白/文本超长直接拒绝, 避免先上传媒体再回滚)
 	if xerr = validTweetContents(req.Contents); xerr != nil {
 		return nil, xerr
@@ -264,10 +267,8 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 		IPLoc:      utils.GetIPLoc(req.ClientIP),
 		Visibility: ms.PostVisibleT(req.Visibility.ToVisibleValue()),
 	}
-	// 内容审核开启时 普通用户(无任何管理角色)的非私密新帖进入待审核
-	// 导师/审核/管理员/运维免审 私密帖仅自己可见不进审核队列
-	// 注意: 免审路径必须显式置为已过审 PostAuditApproved(1) 否则零值0即待审核
-	if conf.AuditSetting.Enabled && !req.User.HasAnyRole() && post.Visibility != ms.PostVisitPrivate {
+	// Public content requires review unless explicitly exempted by permission.
+	if conf.AuditSetting.Enabled && !req.User.HasPermission("content.publish_unreviewed") && post.Visibility != ms.PostVisitPrivate {
 		post.AuditStatus = ms.PostAuditPending
 	} else {
 		post.AuditStatus = ms.PostAuditApproved
@@ -343,7 +344,7 @@ func (s *privSrv) DeleteTweet(req *web.DeleteTweetReq) error {
 		logrus.Errorf("Ds.GetPostByID err: %s", err)
 		return web.ErrGetPostFailed
 	}
-	if post.UserID != req.User.ID && !req.User.IsAdmin {
+	if post.UserID != req.User.ID && !req.User.HasPermission("content.manage") {
 		return web.ErrNoPermission
 	}
 	mediaContents, err := s.Ds.DeletePost(post)
@@ -372,7 +373,7 @@ func (s *privSrv) DeleteCommentReply(req *web.DeleteCommentReplyReq) error {
 		logrus.Errorf("Ds.GetCommentReplyByID err: %s", err)
 		return web.ErrGetReplyFailed
 	}
-	if req.User.ID != reply.UserID && !req.User.IsAdmin {
+	if req.User.ID != reply.UserID && !req.User.HasPermission("content.manage") {
 		return web.ErrNoPermission
 	}
 	// 执行删除
@@ -405,14 +406,17 @@ func (s *privSrv) CreateCommentReply(req *web.CreateCommentReplyReq) (_ *web.Cre
 		logrus.Errorf("Ds.GetUserByID err: %s", err)
 		return nil, web.ErrCreateReplyFailed
 	}
-	if !s.CanViewTweet(user, post) {
+	if !user.HasPermission("comment.create") || !s.CanViewTweet(user, post) {
+		return nil, web.ErrNoPermission
+	}
+	if !canReplyToComment(user, comment.UserID, comment.AuditStatus) {
 		return nil, web.ErrNoPermission
 	}
 	if post.IsLock > 0 {
 		return nil, web.ErrNoPermission
 	}
-	// 审核开关: 无管理角色的用户回复需先过审 计数/索引/通知延迟到过审时生效(见auditSrv)
-	needAudit := conf.AuditSetting.Enabled && !user.HasAnyRole() && post.Visibility != ms.PostVisitPrivate
+	// Review and publication counters depend on the explicit exemption permission.
+	needAudit := conf.AuditSetting.Enabled && !user.HasPermission("content.publish_unreviewed") && post.Visibility != ms.PostVisitPrivate
 
 	// 创建评论
 	reply := &ms.CommentReply{
@@ -495,7 +499,7 @@ func (s *privSrv) DeleteComment(req *web.DeleteCommentReq) error {
 		logrus.Errorf("Ds.GetCommentByID err: %v\n", err)
 		return web.ErrGetCommentFailed
 	}
-	if req.User.ID != comment.UserID && !req.User.IsAdmin {
+	if req.User.ID != comment.UserID && !req.User.HasPermission("content.manage") {
 		return web.ErrNoPermission
 	}
 	// 加载post
@@ -574,7 +578,7 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 		logrus.Errorf("Ds.GetUserByID err: %s", err)
 		return nil, xerror.ServerError
 	}
-	if !s.CanViewTweet(user, post) {
+	if !user.HasPermission("comment.create") || !s.CanViewTweet(user, post) {
 		return nil, web.ErrNoPermission
 	}
 	if post.IsLock > 0 {
@@ -583,9 +587,9 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 	if post.CommentCount >= conf.AppSetting.MaxCommentCount {
 		return nil, web.ErrMaxCommentCount
 	}
-	// 审核开关: 无管理角色的用户评论需先过审 计数/索引/通知延迟到过审时生效(见auditSrv)
+	// Review and publication counters depend on the explicit exemption permission.
 	// 私密帖子仅作者可见 无需审核
-	needAudit := conf.AuditSetting.Enabled && !user.HasAnyRole() && post.Visibility != ms.PostVisitPrivate
+	needAudit := conf.AuditSetting.Enabled && !user.HasPermission("content.publish_unreviewed") && post.Visibility != ms.PostVisitPrivate
 	comment := &ms.Comment{
 		PostID: post.ID,
 		UserID: req.Uid,
@@ -719,7 +723,7 @@ func (s *privSrv) VisibleTweet(req *web.VisibleTweetReq) (*web.VisibleTweetResp,
 	post.Visibility = ms.PostVisibleT(req.Visibility.ToVisibleValue())
 
 	// 内容审核: 普通用户将私密帖(含被审核打回的帖子)重新设为非私密可见时 重新进入审核队列
-	if conf.AuditSetting.Enabled && !req.User.HasAnyRole() &&
+	if conf.AuditSetting.Enabled && !req.User.HasPermission("content.publish_unreviewed") &&
 		oldVisibility == ms.PostVisitPrivate && post.Visibility != ms.PostVisitPrivate {
 		post.AuditStatus = ms.PostAuditPending
 		if err = s.Ds.UpdatePost(post); err != nil {
@@ -750,7 +754,7 @@ func (s *privSrv) StickTweet(req *web.StickTweetReq) (*web.StickTweetResp, error
 		logrus.Errorf("Ds.GetPostByID err: %v\n", err)
 		return nil, web.ErrStickPostFailed
 	}
-	if !req.User.IsAdmin {
+	if !req.User.HasPermission("content.manage") {
 		return nil, web.ErrNoPermission
 	}
 	newStatus := 1 - post.IsTop
@@ -782,7 +786,7 @@ func (s *privSrv) LockTweet(req *web.LockTweetReq) (*web.LockTweetResp, error) {
 	if err != nil {
 		return nil, web.ErrLockPostFailed
 	}
-	if post.UserID != req.User.ID && !req.User.IsAdmin {
+	if post.UserID != req.User.ID && !req.User.HasPermission("content.manage") {
 		return nil, web.ErrNoPermission
 	}
 	newStatus := 1 - post.IsLock
@@ -866,7 +870,7 @@ func (s *privSrv) checkPostActPermission(post *ms.Post, userID int64) error {
 		logrus.Errorf("Ds.GetUserByID err: %s", err)
 		return web.ErrNoPermission
 	}
-	if !s.CanViewTweet(user, post) {
+	if !user.HasPermission("community.interact") || !s.CanViewTweet(user, post) {
 		return web.ErrNoPermission
 	}
 	if post.Visibility == core.PostVisitPrivate && post.UserID != userID {

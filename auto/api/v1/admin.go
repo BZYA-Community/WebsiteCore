@@ -32,8 +32,12 @@ type Admin interface {
 	Chain() gin.HandlersChain
 
 	AdminUserDelete(*web.AdminUserDeleteReq) error
-	AdminUserRoleLogs(*web.AdminUserRoleLogsReq) (*web.AdminUserRoleLogsResp, error)
-	AdminUserRoleChange(*web.AdminUserRoleReq) error
+	ListIdentityLogs(*web.IdentityLogsReq) (*web.IdentityLogsResp, error)
+	SetUserIdentityGroups(*web.SetUserIdentityReq) error
+	ListIdentityPermissions() (*web.IdentityPermissionsResp, error)
+	DeleteIdentityGroup(*web.DeleteIdentityGroupReq) error
+	SaveIdentityGroup(*web.SaveIdentityGroupReq) (*web.IdentityGroupsResp, error)
+	ListIdentityGroups() (*web.IdentityGroupsResp, error)
 	AdminUserDetail(*web.AdminUserDetailReq) (*web.AdminUserDetailResp, error)
 	AdminUserList(*web.AdminUserListReq) (*web.AdminUserListResp, error)
 	SaveSettings(*web.AdminSettingsSaveReq) (*web.AdminSettingsSaveResp, error)
@@ -68,32 +72,79 @@ func RegisterAdminServant(e *gin.Engine, s Admin) {
 		}
 		s.Render(c, nil, s.AdminUserDelete(req))
 	})
-	router.Handle("GET", "admin/user/role/logs", func(c *gin.Context) {
+	router.Handle("GET", "admin/identity/logs", func(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
 			return
 		default:
 		}
-		req := new(web.AdminUserRoleLogsReq)
+		req := new(web.IdentityLogsReq)
 		if err := s.Bind(c, req); err != nil {
 			s.Render(c, nil, err)
 			return
 		}
-		resp, err := s.AdminUserRoleLogs(req)
+		resp, err := s.ListIdentityLogs(req)
 		s.Render(c, resp, err)
 	})
-	router.Handle("POST", "admin/user/role", func(c *gin.Context) {
+	router.Handle("POST", "admin/user/identity", func(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
 			return
 		default:
 		}
-		req := new(web.AdminUserRoleReq)
+		req := new(web.SetUserIdentityReq)
 		if err := s.Bind(c, req); err != nil {
 			s.Render(c, nil, err)
 			return
 		}
-		s.Render(c, nil, s.AdminUserRoleChange(req))
+		s.Render(c, nil, s.SetUserIdentityGroups(req))
+	})
+	router.Handle("GET", "admin/identity/permissions", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+
+		resp, err := s.ListIdentityPermissions()
+		s.Render(c, resp, err)
+	})
+	router.Handle("DELETE", "admin/identity/groups", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.DeleteIdentityGroupReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		s.Render(c, nil, s.DeleteIdentityGroup(req))
+	})
+	router.Handle("POST", "admin/identity/groups", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.SaveIdentityGroupReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.SaveIdentityGroup(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("GET", "admin/identity/groups", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+
+		resp, err := s.ListIdentityGroups()
+		s.Render(c, resp, err)
 	})
 	router.Handle("GET", "admin/user/detail", func(c *gin.Context) {
 		select {
@@ -221,12 +272,28 @@ func (UnimplementedAdminServant) AdminUserDelete(req *web.AdminUserDeleteReq) er
 	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
-func (UnimplementedAdminServant) AdminUserRoleLogs(req *web.AdminUserRoleLogsReq) (*web.AdminUserRoleLogsResp, error) {
+func (UnimplementedAdminServant) ListIdentityLogs(req *web.IdentityLogsReq) (*web.IdentityLogsResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
-func (UnimplementedAdminServant) AdminUserRoleChange(req *web.AdminUserRoleReq) error {
+func (UnimplementedAdminServant) SetUserIdentityGroups(req *web.SetUserIdentityReq) error {
 	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAdminServant) ListIdentityPermissions() (*web.IdentityPermissionsResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAdminServant) DeleteIdentityGroup(req *web.DeleteIdentityGroupReq) error {
+	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAdminServant) SaveIdentityGroup(req *web.SaveIdentityGroupReq) (*web.IdentityGroupsResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAdminServant) ListIdentityGroups() (*web.IdentityGroupsResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
 func (UnimplementedAdminServant) AdminUserDetail(req *web.AdminUserDetailReq) (*web.AdminUserDetailResp, error) {

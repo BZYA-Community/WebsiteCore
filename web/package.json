@@ -10,7 +10,8 @@
     "format": "biome format --write",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "i18n:check": "node scripts/i18n-check.mjs"
+    "i18n:check": "node scripts/i18n-check.mjs",
+    "test:permissions": "node --experimental-strip-types scripts/permissions.test.mjs"
   },
   "dependencies": {
     "@opentiny/vue-slide-bar": "^3.14.0",

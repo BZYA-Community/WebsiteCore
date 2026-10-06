@@ -259,10 +259,12 @@ func (s *DaoServant) PrepareTweet(user *ms.User, tweet *ms.PostFormated) error {
 }
 
 // CanViewTweet 统一校验用户对帖子的读权限(与TweetDetail的可见性判定保持同口径):
-// 作者本人/管理员/审核员直接放行; 其余要求帖子已过审且满足可见性
-// (公开 / 好友双向之一 / 关注可见=访问者关注了作者), 私密帖仅作者与管理侧可见
+// Ownership, moderation and private-content access are independent of identity names.
 // post 同时兼容 *ms.Post 与 *ms.PostFormated
 func (s *DaoServant) CanViewTweet(user *ms.User, post any) bool {
+	if user != nil && !user.HasPermission("post.view") {
+		return false
+	}
 	var (
 		userID   int64
 		visible  ms.PostVisibleT
@@ -284,12 +286,11 @@ func (s *DaoServant) CanViewTweet(user *ms.User, post any) bool {
 	if !hasValue {
 		return false
 	}
-	// 作者本人/管理员/审核员直接放行
-	if user != nil && (user.ID == userID || user.IsAdmin || user.HasRole(ms.RoleAuditor)) {
+	if user != nil && (user.ID == userID || user.HasPermission("content.view_private")) {
 		return true
 	}
-	// 其余情况要求帖子已过审
-	if audit != ms.PostAuditApproved {
+	// Review access does not bypass private/following visibility.
+	if audit != ms.PostAuditApproved && (user == nil || !user.HasPermission("content.review")) {
 		return false
 	}
 	switch visible {
@@ -465,7 +466,7 @@ func (s *DaoServant) RelationTypFrom(me *ms.User, username string) (res *cs.Vist
 		return
 	}
 	// visit by admin/other(好友功能已移除 不存在好友关系)
-	if me.IsAdmin {
+	if me.HasPermission("content.view_private") {
 		res.RelTyp = cs.RelationAdmin
 	} else {
 		res.RelTyp = cs.RelationGuest

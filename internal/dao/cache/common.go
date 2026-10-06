@@ -11,7 +11,6 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
-	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/RoaringBitmap/roaring/roaring64"
 )
 
@@ -28,39 +27,7 @@ func NewCacheDataService(ds core.DataService) core.DataService {
 	}
 }
 
-func (s *cacheDataService) GetUserByID(id int64) (res *ms.User, err error) {
-	// 先从缓存获取， 不处理错误
-	key := conf.KeyUserInfoById.Get(id)
-	if data, xerr := s.ac.Get(key); xerr == nil {
-		buf := bytes.NewBuffer(data)
-		res = &ms.User{}
-		err = gob.NewDecoder(buf).Decode(res)
-		return
-	}
-	// 最后查库
-	if res, err = s.DataService.GetUserByID(id); err == nil {
-		// 更新缓存
-		onCacheUserInfoEvent(key, res)
-	}
-	return
-}
-
-func (s *cacheDataService) GetUserByUsername(username string) (res *ms.User, err error) {
-	// 先从缓存获取， 不处理错误
-	key := conf.KeyUserInfoByName.Get(username)
-	if data, xerr := s.ac.Get(key); xerr == nil {
-		buf := bytes.NewBuffer(data)
-		res = &ms.User{}
-		err = gob.NewDecoder(buf).Decode(res)
-		return
-	}
-	// 最后查库
-	if res, err = s.DataService.GetUserByUsername(username); err == nil {
-		// 更新缓存
-		onCacheUserInfoEvent(key, res)
-	}
-	return
-}
+// Account reads bypass the cache so permission revocation and bans apply immediately.
 
 func (s *cacheDataService) UserProfileByName(username string) (res *cs.UserProfile, err error) {
 	// 先从缓存获取， 不处理错误

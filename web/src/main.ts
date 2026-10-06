@@ -18,7 +18,7 @@ registerChat();
 
 const pinia = createPinia();
 
-createApp(App).use(i18n).use(router).use(pinia).mount('#app');
+createApp(App).use(i18n).use(pinia).use(router).mount('#app');
 
 declare global {
   interface Window {

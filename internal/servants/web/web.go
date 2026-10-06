@@ -33,6 +33,7 @@ var (
 func RouteWeb(e *gin.Engine) {
 	lazyInitial()
 	ds := base.NewDaoServant()
+	api.RegisterIdentityServant(e, &identitySrv{DaoServant: ds})
 	// aways register servants
 	api.RegisterAdminServant(e, newAdminSrv(ds, _wc, _siteSettings))
 	api.RegisterAuditServant(e, newAuditSrv(ds, _oss))

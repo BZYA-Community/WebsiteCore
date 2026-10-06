@@ -1,6 +1,6 @@
 <template>
     <div>
-        <div class="compose-wrap" v-if="userInfo.id > 0">
+        <div class="compose-wrap" v-if="userInfo.id > 0 && storeUser.hasPermission('comment.create')">
             <div class="compose-line">
                 <div class="compose-user">
                     <n-avatar
@@ -52,7 +52,7 @@
                 @update:file-list="updateUpload"
             >
                 <div class="compose-line compose-options">
-                    <div class="attachment">
+                    <div class="attachment" v-if="storeUser.hasPermission('content.upload')">
                         <n-upload-trigger #="{ handleClick }" abstract>
                             <n-button
                                 :disabled="
@@ -126,6 +126,7 @@
             </n-upload>
         </div>
 
+        <n-alert v-else-if="userInfo.id > 0" type="info">{{ t('identity.accessDenied') }}</n-alert>
         <div class="compose-wrap" v-else>
             <div class="login-wrap">
                 <span class="login-banner">{{ t('comment.compose.loginBanner') }}</span>

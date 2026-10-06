@@ -1,4 +1,9 @@
 declare namespace Item {
+  interface IdentityGroup {
+    id: number;
+    key: string;
+    name: string;
+  }
   interface UserInfo {
     /** 用户UID */
     id: number;
@@ -12,10 +17,9 @@ declare namespace Item {
     phone?: string;
     /** 激活码 */
     activation?: string;
-    /** 是否为管理员 */
-    is_admin: boolean;
-    /** 管理角色列表 operator/admin/auditor/mentor */
-    roles?: string[];
+    is_operator?: boolean;
+    permissions?: string[];
+    identity_groups?: IdentityGroup[];
     /** 显示身份 运维/管理员/审核/导师/道友/游客 */
     identity?: string;
     /** 是否关注 */
@@ -144,7 +148,7 @@ declare namespace Item {
     nickname: string;
     avatar: string;
     phone?: string;
-    roles?: string[];
+    identity_groups?: IdentityGroup[];
     identity?: string;
     is_following: boolean;
     created_on: number;
@@ -306,7 +310,7 @@ declare namespace Item {
     username: string;
     nickname: string;
     avatar: string;
-    roles: string[];
+    identity_groups?: IdentityGroup[];
     identity: string;
     last_content: string;
     last_time: number;
