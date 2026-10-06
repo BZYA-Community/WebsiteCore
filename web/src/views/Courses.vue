@@ -270,7 +270,12 @@ async function saveCourse() {
   finally { savingCourse.value = false; }
 }
 async function removeCourse(course: CourseItem) {
-  try { await deleteCourse({ id: course.id }); if (focusedCourseId.value === course.id) await router.replace(categoryLink(course.group_id)); await loadGroups(); await loadCourses(); }
+  try {
+    await deleteCourse({ id: course.id });
+    courses.value = courses.value.filter(item => item.id !== course.id);
+    if (focusedCourseId.value === course.id) await router.replace(categoryLink(course.group_id));
+    await loadGroups(); await loadCourses(); window.$message.success(t('course.deleteSuccess'));
+  }
   catch { return false; }
 }
 onMounted(async () => { await loadGroups(); await loadCourses(); });
