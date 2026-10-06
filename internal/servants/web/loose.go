@@ -425,7 +425,7 @@ func (s *looseSrv) TweetComments(req *web.TweetCommentsReq) (res *web.TweetComme
 	}
 
 	// 评论审核可见范围: 审核员全部/作者见本人待审/其余仅过审(与GetComments同口径)
-	viewerIsAuditor := req.User != nil && (req.User.HasPermission("content.review"))
+	viewerIsAuditor := req.User != nil && req.User.HasPermission("audit.view_all")
 
 	comments, totalRows, xerr := s.Ds.GetComments(req.TweetId, req.Style.ToInnerValue(), req.Uid, viewerIsAuditor, limit, offset)
 	if xerr != nil {

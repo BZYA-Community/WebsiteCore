@@ -19,7 +19,6 @@ import (
 )
 
 var (
-	_enablePhoneVerify    bool
 	_disallowUserRegister bool
 	_ds                   core.DataService
 	_ac                   core.AppCache
@@ -38,9 +37,12 @@ func RouteWeb(e *gin.Engine) {
 	api.RegisterAdminServant(e, newAdminSrv(ds, _wc, _siteSettings))
 	api.RegisterAuditServant(e, newAuditSrv(ds, _oss))
 	api.RegisterCoreServant(e, newCoreSrv(ds, _oss, _wc))
-	api.RegisterCourseLooseServant(e, newCourseLooseSrv(ds, _oss))
-	api.RegisterCoursePrivServant(e, newCoursePrivSrv(ds, _oss))
-	api.RegisterCourseAdminServant(e, newCourseAdminSrv(ds, _oss))
+	if conf.CoursesEnabled() {
+		api.RegisterCourseLooseServant(e, newCourseLooseSrv(ds, _oss))
+		api.RegisterCoursePrivServant(e, newCoursePrivSrv(ds, _oss))
+		api.RegisterCourseAdminServant(e, newCourseAdminSrv(ds, _oss))
+		e.PUT("/v1/course/upload/:id", putLocalCourseUpload)
+	}
 	api.RegisterChatServant(e, newChatSrv(ds, _ac))
 	api.RegisterRelaxServant(e, newRelaxSrv(ds, _wc), newRelaxChain())
 	api.RegisterLooseServant(e, newLooseSrv(ds, _ac))
@@ -51,14 +53,13 @@ func RouteWeb(e *gin.Engine) {
 	api.RegisterSiteServant(e, newSiteSrv(_siteSettings))
 	// shedule jobs if need
 	scheduleJobs()
+	scheduleReviewJobs()
 }
 
 // lazyInitial do some package lazy initialize for performance
 func lazyInitial() {
 	_onceInitial.Do(func() {
-		_enablePhoneVerify = cfg.If("Sms")
 		_disallowUserRegister = cfg.If("Web:DisallowUserRegister")
-		_maxCaptchaTimes = conf.AppSetting.MaxCaptchaTimes
 		_oss = dao.ObjectStorageService()
 		_ds = dao.DataService()
 		_ac = cache.NewAppCache()

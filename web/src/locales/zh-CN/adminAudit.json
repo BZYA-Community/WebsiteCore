@@ -64,7 +64,7 @@
   },
   "commentType": {
     "reply": "回复",
-    "courseComment": "课程评论",
+    "courseComment": "课程问题",
     "courseReply": "课程回复",
     "comment": "评论"
   },
@@ -84,5 +84,20 @@
     "rejected": "已拒绝",
     "avatarApproved": "已通过头像变更"
   },
-  "avatarChangeRequest": "头像变更申请"
+  "avatarChangeRequest": "头像变更申请",
+  "task": {
+    "assignee": "审核员",
+    "deadline": "审核截止",
+    "revision": "版本 {revision}",
+    "history": "处理记录",
+    "unassigned": "等待系统分配",
+    "event": "事件",
+    "transfer": "审核员变更",
+    "reason": "原因",
+    "timeouts": "超时失职次数",
+    "statistics": "审核统计",
+    "fullContent": "查看完整待审内容",
+    "refresh": "刷新任务",
+    "assignmentHelp": "任务由系统自动分配。只可处理分配给自己的待审任务；超时会转交其他审核员。运维账号可处理全部任务，操作会被记录。"
+  }
 }

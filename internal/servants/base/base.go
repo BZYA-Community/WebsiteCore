@@ -267,6 +267,7 @@ func (s *DaoServant) CanViewTweet(user *ms.User, post any) bool {
 	}
 	var (
 		userID   int64
+		postID   int64
 		visible  ms.PostVisibleT
 		audit    ms.PostAuditT
 		hasValue bool
@@ -275,10 +276,14 @@ func (s *DaoServant) CanViewTweet(user *ms.User, post any) bool {
 	case *ms.Post:
 		if p != nil {
 			userID, visible, audit, hasValue = p.UserID, p.Visibility, p.AuditStatus, true
+			if p.Model != nil {
+				postID = p.ID
+			}
 		}
 	case *ms.PostFormated:
 		if p != nil {
 			userID, visible, audit, hasValue = p.UserID, p.Visibility, p.AuditStatus, true
+			postID = p.ID
 		}
 	default:
 		return false
@@ -286,12 +291,24 @@ func (s *DaoServant) CanViewTweet(user *ms.User, post any) bool {
 	if !hasValue {
 		return false
 	}
-	if user != nil && (user.ID == userID || user.HasPermission("content.view_private")) {
+	if user != nil && user.ID == userID {
 		return true
 	}
-	// Review access does not bypass private/following visibility.
-	if audit != ms.PostAuditApproved && (user == nil || !user.HasPermission("content.review")) {
-		return false
+	if audit != ms.PostAuditApproved {
+		if user == nil {
+			return false
+		}
+		if user.HasPermission("audit.view_all") {
+			return true
+		}
+		if !user.HasPermission("content.review") || s.Ds == nil {
+			return false
+		}
+		task, err := s.Ds.ReviewTaskForTarget(user, ms.ReviewPost, postID)
+		return err == nil && task != nil && task.AssigneeID == user.ID
+	}
+	if user != nil && user.HasPermission("content.view_private") {
+		return true
 	}
 	switch visible {
 	case core.PostVisitPublic:

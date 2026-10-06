@@ -7,6 +7,7 @@ package web
 import (
 	"encoding/json"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/pkg/version"
 )
 
@@ -15,21 +16,25 @@ type VersionResp struct {
 }
 
 type SiteProfileResp struct {
-	EnableTrendsBar         bool   `json:"enable_trends_bar"`
-	AllowTweetAttachment    bool   `json:"allow_tweet_attachment"`
-	AllowTweetVideo         bool   `json:"allow_tweet_video"`
-	AllowUserRegister       bool   `json:"allow_user_register"`
-	AllowPhoneBind          bool   `json:"allow_phone_bind"`
-	DefaultTweetMaxLength   int    `json:"default_tweet_max_length"`
-	TweetWebEllipsisSize    int    `json:"tweet_web_ellipsis_size"`
-	TweetMobileEllipsisSize int    `json:"tweet_mobile_ellipsis_size"`
-	DefaultTweetVisibility  string `json:"default_tweet_visibility"`
-	DefaultMsgLoopInterval  int    `json:"default_msg_loop_interval"`
-	CopyrightTop            string `json:"copyright_top"`
-	CopyrightLeft           string `json:"copyright_left"`
-	CopyrightLeftLink       string `json:"copyright_left_link"`
-	CopyrightRight          string `json:"copyright_right"`
-	CopyrightRightLink      string `json:"copyright_right_link"`
+	UploadLimits                 conf.UploadConf `json:"upload_limits"`
+	CoursesEnabled               bool            `json:"courses_enabled"`
+	AccountVerifyMode            string          `json:"account_verify_mode"`
+	ContactVerificationAvailable bool            `json:"contact_verification_available"`
+	EnableTrendsBar              bool            `json:"enable_trends_bar"`
+	AllowTweetAttachment         bool            `json:"allow_tweet_attachment"`
+	AllowTweetVideo              bool            `json:"allow_tweet_video"`
+	AllowUserRegister            bool            `json:"allow_user_register"`
+	AllowPhoneBind               bool            `json:"allow_phone_bind"`
+	DefaultTweetMaxLength        int             `json:"default_tweet_max_length"`
+	TweetWebEllipsisSize         int             `json:"tweet_web_ellipsis_size"`
+	TweetMobileEllipsisSize      int             `json:"tweet_mobile_ellipsis_size"`
+	DefaultTweetVisibility       string          `json:"default_tweet_visibility"`
+	DefaultMsgLoopInterval       int             `json:"default_msg_loop_interval"`
+	CopyrightTop                 string          `json:"copyright_top"`
+	CopyrightLeft                string          `json:"copyright_left"`
+	CopyrightLeftLink            string          `json:"copyright_left_link"`
+	CopyrightRight               string          `json:"copyright_right"`
+	CopyrightRightLink           string          `json:"copyright_right_link"`
 }
 
 type SiteSettingsReq struct {

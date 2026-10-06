@@ -9,11 +9,7 @@
                     :src="userInfo.avatar"
                 />
                 <n-upload
-                    v-if="storeUser.hasPermission('profile.edit') && (!profile.allowPhoneBind || (
-                        profile.allowPhoneBind &&
-                        userInfo.phone &&
-                        userInfo.phone.length > 0))
-                    "
+                    v-if="storeUser.hasPermission('profile.edit')"
                     ref="avatarRef"
                     :show-file-list="false"
                     @before-upload="beforeUpload"
@@ -48,13 +44,7 @@
                     round
                     type="success"
                     size="small"
-                    v-if="storeUser.hasPermission('profile.edit') && !showNicknameEdit && (!profile.allowPhoneBind || (
-                        profile.allowPhoneBind &&
-                        userInfo.phone &&
-                        userInfo.phone.length > 0 &&
-                        userInfo.status == 1)
-                    )
-                    "
+                    v-if="storeUser.hasPermission('profile.edit') && !showNicknameEdit"
                     @click="handleNicknameShow"
                 >
                     <template #icon>
@@ -71,113 +61,7 @@
             </div>
         </n-card>
 
-        <n-card v-if="profile.allowPhoneBind" :title="t('setting.phone.title')" size="small" class="setting-card">
-            <div
-                v-if="
-                    userInfo.phone &&
-                    userInfo.phone.length > 0
-                "
-            >
-                {{ userInfo.phone }}
-
-                <n-button
-                    quaternary
-                    round
-                    type="success"
-                    v-if="!showPhoneBind && userInfo.status == 1"
-                    @click="showPhoneBind = true"
-                >
-                    {{ t('setting.phone.rebind') }}
-                </n-button>
-            </div>
-            <div v-else>
-                <n-alert :title="t('setting.phone.alertTitle')" type="warning">
-                    {{ t('setting.phone.alertContent') }}<br />
-                    <a
-                        class="hash-link"
-                        @click="showPhoneBind = true"
-                        v-if="!showPhoneBind"
-                    >
-                        {{ t('setting.phone.bindNow') }}
-                    </a>
-                </n-alert>
-            </div>
-
-            <div class="phone-bind-wrap" v-if="showPhoneBind">
-                <n-form
-                    ref="phoneFormRef"
-                    :model="modelData"
-                    :rules="bindRules"
-                >
-                    <n-form-item path="phone" :label="t('setting.phone.label')">
-                        <n-input
-                            :value="modelData.phone"
-                            @update:value="(v: string) => (modelData.phone = v.trim())"
-                            :placeholder="t('setting.phone.placeholder')"
-                            @keydown.enter.prevent
-                        />
-                    </n-form-item>
-                    <n-form-item path="img_captcha" :label="t('setting.phone.imgCaptchaLabel')">
-                        <div class="captcha-img-wrap">
-                            <n-input
-                                v-model:value="modelData.imgCaptcha"
-                                :placeholder="t('setting.phone.imgCaptchaPlaceholder')"
-                            />
-                            <div class="captcha-img">
-                                <img
-                                    v-if="modelData.b64s"
-                                    :src="modelData.b64s"
-                                    @click="loadCaptcha"
-                                />
-                            </div>
-                        </div>
-                    </n-form-item>
-                    <n-form-item path="phone_captcha" :label="t('setting.phone.smsLabel')">
-                        <n-input-group>
-                            <n-input
-                                v-model:value="modelData.phone_captcha"
-                                :placeholder="t('setting.phone.smsPlaceholder')"
-                            />
-                            <n-button
-                                type="primary"
-                                ghost
-                                :disabled="smsDisabled"
-                                :loading="sending"
-                                @click="sendPhoneCaptcha"
-                            >
-                                {{
-                                    smsCounter > 0 && smsDisabled
-                                        ? t('setting.phone.resend', { seconds: smsCounter })
-                                        : t('setting.phone.send')
-                                }}
-                            </n-button>
-                        </n-input-group>
-                    </n-form-item>
-                    <n-row :gutter="[0, 24]">
-                        <n-col :span="24">
-                            <div class="form-submit-wrap">
-                                <n-button
-                                    quaternary
-                                    round
-                                    @click="showPhoneBind = false"
-                                >
-                                    {{ t('common.cancel') }}
-                                </n-button>
-                                <n-button
-                                    secondary
-                                    round
-                                    type="primary"
-                                    :loading="binding"
-                                    @click="handlePhoneBind"
-                                >
-                                    {{ t('setting.phone.bind') }}
-                                </n-button>
-                            </div>
-                        </n-col>
-                    </n-row>
-                </n-form>
-            </div>
-        </n-card>
+        <contact-verification />
 
         <n-card v-if="allowActivation" :title="t('setting.activation.title')" size="small" class="setting-card">
             <div
@@ -352,6 +236,7 @@ import type {
 } from 'naive-ui';
 import { useStoreUser } from '@/store/user';
 import { useStoreProfile } from '@/store/profile';
+import ContactVerification from '@/components/contact-verification.vue';
 import { storeToRefs } from 'pinia';
 import { Api, request } from '@/utils/request';
 import { userInfo as fetchUserInfo } from '@/api/auth';
@@ -366,21 +251,15 @@ const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const storeProfile = useStoreProfile();
 const { userInfo } = storeToRefs(storeUser);
-const { profile } = storeToRefs(storeProfile);
 
 const sending = ref(false);
-const binding = ref(false);
 const activating = ref(false);
 const avatarRef = ref<UploadInst>();
 const inputInstRef = ref<InputInst>();
 const showNicknameEdit = ref(false);
 const passwordSetting = ref(false);
 const showPasswordSetting = ref(false);
-const smsDisabled = ref(false);
-const smsCounter = ref(60);
-const showPhoneBind = ref(false);
 const showActivation = ref(false);
-const phoneFormRef = ref<FormInst>();
 const activateFormRef = ref<FormInst>();
 const formRef = ref<FormInst>();
 const rPasswordFormItemRef = ref<FormItemInst>();
@@ -388,8 +267,6 @@ const modelData = reactive({
   id: '',
   b64s: '',
   imgCaptcha: '',
-  phone: '',
-  phone_captcha: '',
   password: '',
   old_password: '',
   reenteredPassword: '',
@@ -437,6 +314,11 @@ const beforeUpload = (data: any) => {
 };
 
 const handleCropConfirm = async (blob: Blob) => {
+  const limit = storeProfile.profile.uploadLimits.attachment_max_bytes;
+  if (blob.size > limit) {
+    window.$message.warning(t('compose.attachmentSizeError', { limit: limit / 1024 ** 2 }));
+    return;
+  }
   cropUploading.value = true;
   try {
     const formData = new FormData();
@@ -516,38 +398,6 @@ const handleValidateButtonClick = (e: MouseEvent) => {
   });
 };
 
-const handlePhoneBind = (e: MouseEvent) => {
-  e.preventDefault();
-  phoneFormRef.value?.validate((errors) => {
-    if (!errors) {
-      binding.value = true;
-      Api.v1.user.post.phone({
-        phone: modelData.phone,
-        captcha: modelData.phone_captcha,
-      })
-        .then((res) => {
-          binding.value = false;
-          showPhoneBind.value = false;
-          window.$message.success(t('setting.phone.bindSuccess'));
-
-          storeUser.updateUserinfo({
-            ...userInfo.value,
-            phone: modelData.phone,
-          });
-
-          modelData.id = '';
-          modelData.b64s = '';
-          modelData.imgCaptcha = '';
-          modelData.phone = '';
-          modelData.phone_captcha = '';
-        })
-        .catch((err) => {
-          binding.value = false;
-        });
-    }
-  });
-};
-
 const handleActivation = (e: MouseEvent) => {
   e.preventDefault();
   activateFormRef.value?.validate((errors) => {
@@ -588,17 +438,6 @@ const handleActivation = (e: MouseEvent) => {
   });
 };
 
-const loadCaptcha = () => {
-  Api.v1.captcha.get._self({})
-    .then((res) => {
-      modelData.id = res.id;
-      modelData.b64s = res.b64s;
-    })
-    .catch((err) => {
-      console.log(err);
-    });
-};
-
 const loadCaptcha4Activate = () => {
   Api.v1.captcha.get._self({})
     .then((res) => {
@@ -635,62 +474,6 @@ const handleNicknameChange = () => {
       showNicknameEdit.value = true;
     });
 };
-
-const sendPhoneCaptcha = () => {
-  if (smsCounter.value > 0 && smsDisabled.value) {
-    return;
-  }
-  if (modelData.imgCaptcha === '') {
-    window.$message.warning(t('setting.imgCaptchaRequired'));
-    return;
-  }
-  sending.value = true;
-  Api.v1.captcha.post._self({
-    phone: modelData.phone,
-    img_captcha: modelData.imgCaptcha,
-    img_captcha_id: modelData.id,
-  })
-    .then((res) => {
-      smsDisabled.value = true;
-      sending.value = false;
-      window.$message.success(t('setting.sendSuccess'));
-
-      let s = setInterval(() => {
-        smsCounter.value--;
-        if (smsCounter.value === 0) {
-          clearInterval(s);
-          smsCounter.value = 60;
-          smsDisabled.value = false;
-        }
-      }, 1000);
-    })
-    .catch((err) => {
-      sending.value = false;
-      if (err.code === 20012) {
-        loadCaptcha();
-      }
-      console.log(err);
-    });
-};
-
-const bindRules = computed(() => ({
-  phone: [
-    {
-      required: true,
-      message: t('setting.rule.phoneRequired'),
-      trigger: ['input'],
-      validator: (rule: FormItemRule, value: any) => {
-        return /^[1]+[3-9]{1}\d{9}$/.test(value);
-      },
-    },
-  ],
-  phone_captcha: [
-    {
-      required: true,
-      message: t('setting.rule.smsRequired'),
-    },
-  ],
-}));
 
 const activateRules = computed(() => ({
   activate_code: [
@@ -748,8 +531,7 @@ onMounted(() => {
     storeMain.triggerAuth(true);
     storeMain.triggerAuthKey('signin');
   }
-  loadCaptcha();
-  loadCaptcha4Activate();
+  if (allowActivation) loadCaptcha4Activate();
 });
 </script>
 

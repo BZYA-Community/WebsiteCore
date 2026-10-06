@@ -78,6 +78,9 @@ func TestIdentityPolicyTransactions(t *testing.T) {
 	createUser := func(name, phone string, operator bool) *ms.User {
 		t.Helper()
 		user := &ms.User{Model: &ms.Model{}, Username: name, Phone: phone, Status: ms.UserStatusNormal, IsOperator: operator}
+		if phone != "" {
+			user.Email = name + "@example.test"
+		}
 		if err := db.Create(user).Error; err != nil {
 			t.Fatal(err)
 		}

@@ -38,8 +38,6 @@
     "like": "Like"
   },
   "upload": {
-    "imageFormatError": "Only png/jpg/gif formats allowed",
-    "imageSizeError": "Image size cannot exceed 10MB",
     "uploadFailed": "Upload failed"
   }
 }

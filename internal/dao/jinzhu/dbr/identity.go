@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/authz"
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"gorm.io/gorm"
 )
 
@@ -112,7 +113,7 @@ func LoadUserIdentities(db *gorm.DB, users ...*User) error {
 			continue
 		}
 		baseKey := "guest"
-		if u.Phone != "" {
+		if u.ContactVerified() {
 			baseKey = "member"
 		}
 		seen := make(map[string]bool)
@@ -137,4 +138,14 @@ func LoadUserIdentities(db *gorm.DB, users ...*User) error {
 		sort.Strings(u.Permissions)
 	}
 	return nil
+}
+
+func (u *User) ContactVerified() bool {
+	if u == nil {
+		return false
+	}
+	if conf.VerificationMode() == "phone" {
+		return u.Phone != ""
+	}
+	return u.Email != ""
 }

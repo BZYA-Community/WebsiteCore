@@ -10,9 +10,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/media"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/pkg/convert"
@@ -240,6 +242,9 @@ func (r *UploadAttachmentReq) Bind(c *gin.Context) (xerr error) {
 		return xerror.UnauthorizedAuthNotExist
 	}
 
+	if err := c.Request.ParseMultipartForm(1 << 20); err != nil {
+		return ErrFileInvalidSize
+	}
 	uploadType := c.Request.FormValue("type")
 	file, fileHeader, err := c.Request.FormFile("file")
 	if err != nil {
@@ -254,10 +259,15 @@ func (r *UploadAttachmentReq) Bind(c *gin.Context) (xerr error) {
 	if err := fileCheck(uploadType, fileHeader.Size); err != nil {
 		return err
 	}
-	contentType := fileHeader.Header.Get("Content-Type")
-	fileExt, xerr := getFileExt(contentType)
-	if xerr != nil {
-		return xerr
+	contentType, fileExt, err := media.ValidateFile(file, fileHeader.Filename, fileHeader.Header.Get("Content-Type"), fileHeader.Size, conf.UploadLimits().AttachmentMaxBytes)
+	if err != nil {
+		return ErrFileInvalidExt.WithDetails(err.Error())
+	}
+	if (uploadType == "public/image" || uploadType == "public/avatar") && !strings.HasPrefix(contentType, "image/") {
+		return ErrFileInvalidExt
+	}
+	if uploadType == "public/video" && !strings.HasPrefix(contentType, "video/") {
+		return ErrFileInvalidExt
 	}
 	r.SimpleInfo = SimpleInfo{
 		Uid: userId,

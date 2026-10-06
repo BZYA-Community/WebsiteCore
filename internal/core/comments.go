@@ -27,10 +27,8 @@ type CommentService interface {
 type CommentManageService interface {
 	HighlightComment(userId, commentId int64) (int8, error)
 	DeleteComment(comment *ms.Comment) error
-	CreateComment(comment *ms.Comment) (*ms.Comment, error)
 	CreateCommentReply(reply *ms.CommentReply) (*ms.CommentReply, error)
 	DeleteCommentReply(reply *ms.CommentReply) error
-	CreateCommentContent(content *ms.CommentContent) (*ms.CommentContent, error)
 	ThumbsUpComment(userId int64, tweetId, commentId int64) error
 	ThumbsDownComment(userId int64, tweetId, commentId int64) error
 	ThumbsUpReply(userId int64, tweetId, commentId, replyId int64) error

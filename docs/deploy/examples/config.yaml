@@ -8,6 +8,7 @@ WebServer: # Web服务
   HttpPort: 8008
   ReadTimeout: 60
   WriteTimeout: 60
+  trusted_proxies: [] # Explicit reverse proxy IPs/CIDRs only.
 JWT: # 鉴权加密
   Secret: ""   # 必填! 运行前生成: openssl rand -hex 24 (留空启动会直接报错退出)
   Issuer: paopao-api

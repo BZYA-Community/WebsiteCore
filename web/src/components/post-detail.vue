@@ -109,64 +109,7 @@
                     :negative-text="t('common.cancel')"
                     @positive-click="execVisibilityAction"
                 />
-                  <!-- 审核拒绝原因 -->
-                <n-modal
-                    v-model:show="showAuditReject"
-                    :mask-closable="false"
-                    preset="dialog"
-                    :title="t('post.dialog.rejectTitle')"
-                    :positive-text="t('post.action.confirmReject')"
-                    :negative-text="t('common.cancel')"
-                    @positive-click="execAuditReject"
-                >
-                    <n-space vertical>
-                        <div class="audit-reject-tip">
-                            {{ t('post.dialog.rejectTip') }}
-                        </div>
-                        <n-input
-                            v-model:value="auditRejectReason"
-                            type="textarea"
-                            :placeholder="t('post.dialog.rejectPlaceholder')"
-                            :autosize="{ minRows: 2, maxRows: 4 }"
-                            maxlength="255"
-                            show-count
-                        />
-                    </n-space>
-                </n-modal>
             </template>
-            <div v-if="showAuditBar" class="audit-bar" @click.stop>
-                <n-tag
-                    :type="post.audit_status === 2 ? 'error' : 'warning'"
-                    size="small"
-                    round
-                >
-                    {{ post.audit_status === 2 ? t('post.status.auditRejected') : t('post.status.pendingAudit') }}
-                </n-tag>
-                <span class="audit-bar-tip">
-                    {{ t('post.audit.barTip') }}
-                </span>
-                <n-space size="small">
-                    <n-button
-                        size="small"
-                        type="success"
-                        secondary
-                        :loading="auditActing"
-                        @click.stop="handleAuditApprove"
-                    >
-                        {{ t('post.action.approve') }}
-                    </n-button>
-                    <n-button
-                        size="small"
-                        type="warning"
-                        secondary
-                        :disabled="auditActing"
-                        @click.stop="showAuditReject = true"
-                    >
-                        {{ t('post.action.reject') }}
-                    </n-button>
-                </n-space>
-            </div>
-
             <div v-if="post.texts.length > 0">
                 <span
                     v-for="content in post.texts"
@@ -333,22 +276,6 @@ const loading = ref(false);
 const tempVisibility = ref<VisibilityEnum>(VisibilityEnum.PUBLIC);
 // 私信入口: 跳转消息页会话(原 whisper 弹窗已移除)
 const { goWhisper: onSendWhisper } = useChatJump();
-// 审核操作(审核员/管理员在详情页直接审核)
-const showAuditReject = ref(false);
-const auditRejectReason = ref('');
-const auditActing = ref(false);
-const isAuditor = computed(
-  () =>
-    userInfo.value.id > 0 &&
-    storeUser.hasPermission('content.review'),
-);
-const showAuditBar = computed(
-  () =>
-    isAuditor.value &&
-    post.value.audit_status !== undefined &&
-    post.value.audit_status !== 1,
-);
-
 const emit = defineEmits<{
   (e: 'reload', post_id: number): void;
 }>();
@@ -552,40 +479,6 @@ const handleMdClick = (e: MouseEvent, _id: number) => {
   if (href.startsWith('http://') || href.startsWith('https://')) {
     e.preventDefault();
     window.open(href, '_blank', 'noopener,noreferrer');
-  }
-};
-const handleAuditApprove = () => {
-  dialog.success({
-    title: t('post.dialog.auditApproveTitle'),
-    content: t('post.dialog.auditApproveContent'),
-    positiveText: t('post.action.approve'),
-    negativeText: t('common.cancel'),
-    onPositiveClick: () => doAuditAction('approve'),
-  });
-};
-const execAuditReject = () => {
-  const reason = auditRejectReason.value.trim();
-  if (!reason) {
-    window.$message.warning(t('post.audit.rejectReasonRequired'));
-    return false;
-  }
-  doAuditAction('reject', reason);
-  return true;
-};
-const doAuditAction = async (action: 'approve' | 'reject', reason?: string) => {
-  auditActing.value = true;
-  try {
-    await Api.v1.admin.post.audit.post({
-      post_id: post.value.id,
-      action,
-      reason,
-    });
-    window.$message.success(action === 'approve' ? t('post.msg.auditApproved') : t('post.msg.auditRejected'));
-    emit('reload', post.value.id);
-  } catch (_err) {
-    // 错误提示由请求拦截器统一处理
-  } finally {
-    auditActing.value = false;
   }
 };
 const handlePostAction = (

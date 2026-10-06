@@ -36,22 +36,24 @@ type UserInfoReq struct {
 }
 
 type UserInfoResp struct {
-	IsOperator     bool               `json:"is_operator"`
-	IdentityGroups []ms.IdentityGroup `json:"identity_groups"`
-	Permissions    []string           `json:"permissions"`
-	Id             int64              `json:"id"`
-	Nickname       string             `json:"nickname"`
-	Username       string             `json:"username"`
-	Status         int                `json:"status"`
-	Avatar         string             `json:"avatar"`
-	Phone          string             `json:"phone"`
-	IsAdmin        bool               `json:"is_admin"`
-	Roles          []string           `json:"roles"`
-	Identity       string             `json:"identity"`
-	CreatedOn      int64              `json:"created_on"`
-	Follows        int64              `json:"follows"`
-	Followings     int64              `json:"followings"`
-	TweetsCount    int                `json:"tweets_count"`
+	Email           string             `json:"email"`
+	ContactVerified bool               `json:"contact_verified"`
+	IsOperator      bool               `json:"is_operator"`
+	IdentityGroups  []ms.IdentityGroup `json:"identity_groups"`
+	Permissions     []string           `json:"permissions"`
+	Id              int64              `json:"id"`
+	Nickname        string             `json:"nickname"`
+	Username        string             `json:"username"`
+	Status          int                `json:"status"`
+	Avatar          string             `json:"avatar"`
+	Phone           string             `json:"phone"`
+	IsAdmin         bool               `json:"is_admin"`
+	Roles           []string           `json:"roles"`
+	Identity        string             `json:"identity"`
+	CreatedOn       int64              `json:"created_on"`
+	Follows         int64              `json:"follows"`
+	Followings      int64              `json:"followings"`
+	TweetsCount     int                `json:"tweets_count"`
 }
 
 type GetMessagesReq struct {

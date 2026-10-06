@@ -3,6 +3,7 @@ import { watch } from 'vue';
 import i18n from '@/locales';
 import { useStoreUser } from '@/store/user';
 import { useStoreMain } from '@/store/main';
+import { useStoreProfile } from '@/store/profile';
 
 const routes = [
   {
@@ -143,6 +144,11 @@ const routes = [
 const router = createRouter({
   history: createWebHashHistory(),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (['courses', 'course'].includes(String(to.name)) || ['courses', 'course'].includes(String(from.name))) {
+      return savedPosition || { top: 0 };
+    }
+  },
 });
 
 function updateDocumentTitle(titleKey?: unknown) {
@@ -158,7 +164,7 @@ export const routePermissions: Record<string, string[]> = {
   collection: ['community.interact'], following: ['community.interact'],
   messages: ['profile.edit'],
   'admin-settings': ['site.manage'], 'admin-users': ['user.manage', 'identity.manage'],
-  'admin-audit': ['content.review'],
+  'admin-audit': ['content.review', 'audit.view_all'],
 };
 
 router.beforeEach(async (to) => {
@@ -166,9 +172,13 @@ router.beforeEach(async (to) => {
   if (to.name === '404') return true;
   const user = useStoreUser();
   try {
-    await user.loadSession();
+    await Promise.all([user.loadSession(), useStoreProfile().loadSiteProfile()]);
   } catch {
     return { name: '404' };
+  }
+  if (['courses', 'course'].includes(String(to.name)) && !useStoreProfile().profile.coursesEnabled) return { name: '404' };
+  if (to.name === 'course' && !user.hasPermission('course.view') && user.hasPermission('course.catalog')) {
+    return { name: 'courses', query: { course: to.query.id } };
   }
   if ((String(to.name).startsWith('admin-') || ['profile', 'setting', 'messages', 'collection', 'following', 'compose-md'].includes(String(to.name))) && !user.userLogined) {
     useStoreMain().triggerAuth(true);

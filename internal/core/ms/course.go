@@ -13,6 +13,8 @@ type (
 	CourseFormated             = dbr.CourseFormated
 	CourseGroup                = dbr.CourseGroup
 	CourseGroupFormated        = dbr.CourseGroupFormated
+	CourseLesson               = dbr.CourseLesson
+	CourseLessonAttachment     = dbr.CourseLessonAttachment
 	CourseComment              = dbr.CourseComment
 	CourseCommentFormated      = dbr.CourseCommentFormated
 	CourseCommentContent       = dbr.CourseCommentContent

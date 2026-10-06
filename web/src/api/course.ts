@@ -3,6 +3,8 @@
  */
 
 import { request } from '@/utils/request';
+import axios from 'axios';
+import { TOKEN_KEY } from '@/store/user';
 
 export interface CourseUserBrief {
   id: number;
@@ -13,6 +15,7 @@ export interface CourseUserBrief {
 
 export interface CourseGroup {
   id: number;
+  parent_id: number;
   name: string;
   sort: number;
   course_count: number;
@@ -26,6 +29,7 @@ export interface CourseItem {
   teacher: CourseUserBrief;
   title: string;
   intro: string;
+  teacher_intro: string;
   cover: string;
   play_count: number;
   comment_count: number;
@@ -78,14 +82,72 @@ export interface PageResp<T> {
   };
 }
 
-export interface UploadCredential {
+export interface LessonAttachment {
+  id: number;
+  attachment_id: number;
+  name: string;
+  kind: 'attachment' | 'resource';
+  file_size: number;
+  mime_type: string;
+}
+
+export interface CourseLesson {
+  id: number;
+  course_id: number;
+  title: string;
+  intro: string;
+  sort: number;
+  attachments: LessonAttachment[];
+}
+
+export interface LessonInput {
+  course_id: number;
+  title: string;
+  intro: string;
+  sort: number;
+  attachments: Pick<LessonAttachment, 'attachment_id' | 'name' | 'kind'>[];
+}
+
+export const getCourseLessons = (course_id: number): Promise<{ lessons: CourseLesson[] }> =>
+  request({ method: 'get', url: '/v1/course/lessons', params: { course_id } });
+export const createCourseLesson = (data: LessonInput): Promise<CourseLesson> =>
+  request({ method: 'post', url: '/v1/admin/course/lesson', data });
+export const updateCourseLesson = (data: LessonInput & { id: number }): Promise<CourseLesson> =>
+  request({ method: 'post', url: '/v1/admin/course/lesson/update', data });
+export const deleteCourseLesson = (id: number): Promise<unknown> =>
+  request({ method: 'post', url: '/v1/admin/course/lesson/delete', data: { id } });
+export const getCourseAttachment = (id: number): Promise<{ signed_url: string }> =>
+  request({ method: 'get', url: '/v1/course/attachment', params: { id } });
+
+interface CourseUploadTicket {
+  attachment_id: number;
   mode: 'direct' | 'proxy';
-  host?: string;
-  access_key_id?: string;
-  policy?: string;
-  signature?: string;
-  key?: string;
-  expire?: number;
+  upload_url: string;
+  method: 'POST' | 'PUT';
+  fields?: Record<string, string>;
+  expires_on: number;
+}
+export type UploadedCourseFile = Omit<LessonAttachment, 'id'>;
+export async function uploadCourseFile(file: File, kind: LessonAttachment['kind'], signal: AbortSignal, progress: (value: number) => void): Promise<UploadedCourseFile> {
+  const mime = file.type || 'application/octet-stream';
+  const ticket = await request<unknown, CourseUploadTicket>({ method: 'post', url: '/v1/admin/course/upload/init', signal, data: { name: file.name, size: file.size, mime_type: mime, kind } });
+  const base = new URL(import.meta.env.VITE_HOST || window.location.origin, window.location.origin);
+  const url = new URL(ticket.upload_url, base);
+  const headers: Record<string, string> = {};
+  if (ticket.mode === 'proxy') {
+    if (url.origin !== base.origin) throw new Error('Invalid proxy upload origin');
+    headers.Authorization = `Bearer ${localStorage.getItem(TOKEN_KEY) || ''}`;
+  }
+  let data: File | FormData = file;
+  if (ticket.method === 'POST') {
+    const form = new FormData();
+    for (const [name, value] of Object.entries(ticket.fields || {})) form.append(name, value);
+    form.append('file', file);
+    data = form;
+  } else headers['Content-Type'] = mime;
+  const uploaded = await axios.request({ url: url.href, method: ticket.method, data, headers, signal, onUploadProgress: (event) => { if (event.total) progress(Math.round(event.loaded * 100 / event.total)); } });
+  if (ticket.mode === 'proxy' && uploaded.data?.code !== 0) throw new Error(uploaded.data?.msg || 'Upload failed');
+  return request<unknown, UploadedCourseFile>({ method: 'post', url: '/v1/admin/course/upload/complete', signal, data: { attachment_id: ticket.attachment_id } });
 }
 
 /** 课程分组列表(含各组课程数) */
@@ -133,7 +195,7 @@ export const playCourse = (data: {
   return request({ method: 'post', url: '/v1/course/play', data });
 };
 
-/** 发布课程问答(由免审核权限决定是否进入审核) */
+/** Course questions and replies always enter review. */
 export const createCourseComment = (data: {
   course_id: number;
   contents: { content: string; type: number; sort: number }[];
@@ -167,6 +229,7 @@ export const deleteCourseCommentReply = (data: {
 
 export const createCourseGroup = (data: {
   name: string;
+  parent_id: number;
   sort: number;
 }): Promise<CourseGroup> => {
   return request({ method: 'post', url: '/v1/admin/course/group', data });
@@ -175,6 +238,7 @@ export const createCourseGroup = (data: {
 export const updateCourseGroup = (data: {
   id: number;
   name: string;
+  parent_id: number;
   sort: number;
 }): Promise<unknown> => {
   return request({ method: 'post', url: '/v1/admin/course/group/update', data });
@@ -189,8 +253,8 @@ export const createCourse = (data: {
   teacher_id: number;
   title: string;
   intro: string;
-  video: string;
-  cover: string;
+  teacher_intro: string;
+  cover?: string;
 }): Promise<CourseItem> => {
   return request({ method: 'post', url: '/v1/admin/course', data });
 };
@@ -201,7 +265,7 @@ export const updateCourse = (data: {
   teacher_id: number;
   title: string;
   intro: string;
-  video?: string;
+  teacher_intro: string;
   cover?: string;
 }): Promise<unknown> => {
   return request({ method: 'post', url: '/v1/admin/course/update', data });
@@ -209,15 +273,4 @@ export const updateCourse = (data: {
 
 export const deleteCourse = (data: { id: number }): Promise<unknown> => {
   return request({ method: 'post', url: '/v1/admin/course/delete', data });
-};
-
-/** 获取视频上传凭证(AliOSS返回直传policy, 其他返回proxy) */
-export const getCourseUploadCredential = (params: {
-  ext: string;
-}): Promise<UploadCredential> => {
-  return request({
-    method: 'get',
-    url: '/v1/admin/course/upload-credential',
-    params,
-  });
 };

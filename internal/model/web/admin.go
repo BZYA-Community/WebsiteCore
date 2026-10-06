@@ -134,6 +134,8 @@ type AdminAuditPostsResp base.PageResp
 
 // AdminAuditPostReq 审核动作·action: approve通过 reject拒绝(需reason) delete删除
 type AdminAuditPostReq struct {
+	TaskID   int64 `json:"task_id" binding:"required,min=1"`
+	Revision int64 `json:"revision" binding:"required,min=1"`
 	BaseInfo `json:"-" binding:"-"`
 	PostID   int64  `json:"post_id" binding:"required"`
 	Action   string `json:"action" binding:"required,oneof=approve reject delete"`
@@ -156,6 +158,8 @@ type AdminAuditCommentsResp base.PageResp
 
 // AdminAuditCommentReq 评论审核动作·comment_type: 0帖子评论 1帖子回复 2课程评论 3课程回复
 type AdminAuditCommentReq struct {
+	TaskID   int64 `json:"task_id" binding:"required,min=1"`
+	Revision int64 `json:"revision" binding:"required,min=1"`
 	BaseInfo `json:"-" binding:"-"`
 	ID       int64 `json:"id" binding:"required"`
 	// 0为合法值(评论) 不能加required 否则zero value校验失败
@@ -166,6 +170,8 @@ type AdminAuditCommentReq struct {
 
 // AdminAuditCommentItem 评论审核队列条目(评论与回复合并)
 type AdminAuditCommentItem struct {
+	Contents    []*PostContentItem   `json:"contents"`
+	ReviewTask  *ms.ReviewTask       `json:"review_task"`
 	ID          int64                `json:"id"`
 	CommentType int                  `json:"comment_type"` // 0帖子评论 1帖子回复 2课程评论 3课程回复
 	PostID      int64                `json:"post_id"`
@@ -198,6 +204,8 @@ type AdminAuditNicknamesResp base.PageResp
 
 // AdminAuditNicknameReq 昵称审核动作
 type AdminAuditNicknameReq struct {
+	TaskID   int64 `json:"task_id" binding:"required,min=1"`
+	Revision int64 `json:"revision" binding:"required,min=1"`
 	BaseInfo `json:"-" binding:"-"`
 	UserID   int64  `json:"user_id" binding:"required"`
 	Action   string `json:"action" binding:"required,oneof=approve reject"`
@@ -206,11 +214,12 @@ type AdminAuditNicknameReq struct {
 
 // AdminAuditNicknameItem 昵称审核队列条目
 type AdminAuditNicknameItem struct {
-	UserID          int64  `json:"user_id"`
-	Username        string `json:"username"`
-	Nickname        string `json:"nickname"`
-	PendingNickname string `json:"pending_nickname"`
-	CreatedOn       int64  `json:"created_on"`
+	ReviewTask      *ms.ReviewTask `json:"review_task"`
+	UserID          int64          `json:"user_id"`
+	Username        string         `json:"username"`
+	Nickname        string         `json:"nickname"`
+	PendingNickname string         `json:"pending_nickname"`
+	CreatedOn       int64          `json:"created_on"`
 }
 
 // AdminAuditAvatarsReq 头像审核队列
@@ -228,6 +237,8 @@ type AdminAuditAvatarsResp base.PageResp
 
 // AdminAuditAvatarReq 头像审核动作
 type AdminAuditAvatarReq struct {
+	TaskID   int64 `json:"task_id" binding:"required,min=1"`
+	Revision int64 `json:"revision" binding:"required,min=1"`
 	BaseInfo `json:"-" binding:"-"`
 	UserID   int64  `json:"user_id" binding:"required"`
 	Action   string `json:"action" binding:"required,oneof=approve reject"`
@@ -236,11 +247,12 @@ type AdminAuditAvatarReq struct {
 
 // AdminAuditAvatarItem 头像审核队列条目
 type AdminAuditAvatarItem struct {
-	UserID        int64  `json:"user_id"`
-	Username      string `json:"username"`
-	Avatar        string `json:"avatar"`
-	PendingAvatar string `json:"pending_avatar"`
-	CreatedOn     int64  `json:"created_on"`
+	ReviewTask    *ms.ReviewTask `json:"review_task"`
+	UserID        int64          `json:"user_id"`
+	Username      string         `json:"username"`
+	Avatar        string         `json:"avatar"`
+	PendingAvatar string         `json:"pending_avatar"`
+	CreatedOn     int64          `json:"created_on"`
 }
 
 // AdminAuditLogsReq 审核日志

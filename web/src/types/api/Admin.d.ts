@@ -98,6 +98,8 @@ declare namespace Api {
             }
 
             interface AuditPostReq {
+                task_id: number;
+                revision: number;
                 post_id: number;
                 action: 'approve' | 'reject';
                 reason?: string;
@@ -111,6 +113,8 @@ declare namespace Api {
             }
 
             interface AuditCommentReq {
+                task_id: number;
+                revision: number;
                 id: number;
                 /** 0帖子评论 1帖子回复 2课程评论 3课程回复 */
                 comment_type: 0 | 1 | 2 | 3;
@@ -119,12 +123,16 @@ declare namespace Api {
             }
 
             interface AuditNicknameReq {
+                task_id: number;
+                revision: number;
                 user_id: number;
                 action: 'approve' | 'reject';
                 reason?: string;
             }
 
             interface AuditAvatarReq {
+                task_id: number;
+                revision: number;
                 user_id: number;
                 action: 'approve' | 'reject';
                 reason?: string;
@@ -197,7 +205,21 @@ declare namespace Api {
 
             interface UserDetailResp extends UserItem {}
 
+            interface ReviewTask {
+                id: number;
+                kind: string;
+                target_id: number;
+                author_id: number;
+                revision: number;
+                state: 'pending' | 'completed' | 'cancelled';
+                assignee_id: number;
+                assigned_on: number;
+                deadline_on: number;
+                completed_on: number;
+            }
+
             interface AuditPostItem {
+                review_task?: ReviewTask;
                 id: number;
                 user: {
                     id: number;
@@ -224,6 +246,8 @@ declare namespace Api {
             }
 
             interface AuditCommentItem {
+                review_task?: ReviewTask;
+                contents?: AuditPostItem['contents'];
                 id: number;
                 /** 0帖子评论 1帖子回复 2课程评论 3课程回复 */
                 comment_type: 0 | 1 | 2 | 3;
@@ -247,6 +271,7 @@ declare namespace Api {
             }
 
             interface AuditNicknameItem {
+                review_task?: ReviewTask;
                 user_id: number;
                 username: string;
                 /** 当前昵称 */
@@ -262,6 +287,7 @@ declare namespace Api {
             }
 
             interface AuditAvatarItem {
+                review_task?: ReviewTask;
                 user_id: number;
                 username: string;
                 /** 当前头像 */

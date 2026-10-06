@@ -27,6 +27,8 @@ type Audit interface {
 	ListAuditComments(*web.AdminAuditCommentsReq) (*web.AdminAuditCommentsResp, error)
 	AuditPostAction(*web.AdminAuditPostReq) error
 	ListAuditPosts(*web.AdminAuditPostsReq) (*web.AdminAuditPostsResp, error)
+	ReviewHistory(*web.ReviewHistoryReq) (*web.ReviewHistoryResp, error)
+	ReviewStatistics(*web.ReviewStatisticsReq) (*web.ReviewStatisticsResp, error)
 
 	mustEmbedUnimplementedAuditServant()
 }
@@ -161,6 +163,34 @@ func RegisterAuditServant(e *gin.Engine, s Audit) {
 		resp, err := s.ListAuditPosts(req)
 		s.Render(c, resp, err)
 	})
+	router.Handle("GET", "admin/audit/history", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.ReviewHistoryReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.ReviewHistory(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("GET", "admin/audit/statistics", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.ReviewStatisticsReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.ReviewStatistics(req)
+		s.Render(c, resp, err)
+	})
 }
 
 // UnimplementedAuditServant can be embedded to have forward compatible implementations.
@@ -203,6 +233,14 @@ func (UnimplementedAuditServant) AuditPostAction(req *web.AdminAuditPostReq) err
 }
 
 func (UnimplementedAuditServant) ListAuditPosts(req *web.AdminAuditPostsReq) (*web.AdminAuditPostsResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAuditServant) ReviewHistory(req *web.ReviewHistoryReq) (*web.ReviewHistoryResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAuditServant) ReviewStatistics(req *web.ReviewStatisticsReq) (*web.ReviewStatisticsResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

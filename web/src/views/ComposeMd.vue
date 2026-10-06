@@ -18,7 +18,13 @@
                 <div class="draft-tip">{{ t('compose.md.draftTip') }}</div>
             </div>
 
+            <n-alert v-if="processingVideo" type="info" style="margin: 12px 0" aria-live="polite">
+                {{ t('compose.compressionProgress') }}
+                <n-progress type="line" :percentage="videoProgress" />
+                <n-button size="small" @click="cancelVideo">{{ t('common.cancel') }}</n-button>
+            </n-alert>
             <n-upload
+                :disabled="processingVideo"
                 ref="uploadRef"
                 abstract
                 list-type="image"
@@ -42,7 +48,9 @@
                     <div class="attachment" v-if="storeUser.hasPermission('content.upload')">
                         <n-upload-trigger #="{ handleClick }" abstract>
                             <n-button
+                                :aria-label="t('compose.addImage')"
                                 :disabled="
+                                    processingVideo || fileQueue.some((file) => file.status === 'uploading' || file.status === 'pending') ||
                                     (fileQueue.length > 0 &&
                                         uploadType === 'public/video') ||
                                     fileQueue.length === 9
@@ -72,7 +80,9 @@
                           v-if="profile.allowTweetVideo"
                           #="{ handleClick }" abstract>
                             <n-button
+                                :aria-label="t('compose.addVideo')"
                                 :disabled="
+                                    processingVideo || fileQueue.some((file) => file.status === 'uploading' || file.status === 'pending') ||
                                     (fileQueue.length > 0 &&
                                         uploadType !== 'public/video') ||
                                     fileQueue.length === 9
@@ -102,7 +112,9 @@
                           v-if="profile.allowTweetAttachment"
                           #="{ handleClick }" abstract>
                             <n-button
+                                :aria-label="t('compose.addAttachment')"
                                 :disabled="
+                                    processingVideo || fileQueue.some((file) => file.status === 'uploading' || file.status === 'pending') ||
                                     (fileQueue.length > 0 &&
                                         uploadType === 'public/video') ||
                                     fileQueue.length === 9
@@ -175,6 +187,7 @@
 
                         <n-button
                             :loading="submitting"
+                            :disabled="processingVideo || fileQueue.some((file) => file.status !== 'finished')"
                             @click="submitPost"
                             type="primary"
                             secondary
@@ -218,6 +231,7 @@
 </template>
 
 <script setup lang="ts">
+import { useMediaUpload } from '@/composables/useMediaUpload';
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
@@ -241,7 +255,6 @@ import { createPost } from '@/api/post';
 import { parsePostTag } from '@/utils/content';
 import { MD_MAX_LENGTH, mdTheme } from '@/utils/markdown';
 import { userInfo as fetchUserInfo } from '@/api/auth';
-import { isZipFile } from '@/utils/isZipFile';
 import type { UploadFileInfo, UploadInst } from 'naive-ui';
 import { VisibilityEnum, PostItemTypeEnum } from '@/utils/IEnum';
 
@@ -276,6 +289,7 @@ const links = ref([]);
 
 const uploadRef = ref<UploadInst>();
 const uploadType = ref('public/image');
+const { beforeUpload, processingVideo, videoProgress, cancelVideo } = useMediaUpload(uploadType);
 const fileQueue = ref<UploadFileInfo[]>([]);
 const imageContents = ref<Item.CommentItemProps[]>([]);
 const videoContents = ref<Item.CommentItemProps[]>([]);
@@ -289,7 +303,7 @@ const allowTweetVisibility = ref(
 const uploadGateway = import.meta.env.VITE_HOST + '/v1/attachment';
 
 const uploadToken = computed(() => {
-  return 'Bearer ' + localStorage.getItem(TOKEN_KEY);
+  return storeUser.userInfo.id ? 'Bearer ' + localStorage.getItem(TOKEN_KEY) : '';
 });
 
 const visibilities = computed(() => {
@@ -334,6 +348,7 @@ const changeContent = (v: string) => {
 };
 
 const setUploadType = (type: string) => {
+  if (processingVideo.value || fileQueue.value.some((file) => file.status === 'uploading' || file.status === 'pending')) return;
   uploadType.value = type;
 };
 
@@ -352,53 +367,6 @@ const updateUpload = (list: UploadFileInfo[]) => {
     }
   }
   fileQueue.value = list;
-};
-const beforeUpload = async (data: any) => {
-  // 图片类型校验
-  if (
-    uploadType.value === 'public/image' &&
-    ![
-      'image/webp',
-      'image/png',
-      'image/jpg',
-      'image/jpeg',
-      'image/gif',
-    ].includes(data.file.file?.type)
-  ) {
-    window.$message.warning(t('compose.imageFormatError'));
-    return false;
-  }
-
-  if (uploadType.value === 'image' && data.file.file?.size > 10485760) {
-    window.$message.warning(t('compose.imageSizeError'));
-    return false;
-  }
-
-  // 视频类型校验
-  if (
-    uploadType.value === 'public/video' &&
-    !['video/mp4', 'video/quicktime'].includes(data.file.file?.type)
-  ) {
-    window.$message.warning(t('compose.videoFormatError'));
-    return false;
-  }
-
-  if (uploadType.value === 'public/video' && data.file.file?.size > 104857600) {
-    window.$message.warning(t('compose.videoSizeError'));
-    return false;
-  }
-  // 附件类型校验
-  if (uploadType.value === 'attachment' && !(await isZipFile(data.file.file))) {
-    window.$message.warning(t('compose.attachmentFormatError'));
-    return false;
-  }
-
-  if (uploadType.value === 'attachment' && data.file.file?.size > 104857600) {
-    window.$message.warning(t('compose.attachmentSizeError'));
-    return false;
-  }
-
-  return true;
 };
 const finishUpload = ({ file, event }: any): any => {
   try {
@@ -462,6 +430,7 @@ const removeUpload = ({ file }: any) => {
 
 // 发布Markdown长文
 const submitPost = () => {
+  if (processingVideo.value || fileQueue.value.some((file) => file.status !== 'finished')) return;
   if (content.value.trim().length === 0) {
     window.$message.warning(t('compose.contentRequired'));
     return;

@@ -15,6 +15,8 @@ declare namespace Item {
     avatar: string;
     /** 用户手机号 */
     phone?: string;
+    email?: string;
+    contact_verified?: boolean;
     /** 激活码 */
     activation?: string;
     is_operator?: boolean;

@@ -56,11 +56,12 @@ type loggerOtlponf struct {
 }
 
 type httpServerConf struct {
-	RunMode      string
-	HttpIp       string
-	HttpPort     string
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
+	RunMode        string
+	HttpIp         string
+	HttpPort       string
+	ReadTimeout    time.Duration
+	WriteTimeout   time.Duration
+	TrustedProxies []string `mapstructure:"trusted_proxies"`
 }
 
 type appConf struct {
@@ -224,7 +225,9 @@ type jwtConf struct {
 }
 
 type AuditConf struct {
-	Enabled bool `json:"enabled"`
+	DeadlineHours             int  `json:"deadline_hours" mapstructure:"DeadlineHours"`
+	AssignmentIntervalSeconds int  `json:"assignment_interval_seconds" mapstructure:"AssignmentIntervalSeconds"`
+	Enabled                   bool `json:"enabled"`
 }
 
 // OperatorConf 默认运维账号配置: 账号不存在时按配置创建，

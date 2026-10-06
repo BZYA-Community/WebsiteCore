@@ -16,12 +16,17 @@ const (
 
 type Attachment struct {
 	*Model
-	UserID    int64          `json:"user_id"`
-	FileSize  int64          `json:"file_size"`
-	ImgWidth  int            `json:"img_width"`
-	ImgHeight int            `json:"img_height"`
-	Type      AttachmentType `json:"type"`
-	Content   string         `json:"content"`
+	UserID          int64          `json:"user_id"`
+	FileSize        int64          `json:"file_size"`
+	ImgWidth        int            `json:"img_width"`
+	ImgHeight       int            `json:"img_height"`
+	Type            AttachmentType `json:"type"`
+	Content         string         `json:"content"`
+	Purpose         string         `json:"purpose"`
+	MimeType        string         `json:"mime_type"`
+	Verified        bool           `json:"verified"`
+	Name            string         `json:"name"`
+	UploadExpiresOn int64          `json:"-"`
 }
 
 func (a *Attachment) Create(db *gorm.DB) (*Attachment, error) {

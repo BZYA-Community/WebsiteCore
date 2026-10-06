@@ -43,6 +43,7 @@ WebServer: # Web服务
   HttpPort: 8008
   ReadTimeout: 60
   WriteTimeout: 60
+  trusted_proxies: [] # Only explicitly listed proxy IPs/CIDRs may supply client IP headers.
 PprofServer: # Pprof服务
   RunMode: debug
   HttpIp: 0.0.0.0
@@ -188,6 +189,30 @@ WebProfile:
 
 Audit:
   Enabled: true                   # 是否开启内容审核，开启后普通用户新帖需审核通过后公开
+  DeadlineHours: 48               # Time allowed for each assigned review
+  AssignmentIntervalSeconds: 60   # Assignment and timeout scan interval
 Operator:
   Username: kiana                 # 运维账号名
   Password: ""                    # 运维账号密码(6-16位)，账号不存在时创建；已存在且与配置不一致时重置
+
+# Optional modules and the single active account-verification channel.
+courses:
+  enabled: true
+account_verify:
+  mode: email
+  code_ttl_seconds: 300
+  cooldown_seconds: 60
+  max_attempts: 5
+  max_daily_sends: 10
+  aliyun:
+    endpoint: https://alimail-cn.aliyuncs.com
+    client_id: ""
+    client_secret: ""
+    sender: ""
+
+uploads:
+  attachment_max_bytes: 15728640
+  course_attachment_max_bytes: 52428800
+  course_resource_max_bytes: 2147483648
+  video_input_max_bytes: 31457280
+  credential_ttl_seconds: 3600

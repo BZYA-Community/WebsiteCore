@@ -27,6 +27,8 @@ var routeRules = func() map[string]routeRule {
 	add(authz.ProfileEdit, true, "GET /v1/user/info", "GET /v1/user/messages", "POST /v1/user/message/read", "POST /v1/user/message/readall", "POST /v1/user/phone", "POST /v1/user/password", "POST /v1/user/nickname", "POST /v1/user/avatar", "GET /v1/user/msgcount/unread", "GET /v1/user/chat/contacts", "GET /v1/user/chat/history")
 	// Session introspection remains available even when all feature grants are revoked.
 	rules["GET /v1/user/info"] = routeRule{Login: true}
+	rules["POST /v1/user/contact/code"] = routeRule{Login: true}
+	rules["POST /v1/user/contact/verify"] = routeRule{Login: true}
 	add(authz.PostCreate, true, "POST /v1/post", "POST /v1/post/visibility")
 	add(authz.CommentCreate, true, "POST /v1/post/comment", "POST /v1/post/comment/reply")
 	add(authz.ContentUpload, true, "POST /v1/attachment")
@@ -36,7 +38,7 @@ var routeRules = func() map[string]routeRule {
 		rules[path] = routeRule{Any: []string{authz.CommunityInteract, authz.ContentManage}, Login: true}
 	}
 	add(authz.CourseCatalog, false, "GET /v1/course/groups", "GET /v1/course/list")
-	add(authz.CourseView, false, "GET /v1/course", "GET /v1/course/comments", "GET /v1/course/video", "POST /v1/course/play")
+	add(authz.CourseView, false, "GET /v1/course", "GET /v1/course/comments", "GET /v1/course/video", "POST /v1/course/play", "GET /v1/course/lessons", "GET /v1/course/attachment")
 	for _, path := range []string{"POST /v1/course/comment", "POST /v1/course/comment/reply"} {
 		rules[path] = routeRule{All: []string{authz.CourseView, authz.CommentCreate}, Login: true}
 	}
@@ -44,10 +46,10 @@ var routeRules = func() map[string]routeRule {
 		rules[path] = routeRule{All: []string{authz.CourseView}, Any: []string{authz.CommunityInteract, authz.ContentManage}, Login: true}
 	}
 	add(authz.CourseManage, true, "POST /v1/admin/course/group", "POST /v1/admin/course/group/update", "POST /v1/admin/course/group/delete")
-	for _, path := range []string{"POST /v1/admin/course", "POST /v1/admin/course/update", "POST /v1/admin/course/delete"} {
+	for _, path := range []string{"POST /v1/admin/course", "POST /v1/admin/course/update", "POST /v1/admin/course/delete", "POST /v1/admin/course/lesson", "POST /v1/admin/course/lesson/update", "POST /v1/admin/course/lesson/delete"} {
 		rules[path] = routeRule{Any: []string{authz.CourseManage, authz.CourseManageOwn}, Login: true}
 	}
-	for _, path := range []string{"GET /v1/admin/course/upload-credential", "POST /v1/admin/course/video"} {
+	for _, path := range []string{"POST /v1/admin/course/upload/init", "POST /v1/admin/course/upload/complete"} {
 		rules[path] = routeRule{All: []string{authz.CourseUpload}, Any: []string{authz.CourseManage, authz.CourseManageOwn}, Login: true}
 	}
 	add(authz.UserManage, true, "POST /v1/admin/user/status", "GET /v1/admin/user/list", "GET /v1/admin/user/detail", "POST /v1/admin/user/delete")
@@ -56,6 +58,9 @@ var routeRules = func() map[string]routeRule {
 	rules["GET /v1/admin/identity/groups"] = routeRule{Any: []string{authz.UserManage, authz.IdentityManage}, Login: true}
 	rules["POST /v1/user/chat/send"] = routeRule{Any: []string{authz.MessageInitiate, authz.MessageReply}, Login: true}
 	add(authz.ContentReview, true, "GET /v1/admin/audit/posts", "POST /v1/admin/audit/post", "GET /v1/admin/audit/comments", "POST /v1/admin/audit/comment", "GET /v1/admin/audit/nicknames", "POST /v1/admin/audit/nickname", "GET /v1/admin/audit/avatars", "POST /v1/admin/audit/avatar", "GET /v1/admin/audit/logs")
+	for _, path := range []string{"posts", "comments", "nicknames", "avatars", "logs", "statistics", "history"} {
+		rules["GET /v1/admin/audit/"+path] = routeRule{Any: []string{authz.ContentReview, authz.AuditViewAll}, Login: true}
+	}
 	return rules
 }()
 

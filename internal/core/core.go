@@ -32,6 +32,7 @@ type DataService interface {
 	// 课程服务
 	CourseService
 	CourseManageService
+	CourseUploadService
 
 	// 用户服务
 	UserManageService
@@ -41,6 +42,7 @@ type DataService interface {
 
 	// 站点管理服务(用户管理/内容审核)
 	SiteAdminService
+	ReviewService
 
 	// 安全服务
 	SecurityService

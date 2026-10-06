@@ -53,7 +53,7 @@ Additional checks when you touch the corresponding areas:
 | You changed... | Also run / verify |
 | --- | --- |
 | `mirc/` (API definitions) | `make gen-mir`, and confirm `auto/` contains no hand edits |
-| Database schema | Migration pair for **both** dialects under `scripts/migration/{postgres,mysql}/`, verified locally with a `migration`-tagged build (`make migrate`) |
+| Database schema | PostgreSQL migration pair under `scripts/migration/postgres/`, verified locally with a `migration`-tagged build (`make migrate`); PostgreSQL is the supported runtime database |
 | Configuration keys | `internal/conf/config.yaml` (embedded) and `config.yaml.sample` updated together |
 | Behavior covered by E2E scripts | The relevant `scripts/test_*.py`, paste PASS/FAIL counts into the PR |
 

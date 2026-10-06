@@ -21,6 +21,8 @@ type CourseLoose interface {
 	CoursePlay(*web.CoursePlayReq) (*web.CoursePlayResp, error)
 	CourseVideo(*web.CourseVideoReq) (*web.CourseVideoResp, error)
 	CourseComments(*web.CourseCommentsReq) (*web.CourseCommentsResp, error)
+	CourseAttachment(*web.CourseAttachmentReq) (*web.CourseAttachmentResp, error)
+	CourseLessons(*web.CourseLessonsReq) (*web.CourseLessonsResp, error)
 	CourseDetail(*web.CourseDetailReq) (*web.CourseDetailResp, error)
 	CourseList(*web.CourseListReq) (*web.CourseListResp, error)
 	CourseGroups(*web.CourseGroupsReq) (*web.CourseGroupsResp, error)
@@ -76,6 +78,34 @@ func RegisterCourseLooseServant(e *gin.Engine, s CourseLoose) {
 			return
 		}
 		resp, err := s.CourseComments(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("GET", "course/attachment", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.CourseAttachmentReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.CourseAttachment(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("GET", "course/lessons", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.CourseLessonsReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.CourseLessons(req)
 		s.Render(c, resp, err)
 	})
 	router.Handle("GET", "course", func(c *gin.Context) {
@@ -138,6 +168,14 @@ func (UnimplementedCourseLooseServant) CourseVideo(req *web.CourseVideoReq) (*we
 }
 
 func (UnimplementedCourseLooseServant) CourseComments(req *web.CourseCommentsReq) (*web.CourseCommentsResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedCourseLooseServant) CourseAttachment(req *web.CourseAttachmentReq) (*web.CourseAttachmentResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedCourseLooseServant) CourseLessons(req *web.CourseLessonsReq) (*web.CourseLessonsResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

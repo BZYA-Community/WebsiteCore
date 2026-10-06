@@ -40,6 +40,14 @@ func (s *webService) String() string {
 
 func newWebEngine() *gin.Engine {
 	e := gin.New()
+	var trustedProxies []string
+	if conf.WebServerSetting != nil {
+		trustedProxies = conf.WebServerSetting.TrustedProxies
+	}
+	if err := e.SetTrustedProxies(trustedProxies); err != nil {
+		// Configuration validation rejects this before service startup.
+		panic(fmt.Errorf("configure trusted proxies: %w", err))
+	}
 	e.HandleMethodNotAllowed = true
 	e.Use(gin.Logger())
 	e.Use(gin.Recovery())

@@ -19,8 +19,11 @@ type CourseAdmin interface {
 	// Chain provide handlers chain for gin
 	Chain() gin.HandlersChain
 
-	UploadCourseVideo(*web.UploadCourseVideoReq) (*web.UploadCourseVideoResp, error)
-	CourseUploadCredential(*web.CourseUploadCredentialReq) (*web.CourseUploadCredentialResp, error)
+	CourseUploadComplete(*web.CourseUploadCompleteReq) (*web.CourseUploadCompleteResp, error)
+	CourseUploadInit(*web.CourseUploadInitReq) (*web.CourseUploadInitResp, error)
+	DeleteCourseLesson(*web.DeleteCourseLessonReq) error
+	UpdateCourseLesson(*web.UpdateCourseLessonReq) (*dbr.CourseLesson, error)
+	CreateCourseLesson(*web.CourseLessonReq) (*dbr.CourseLesson, error)
 	DeleteCourse(*web.DeleteCourseReq) error
 	UpdateCourse(*web.UpdateCourseReq) error
 	CreateCourse(*web.CreateCourseReq) (*dbr.CourseFormated, error)
@@ -39,33 +42,73 @@ func RegisterCourseAdminServant(e *gin.Engine, s CourseAdmin) {
 	router.Use(middlewares...)
 
 	// register routes info to router
-	router.Handle("POST", "admin/course/video", func(c *gin.Context) {
+	router.Handle("POST", "admin/course/upload/complete", func(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
 			return
 		default:
 		}
-		req := new(web.UploadCourseVideoReq)
-		var bv _binding_ = req
-		if err := bv.Bind(c); err != nil {
-			s.Render(c, nil, err)
-			return
-		}
-		resp, err := s.UploadCourseVideo(req)
-		s.Render(c, resp, err)
-	})
-	router.Handle("GET", "admin/course/upload-credential", func(c *gin.Context) {
-		select {
-		case <-c.Request.Context().Done():
-			return
-		default:
-		}
-		req := new(web.CourseUploadCredentialReq)
+		req := new(web.CourseUploadCompleteReq)
 		if err := s.Bind(c, req); err != nil {
 			s.Render(c, nil, err)
 			return
 		}
-		resp, err := s.CourseUploadCredential(req)
+		resp, err := s.CourseUploadComplete(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("POST", "admin/course/upload/init", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.CourseUploadInitReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.CourseUploadInit(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("POST", "admin/course/lesson/delete", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.DeleteCourseLessonReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		s.Render(c, nil, s.DeleteCourseLesson(req))
+	})
+	router.Handle("POST", "admin/course/lesson/update", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.UpdateCourseLessonReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.UpdateCourseLesson(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("POST", "admin/course/lesson", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.CourseLessonReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.CreateCourseLesson(req)
 		s.Render(c, resp, err)
 	})
 	router.Handle("POST", "admin/course/delete", func(c *gin.Context) {
@@ -157,11 +200,23 @@ func (UnimplementedCourseAdminServant) Chain() gin.HandlersChain {
 	return nil
 }
 
-func (UnimplementedCourseAdminServant) UploadCourseVideo(req *web.UploadCourseVideoReq) (*web.UploadCourseVideoResp, error) {
+func (UnimplementedCourseAdminServant) CourseUploadComplete(req *web.CourseUploadCompleteReq) (*web.CourseUploadCompleteResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
-func (UnimplementedCourseAdminServant) CourseUploadCredential(req *web.CourseUploadCredentialReq) (*web.CourseUploadCredentialResp, error) {
+func (UnimplementedCourseAdminServant) CourseUploadInit(req *web.CourseUploadInitReq) (*web.CourseUploadInitResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedCourseAdminServant) DeleteCourseLesson(req *web.DeleteCourseLessonReq) error {
+	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedCourseAdminServant) UpdateCourseLesson(req *web.UpdateCourseLessonReq) (*dbr.CourseLesson, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedCourseAdminServant) CreateCourseLesson(req *web.CourseLessonReq) (*dbr.CourseLesson, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

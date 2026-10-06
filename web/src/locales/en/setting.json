@@ -8,21 +8,8 @@
     "username": "Username"
   },
   "phone": {
-    "title": "Phone Number",
-    "rebind": "Rebind Phone",
-    "alertTitle": "Phone Binding Notice",
-    "alertContent": "After binding your phone, you can change your avatar, post updates, reply, and more~",
-    "bindNow": "Bind Now",
-    "label": "Phone Number",
-    "placeholder": "Enter mainland China phone number",
     "imgCaptchaLabel": "Image Captcha",
-    "imgCaptchaPlaceholder": "Enter image captcha to get SMS code",
-    "smsLabel": "SMS Code",
-    "smsPlaceholder": "Enter the SMS code you received",
-    "resend": "Resend in {seconds}s",
-    "send": "Send Code",
-    "bind": "Bind",
-    "bindSuccess": "Bound successfully"
+    "imgCaptchaPlaceholder": "Enter image captcha to get SMS code"
   },
   "activation": {
     "title": "Activation Code",
@@ -64,8 +51,6 @@
     "submitted": "Nickname change submitted"
   },
   "rule": {
-    "phoneRequired": "Please enter phone number",
-    "smsRequired": "Please enter SMS code",
     "activationRequired": "Please enter activation code",
     "newPasswordRequired": "Please enter new password",
     "oldPasswordRequired": "Please enter old password",
@@ -73,5 +58,22 @@
     "passwordMismatch": "Passwords do not match"
   },
   "imgCaptchaRequired": "Please enter image captcha",
-  "sendSuccess": "Sent successfully"
+  "contact": {
+    "email": "Email verification",
+    "phone": "Phone verification",
+    "notBound": "No contact bound",
+    "verified": "Verified",
+    "unverified": "Not verified",
+    "emailHelp": "This site verifies accounts by email. Your base identity and permissions update after verification.",
+    "phoneHelp": "This site verifies accounts by phone. Your base identity and permissions update after verification.",
+    "unavailable": "Contact verification is unavailable. Please try again later or contact the site administrator.",
+    "code": "Verification code",
+    "send": "Send code",
+    "resend": "Resend in {seconds}s",
+    "verify": "Verify and bind",
+    "sent": "Verification code sent. Please check your contact address.",
+    "sendFailed": "Could not send the code. Check your address and try again.",
+    "verifyFailed": "Verification failed. Check your code and address, then try again.",
+    "success": "Contact verified successfully"
+  }
 }

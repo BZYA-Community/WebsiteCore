@@ -64,7 +64,7 @@
   },
   "commentType": {
     "reply": "Reply",
-    "courseComment": "Course Comment",
+    "courseComment": "Course question",
     "courseReply": "Course Reply",
     "comment": "Comment"
   },
@@ -84,5 +84,20 @@
     "rejected": "Rejected",
     "avatarApproved": "Avatar change approved"
   },
-  "avatarChangeRequest": "Avatar Change Request"
+  "avatarChangeRequest": "Avatar Change Request",
+  "task": {
+    "assignee": "Reviewer",
+    "deadline": "Due",
+    "revision": "Revision {revision}",
+    "history": "Task history",
+    "unassigned": "Awaiting assignment",
+    "event": "Event",
+    "transfer": "Reviewer change",
+    "reason": "Reason",
+    "timeouts": "Missed deadlines",
+    "statistics": "Review statistics",
+    "fullContent": "Complete review content",
+    "refresh": "Refresh tasks",
+    "assignmentHelp": "Tasks are assigned automatically. Review your assigned pending tasks before their deadline; overdue tasks transfer to another reviewer. Operators can act on all tasks, with an audit record."
+  }
 }

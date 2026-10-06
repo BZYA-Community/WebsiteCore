@@ -20,6 +20,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'play'): void;
+  (e: 'error'): void;
 }>();
 
 const wrapEl = ref<HTMLDivElement>();
@@ -70,6 +71,7 @@ const initPlayer = () => {
   }
   art = new Artplayer(options);
   art.on('play', () => emit('play'));
+  art.on('video:error', () => emit('error'));
   art.on('video:loadedmetadata', fitSize);
 };
 

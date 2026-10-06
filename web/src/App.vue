@@ -4,7 +4,8 @@
             <n-dialog-provider>
                 <div
                     class="app-container"
-                    :class="{ dark: iTheme?.name === 'dark', mobile: !desktopModelShow }"
+                    :class="{ dark: iTheme?.name === 'dark', mobile: !desktopModelShow, 'course-shell': isCourseRoute }"
+                    :style="isCourseRoute ? courseThemeVars : undefined"
                 >
                     <div has-sider class="main-wrap" position="static" >
                         <!-- 侧边栏 -->
@@ -31,7 +32,7 @@
                         </div>
 
                         <!-- 右侧 -->
-                        <rightbar />
+                        <rightbar v-if="route.name !== 'course'" />
                     </div>
                     <!-- 登录/注册公共组件 -->
                     <auth />
@@ -43,37 +44,42 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, computed } from 'vue';
+import { computed } from 'vue';
 import { useStoreMain } from '@/store/main';
-import { darkTheme, zhCN, enUS, dateZhCN, dateEnUS } from 'naive-ui';
-import { getSiteProfile } from '@/api/site';
-import { useStoreProfile } from '@/store/profile';
+import { darkTheme, lightTheme, zhCN, enUS, dateZhCN, dateEnUS } from 'naive-ui';
 import { storeToRefs } from 'pinia';
 import { useI18n } from 'vue-i18n';
+import { useRoute } from 'vue-router';
 
 const storeMain = useStoreMain();
-const storeProfile = useStoreProfile();
 const { theme, desktopModelShow } = storeToRefs(storeMain);
 const { locale } = useI18n();
+const route = useRoute();
+const isCourseRoute = computed(() => ['courses', 'course'].includes(String(route.name)));
 
 const iTheme = computed(() => (theme.value === 'dark' ? darkTheme : null));
+const courseThemeVars = computed(() => {
+    const tokens = (iTheme.value || lightTheme).common!;
+    return {
+        '--course-bg': tokens.bodyColor,
+        '--course-surface': tokens.cardColor,
+        '--course-text': tokens.textColor2,
+        '--course-muted': tokens.textColor3,
+        '--course-accent': tokens.primaryColor,
+        '--course-line': tokens.dividerColor,
+        '--course-hover': tokens.hoverColor,
+        '--course-radius': tokens.borderRadius,
+        '--course-tint': 'color-mix(in srgb, var(--course-accent) 10%, transparent)',
+    };
+});
 // naive-ui 组件内置文案/日期本地化, 随 vue-i18n 语言切换联动
 const naiveLocale = computed(() => (locale.value === 'en' ? enUS : zhCN));
 const naiveDateLocale = computed(() => (locale.value === 'en' ? dateEnUS : dateZhCN));
 
-function loadSiteProfile() {
-    storeProfile.loadDefaultSiteProfile();
-    if (import.meta.env.VITE_USE_WEB_PROFILE.toLowerCase() === 'true') {
-        getSiteProfile()
-            .then((res) => {
-                storeProfile.updateSiteProfile(res);
-            }).catch((err) => {
-                console.log(err);
-            });
-    }
-}
-
-onMounted(() => {
-  loadSiteProfile();
-});
 </script>
+
+<style lang="less">
+.course-shell {
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--course-accent); outline-offset: 3px; }
+}
+</style>

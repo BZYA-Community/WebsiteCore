@@ -6,15 +6,15 @@ package jinzhu
 
 import (
 	"fmt"
-	"strings"
-	"time"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/authz"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
 	"github.com/BZYA-Community/WebsiteCore/pkg/debug"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type tweetSrv struct {
@@ -177,36 +177,25 @@ func (s *tweetHelpSrv) getUsersByIDs(ids []int64) ([]*dbr.User, error) {
 	}, 0, 0)
 }
 
-func (s *tweetManageSrv) CreatePostCollection(postID, userID int64) (*ms.PostCollection, error) {
-	collection := &dbr.PostCollection{
-		PostID: postID,
-		UserID: userID,
-	}
-
-	return collection.Create(s.db)
-}
-
-func (s *tweetManageSrv) DeletePostCollection(p *ms.PostCollection) error {
-	return p.Delete(s.db)
-}
-
-func (s *tweetManageSrv) CreatePostContent(content *ms.PostContent) (*ms.PostContent, error) {
-	return content.Create(s.db)
-}
-
 func (s *tweetManageSrv) CreateAttachment(obj *ms.Attachment) (int64, error) {
-	attachment, err := obj.Create(s.db)
-	return attachment.ID, err
-}
-
-func (s *tweetManageSrv) CreatePost(post *ms.Post) (*ms.Post, error) {
-	post.LatestRepliedOn = time.Now().Unix()
-	p, err := post.Create(s.db)
-	if err != nil {
-		return nil, err
+	if obj == nil {
+		return 0, authz.ErrInvalid
 	}
-	s.cacheIndex.SendAction(core.IdxActCreatePost, post)
-	return p, nil
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		if _, err := lockIdentityPolicy(tx, authorStub(obj.UserID), authz.ContentUpload); err != nil {
+			return err
+		}
+		if _, err := obj.Create(tx); err != nil {
+			return err
+		}
+		return dbr.AppendOperationLog(tx, obj.UserID, "upload.community", "attachment", obj.ID, nil, map[string]any{
+			"name": obj.Name, "size": obj.FileSize, "mime_type": obj.MimeType, "purpose": obj.Purpose, "verified": obj.Verified,
+		})
+	})
+	if err != nil {
+		return 0, err
+	}
+	return obj.ID, nil
 }
 
 func (s *tweetManageSrv) DeletePost(post *ms.Post) ([]string, error) {
@@ -215,6 +204,15 @@ func (s *tweetManageSrv) DeletePost(post *ms.Post) ([]string, error) {
 	postContent := &dbr.PostContent{}
 	err := s.db.Transaction(
 		func(tx *gorm.DB) error {
+			if err := reviewPolicyLock(tx); err != nil {
+				return err
+			}
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND is_del = 0", postId).First(post).Error; err != nil {
+				return err
+			}
+			if err := cancelTargetReviewsTx(tx, ms.ReviewPost, []int64{postId}); err != nil {
+				return err
+			}
 			if contents, err := postContent.MediaContentsByPostId(tx, postId); err == nil {
 				mediaContents = contents
 			} else {
@@ -239,10 +237,9 @@ func (s *tweetManageSrv) DeletePost(post *ms.Post) ([]string, error) {
 			}
 
 			// 仅已过审帖子递减标签计数(待审/被拒帖创建时未计数, 避免误减他人贡献的计数)
-			if post.AuditStatus == dbr.PostAuditApproved {
-				if tags := strings.Split(post.Tags, ","); len(tags) > 0 {
-					// 删tag，宽松处理错误，有错误不会回滚
-					deleteTags(tx, tags)
+			if post.AuditStatus == dbr.PostAuditApproved && post.Visibility != ms.PostVisitPrivate {
+				if err := deleteTags(tx, reviewTags(post.Tags)); err != nil {
+					return err
 				}
 			}
 
@@ -264,6 +261,16 @@ func (s *tweetManageSrv) deleteCommentByPostId(db *gorm.DB, postId int64) ([]str
 	// 获取推文的所有评论id
 	commentIds, err := comment.CommentIdsByPostId(db, postId)
 	if err != nil {
+		return nil, err
+	}
+	var replyIDs []int64
+	if err := db.Model(&ms.CommentReply{}).Where("comment_id IN ?", commentIds).Pluck("id", &replyIDs).Error; err != nil {
+		return nil, err
+	}
+	if err := cancelTargetReviewsTx(db, ms.ReviewComment, commentIds); err != nil {
+		return nil, err
+	}
+	if err := cancelTargetReviewsTx(db, ms.ReviewReply, replyIDs); err != nil {
 		return nil, err
 	}
 
@@ -293,12 +300,12 @@ func (s *tweetManageSrv) deleteCommentByPostId(db *gorm.DB, postId int64) ([]str
 
 func (s *tweetManageSrv) LockPost(post *ms.Post) error {
 	post.IsLock = 1 - post.IsLock
-	return post.Update(s.db)
+	return post.Update(s.db, "is_lock")
 }
 
 func (s *tweetManageSrv) StickPost(post *ms.Post) error {
 	post.IsTop = 1 - post.IsTop
-	if err := post.Update(s.db); err != nil {
+	if err := post.Update(s.db, "is_top"); err != nil {
 		return err
 	}
 	s.cacheIndex.SendAction(core.IdxActStickPost, post)
@@ -317,68 +324,11 @@ func (s *tweetManageSrv) HighlightPost(userId int64, postId int64) (res int, err
 		return 0, cs.ErrNoPermission
 	}
 	post.IsEssence = 1 - post.IsEssence
-	if err = post.Update(tx); err != nil {
+	if err = post.Update(tx, "is_essence"); err != nil {
 		return
 	}
 	tx.Commit()
 	return post.IsEssence, nil
-}
-
-func (s *tweetManageSrv) VisiblePost(post *ms.Post, visibility cs.TweetVisibleType) (err error) {
-	oldVisibility := post.Visibility
-	post.Visibility = ms.PostVisibleT(visibility)
-	// TODO: 这个判断是否可以不要呢
-	if oldVisibility == ms.PostVisibleT(visibility) {
-		return nil
-	}
-	// 私密推文 特殊处理
-	if visibility == cs.TweetVisitPrivate {
-		// 强制取消置顶
-		// TODO: 置顶推文用户是否有权设置成私密？ 后续完善
-		post.IsTop = 0
-	}
-	tx := s.db.Begin()
-	defer tx.Rollback()
-	if err = post.Update(tx); err != nil {
-		return
-	}
-	// tag处理: 计数跟随审核状态, 仅已过审帖子计入/扣除。
-	// 待审/被拒帖转非私密不创建标签(过审时由审核端UpsertTags补建),
-	// 未过审帖转私密也不递减(创建时未计数, 避免误减他人贡献的计数)。
-	tags := strings.Split(post.Tags, ",")
-	// TODO: 暂时宽松不处理错误，这里或许可以有优化，后续完善
-	if post.AuditStatus == dbr.PostAuditApproved {
-		if oldVisibility == dbr.PostVisitPrivate {
-			// 从私密转为非私密才需要重新创建tag
-			createTags(tx, post.UserID, tags)
-		} else if visibility == cs.TweetVisitPrivate {
-			// 从非私密转为私密才需要删除tag
-			deleteTags(tx, tags)
-		}
-	}
-	tx.Commit()
-	s.cacheIndex.SendAction(core.IdxActVisiblePost, post)
-	return
-}
-
-func (s *tweetManageSrv) UpdatePost(post *ms.Post) (err error) {
-	if err = post.Update(s.db); err != nil {
-		return
-	}
-	s.cacheIndex.SendAction(core.IdxActUpdatePost, post)
-	return
-}
-
-func (s *tweetManageSrv) CreatePostStar(postID, userID int64) (*ms.PostStar, error) {
-	star := &dbr.PostStar{
-		PostID: postID,
-		UserID: userID,
-	}
-	return star.Create(s.db)
-}
-
-func (s *tweetManageSrv) DeletePostStar(p *ms.PostStar) error {
-	return p.Delete(s.db)
 }
 
 func (s *tweetSrv) GetPostByID(id int64) (*ms.Post, error) {

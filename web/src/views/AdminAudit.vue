@@ -3,6 +3,13 @@
         <main-nav :title="t('adminAudit.pageTitle')" />
 
         <n-card :title="t('adminAudit.cardTitle')" size="small" class="setting-card">
+            <n-alert type="info" style="margin-bottom: 12px">{{ t('adminAudit.task.assignmentHelp') }}</n-alert>
+            <n-button size="small" :loading="loading" @click="loadActiveTab">{{ t('adminAudit.task.refresh') }}</n-button>
+            <n-collapse style="margin: 12px 0" @item-header-click="loadStatistics">
+                <n-collapse-item :title="t('adminAudit.task.statistics')" name="statistics">
+                    <n-data-table :columns="statisticsColumns" :data="statistics" size="small" />
+                </n-collapse-item>
+            </n-collapse>
             <n-spin :show="loading">
                 <n-tabs
                     :value="category"
@@ -39,7 +46,7 @@
                             v-for="row in postItems"
                             :key="row.id"
                             class="audit-card"
-                            @click="openInNewTab(row.id)"
+                            @click="openReview('post', row)"
                         >
                             <div class="audit-card-head">
                                 <span class="audit-card-id">#{{ row.id }}</span>
@@ -53,6 +60,7 @@
                                     {{ formatTime(row.created_on) }}
                                 </span>
                             </div>
+                            <review-task-meta :task="row.review_task" />
                             <div class="audit-card-summary">{{ postSummary(row) }}</div>
                             <div class="audit-card-foot">
                                 <span class="audit-card-author">
@@ -62,7 +70,7 @@
                                     size="tiny"
                                     quaternary
                                     type="info"
-                                    @click.stop="openInNewTab(row.id)"
+                                    @click.stop="openReview('post', row)"
                                 >
                                     {{ t('adminAudit.action.viewPost') }}
                                 </n-button>
@@ -90,7 +98,7 @@
                             v-for="row in commentItems"
                             :key="`${row.comment_type}-${row.id}`"
                             class="audit-card"
-                            @click="openCommentInNewTab(row)"
+                            @click="openReview('comment', row)"
                         >
                             <div class="audit-card-head">
                                 <span class="audit-card-id">
@@ -103,6 +111,7 @@
                                     {{ formatTime(row.created_on) }}
                                 </span>
                             </div>
+                            <review-task-meta :task="row.review_task" />
                             <div class="audit-card-summary">{{ row.content || t('adminAudit.noTextContent') }}</div>
                             <div class="audit-card-foot">
                                 <span class="audit-card-author">
@@ -112,12 +121,12 @@
                                     size="tiny"
                                     quaternary
                                     type="info"
-                                    @click.stop="openCommentInNewTab(row)"
+                                    @click.stop="openReview('comment', row)"
                                 >
                                     {{ t('adminAudit.action.viewType', { type: commentTypeText(row.comment_type) }) }}
                                 </n-button>
                                 <n-button
-                                    v-if="storeUser.hasPermission('content.review')" size="tiny"
+                                    v-if="canReview(row)" size="tiny"
                                     quaternary
                                     type="success"
                                     :loading="acting"
@@ -126,7 +135,7 @@
                                     {{ t('adminAudit.action.approve') }}
                                 </n-button>
                                 <n-button
-                                    v-if="storeUser.hasPermission('content.review')" size="tiny"
+                                    v-if="canReview(row)" size="tiny"
                                     quaternary
                                     type="error"
                                     @click.stop="openReject('comment', row)"
@@ -168,6 +177,7 @@
                                     {{ formatTime(row.created_on) }}
                                 </span>
                             </div>
+                            <review-task-meta :task="row.review_task" />
                             <div class="audit-card-summary nickname-change-wrap">
                                 <span class="nickname-old">{{ row.nickname || t('adminAudit.emptyText') }}</span>
                                 <span class="nickname-arrow">→</span>
@@ -184,7 +194,7 @@
                                     {{ t('adminAudit.action.viewHome') }}
                                 </n-button>
                                 <n-button
-                                    v-if="storeUser.hasPermission('content.review')" size="tiny"
+                                    v-if="canReview(row)" size="tiny"
                                     quaternary
                                     type="success"
                                     :loading="acting"
@@ -193,7 +203,7 @@
                                     {{ t('adminAudit.action.approve') }}
                                 </n-button>
                                 <n-button
-                                    v-if="storeUser.hasPermission('content.review')" size="tiny"
+                                    v-if="canReview(row)" size="tiny"
                                     quaternary
                                     type="error"
                                     @click.stop="openReject('nickname', row)"
@@ -235,6 +245,7 @@
                                     {{ formatTime(row.created_on) }}
                                 </span>
                             </div>
+                            <review-task-meta :task="row.review_task" />
                             <div class="audit-card-summary avatar-change-wrap">
                                 <n-avatar :size="64" :src="row.avatar" />
                                 <span class="nickname-arrow">→</span>
@@ -251,7 +262,7 @@
                                     {{ t('adminAudit.action.viewHome') }}
                                 </n-button>
                                 <n-button
-                                    v-if="storeUser.hasPermission('content.review')" size="tiny"
+                                    v-if="canReview(row)" size="tiny"
                                     quaternary
                                     type="success"
                                     :loading="acting"
@@ -260,7 +271,7 @@
                                     {{ t('adminAudit.action.approve') }}
                                 </n-button>
                                 <n-button
-                                    v-if="storeUser.hasPermission('content.review')" size="tiny"
+                                    v-if="canReview(row)" size="tiny"
                                     quaternary
                                     type="error"
                                     @click.stop="openReject('avatar', row)"
@@ -301,6 +312,17 @@
             </n-spin>
         </n-card>
 
+        <n-modal v-model:show="showReview" preset="card" :title="t('adminAudit.task.fullContent')" style="width: min(840px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto">
+            <template v-if="selectedReview">
+                <review-task-meta :task="selectedReview.row.review_task" />
+                <review-content :contents="reviewContents" />
+                <n-space v-if="canReview(selectedReview.row)" justify="end" style="margin-top: 20px">
+                    <n-button type="error" secondary :disabled="acting" @click="openReject(selectedReview.kind, selectedReview.row)">{{ t('adminAudit.action.reject') }}</n-button>
+                    <n-button type="primary" :loading="acting" @click="approveReview">{{ t('adminAudit.action.approve') }}</n-button>
+                </n-space>
+            </template>
+        </n-modal>
+
         <!-- 拒绝原因弹窗(评论/昵称共用) -->
         <n-modal
             v-model:show="showRejectModal"
@@ -332,7 +354,9 @@ import { NTag } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import { formatTime } from '@/utils/formatTime';
 import { mdPlainText } from '@/utils/markdown';
-import { Api } from '@/utils/request';
+import { Api, request } from '@/utils/request';
+import ReviewTaskMeta from '@/components/review-task-meta.vue';
+import ReviewContent from '@/components/review-content.vue';
 import { useStoreUser } from '@/store/user';
 
 type AuditPostItem = Api.Admin.NetReq.AuditPostItem;
@@ -343,6 +367,34 @@ type AuditLogItem = Api.Admin.NetReq.AuditLogItem;
 
 const { t } = useI18n();
 const storeUser = useStoreUser();
+const canReview = (row: { review_task?: Api.Admin.NetReq.ReviewTask }) => {
+    const task = row.review_task;
+    return !!task && task.state === 'pending' && storeUser.hasPermission('content.review') && (task.assignee_id === storeUser.userInfo.id || storeUser.userInfo.is_operator);
+};
+const showReview = ref(false);
+const selectedReview = ref<{ kind: 'post' | 'comment'; row: AuditPostItem | AuditCommentItem }>();
+const reviewContents = computed(() => {
+    const selected = selectedReview.value;
+    if (!selected) return [];
+    if (selected.kind === 'post') return (selected.row as AuditPostItem).contents || [];
+    const row = selected.row as AuditCommentItem;
+    return row.contents?.length ? row.contents : [{ id: row.id, content: row.content, type: 2, sort: 0 }];
+});
+function openReview(kind: 'post' | 'comment', row: AuditPostItem | AuditCommentItem) { selectedReview.value = { kind, row }; showReview.value = true; }
+async function approveReview() {
+    if (!selectedReview.value) return;
+    if (selectedReview.value.kind === 'post') await approvePost(selectedReview.value.row as AuditPostItem);
+    else await approveComment(selectedReview.value.row as AuditCommentItem);
+}
+const statistics = ref<{ user_id: number; timeout_count: number }[]>([]);
+async function loadStatistics() {
+    try { statistics.value = (await request<unknown, { items: typeof statistics.value }>({ method: 'get', url: '/v1/admin/audit/statistics' })).items || []; }
+    catch { /* Request errors preserve the last successful statistics. */ }
+}
+const statisticsColumns = computed(() => [
+    { title: t('adminAudit.task.assignee'), key: 'user_id' },
+    { title: t('adminAudit.task.timeouts'), key: 'timeout_count' },
+]);
 
 const loading = ref(false);
 const acting = ref(false);
@@ -357,7 +409,7 @@ const logItems = ref<AuditLogItem[]>([]);
 // 拒绝原因弹窗
 const showRejectModal = ref(false);
 const rejectReason = ref('');
-const rejectTarget = ref<{ kind: 'comment' | 'nickname' | 'avatar'; row: AuditCommentItem | AuditNicknameItem | AuditAvatarItem } | null>(null);
+const rejectTarget = ref<{ kind: 'post' | 'comment' | 'nickname' | 'avatar'; row: AuditPostItem | AuditCommentItem | AuditNicknameItem | AuditAvatarItem } | null>(null);
 
 const tabStatusMap: Record<string, number> = {
     pending: 0,
@@ -544,26 +596,6 @@ const postSummary = (row: AuditPostItem) => {
     return t('adminAudit.noContent');
 };
 
-// 新标签页打开帖子详情 审核员在帖子页内查看完整内容并直接审核
-const openInNewTab = (postId: number) => {
-    window.open(`/#/post?id=${postId}`, '_blank', 'noopener');
-};
-
-// 评论/回复审核条目: 跳转对应帖子并定位高亮该评论(回复定位到所属评论下的回复);
-// 课程评论/回复(comment_type 2/3)跳转课程详情页(post_id列承载课程id)
-const openCommentInNewTab = (row: AuditCommentItem) => {
-    if (row.comment_type >= 2) {
-        window.open(`/#/course?id=${row.post_id}`, '_blank', 'noopener');
-        return;
-    }
-    const commentId = row.comment_type === 1 ? row.comment_id : row.id;
-    let url = `/#/post?id=${row.post_id}&comment_id=${commentId}`;
-    if (row.comment_type === 1) {
-        url += `&reply_id=${row.id}`;
-    }
-    window.open(url, '_blank', 'noopener');
-};
-
 // 昵称审核条目: 跳转对应用户主页
 const openUserInNewTab = (username: string) => {
     window.open(`/#/u?s=${encodeURIComponent(username)}`, '_blank', 'noopener');
@@ -579,7 +611,7 @@ const loadPosts = async () => {
         });
         postItems.value = resp.list || [];
         postPagination.itemCount = resp.pager?.total_rows || 0;
-    } catch (_err) {
+    } catch {
         // do nothing
     } finally {
         loading.value = false;
@@ -596,7 +628,7 @@ const loadComments = async () => {
         });
         commentItems.value = resp.list || [];
         commentPagination.itemCount = resp.pager?.total_rows || 0;
-    } catch (_err) {
+    } catch {
         // do nothing
     } finally {
         loading.value = false;
@@ -612,7 +644,7 @@ const loadNicknames = async () => {
         });
         nicknameItems.value = resp.list || [];
         nicknamePagination.itemCount = resp.pager?.total_rows || 0;
-    } catch (_err) {
+    } catch {
         // do nothing
     } finally {
         loading.value = false;
@@ -628,7 +660,7 @@ const loadAvatars = async () => {
         });
         avatarItems.value = resp.list || [];
         avatarPagination.itemCount = resp.pager?.total_rows || 0;
-    } catch (_err) {
+    } catch {
         // do nothing
     } finally {
         loading.value = false;
@@ -644,7 +676,7 @@ const loadLogs = async () => {
         });
         logItems.value = resp.list || [];
         logPagination.itemCount = resp.pager?.total_rows || 0;
-    } catch (_err) {
+    } catch {
         // do nothing
     } finally {
         loading.value = false;
@@ -723,17 +755,32 @@ const handleLogPageChange = (page: number) => {
     loadLogs();
 };
 
+const approvePost = async (row: AuditPostItem) => {
+    if (!canReview(row)) return;
+    acting.value = true;
+    try {
+        await Api.v1.admin.post.audit.post({ post_id: row.id, task_id: row.review_task!.id, revision: row.review_task!.revision, action: 'approve' });
+        showReview.value = false;
+        window.$message.success(t('adminAudit.msg.approved'));
+        loadPosts();
+    } catch { /* The request interceptor displays stale or reassigned tasks. */ }
+    finally { acting.value = false; }
+};
+
 const approveComment = async (row: AuditCommentItem) => {
+    if (!canReview(row)) return;
     acting.value = true;
     try {
         await Api.v1.admin.post.audit.comment({
+            task_id: row.review_task!.id, revision: row.review_task!.revision,
             id: row.id,
             comment_type: row.comment_type,
             action: 'approve',
         });
+        showReview.value = false;
         window.$message.success(t('adminAudit.msg.approved'));
         loadComments();
-    } catch (_err) {
+    } catch {
         // 错误提示由请求拦截器统一处理
     } finally {
         acting.value = false;
@@ -741,15 +788,17 @@ const approveComment = async (row: AuditCommentItem) => {
 };
 
 const approveNickname = async (row: AuditNicknameItem) => {
+    if (!canReview(row)) return;
     acting.value = true;
     try {
         await Api.v1.admin.post.audit.nickname({
+            task_id: row.review_task!.id, revision: row.review_task!.revision,
             user_id: row.user_id,
             action: 'approve',
         });
         window.$message.success(t('adminAudit.msg.nicknameApproved'));
         loadNicknames();
-    } catch (_err) {
+    } catch {
         // 错误提示由请求拦截器统一处理
     } finally {
         acting.value = false;
@@ -757,15 +806,17 @@ const approveNickname = async (row: AuditNicknameItem) => {
 };
 
 const approveAvatar = async (row: AuditAvatarItem) => {
+    if (!canReview(row)) return;
     acting.value = true;
     try {
         await Api.v1.admin.post.audit.avatar({
+            task_id: row.review_task!.id, revision: row.review_task!.revision,
             user_id: row.user_id,
             action: 'approve',
         });
         window.$message.success(t('adminAudit.msg.avatarApproved'));
         loadAvatars();
-    } catch (_err) {
+    } catch {
         // 错误提示由请求拦截器统一处理
     } finally {
         acting.value = false;
@@ -773,8 +824,8 @@ const approveAvatar = async (row: AuditAvatarItem) => {
 };
 
 const openReject = (
-    kind: 'comment' | 'nickname' | 'avatar',
-    row: AuditCommentItem | AuditNicknameItem | AuditAvatarItem
+    kind: 'post' | 'comment' | 'nickname' | 'avatar',
+    row: AuditPostItem | AuditCommentItem | AuditNicknameItem | AuditAvatarItem
 ) => {
     rejectTarget.value = { kind, row };
     rejectReason.value = '';
@@ -783,9 +834,7 @@ const openReject = (
 
 const confirmReject = async () => {
     const target = rejectTarget.value;
-    if (!target) {
-        return true;
-    }
+    if (!target || !canReview(target.row)) return false;
     const reason = rejectReason.value.trim();
     if (!reason) {
         window.$message.warning(t('adminAudit.msg.fillRejectReason'));
@@ -793,9 +842,14 @@ const confirmReject = async () => {
     }
     acting.value = true;
     try {
-        if (target.kind === 'comment') {
+        if (target.kind === 'post') {
+            const row = target.row as AuditPostItem;
+            await Api.v1.admin.post.audit.post({ post_id: row.id, task_id: row.review_task!.id, revision: row.review_task!.revision, action: 'reject', reason });
+            loadPosts();
+        } else if (target.kind === 'comment') {
             const row = target.row as AuditCommentItem;
             await Api.v1.admin.post.audit.comment({
+            task_id: row.review_task!.id, revision: row.review_task!.revision,
                 id: row.id,
                 comment_type: row.comment_type,
                 action: 'reject',
@@ -805,6 +859,7 @@ const confirmReject = async () => {
         } else if (target.kind === 'nickname') {
             const row = target.row as AuditNicknameItem;
             await Api.v1.admin.post.audit.nickname({
+            task_id: row.review_task!.id, revision: row.review_task!.revision,
                 user_id: row.user_id,
                 action: 'reject',
                 reason,
@@ -813,6 +868,7 @@ const confirmReject = async () => {
         } else {
             const row = target.row as AuditAvatarItem;
             await Api.v1.admin.post.audit.avatar({
+            task_id: row.review_task!.id, revision: row.review_task!.revision,
                 user_id: row.user_id,
                 action: 'reject',
                 reason,
@@ -821,8 +877,9 @@ const confirmReject = async () => {
         }
         window.$message.success(t('adminAudit.msg.rejected'));
         showRejectModal.value = false;
-    } catch (_err) {
-        // 错误提示由请求拦截器统一处理
+        showReview.value = false;
+    } catch {
+        return false;
     } finally {
         acting.value = false;
     }

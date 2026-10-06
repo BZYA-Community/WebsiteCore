@@ -5,6 +5,7 @@
 package web
 
 import (
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/alimy/mir/v5"
 )
@@ -16,34 +17,8 @@ func fileCheck(uploadType string, size int64) mir.Error {
 		uploadType != "attachment" {
 		return xerror.InvalidParams
 	}
-	if size > 1024*1024*100 {
-		return ErrFileInvalidSize.WithDetails("最大允许100MB")
+	if size <= 0 || size > conf.UploadLimits().AttachmentMaxBytes {
+		return ErrFileInvalidSize.WithDetails("Maximum attachment size is 15 MiB (or the lower configured limit)")
 	}
 	return nil
-}
-
-func getFileExt(s string) (string, mir.Error) {
-	switch s {
-	case "image/webp":
-		return ".webp", nil
-	case "image/png":
-		return ".png", nil
-	case "image/jpg":
-		return ".jpg", nil
-	case "image/jpeg":
-		return ".jpeg", nil
-	case "image/gif":
-		return ".gif", nil
-	case "video/mp4":
-		return ".mp4", nil
-	case "video/quicktime":
-		return ".mov", nil
-	case "application/zip",
-		"application/x-zip",
-		"application/octet-stream",
-		"application/x-zip-compressed":
-		return ".zip", nil
-	default:
-		return "", ErrFileInvalidExt.WithDetails("仅允许 webp/png/jpg/gif/mp4/mov/zip 类型")
-	}
 }

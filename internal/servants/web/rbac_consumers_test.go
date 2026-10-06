@@ -42,7 +42,7 @@ func (d *permissionData) GetCourseByID(int64) (*ms.Course, error) {
 func (d *permissionData) GetCourseGroupByID(int64) (*ms.CourseGroup, error) {
 	return &ms.CourseGroup{Model: &ms.Model{ID: 6}}, nil
 }
-func (d *permissionData) CreateCourse(c *ms.Course) (*ms.Course, error) {
+func (d *permissionData) CreateCourse(_ *ms.User, c *ms.Course) (*ms.Course, error) {
 	c.Model = &ms.Model{ID: 3}
 	d.course = c
 	return c, nil
@@ -50,7 +50,7 @@ func (d *permissionData) CreateCourse(c *ms.Course) (*ms.Course, error) {
 func (d *permissionData) GetCourseCommentByID(int64) (*ms.CourseComment, error) {
 	return d.parent, nil
 }
-func (d *permissionData) CreateCourseComment(c *ms.CourseComment) (*ms.CourseComment, error) {
+func (d *permissionData) CreateCourseQuestionWithContents(c *ms.CourseComment, _ []*ms.CourseCommentContent) (*ms.CourseComment, error) {
 	c.Model = &ms.Model{ID: 4}
 	d.question = c
 	return c, nil
@@ -107,8 +107,11 @@ func TestRepliesRespectHiddenParents(t *testing.T) {
 		if !canReplyToComment(permissionUser(2, "comment.create"), 2, status) {
 			t.Fatal("author cannot reply to own hidden parent")
 		}
-		if !canReplyToComment(permissionUser(1, "comment.create", "content.review"), 2, status) {
-			t.Fatal("reviewer cannot reply to hidden parent")
+		if canReplyToComment(permissionUser(1, "comment.create", "content.review"), 2, status) {
+			t.Fatal("unassigned reviewer can reply to hidden parent")
+		}
+		if !canReplyToComment(permissionUser(1, "comment.create", "audit.view_all"), 2, status) {
+			t.Fatal("review administrator cannot reply to hidden parent")
 		}
 	}
 	if canReplyToComment(permissionUser(2), 2, ms.PostAuditApproved) {
@@ -166,7 +169,7 @@ func TestCourseOwnershipAndUploadPermissions(t *testing.T) {
 	}
 	ds := &permissionData{user: owner}
 	s := &courseAdminSrv{DaoServant: &base.DaoServant{Ds: ds}, oss: &permissionStorage{}}
-	_, err := s.CreateCourse(&model.CreateCourseReq{BaseInfo: model.BaseInfo{User: owner}, GroupID: 6, TeacherID: 99, Title: "Course", Video: "attachment/course/test.mp4"})
+	_, err := s.CreateCourse(&model.CreateCourseReq{BaseInfo: model.BaseInfo{User: owner}, GroupID: 6, TeacherID: 99, Title: "Course"})
 	if err != nil || ds.course == nil || ds.course.TeacherID != owner.ID {
 		t.Fatalf("teacher must be forced to self: course=%v err=%v", ds.course, err)
 	}

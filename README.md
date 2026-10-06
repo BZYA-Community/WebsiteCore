@@ -158,12 +158,6 @@ Full index: [docs/README.md](docs/README.md).
 
 [MIT](LICENSE)
 
-## A Blessing to All Captains, Travelers, Trailblazers, and Proxies
+<br>
 
-Fight for all that is beautiful in the world!
-
-We Will Be Reunited.
-
-May this journey lead us starward!
-
-Welcome to New Eridu.
+***TECH OTAKUS SAVE THE WORLD***

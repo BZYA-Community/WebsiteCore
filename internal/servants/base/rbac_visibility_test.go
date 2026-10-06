@@ -9,10 +9,17 @@ import (
 
 type visibilityData struct {
 	core.DataService
-	follows bool
+	follows  bool
+	assigned bool
 }
 
 func (d *visibilityData) IsFollow(int64, int64) bool { return d.follows }
+func (d *visibilityData) ReviewTaskForTarget(user *ms.User, _ string, _ int64) (*ms.ReviewTask, error) {
+	if d.assigned {
+		return &ms.ReviewTask{AssigneeID: user.ID}, nil
+	}
+	return &ms.ReviewTask{AssigneeID: user.ID + 1}, nil
+}
 
 func TestTweetVisibilityDoesNotInferPermissionsFromRoles(t *testing.T) {
 	for _, tt := range []struct {
@@ -21,14 +28,18 @@ func TestTweetVisibilityDoesNotInferPermissionsFromRoles(t *testing.T) {
 		status                         ms.PostAuditT
 		permissions                    []string
 		owner, follows, operator, want bool
+		assigned                       bool
 	}{
 		{name: "public", visibility: core.PostVisitPublic, status: ms.PostAuditApproved, permissions: []string{"post.view"}, want: true},
 		{name: "legacy admin is not authority", visibility: core.PostVisitPrivate, status: ms.PostAuditApproved, permissions: []string{"post.view"}},
-		{name: "review pending public", visibility: core.PostVisitPublic, status: ms.PostAuditPending, permissions: []string{"post.view", "content.review"}, want: true},
+		{name: "unassigned pending public", visibility: core.PostVisitPublic, status: ms.PostAuditPending, permissions: []string{"post.view", "content.review"}},
+		{name: "assigned pending public", visibility: core.PostVisitPublic, status: ms.PostAuditPending, permissions: []string{"post.view", "content.review"}, assigned: true, want: true},
 		{name: "review cannot read private", visibility: core.PostVisitPrivate, status: ms.PostAuditApproved, permissions: []string{"post.view", "content.review"}},
 		{name: "review cannot bypass follows", visibility: core.PostVisitFollowing, status: ms.PostAuditPending, permissions: []string{"post.view", "content.review"}},
-		{name: "review followed author", visibility: core.PostVisitFollowing, status: ms.PostAuditPending, permissions: []string{"post.view", "content.review"}, follows: true, want: true},
-		{name: "private permission", visibility: core.PostVisitPrivate, status: ms.PostAuditPending, permissions: []string{"post.view", "content.view_private"}, want: true},
+		{name: "follows does not grant review", visibility: core.PostVisitFollowing, status: ms.PostAuditPending, permissions: []string{"post.view", "content.review"}, follows: true},
+		{name: "assignment permits review of following content", visibility: core.PostVisitFollowing, status: ms.PostAuditPending, permissions: []string{"post.view", "content.review"}, assigned: true, want: true},
+		{name: "private permission is not review permission", visibility: core.PostVisitPrivate, status: ms.PostAuditPending, permissions: []string{"post.view", "content.view_private"}},
+		{name: "view all pending", visibility: core.PostVisitPrivate, status: ms.PostAuditPending, permissions: []string{"post.view", "audit.view_all"}, want: true},
 		{name: "owner", visibility: core.PostVisitPrivate, status: ms.PostAuditPending, permissions: []string{"post.view"}, owner: true, want: true},
 		{name: "owner view revoked", visibility: core.PostVisitPrivate, status: ms.PostAuditApproved, owner: true},
 		{name: "operator", visibility: core.PostVisitPrivate, status: ms.PostAuditPending, operator: true, want: true},
@@ -39,7 +50,7 @@ func TestTweetVisibilityDoesNotInferPermissionsFromRoles(t *testing.T) {
 			if tt.owner {
 				post.UserID = user.ID
 			}
-			s := &DaoServant{Ds: &visibilityData{follows: tt.follows}}
+			s := &DaoServant{Ds: &visibilityData{follows: tt.follows, assigned: tt.assigned}}
 			if got := s.CanViewTweet(user, post); got != tt.want {
 				t.Fatalf("CanViewTweet=%v, want %v", got, tt.want)
 			}

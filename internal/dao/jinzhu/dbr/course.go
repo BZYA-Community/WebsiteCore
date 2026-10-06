@@ -13,8 +13,9 @@ import (
 // CourseGroup 课程分组(管理员动态维护)
 type CourseGroup struct {
 	*Model
-	Name string `json:"name"`
-	Sort int    `json:"sort"`
+	Name     string `json:"name"`
+	Sort     int    `json:"sort"`
+	ParentID int64  `json:"parent_id"`
 }
 
 // CourseGroupFormated 课程分组(含课程数)
@@ -22,6 +23,7 @@ type CourseGroupFormated struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`
 	Sort        int    `json:"sort"`
+	ParentID    int64  `json:"parent_id"`
 	CourseCount int64  `json:"course_count"`
 }
 
@@ -33,6 +35,7 @@ func (g *CourseGroup) Format(courseCount int64) *CourseGroupFormated {
 		ID:          g.Model.ID,
 		Name:        g.Name,
 		Sort:        g.Sort,
+		ParentID:    g.ParentID,
 		CourseCount: courseCount,
 	}
 }
@@ -62,8 +65,9 @@ func (g *CourseGroup) List(db *gorm.DB) ([]*CourseGroup, error) {
 
 func (g *CourseGroup) Update(db *gorm.DB) error {
 	return db.Model(g).Where("id = ?", g.Model.ID).Updates(map[string]any{
-		"name": g.Name,
-		"sort": g.Sort,
+		"name":      g.Name,
+		"sort":      g.Sort,
+		"parent_id": g.ParentID,
 	}).Error
 }
 
@@ -77,6 +81,7 @@ type Course struct {
 	*Model
 	GroupID      int64  `json:"group_id"`
 	TeacherID    int64  `json:"teacher_id"`
+	TeacherIntro string `json:"teacher_intro"`
 	Title        string `json:"title"`
 	Intro        string `json:"intro"`
 	VideoURL     string `json:"video_url"`
@@ -91,6 +96,7 @@ type CourseFormated struct {
 	GroupID      int64         `json:"group_id"`
 	GroupName    string        `json:"group_name"`
 	TeacherID    int64         `json:"teacher_id"`
+	TeacherIntro string        `json:"teacher_intro"`
 	Teacher      *UserFormated `json:"teacher"`
 	Title        string        `json:"title"`
 	Intro        string        `json:"intro"`
@@ -108,6 +114,7 @@ func (c *Course) Format() *CourseFormated {
 		ID:           c.Model.ID,
 		GroupID:      c.GroupID,
 		TeacherID:    c.TeacherID,
+		TeacherIntro: c.TeacherIntro,
 		Teacher:      &UserFormated{},
 		Title:        c.Title,
 		Intro:        c.Intro,
@@ -137,12 +144,13 @@ func (c *Course) Get(db *gorm.DB) (*Course, error) {
 
 func (c *Course) Update(db *gorm.DB) error {
 	return db.Model(c).Where("id = ?", c.Model.ID).Updates(map[string]any{
-		"group_id":   c.GroupID,
-		"teacher_id": c.TeacherID,
-		"title":      c.Title,
-		"intro":      c.Intro,
-		"video_url":  c.VideoURL,
-		"cover":      c.Cover,
+		"group_id":      c.GroupID,
+		"teacher_id":    c.TeacherID,
+		"teacher_intro": c.TeacherIntro,
+		"title":         c.Title,
+		"intro":         c.Intro,
+		"video_url":     c.VideoURL,
+		"cover":         c.Cover,
 	}).Error
 }
 

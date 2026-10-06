@@ -30,7 +30,6 @@ import (
 
 const (
 	_MaxLoginErrTimes = 10
-	_MaxPhoneCaptcha  = 10
 )
 
 type pubSrv struct {
@@ -38,28 +37,9 @@ type pubSrv struct {
 	*base.DaoServant
 }
 
+// Contact codes require an authenticated account, including in phone mode.
 func (s *pubSrv) SendCaptcha(req *web.SendCaptchaReq) error {
-	ctx := context.Background()
-
-	// 验证图片验证码
-	if captcha, err := s.Redis.GetImgCaptcha(ctx, req.ImgCaptchaID); err != nil || string(captcha) != req.ImgCaptcha {
-		logrus.Debugf("get captcha err:%s expect:%s got:%s", err, captcha, req.ImgCaptcha)
-		return web.ErrErrorCaptchaPassword
-	}
-	s.Redis.DelImgCaptcha(ctx, req.ImgCaptchaID)
-
-	// 今日频次限制
-	if count, _ := s.Redis.GetCountSmsCaptcha(ctx, req.Phone); count >= _MaxPhoneCaptcha {
-		return web.ErrTooManyPhoneCaptchaSend
-	}
-
-	if err := s.Ds.SendPhoneCaptcha(req.Phone); err != nil {
-		return xerror.ServerError
-	}
-	// 写入计数缓存
-	s.Redis.IncrCountSmsCaptcha(ctx, req.Phone)
-
-	return nil
+	return web.ErrNoPermission
 }
 
 func (s *pubSrv) GetCaptcha() (*web.GetCaptchaResp, error) {

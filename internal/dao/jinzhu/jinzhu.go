@@ -32,6 +32,7 @@ type dataSrv struct {
 	core.CommentMetricServantA
 	core.CourseService
 	core.CourseManageService
+	core.CourseUploadService
 	core.TrendsManageServantA
 	core.UserManageService
 	core.IdentityService
@@ -39,6 +40,7 @@ type dataSrv struct {
 	core.FollowingManageService
 	core.UserRelationService
 	core.SiteAdminService
+	core.ReviewService
 	core.SecurityService
 	core.AttachmentCheckService
 }
@@ -71,10 +73,12 @@ func NewDataService() (core.DataService, core.VersionInfo) {
 		CommentManageService:   newCommentManageService(db),
 		CourseService:          newCourseService(db),
 		CourseManageService:    newCourseManageService(db),
+		CourseUploadService:    &courseUploadSrv{db: db},
 		TrendsManageServantA:   newTrendsManageServentA(db),
 		UserManageService:      newUserManageService(db, ums),
 		IdentityService:        newIdentityService(db),
 		SiteAdminService:       newAuditService(db),
+		ReviewService:          newReviewService(db),
 		FollowingManageService: newFollowingManageService(db),
 		UserRelationService:    newUserRelationService(db),
 		SecurityService:        newSecurityService(db, pvs),

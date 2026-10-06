@@ -19,7 +19,6 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/Masterminds/semver/v3"
-	"github.com/cockroachdb/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,6 +46,9 @@ type localossServant struct {
 // 拒绝的典型输入: 含 ".." 逃逸的键、空键、以及恰好等于根目录本身的键
 // (后者若放行会被 os.Remove 删掉整个存储目录)。
 func jailPath(root, key string) (string, error) {
+	if strings.ContainsAny(key, ":\x00") || filepath.IsAbs(key) {
+		return "", fmt.Errorf("invalid object key")
+	}
 	absRoot, err := filepath.Abs(root)
 	if err != nil {
 		return "", fmt.Errorf("resolve localoss root %q: %w", root, err)
@@ -55,7 +57,62 @@ func jailPath(root, key string) (string, error) {
 	if fullPath == absRoot || !strings.HasPrefix(fullPath, absRoot+string(os.PathSeparator)) {
 		return "", fmt.Errorf("object key escapes storage root: %q", key)
 	}
+	// Uploaded objects cannot create symlinks. Reject pre-existing links beneath
+	// the configured root so writes/deletes cannot follow one outside the jail.
+	rel, err := filepath.Rel(absRoot, fullPath)
+	if err != nil {
+		return "", err
+	}
+	current := absRoot
+	for _, component := range strings.Split(rel, string(os.PathSeparator)) {
+		current = filepath.Join(current, component)
+		info, err := os.Lstat(current)
+		if os.IsNotExist(err) {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return "", fmt.Errorf("object path contains a symbolic link")
+		}
+	}
 	return fullPath, nil
+}
+
+// OpenLocalObject uses Go's rooted filesystem to guard reads against path and
+// symlink races. The returned regular file remains valid after closing the root.
+func OpenLocalObject(root, key string) (*os.File, error) {
+	full, err := jailPath(root, key)
+	if err != nil {
+		return nil, err
+	}
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		return nil, err
+	}
+	rel, err := filepath.Rel(absRoot, full)
+	if err != nil {
+		return nil, err
+	}
+	dir, err := os.OpenRoot(absRoot)
+	if err != nil {
+		return nil, err
+	}
+	defer dir.Close()
+	f, err := dir.Open(rel)
+	if err != nil {
+		return nil, err
+	}
+	info, err := f.Stat()
+	if err != nil || !info.Mode().IsRegular() {
+		f.Close()
+		if err == nil {
+			err = fmt.Errorf("not a regular object")
+		}
+		return nil, err
+	}
+	return f, nil
 }
 
 func (s *localossCreateServant) PutObject(objectKey string, reader io.Reader, objectSize int64, contentType string, _persistance bool) (string, error) {
@@ -67,19 +124,8 @@ func (s *localossCreateServant) PutObject(objectKey string, reader io.Reader, ob
 		return "", err
 	}
 
-	writer, err := os.Create(savePath)
-	if err != nil {
+	if err := writeLocalObject(savePath, reader, objectSize); err != nil {
 		return "", err
-	}
-	defer writer.Close()
-
-	written, err := io.Copy(writer, reader)
-	if err != nil {
-		return "", err
-	}
-	if written != objectSize {
-		os.Remove(savePath)
-		return "", errors.New("put object not complete")
 	}
 
 	return s.domain + objectKey, nil
@@ -108,19 +154,8 @@ func (s *localossCreateTempDirServant) PutObject(objectKey string, reader io.Rea
 		return "", err
 	}
 
-	writer, err := os.Create(savePath)
-	if err != nil {
+	if err := writeLocalObject(savePath, reader, objectSize); err != nil {
 		return "", err
-	}
-	defer writer.Close()
-
-	written, err := io.Copy(writer, reader)
-	if err != nil {
-		return "", err
-	}
-	if written != objectSize {
-		os.Remove(savePath)
-		return "", errors.New("put object not complete")
 	}
 
 	return s.domain + objectKey, nil
@@ -137,49 +172,27 @@ func (s *localossCreateTempDirServant) PersistObject(objectKey string) error {
 		return err
 	}
 
-	fi, err := os.Stat(savePath)
-	if err == nil && !fi.IsDir() {
-		logrus.Debugf("object exist so do nothing objectKey: %s", objectKey)
-		return nil
-	}
-
-	if err = os.MkdirAll(filepath.Dir(savePath), 0o750); err != nil && !os.IsExist(err) {
-		return err
-	}
-
-	reader, err := os.Open(tmpObjPath)
-	if err != nil {
-		return err
-	}
-	needCloseReader := true
-	defer func() {
-		if needCloseReader {
-			reader.Close()
+	svc := &localossServant{savePath: s.savePath}
+	meta, err := svc.InspectObject(s.tempDir + objectKey)
+	if os.IsNotExist(err) {
+		info, statErr := os.Stat(savePath)
+		if statErr == nil && info.Mode().IsRegular() {
+			return nil
 		}
-	}()
-
-	writer, err := os.Create(savePath)
+	}
 	if err != nil {
 		return err
 	}
-	defer writer.Close()
-	if _, err = io.Copy(writer, reader); err != nil {
+	if err := svc.PromoteObject(s.tempDir+objectKey, objectKey, meta.ETag); err != nil {
 		return err
 	}
-
-	reader.Close()
-	needCloseReader = false
-	if err = os.Remove(tmpObjPath); err != nil {
-		return err
-	}
-
-	return nil
+	return os.Remove(tmpObjPath)
 }
 
 func (s *localossServant) DeleteObject(objectKey string) error {
 	fullPath, err := jailPath(s.savePath, objectKey)
 	if err != nil {
-		// 拒绝越狱键并留下告警(#25), 调用方(如deleteOssObjects)容忍删除错误
+		// 拒绝越狱键并留下告警(#25)。
 		logrus.Warnf("localoss delete object refused: %v", err)
 		return err
 	}
@@ -209,13 +222,16 @@ func (s *localossServant) IsObjectExist(objectKey string) (bool, error) {
 	}
 	fi, err := os.Stat(fullPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
 		return false, err
 	}
-	return !fi.IsDir(), nil
+	return fi.Mode().IsRegular(), nil
 }
 
 func (s *localossServant) SignURL(objectKey string, expiredInSec int64) (string, error) {
-	if expiredInSec < 0 {
+	if expiredInSec <= 0 || conf.JWTSetting == nil || conf.JWTSetting.Secret == "" {
 		return "", fmt.Errorf("invalid expires: %d, expires must bigger than 0", expiredInSec)
 	}
 	// 越狱键不签发链接(#25)
@@ -248,7 +264,7 @@ func LocalOSSSign(reqPath string, expired int64) string {
 
 // VerifyLocalOSSSign 校验签名与有效期，恒定时间比较避免时序攻击
 func VerifyLocalOSSSign(reqPath string, expired int64, sign string) bool {
-	if expired < time.Now().Unix() {
+	if expired < time.Now().Unix() || conf.JWTSetting == nil || conf.JWTSetting.Secret == "" {
 		return false
 	}
 	expected := LocalOSSSign(reqPath, expired)
@@ -264,7 +280,7 @@ func (s *localossServant) ObjectURL(objetKey string) string {
 // 落盘入口(Put/Persist/Delete/IsExist/SignURL)强制执行; 这里对剥离后仍含
 // ".." 段的可疑键仅做告警, 便于排查恶意请求(#25)。
 func (s *localossServant) ObjectKey(objectUrl string) string {
-	key := strings.Replace(objectUrl, s.domain, "", -1)
+	key := strings.TrimPrefix(objectUrl, s.domain)
 	for _, seg := range strings.Split(key, "/") {
 		if seg == ".." {
 			logrus.Warnf("localoss suspicious object key contains .. : %q", key)
@@ -280,4 +296,36 @@ func (s *localossServant) Name() string {
 
 func (s *localossServant) Version() *semver.Version {
 	return semver.MustParse("v0.2.0")
+}
+
+// A failed or interrupted request never exposes a partial object or replaces an existing one.
+func writeLocalObject(destination string, reader io.Reader, size int64) error {
+	if size <= 0 || size == 1<<63-1 {
+		return fmt.Errorf("invalid object size")
+	}
+	f, err := os.CreateTemp(filepath.Dir(destination), ".upload-*")
+	if err != nil {
+		return err
+	}
+	temp := f.Name()
+	defer os.Remove(temp)
+	written, copyErr := io.Copy(f, io.LimitReader(reader, size+1))
+	var syncErr error
+	if copyErr == nil && written == size {
+		syncErr = f.Sync()
+	}
+	closeErr := f.Close()
+	if copyErr != nil {
+		return copyErr
+	}
+	if syncErr != nil {
+		return syncErr
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+	if written != size {
+		return fmt.Errorf("object size mismatch")
+	}
+	return os.Link(temp, destination)
 }

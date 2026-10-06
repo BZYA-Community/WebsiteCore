@@ -97,11 +97,11 @@ const { profile } = storeToRefs(storeProfile);
 const route = useRoute();
 const router = useRouter();
 const hasUnreadMsg = ref(false);
-const selectedPath = ref<any>(route.name || '');
+const selectedPath = ref<any>(route.name === 'course' ? 'courses' : route.name || '');
 const msgLoop = ref();
 
 watch(route, () => {
-  selectedPath.value = route.name;
+  selectedPath.value = route.name === 'course' ? 'courses' : route.name;
 });
 watch(() => [unreadMsgCount, userInfo, profile], () => {
   hasUnreadMsg.value = unreadMsgCount.value > 0;
@@ -151,6 +151,7 @@ const menuOptions = computed(() => [
   { label: t('nav.adminUsers'), key: 'admin-users', icon: () => h(PeopleCircleOutline), href: '/admin/users', login: true },
   { label: t('nav.adminAudit'), key: 'admin-audit', icon: () => h(ShieldCheckmarkOutline), href: '/admin/audit', login: true },
 ].filter((option) => (!option.login || storeUser.userLogined) &&
+  (option.key !== 'courses' || profile.value.coursesEnabled) &&
   (!routePermissions[option.key] || storeUser.hasAnyPermission(routePermissions[option.key]))));
 
 const renderMenuLabel = (option: AnyObject) => {

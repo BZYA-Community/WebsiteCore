@@ -2,13 +2,16 @@
 
 This document records the accepted direction for the modular WebsiteCore refactor. New repository artifacts use English; the product keeps Chinese and English translations.
 
+The five phases are implemented and locally verified. See [verification results and remaining deployment gates](community-verification.md). Phase 1 is committed separately; the integrated Phase 2–5 changes remain local for review, with per-feature issue scopes below. No multi-feature PR has been published.
+
 | Phase | Deliverable | Tracking |
 | --- | --- | --- |
 | 1 | Dynamic identity groups, explicit permissions, independent operator, immediate revocation, audited management | [Local issue 001](issues/001-identity-permissions.md) |
-| 2 | Optional course module, nested categories, courses and lessons, multiple attachments, moderated Q&A | Pending Phase 1 acceptance |
-| 3 | Random review assignment, configurable 48-hour deadline, atomic reassignment and missed-review accounting | Pending Phase 1 acceptance |
-| 4 | Exclusive email/phone verification mode, default Aliyun email, secure one-time verification | Pending Phase 1 acceptance |
-| 5 | Upload limits, client video compression, file validation, trusted AliOSS/LocalOSS resource uploads | Pending Phase 2 contracts |
+| 2 | Optional course module, nested categories, courses and lessons, multiple attachments, moderated Q&A | [Local issue 002](issues/002-course-lessons.md) |
+| 3 | Random review assignment, configurable 48-hour deadline, atomic reassignment and missed-review accounting | [Local issue 003](issues/003-review-assignment.md) |
+| 4 | Exclusive email/phone verification mode, default Aliyun email, secure one-time verification | [Local issue 004](issues/004-contact-verification.md) |
+| 5 | Upload limits, client video compression, file validation, trusted AliOSS/LocalOSS resource uploads | [Local issue 005](issues/005-media-storage.md) |
+| Course UX follow-up | Category directory, direct lesson navigation, dedicated watch page, separate teaching controls | [Local issue 006](issues/006-course-learning-experience.md) |
 
 ## Confirmed defaults
 
