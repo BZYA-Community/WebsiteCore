@@ -18,9 +18,9 @@ const require = createRequire(import.meta.url);
 const { createPinia, setActivePinia } = require('pinia');
 const storage = new Map();
 const localStorage = { getItem: (key) => storage.get(key) ?? null, removeItem: (key) => storage.delete(key) };
-let resolveUser;
+let resolveUser, rejectUser;
 const modules = {
-  '@/api/auth': { userInfo: () => new Promise((resolve) => { resolveUser = resolve; }) },
+  '@/api/auth': { userInfo: () => new Promise((resolve, reject) => { resolveUser = resolve; rejectUser = reject; }) },
   '@/api/identity': { getIdentity: async () => ({ permissions: ['post.view'] }) },
   '@/utils/permissions': { hasPermission, hasAnyPermission },
 };
@@ -55,4 +55,37 @@ await pendingSwitch;
 assert.equal(switched.userInfo.id, 2);
 assert.equal(switched.hasPermission('post.create'), true);
 assert.equal(switched.hasPermission('user.manage'), false);
-console.log('Permission and session-race checks passed.');
+
+setActivePinia(createPinia());
+const expired = useStoreUser();
+storage.set(TOKEN_KEY, 'disabled-or-expired-session');
+const pendingExpired = Promise.all([expired.loadSession(), expired.loadSession()]);
+// The shared HTTP 401 interceptor invalidates the token before rejecting user/info.
+expired.userLogout();
+rejectUser({ code: 20006 });
+await pendingExpired;
+assert.equal(storage.has(TOKEN_KEY), false);
+assert.equal(expired.userLogined, false);
+assert.equal(expired.hasPermission('post.view'), true, 'invalidated bootstrap must restore guest permissions');
+
+setActivePinia(createPinia());
+const rejectedOld = useStoreUser();
+storage.set(TOKEN_KEY, 'rejected-old-session');
+const pendingRejected = rejectedOld.loadSession();
+storage.set(TOKEN_KEY, 'current-session');
+rejectedOld.updateUserinfo({ id: 3, permissions: ['post.create'] });
+rejectUser({ code: 10006 });
+await pendingRejected;
+assert.equal(rejectedOld.userInfo.id, 3);
+assert.equal(storage.get(TOKEN_KEY), 'current-session');
+
+for (const failure of [new Error('Network unavailable'), { code: 20007 }]) {
+  setActivePinia(createPinia());
+  const unavailable = useStoreUser();
+  storage.set(TOKEN_KEY, 'valid-session');
+  const pendingFailure = unavailable.loadSession();
+  rejectUser(failure);
+  await assert.rejects(pendingFailure, (error) => error === failure);
+  assert.equal(storage.get(TOKEN_KEY), 'valid-session', 'ordinary failures must preserve the session');
+}
+console.log('Permission and session-race checks passed, including invalidated bootstrap recovery and current-session error preservation.');

@@ -57,7 +57,14 @@ export const useStoreUser = defineStore('user', () => {
         userInfo.value = emptyUser();
       }
       initialized = true;
-    })();
+    })().catch(async (error) => {
+      const currentToken = localStorage.getItem(TOKEN_KEY);
+      if (!token || (revision === sessionRevision && currentToken === token)) throw error;
+      if (!currentToken) {
+        if (loading === pending) loading = undefined;
+        await loadSession();
+      }
+    });
     loading = pending;
     try {
       await pending;
