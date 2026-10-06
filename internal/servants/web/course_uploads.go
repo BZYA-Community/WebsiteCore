@@ -36,7 +36,7 @@ func courseUploadCredential(a *ms.Attachment, ali bool) (*web.CourseUploadInitRe
 	}
 	settings := conf.AliOSSSetting
 	conditions := []any{map[string]string{"bucket": settings.Bucket}, []any{"content-length-range", a.FileSize, a.FileSize}}
-	fields := map[string]string{"key": a.Content, "Content-Type": a.MimeType, "success_action_status": "200", "x-oss-object-acl": "private", "x-oss-forbid-overwrite": "true"}
+	fields := map[string]string{"key": a.Content, "Content-Type": a.MimeType, "x-oss-content-type": a.MimeType, "success_action_status": "200", "x-oss-object-acl": "private", "x-oss-forbid-overwrite": "true"}
 	for key, value := range fields {
 		conditions = append(conditions, []string{"eq", "$" + key, value})
 	}
