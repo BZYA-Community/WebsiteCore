@@ -21,13 +21,14 @@ type juheSmsServant struct {
 	key     string
 	tplID   string
 	tplVal  string
+	client  *resty.Client
 }
+
+const juheRequestTimeout = 10 * time.Second
 
 // SendPhoneCaptcha 发送短信验证码
 func (s *juheSmsServant) SendPhoneCaptcha(phone string, captcha string, expire time.Duration) error {
-	client := resty.New()
-	client.DisableWarn = true
-	resp, err := client.R().
+	resp, err := s.client.R().
 		SetFormData(map[string]string{
 			"mobile":    phone,
 			"tpl_id":    s.tplID,
@@ -52,10 +53,14 @@ func (s *juheSmsServant) SendPhoneCaptcha(phone string, captcha string, expire t
 }
 
 func newJuheSmsServant() *juheSmsServant {
+	client := resty.New()
+	client.DisableWarn = true
+	client.SetTimeout(juheRequestTimeout)
 	return &juheSmsServant{
 		gateway: conf.SmsJuheSetting.Gateway,
 		key:     conf.SmsJuheSetting.Key,
 		tplID:   conf.SmsJuheSetting.TplID,
 		tplVal:  conf.SmsJuheSetting.TplVal,
+		client:  client,
 	}
 }

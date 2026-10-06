@@ -7,8 +7,10 @@ package web
 import (
 	"mime/multipart"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
+
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/internal/transport/httpx"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/gin-gonic/gin"
 )
@@ -36,7 +38,7 @@ func (r *CourseListReq) SetPageInfo(page, pageSize int) {
 	r.Page, r.PageSize = page, pageSize
 }
 
-type CourseListResp base.PageResp
+type CourseListResp joint.PageResp
 
 type CourseDetailReq struct {
 	BaseInfo `form:"-" binding:"-"`
@@ -58,7 +60,7 @@ func (r *CourseCommentsReq) SetPageInfo(page, pageSize int) {
 	r.Page, r.PageSize = page, pageSize
 }
 
-type CourseCommentsResp base.PageResp
+type CourseCommentsResp joint.PageResp
 
 // CourseVideoReq 获取课程视频签名播放地址
 type CourseVideoReq struct {
@@ -195,7 +197,7 @@ type UploadCourseVideoResp struct {
 }
 
 func (r *UploadCourseVideoReq) Bind(c *gin.Context) (xerr error) {
-	userId, exist := base.UserIdFrom(c)
+	userId, exist := httpx.UserIdFrom(c)
 	if !exist {
 		return xerror.UnauthorizedAuthNotExist
 	}

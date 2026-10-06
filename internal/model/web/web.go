@@ -5,15 +5,16 @@
 package web
 
 import (
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/internal/transport/httpx"
 	"github.com/BZYA-Community/WebsiteCore/pkg/app"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/alimy/mir/v5"
 	"github.com/gin-gonic/gin"
 )
 
-var bindAny = base.NewBindAnyFn()
+var bindAny = httpx.New(conf.UseSentryGin()).Bind
 
 type BaseInfo struct {
 	User *ms.User
@@ -38,7 +39,7 @@ func (s *SimpleInfo) SetUserId(id int64) {
 }
 
 func BasePageReqFrom(c *gin.Context) (*BasePageReq, mir.Error) {
-	uid, ok := base.UserIdFrom(c)
+	uid, ok := httpx.UserIdFrom(c)
 	if !ok {
 		return nil, xerror.UnauthorizedTokenError
 	}
@@ -51,7 +52,7 @@ func BasePageReqFrom(c *gin.Context) (*BasePageReq, mir.Error) {
 }
 
 func (r *BasePageReq) Bind(c *gin.Context) mir.Error {
-	uid, ok := base.UserIdFrom(c)
+	uid, ok := httpx.UserIdFrom(c)
 	if !ok {
 		return xerror.UnauthorizedTokenError
 	}

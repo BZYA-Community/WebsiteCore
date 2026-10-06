@@ -63,6 +63,11 @@ type httpServerConf struct {
 	WriteTimeout time.Duration
 }
 
+// Addr returns the configured HTTP listen address.
+func (c *httpServerConf) Addr() string {
+	return c.HttpIp + ":" + c.HttpPort
+}
+
 type appConf struct {
 	RunMode               string
 	MaxCommentCount       int64

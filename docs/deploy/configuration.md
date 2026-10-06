@@ -132,7 +132,7 @@ Meili:
 | `LocalOSS` | `SavePath`, `Secure`, `Bucket`, `Domain` |
 | `AliOSS` | `Endpoint`, `AccessKeyID`, `AccessKeySecret`, `Bucket`, `Domain` |
 
-All of these are also manageable from the admin UI (storage group). `LocalOSS.SavePath` defaults to `custom/data/paopao-ce/oss` relative to the working directory — back this directory up. When no storage feature is enabled, `LocalOSS` is used automatically.
+All of these are also manageable from the admin UI (storage group). `LocalOSS.SavePath` defaults to `custom/data/paopao-ce/oss` relative to the working directory — back this directory up. When no storage feature is enabled, `LocalOSS` is used automatically. Full setup guide — including AliOSS bucket/CORS preparation and browser-direct uploads — is in [object-storage.md](object-storage.md).
 
 ### SMS (`SmsJuhe`)
 

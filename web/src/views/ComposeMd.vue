@@ -12,7 +12,7 @@
                     :placeholder="t('compose.md.editorPlaceholder')"
                     :toolbars-exclude="mdToolbarsExclude"
                     no-mermaid
-                    no-katex
+                    no-html
                     @update:model-value="changeContent"
                 />
                 <div class="draft-tip">{{ t('compose.md.draftTip') }}</div>
