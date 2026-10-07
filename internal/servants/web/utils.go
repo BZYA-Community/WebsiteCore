@@ -9,7 +9,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
@@ -18,22 +17,6 @@ import (
 	"github.com/gofrs/uuid/v5"
 	"github.com/sirupsen/logrus"
 )
-
-// deleteOldAvatar 换头像成功后清理旧头像对象: 仅删除本站 OSS 域下 public/avatar/
-// 前缀的对象(外链/空值/新旧相同则跳过), 宽松处理错误(仅告警不中断)。
-// 注: 默认头像(identicon, public/avatar/default/)同样适用——同一种子生成结果幂等,
-// 误删后重启/注册流程可原样重建。
-func deleteOldAvatar(oss core.ObjectStorageService, oldURL, newURL string) {
-	if oldURL == "" || oldURL == newURL {
-		return
-	}
-	if !strings.HasPrefix(oldURL, conf.GetOssDomain()) || !strings.Contains(oldURL, "public/avatar/") {
-		return
-	}
-	if err := oss.DeleteObject(oss.ObjectKey(oldURL)); err != nil {
-		logrus.Warnf("deleteOldAvatar: delete object %q failed: %s", oldURL, err)
-	}
-}
 
 // checkPassword 密码检查
 func checkPassword(password string) error {
@@ -56,32 +39,9 @@ func encryptPasswordAndSalt(password string) (string, string) {
 	return utils.HashPassword(password), salt
 }
 
-// deleteOssObjects 删除推文的媒体内容, 宽松处理错误(仅告警不中断), 后续完善
-// 注: 对象键会经 ObjectKey 剥离域名后交给存储层, LocalOSS 侧由 jailPath 强校验,
-// 越狱键会被拒绝并返回错误, 这里记录告警便于发现攻击尝试(#25)
-func deleteOssObjects(oss core.ObjectStorageService, mediaContents []string) {
-	mediaContentsSize := len(mediaContents)
-	if mediaContentsSize > 1 {
-		objectKeys := make([]string, 0, mediaContentsSize)
-		for _, cUrl := range mediaContents {
-			objectKeys = append(objectKeys, oss.ObjectKey(cUrl))
-		}
-		// TODO: 优化处理尽量使用channel传递objectKeys使用可控数量的Goroutine集中处理object删除动作，后续完善
-		go func() {
-			if err := oss.DeleteObjects(objectKeys); err != nil {
-				logrus.Warnf("deleteOssObjects: delete objects failed: %s", err)
-			}
-		}()
-	} else if mediaContentsSize == 1 {
-		if err := oss.DeleteObject(oss.ObjectKey(mediaContents[0])); err != nil {
-			logrus.Warnf("deleteOssObjects: delete object failed: %s", err)
-		}
-	}
-}
-
 // persistMediaContents 获取媒体内容并持久化
-func persistMediaContents(oss core.ObjectStorageService, contents []*web.PostContentItem) (items []string, err error) {
-	items = make([]string, 0, len(contents))
+// Shared URLs may be referenced by other content. Failure does not authorize deletion.
+func persistMediaContents(oss core.ObjectStorageService, contents []*web.PostContentItem) error {
 	for _, item := range contents {
 		switch item.Type {
 		case ms.ContentTypeImage,
@@ -89,16 +49,13 @@ func persistMediaContents(oss core.ObjectStorageService, contents []*web.PostCon
 			ms.ContentTypeAudio,
 			ms.ContentTypeAttachment,
 			ms.ContentTypeChargeAttachment:
-			items = append(items, item.Content)
-			if err != nil {
-				continue
-			}
-			if err = oss.PersistObject(oss.ObjectKey(item.Content)); err != nil {
+			if err := oss.PersistObject(oss.ObjectKey(item.Content)); err != nil {
 				logrus.Errorf("service.persistMediaContents failed: %s", err)
+				return err
 			}
 		}
 	}
-	return
+	return nil
 }
 
 func fileCheck(uploadType string, size int64) error {
@@ -164,23 +121,18 @@ func tagsFrom(originTags []string) []string {
 	return tags
 }
 
-// checkPermision 检查是否拥有者或管理员
+// checkPermision checks ownership or explicit content-management permission.
 func checkPermision(user *ms.User, targetUserId int64) error {
-	if user == nil || (user.ID != targetUserId && !user.IsAdmin) {
+	if user == nil || (user.ID != targetUserId && !user.HasPermission("content.manage")) {
 		return web.ErrNoPermission
 	}
 	return nil
 }
 
-// canReplyToComment mirrors comment-list visibility: approved comments are
-// public to eligible post/course viewers; an unapproved comment is visible
-// only to its author and moderation roles.
-func canReplyToComment(auditStatus ms.PostAuditT, authorID int64, viewer *ms.User) bool {
-	if auditStatus == ms.PostAuditApproved {
-		return true
-	}
-	if auditStatus != ms.PostAuditPending || viewer == nil {
-		return false
-	}
-	return viewer.ID == authorID || viewer.IsAdmin || viewer.HasRole(ms.RoleAuditor)
+// Pending parents accept replies from their author or an authorized moderator;
+// rejected parents never accept replies.
+func canReplyToComment(user *ms.User, authorID int64, status ms.PostAuditT) bool {
+	return user != nil && user.HasPermission("comment.create") &&
+		(status == ms.PostAuditApproved || status == ms.PostAuditPending &&
+			(user.ID == authorID || user.HasPermission("audit.view_all")))
 }

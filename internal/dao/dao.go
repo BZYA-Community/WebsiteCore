@@ -44,10 +44,6 @@ func TweetSearchService() core.TweetSearchService {
 	return ts
 }
 
-func newAuthorizationManageService() core.AuthorizationManageService {
-	return jinzhu.NewAuthorizationManageService()
-}
-
 // lazyInitial do some package lazy initialize for performance
 func lazyInitial() {
 	_onceInitial.Do(func() {
@@ -80,14 +76,13 @@ func initOSS() {
 
 func initTsX() {
 	var v core.VersionInfo
-	ams := newAuthorizationManageService()
 	cfg.On(cfg.Actions{
 		"Meili": func() {
-			ts, v = search.NewMeiliTweetSearchService(ams)
+			ts, v = search.NewMeiliTweetSearchService()
 		},
 	}, func() {
 		// 默认回退 SQL 直查，无需外部搜索引擎
-		ts, v = search.NewSqlTweetSearchService(ams)
+		ts, v = search.NewSqlTweetSearchService()
 	})
 	logrus.Infof("use %s as tweet search serice by version %s", v.Name(), v.Version())
 	ts = search.NewBridgeTweetSearchService(ts)

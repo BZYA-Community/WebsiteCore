@@ -18,7 +18,7 @@ type UserManageService interface {
 	GetUsersByKeyword(keyword string) ([]*ms.User, error)
 	UserProfileByName(username string) (*cs.UserProfile, error)
 	CreateUser(user *ms.User) (*ms.User, error)
-	UpdateUser(user *ms.User) error
+	UpdateUser(user *ms.User, fields ...string) error
 	GetRegisterUserCount() (int64, error)
 }
 

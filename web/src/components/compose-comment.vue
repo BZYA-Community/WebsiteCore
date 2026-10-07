@@ -1,6 +1,6 @@
 <template>
     <div>
-        <div class="compose-wrap" v-if="userInfo.id > 0">
+        <div class="compose-wrap" v-if="userInfo.id > 0 && storeUser.hasPermission('comment.create')">
             <div class="compose-line">
                 <div class="compose-user">
                     <n-avatar
@@ -52,7 +52,7 @@
                 @update:file-list="updateUpload"
             >
                 <div class="compose-line compose-options">
-                    <div class="attachment">
+                    <div class="attachment" v-if="storeUser.hasPermission('content.upload')">
                         <n-upload-trigger #="{ handleClick }" abstract>
                             <n-button
                                 :disabled="
@@ -109,6 +109,7 @@
                         </n-button>
                         <n-button
                             :loading="submitting"
+                            :disabled="fileQueue.some((file) => file.status !== 'finished')"
                             @click="submitPost"
                             type="primary"
                             secondary
@@ -126,6 +127,7 @@
             </n-upload>
         </div>
 
+        <n-alert v-else-if="userInfo.id > 0" type="info">{{ t('identity.accessDenied') }}</n-alert>
         <div class="compose-wrap" v-else>
             <div class="login-wrap">
                 <span class="login-banner">{{ t('comment.compose.loginBanner') }}</span>
@@ -167,6 +169,7 @@
 
 
 <script setup lang="ts">
+import { useMediaUpload } from '@/composables/useMediaUpload';
 import { onMounted, computed, ref } from 'vue';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
@@ -206,6 +209,7 @@ const submitting = ref(false);
 const content = ref('');
 const uploadRef = ref<UploadInst>();
 const uploadType = ref('public/image');
+const { beforeUpload } = useMediaUpload(uploadType);
 const fileQueue = ref<UploadFileInfo[]>([]);
 const imageContents = ref<Item.CommentItemProps[]>([]);
 const allowUserRegister = ref(
@@ -217,7 +221,7 @@ const defaultCommentMaxLength = Number(
 const uploadGateway = import.meta.env.VITE_HOST + '/v1/attachment';
 
 const uploadToken = computed(() => {
-  return 'Bearer ' + localStorage.getItem(TOKEN_KEY);
+  return storeUser.userInfo.id ? 'Bearer ' + localStorage.getItem(TOKEN_KEY) : '';
 });
 // 加载at用户列表
 const loadSuggestionUsers = debounce((k) => {
@@ -274,28 +278,6 @@ const updateUpload = (list: UploadFileInfo[]) => {
   }
   fileQueue.value = list;
 };
-const beforeUpload = async (data: any) => {
-  // 图片类型校验
-  if (
-    uploadType.value === 'public/image' &&
-    !['image/png', 'image/jpg', 'image/jpeg', 'image/gif'].includes(
-      (data.file as any).file?.type,
-    )
-  ) {
-    window.$message.warning(t('comment.upload.imageFormatError'));
-    return false;
-  }
-
-  if (
-    uploadType.value === 'image' &&
-    (data.file as any).file?.size > 10485760
-  ) {
-    window.$message.warning(t('comment.upload.imageSizeError'));
-    return false;
-  }
-
-  return true;
-};
 const finishUpload = ({ file, event }: any): any => {
   try {
     let data = JSON.parse(event.target?.response);
@@ -350,6 +332,7 @@ const cancelComment = () => {
 
 // 发布动态
 const submitPost = () => {
+  if (submitting.value || fileQueue.value.some((file) => file.status !== 'finished')) return;
   if (content.value.trim().length === 0) {
     window.$message.warning(t('comment.msg.contentRequired'));
     return;

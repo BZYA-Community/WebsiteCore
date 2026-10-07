@@ -58,7 +58,7 @@ var (
 	ErrCourseNotExist               = xerror.NewError(70003, "课程不存在")
 	ErrCourseGroupNotExist          = xerror.NewError(70004, "课程分组不存在")
 	ErrCourseTeacherInvalid         = xerror.NewError(70005, "讲师用户不存在")
-	ErrCourseGroupNotEmpty          = xerror.NewError(70006, "分组下存在课程，无法删除")
+	ErrCourseGroupNotEmpty          = xerror.NewError(70006, "分类下存在课程或子分类，无法删除")
 	ErrCreateCourseFailed           = xerror.NewError(70007, "课程创建失败")
 	ErrUpdateCourseFailed           = xerror.NewError(70008, "课程更新失败")
 	ErrDeleteCourseFailed           = xerror.NewError(70009, "课程删除失败")

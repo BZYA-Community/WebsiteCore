@@ -1,6 +1,6 @@
 <template>
     <div>
-        <div class="compose-wrap" v-if="userInfo.id > 0">
+        <div class="compose-wrap" v-if="userInfo.id > 0 && storeUser.hasPermission('post.create')">
             <div class="compose-line">
                 <div class="compose-user">
                     <n-avatar
@@ -24,7 +24,13 @@
                 />
             </div>
 
+            <n-alert v-if="processingVideo" type="info" style="margin: 12px 0" aria-live="polite">
+                {{ t('compose.compressionProgress') }}
+                <n-progress type="line" :percentage="videoProgress" />
+                <n-button size="small" @click="cancelVideo">{{ t('common.cancel') }}</n-button>
+            </n-alert>
             <n-upload
+                :disabled="processingVideo"
                 ref="uploadRef"
                 abstract
                 list-type="image"
@@ -45,10 +51,12 @@
                 @update:file-list="updateUpload"
             >
                 <div class="compose-line compose-options">
-                    <div class="attachment">
+                    <div class="attachment" v-if="storeUser.hasPermission('content.upload')">
                         <n-upload-trigger #="{ handleClick }" abstract>
                             <n-button
+                                :aria-label="t('compose.addImage')"
                                 :disabled="
+                                    processingVideo || fileQueue.some((file) => file.status === 'uploading' || file.status === 'pending') ||
                                     (fileQueue.length > 0 &&
                                         uploadType === 'public/video') ||
                                     fileQueue.length === 9
@@ -78,7 +86,9 @@
                           v-if="profile.allowTweetVideo"
                           #="{ handleClick }" abstract>
                             <n-button
+                                :aria-label="t('compose.addVideo')"
                                 :disabled="
+                                    processingVideo || fileQueue.some((file) => file.status === 'uploading' || file.status === 'pending') ||
                                     (fileQueue.length > 0 &&
                                         uploadType !== 'public/video') ||
                                     fileQueue.length === 9
@@ -108,7 +118,9 @@
                           v-if="profile.allowTweetAttachment"
                           #="{ handleClick }" abstract>
                             <n-button
+                                :aria-label="t('compose.addAttachment')"
                                 :disabled="
+                                    processingVideo || fileQueue.some((file) => file.status === 'uploading' || file.status === 'pending') ||
                                     (fileQueue.length > 0 &&
                                         uploadType === 'public/video') ||
                                     fileQueue.length === 9
@@ -200,6 +212,7 @@
 
                         <n-button
                             :loading="submitting"
+                            :disabled="processingVideo || fileQueue.some((file) => file.status !== 'finished')"
                             @click="submitPost"
                             type="primary"
                             secondary
@@ -240,6 +253,7 @@
             </div>
         </div>
 
+        <n-alert v-else-if="userInfo.id > 0" type="info">{{ t('identity.accessDenied') }}</n-alert>
         <div class="compose-wrap" v-else>
             <div class="login-wrap">
                 <span class="login-banner"> {{ t('compose.loginBanner') }}</span>
@@ -280,6 +294,7 @@
 </template>
 
 <script setup lang="ts">
+import { useMediaUpload } from '@/composables/useMediaUpload';
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
@@ -297,7 +312,6 @@ import {
 } from '@vicons/ionicons5';
 import { createPost } from '@/api/post';
 import { parsePostTag } from '@/utils/content';
-import { isZipFile } from '@/utils/isZipFile';
 import type { MentionOption, UploadFileInfo, UploadInst } from 'naive-ui';
 import { VisibilityEnum, PostItemTypeEnum } from '@/utils/IEnum';
 import { storeToRefs } from 'pinia';
@@ -330,6 +344,7 @@ const maxInputLength = computed(
 
 const uploadRef = ref<UploadInst>();
 const uploadType = ref('public/image');
+const { beforeUpload, processingVideo, videoProgress, cancelVideo } = useMediaUpload(uploadType);
 const fileQueue = ref<UploadFileInfo[]>([]);
 const imageContents = ref<Item.CommentItemProps[]>([]);
 const videoContents = ref<Item.CommentItemProps[]>([]);
@@ -343,7 +358,7 @@ const allowTweetVisibility = ref(
 const uploadGateway = import.meta.env.VITE_HOST + '/v1/attachment';
 
 const uploadToken = computed(() => {
-  return 'Bearer ' + localStorage.getItem(TOKEN_KEY);
+  return storeUser.userInfo.id ? 'Bearer ' + localStorage.getItem(TOKEN_KEY) : '';
 });
 
 const visibilities = computed(() => {
@@ -436,6 +451,7 @@ const changeContent = (v: string) => {
   }
 };
 const setUploadType = (type: string) => {
+  if (processingVideo.value || fileQueue.value.some((file) => file.status === 'uploading' || file.status === 'pending')) return;
   uploadType.value = type;
 };
 
@@ -454,53 +470,6 @@ const updateUpload = (list: UploadFileInfo[]) => {
     }
   }
   fileQueue.value = list;
-};
-const beforeUpload = async (data: any) => {
-  // 图片类型校验
-  if (
-    uploadType.value === 'public/image' &&
-    ![
-      'image/webp',
-      'image/png',
-      'image/jpg',
-      'image/jpeg',
-      'image/gif',
-    ].includes(data.file.file?.type)
-  ) {
-    window.$message.warning(t('compose.imageFormatError'));
-    return false;
-  }
-
-  if (uploadType.value === 'image' && data.file.file?.size > 10485760) {
-    window.$message.warning(t('compose.imageSizeError'));
-    return false;
-  }
-
-  // 视频类型校验
-  if (
-    uploadType.value === 'public/video' &&
-    !['video/mp4', 'video/quicktime'].includes(data.file.file?.type)
-  ) {
-    window.$message.warning(t('compose.videoFormatError'));
-    return false;
-  }
-
-  if (uploadType.value === 'public/video' && data.file.file?.size > 104857600) {
-    window.$message.warning(t('compose.videoSizeError'));
-    return false;
-  }
-  // 附件类型校验
-  if (uploadType.value === 'attachment' && !(await isZipFile(data.file.file))) {
-    window.$message.warning(t('compose.attachmentFormatError'));
-    return false;
-  }
-
-  if (uploadType.value === 'attachment' && data.file.file?.size > 104857600) {
-    window.$message.warning(t('compose.attachmentSizeError'));
-    return false;
-  }
-
-  return true;
 };
 const finishUpload = ({ file, event }: any): any => {
   try {
@@ -564,6 +533,7 @@ const removeUpload = ({ file }: any) => {
 
 // 发布动态
 const submitPost = () => {
+  if (processingVideo.value || fileQueue.value.some((file) => file.status !== 'finished')) return;
   if (content.value.trim().length === 0) {
     window.$message.warning(t('compose.contentRequired'));
     return;

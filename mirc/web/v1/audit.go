@@ -8,7 +8,9 @@ import (
 
 // Audit 内容审核服务(管理员/运维/审核角色可访问)
 type Audit struct {
-	Schema `mir:"v1,chain"`
+	ReviewStatistics func(Get, web.ReviewStatisticsReq) web.ReviewStatisticsResp `mir:"admin/audit/statistics"`
+	ReviewHistory    func(Get, web.ReviewHistoryReq) web.ReviewHistoryResp       `mir:"admin/audit/history"`
+	Schema           `mir:"v1,chain"`
 
 	// ListAuditPosts 审核队列·按状态筛选
 	ListAuditPosts func(Get, web.AdminAuditPostsReq) web.AdminAuditPostsResp `mir:"admin/audit/posts"`

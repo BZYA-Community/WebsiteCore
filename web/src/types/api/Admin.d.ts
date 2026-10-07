@@ -7,8 +7,6 @@ declare namespace Api {
                 user: {
                     /** 管理·用户禁言/解禁 */
                     status: (params: NetParams.UserStatusReq) => Promise<NetReq.UserChangeStatus>;
-                    /** 管理·变更用户角色 */
-                    role: (params: NetParams.UserRoleChangeReq) => Promise<NetReq.UserRoleChangeResp>;
                     /** 管理·软删除用户 */
                     delete: (params: NetParams.UserDeleteReq) => Promise<NetReq.UserDeleteResp>;
                 },
@@ -49,10 +47,7 @@ declare namespace Api {
                     list: (params: NetParams.UserListReq) => Promise<NetReq.UserListResp>;
                     /** 管理·用户详情(完整手机号) */
                     detail: (params: NetParams.UserDetailReq) => Promise<NetReq.UserDetailResp>;
-                    /** 管理·角色变更记录 */
-                    role: {
-                        logs: (params: NetParams.PageReq) => Promise<NetReq.UserRoleLogsResp>;
-                    }
+
                 },
                 audit: {
                     /** 审核·帖子队列 */
@@ -74,12 +69,6 @@ declare namespace Api {
             interface UserStatusReq {
                 id: number;
                 status: number;
-            }
-
-            interface UserRoleChangeReq {
-                user_id: number;
-                role: 'mentor' | 'auditor' | 'admin' | 'operator';
-                action: 'add' | 'remove';
             }
 
             interface UserDeleteReq {
@@ -109,6 +98,8 @@ declare namespace Api {
             }
 
             interface AuditPostReq {
+                task_id: number;
+                revision: number;
                 post_id: number;
                 action: 'approve' | 'reject';
                 reason?: string;
@@ -122,6 +113,8 @@ declare namespace Api {
             }
 
             interface AuditCommentReq {
+                task_id: number;
+                revision: number;
                 id: number;
                 /** 0帖子评论 1帖子回复 2课程评论 3课程回复 */
                 comment_type: 0 | 1 | 2 | 3;
@@ -130,12 +123,16 @@ declare namespace Api {
             }
 
             interface AuditNicknameReq {
+                task_id: number;
+                revision: number;
                 user_id: number;
                 action: 'approve' | 'reject';
                 reason?: string;
             }
 
             interface AuditAvatarReq {
+                task_id: number;
+                revision: number;
                 user_id: number;
                 action: 'approve' | 'reject';
                 reason?: string;
@@ -171,7 +168,6 @@ declare namespace Api {
         namespace NetReq {
             interface UserChangeStatus {}
 
-            interface UserRoleChangeResp {}
 
             interface UserDeleteResp {}
 
@@ -194,10 +190,11 @@ declare namespace Api {
                 nickname: string;
                 username: string;
                 phone: string;
-                roles: string[];
                 identity: string;
+                identity_groups: Item.IdentityGroup[];
+                permissions: string[];
+                is_operator: boolean;
                 status: 1 | 2;
-                is_admin: boolean;
                 created_on: number;
             }
 
@@ -208,24 +205,21 @@ declare namespace Api {
 
             interface UserDetailResp extends UserItem {}
 
-            interface UserRoleLogItem {
+            interface ReviewTask {
                 id: number;
-                user_id: number;
-                username: string;
-                operator_id: number;
-                operator_name: string;
-                old_roles: string;
-                new_roles: string;
-                action: string;
-                created_on: number;
-            }
-
-            interface UserRoleLogsResp {
-                list: UserRoleLogItem[];
-                pager: Pager;
+                kind: string;
+                target_id: number;
+                author_id: number;
+                revision: number;
+                state: 'pending' | 'completed' | 'cancelled';
+                assignee_id: number;
+                assigned_on: number;
+                deadline_on: number;
+                completed_on: number;
             }
 
             interface AuditPostItem {
+                review_task?: ReviewTask;
                 id: number;
                 user: {
                     id: number;
@@ -252,6 +246,8 @@ declare namespace Api {
             }
 
             interface AuditCommentItem {
+                review_task?: ReviewTask;
+                contents?: AuditPostItem['contents'];
                 id: number;
                 /** 0帖子评论 1帖子回复 2课程评论 3课程回复 */
                 comment_type: 0 | 1 | 2 | 3;
@@ -275,6 +271,7 @@ declare namespace Api {
             }
 
             interface AuditNicknameItem {
+                review_task?: ReviewTask;
                 user_id: number;
                 username: string;
                 /** 当前昵称 */
@@ -290,6 +287,7 @@ declare namespace Api {
             }
 
             interface AuditAvatarItem {
+                review_task?: ReviewTask;
                 user_id: number;
                 username: string;
                 /** 当前头像 */

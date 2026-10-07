@@ -23,7 +23,7 @@ type followshipSrv struct {
 }
 
 func (s *followshipSrv) Chain() gin.HandlersChain {
-	return gin.HandlersChain{chain.JwtLoose()}
+	return gin.HandlersChain{chain.JwtLoose(), chain.Authorize()}
 }
 
 func (s *followshipSrv) ListFollowings(r *web.ListFollowingsReq) (*web.ListFollowingsResp, error) {

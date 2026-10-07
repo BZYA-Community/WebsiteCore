@@ -6,6 +6,7 @@ package web
 
 import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
+	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 	"github.com/BZYA-Community/WebsiteCore/internal/transport/httpx"
 	"github.com/BZYA-Community/WebsiteCore/pkg/convert"
@@ -35,19 +36,24 @@ type UserInfoReq struct {
 }
 
 type UserInfoResp struct {
-	Id          int64    `json:"id"`
-	Nickname    string   `json:"nickname"`
-	Username    string   `json:"username"`
-	Status      int      `json:"status"`
-	Avatar      string   `json:"avatar"`
-	Phone       string   `json:"phone"`
-	IsAdmin     bool     `json:"is_admin"`
-	Roles       []string `json:"roles"`
-	Identity    string   `json:"identity"`
-	CreatedOn   int64    `json:"created_on"`
-	Follows     int64    `json:"follows"`
-	Followings  int64    `json:"followings"`
-	TweetsCount int      `json:"tweets_count"`
+	Email           string             `json:"email"`
+	ContactVerified bool               `json:"contact_verified"`
+	IsOperator      bool               `json:"is_operator"`
+	IdentityGroups  []ms.IdentityGroup `json:"identity_groups"`
+	Permissions     []string           `json:"permissions"`
+	Id              int64              `json:"id"`
+	Nickname        string             `json:"nickname"`
+	Username        string             `json:"username"`
+	Status          int                `json:"status"`
+	Avatar          string             `json:"avatar"`
+	Phone           string             `json:"phone"`
+	IsAdmin         bool               `json:"is_admin"`
+	Roles           []string           `json:"roles"`
+	Identity        string             `json:"identity"`
+	CreatedOn       int64              `json:"created_on"`
+	Follows         int64              `json:"follows"`
+	Followings      int64              `json:"followings"`
+	TweetsCount     int                `json:"tweets_count"`
 }
 
 type GetMessagesReq struct {
@@ -131,6 +137,11 @@ type TweetCollectionStatusResp struct {
 }
 
 func (r *UserInfoReq) Bind(c *gin.Context) error {
+	user, authenticated := httpx.UserFrom(c)
+	if !authenticated || user == nil {
+		return xerror.UnauthorizedAuthNotExist
+	}
+	r.User = user
 	username, exist := httpx.UserNameFrom(c)
 	if !exist {
 		return xerror.UnauthorizedAuthNotExist

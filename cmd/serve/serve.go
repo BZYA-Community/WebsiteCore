@@ -76,7 +76,7 @@ func ensureGhostAvatar() {
 }
 
 // ensureOperatorAccount 幂等确保配置的运维账号可用:
-// 账号不存在时按配置创建；存在时密码以配置为准(不一致则重置)；始终确保 operator 角色与 is_admin
+// The operator flag is independent of identity groups and owned by deployment config.
 func ensureOperatorAccount() {
 	op := conf.OperatorSetting
 	if op == nil || op.Username == "" {
@@ -107,17 +107,22 @@ func ensureOperatorAccount() {
 			logrus.Warnf("generate operator account[%s] avatar failure by err: %v", op.Username, aerr)
 		}
 		user = &dbr.User{
-			Model:    &dbr.Model{},
-			Nickname: op.Username,
-			Username: op.Username,
-			Password: utils.HashPassword(op.Password),
-			Salt:     salt,
-			Avatar:   operatorAvatar,
-			Status:   ms.UserStatusNormal,
-			IsAdmin:  true,
-			Roles:    ms.RoleOperator,
+			Model:      &dbr.Model{},
+			Nickname:   op.Username,
+			Username:   op.Username,
+			Password:   utils.HashPassword(op.Password),
+			Salt:       salt,
+			Avatar:     operatorAvatar,
+			Status:     ms.UserStatusNormal,
+			IsOperator: true,
 		}
-		if _, err := user.Create(db); err != nil {
+		if err := db.Transaction(func(tx *gorm.DB) error {
+			if _, err := user.Create(tx); err != nil {
+				return err
+			}
+			return tx.Create(&dbr.IdentityOperationLog{ActorID: user.ID, UserID: user.ID,
+				Action: "operator.bootstrap", Before: "false", After: "true", CreatedOn: time.Now().Unix()}).Error
+		}); err != nil {
 			logrus.Errorf("create operator account[%s] failure by err: %v", op.Username, err)
 			return
 		}
@@ -127,14 +132,9 @@ func ensureOperatorAccount() {
 
 	// 账号已存在: 确保角色/密码与配置一致
 	updates := map[string]any{}
-	oldRoles := user.Roles
-	if user.AddRole(ms.RoleOperator) {
-		updates["roles"] = user.Roles
-	}
-	user.SyncIsAdmin()
-	if !user.IsAdmin {
-		updates["is_admin"] = true
-		user.IsAdmin = true
+	wasOperator := user.IsOperator
+	if !user.IsOperator {
+		updates["is_operator"] = true
 	}
 	if op.Password != "" {
 		// 密码以配置为准，不一致则重置(bcrypt)
@@ -157,14 +157,25 @@ func ensureOperatorAccount() {
 			user.Avatar = operatorAvatar
 		}
 	}
-	if len(updates) == 0 {
-		return
-	}
-	if err := db.Model(user).Updates(updates).Error; err != nil {
+	if err := db.Transaction(func(tx *gorm.DB) error {
+		if len(updates) > 0 {
+			if err := tx.Model(user).Updates(updates).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Where("user_id = ?", user.ID).Delete(&dbr.UserIdentityGroup{}).Error; err != nil {
+			return err
+		}
+		if !wasOperator {
+			return tx.Create(&dbr.IdentityOperationLog{ActorID: user.ID, UserID: user.ID,
+				Action: "operator.bootstrap", Before: "false", After: "true", CreatedOn: time.Now().Unix()}).Error
+		}
+		return nil
+	}); err != nil {
 		logrus.Errorf("ensure operator account[%s] failure by err: %v", op.Username, err)
 		return
 	}
-	logrus.Infof("ensure operator account: roles %q -> %q", oldRoles, user.Roles)
+	logrus.Infof("ensure independent operator account[%s]", op.Username)
 	// 过期该用户缓存，避免旧 gob 数据残留
 	ac := cache.NewAppCache()
 	ac.Delete(conf.KeyUserInfoById.Get(user.ID),

@@ -36,7 +36,7 @@ type looseSrv struct {
 }
 
 func (s *looseSrv) Chain() gin.HandlersChain {
-	return gin.HandlersChain{chain.JwtLoose()}
+	return gin.HandlersChain{chain.JwtLoose(), chain.Authorize()}
 }
 
 func (s *looseSrv) Timeline(req *web.TimelineReq) (*web.TimelineResp, error) {
@@ -338,6 +338,10 @@ func (s *looseSrv) GetUserProfile(req *web.GetUserProfileReq) (*web.GetUserProfi
 		logrus.Errorf("looseSrv.GetUserProfile occurs error[1]: %s", err)
 		return nil, web.ErrNoExistUsername
 	}
+	currentUser, err := s.Ds.GetUserByID(he.ID)
+	if err != nil {
+		return nil, web.ErrNoExistUsername
+	}
 	isFollowing := false
 	if req.User != nil {
 		isFollowing = s.Ds.IsFollow(req.User.ID, he.ID)
@@ -352,9 +356,9 @@ func (s *looseSrv) GetUserProfile(req *web.GetUserProfileReq) (*web.GetUserProfi
 		Username:    he.Username,
 		Status:      he.Status,
 		Avatar:      he.Avatar,
-		IsAdmin:     he.IsAdmin,
-		Roles:       dbr.SplitRoles(he.Roles),
-		Identity:    dbr.IdentityOf(he.Roles, he.Phone),
+		IsAdmin:     currentUser.HasPermission("user.manage"),
+		Roles:       currentUser.RoleList(),
+		Identity:    currentUser.DisplayIdentity(),
 		IsFollowing: isFollowing,
 		CreatedOn:   he.CreatedOn,
 		Follows:     follows,
@@ -421,7 +425,7 @@ func (s *looseSrv) TweetComments(req *web.TweetCommentsReq) (res *web.TweetComme
 	}
 
 	// 评论审核可见范围: 审核员全部/作者见本人待审/其余仅过审(与GetComments同口径)
-	viewerIsAuditor := req.User != nil && (req.User.IsAdmin || req.User.HasRole(ms.RoleAuditor))
+	viewerIsAuditor := req.User != nil && req.User.HasPermission("audit.view_all")
 
 	comments, totalRows, xerr := s.Ds.GetComments(req.TweetId, req.Style.ToInnerValue(), req.Uid, viewerIsAuditor, limit, offset)
 	if xerr != nil {

@@ -15,23 +15,15 @@ type SiteAdminService interface {
 	// 用户管理: 软删除用户(is_del=1, 无法登录/前台消失, 数据保留可恢复)
 	SoftDeleteUser(user *ms.User) error
 	// 审核队列: status为审核状态 -1表示全部 仅含未软删帖子
-	ListAuditPosts(status int, offset, limit int) ([]*ms.Post, int64, error)
+	ListAuditPosts(actor *ms.User, status int, offset, limit int) ([]*ms.Post, int64, error)
 	// 评论审核队列: 评论与回复UNION合并按时间倒序 status -1表示全部
-	ListAuditComments(status int, offset, limit int) ([]*ms.AuditCommentRow, int64, error)
-	// 评论审核动作: 更新审核状态 返回旧状态(供上层联动评论数/通知)
-	UpdateCommentAuditStatus(id int64, status int) (oldStatus int, err error)
-	UpdateCommentReplyAuditStatus(id int64, status int) (oldStatus int, err error)
+	ListAuditComments(actor *ms.User, status int, offset, limit int) ([]*ms.AuditCommentRow, int64, error)
 	// 昵称审核队列: pending_nickname非空的用户
-	ListAuditNicknames(offset, limit int) ([]*ms.User, int64, error)
-	// 昵称审核动作: 直接落nickname/pending_nickname列(Save全量写 零值可清空)
-	UpdateUserNickname(user *ms.User, nickname, pendingNickname string) error
+	ListAuditNicknames(actor *ms.User, offset, limit int) ([]*ms.User, int64, error)
 	// 头像审核队列: pending_avatar非空的用户
-	ListAuditAvatars(offset, limit int) ([]*ms.User, int64, error)
-	// 头像审核动作: 直接落avatar/pending_avatar列(指定列更新 零值pending可清空)
-	UpdateUserAvatar(user *ms.User, avatar, pendingAvatar string) error
+	ListAuditAvatars(actor *ms.User, offset, limit int) ([]*ms.User, int64, error)
 	// 审核操作日志
-	CreateAuditLog(log *ms.AuditLog) error
-	ListAuditLogs(offset, limit int) ([]*ms.AuditLog, int64, error)
+	ListAuditLogs(actor *ms.User, offset, limit int) ([]*ms.AuditLog, int64, error)
 	// 用户角色变更日志
 	CreateUserRoleLog(log *ms.UserRoleLog) error
 	ListUserRoleLogs(offset, limit int) ([]*ms.UserRoleLog, int64, error)

@@ -21,15 +21,15 @@
                             #{{ tag.tag }}
                         </router-link>
                         <span v-if="!showAction" class="tag-quote">({{ tag.quote_num }})</span>
-                        <span v-if="showAction" class="tag-quote tag-follow">({{ tag.quote_num }})</span>
+                        <span v-if="showAction && storeUser.hasPermission('community.interact')" class="tag-quote tag-follow">({{ tag.quote_num }})</span>
                         <template #avatar>
                             <n-avatar :src="tagUserAvatar" />
                         </template>
                     </n-tag>
             </template>
             <template #header-extra>
-                <div 
-                    v-if="showAction" 
+                <div
+                    v-if="showAction && storeUser.hasPermission('community.interact')"
                     class="options">
                     <n-dropdown
                         placement="bottom-end"
@@ -54,6 +54,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useStoreUser } from '@/store/user';
 import { useI18n } from 'vue-i18n';
 import { MoreVertOutlined } from '@vicons/material';
 import type { DropdownOption } from 'naive-ui';
@@ -61,6 +62,7 @@ import { pinTopic, stickTopic, followTopic, unfollowTopic } from '@/api/post';
 import defaultUserAvatar from '@/assets/img/logo.png';
 
 const { t } = useI18n();
+const storeUser = useStoreUser();
 
 const props = withDefaults(
   defineProps<{

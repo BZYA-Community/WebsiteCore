@@ -5,16 +5,14 @@
 package core
 
 import (
+	"context"
 	"time"
-
-	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 )
 
 // SecurityService 安全相关服务
 type SecurityService interface {
-	GetLatestPhoneCaptcha(phone string) (*ms.Captcha, error)
-	UsePhoneCaptcha(captcha *ms.Captcha) error
-	SendPhoneCaptcha(phone string) error
+	SendContactCode(ctx context.Context, userID int64, mode, address, ip string) error
+	VerifyContactCode(ctx context.Context, userID int64, mode, address, code string) error
 }
 
 // AttachmentCheckService 附件检测服务

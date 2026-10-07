@@ -25,6 +25,8 @@ type Core interface {
 	ChangeAvatar(*web.ChangeAvatarReq) (*web.ChangeAvatarResp, error)
 	ChangeNickname(*web.ChangeNicknameReq) error
 	ChangePassword(*web.ChangePasswordReq) error
+	VerifyContactCode(*web.VerifyContactCodeReq) error
+	SendContactCode(*web.SendContactCodeReq) error
 	UserPhoneBind(*web.UserPhoneBindReq) error
 	GetStars(*web.GetStarsReq) (*web.GetStarsResp, error)
 	GetCollections(*web.GetCollectionsReq) (*web.GetCollectionsResp, error)
@@ -144,6 +146,34 @@ func RegisterCoreServant(e *gin.Engine, s Core) {
 			return
 		}
 		s.Render(c, nil, s.ChangePassword(req))
+	})
+	router.Handle("POST", "user/contact/verify", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.VerifyContactCodeReq)
+		var bv _binding_ = req
+		if err := bv.Bind(c); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		s.Render(c, nil, s.VerifyContactCode(req))
+	})
+	router.Handle("POST", "user/contact/code", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.SendContactCodeReq)
+		var bv _binding_ = req
+		if err := bv.Bind(c); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		s.Render(c, nil, s.SendContactCode(req))
 	})
 	router.Handle("POST", "user/phone", func(c *gin.Context) {
 		select {
@@ -295,6 +325,14 @@ func (UnimplementedCoreServant) ChangeNickname(req *web.ChangeNicknameReq) error
 }
 
 func (UnimplementedCoreServant) ChangePassword(req *web.ChangePasswordReq) error {
+	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedCoreServant) VerifyContactCode(req *web.VerifyContactCodeReq) error {
+	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedCoreServant) SendContactCode(req *web.SendContactCodeReq) error {
 	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

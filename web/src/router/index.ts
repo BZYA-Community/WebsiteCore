@@ -1,6 +1,9 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import { watch } from 'vue';
 import i18n from '@/locales';
+import { useStoreUser } from '@/store/user';
+import { useStoreMain } from '@/store/main';
+import { useStoreProfile } from '@/store/profile';
 
 const routes = [
   {
@@ -141,6 +144,11 @@ const routes = [
 const router = createRouter({
   history: createWebHashHistory(),
   routes,
+  scrollBehavior(to, from, savedPosition) {
+    if (['courses', 'course'].includes(String(to.name)) || ['courses', 'course'].includes(String(from.name))) {
+      return savedPosition || { top: 0 };
+    }
+  },
 });
 
 function updateDocumentTitle(titleKey?: unknown) {
@@ -150,9 +158,35 @@ function updateDocumentTitle(titleKey?: unknown) {
     : i18n.global.t('common.siteName');
 }
 
-router.beforeEach((to, from, next) => {
+export const routePermissions: Record<string, string[]> = {
+  home: ['post.view'], post: ['post.view'], topic: ['post.view'], user: ['post.view'],
+  'compose-md': ['post.create'], courses: ['course.catalog'], course: ['course.view'],
+  collection: ['community.interact'], following: ['community.interact'],
+  messages: ['profile.edit'],
+  'admin-settings': ['site.manage'], 'admin-users': ['user.manage', 'identity.manage'],
+  'admin-audit': ['content.review', 'audit.view_all'],
+};
+
+router.beforeEach(async (to) => {
   updateDocumentTitle(to.meta.titleKey);
-  next();
+  if (to.name === '404') return true;
+  const user = useStoreUser();
+  try {
+    await Promise.all([user.loadSession(), useStoreProfile().loadSiteProfile()]);
+  } catch {
+    return { name: '404' };
+  }
+  if (['courses', 'course'].includes(String(to.name)) && !useStoreProfile().profile.coursesEnabled) return { name: '404' };
+  if (to.name === 'course' && !user.hasPermission('course.view') && user.hasPermission('course.catalog')) {
+    return { name: 'courses', query: { course: to.query.id } };
+  }
+  if ((String(to.name).startsWith('admin-') || ['profile', 'setting', 'messages', 'collection', 'following', 'compose-md'].includes(String(to.name))) && !user.userLogined) {
+    useStoreMain().triggerAuth(true);
+    useStoreMain().triggerAuthKey('signin');
+    return { name: 'home' };
+  }
+  const required = routePermissions[String(to.name)];
+  return !required || user.hasAnyPermission(required) ? true : { name: '404' };
 });
 
 // 语言切换时刷新当前路由标题

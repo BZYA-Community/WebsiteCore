@@ -32,7 +32,9 @@ type Core struct {
 	GetStars func(Get, web.GetStarsReq) web.GetStarsResp `mir:"user/stars"`
 
 	// UserPhoneBind 绑定用户手机号
-	UserPhoneBind func(Post, web.UserPhoneBindReq) `mir:"user/phone"`
+	UserPhoneBind     func(Post, web.UserPhoneBindReq)     `mir:"user/phone"`
+	SendContactCode   func(Post, web.SendContactCodeReq)   `mir:"user/contact/code"`
+	VerifyContactCode func(Post, web.VerifyContactCodeReq) `mir:"user/contact/verify"`
 
 	// ChangePassword 修改密码
 	ChangePassword func(Post, web.ChangePasswordReq) `mir:"user/password"`

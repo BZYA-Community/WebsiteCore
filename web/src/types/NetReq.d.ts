@@ -105,6 +105,10 @@ declare namespace NetReq {
   interface PostUnfollowTopic {}
 
   interface SiteProfile {
+    courses_enabled: boolean;
+    account_verify_mode: 'email' | 'phone';
+    contact_verification_available: boolean;
+    upload_limits?: { attachment_max_bytes: number; course_attachment_max_bytes: number; course_resource_max_bytes: number; video_input_max_bytes: number };
     enable_trends_bar?: boolean;
     allow_tweet_attachment?: boolean;
     allow_tweet_video?: boolean;
@@ -112,6 +116,8 @@ declare namespace NetReq {
     allow_phone_bind?: boolean;
     default_tweet_max_length?: number;
     default_tweet_ellipsis_size?: number;
+    tweet_web_ellipsis_size?: number;
+    tweet_mobile_ellipsis_size?: number;
     default_tweet_visibility?: string;
     default_msg_loop_interval?: number;
     copyright_top?: string;

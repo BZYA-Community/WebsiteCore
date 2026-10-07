@@ -192,64 +192,6 @@ func (s *commentManageSrv) HighlightComment(userId, commentId int64) (isEssence 
 	return
 }
 
-func (s *commentManageSrv) DeleteComment(comment *ms.Comment) (err error) {
-	db := s.db.Begin()
-	defer db.Rollback()
-	if err = comment.Delete(db); err != nil {
-		return
-	}
-	err = db.Model(&dbr.TweetCommentThumbs{}).Where("user_id=? AND tweet_id=? AND comment_id=?", comment.UserID, comment.PostID, comment.ID).Updates(map[string]any{
-		"deleted_on": time.Now().Unix(),
-		"is_del":     1,
-	}).Error
-	if err != nil {
-		return
-	}
-	db.Commit()
-	return
-}
-
-func (s *commentManageSrv) CreateComment(comment *ms.Comment) (*ms.Comment, error) {
-	return comment.Create(s.db)
-}
-
-func (s *commentManageSrv) CreateCommentReply(reply *ms.CommentReply) (res *ms.CommentReply, err error) {
-	if res, err = reply.Create(s.db); err == nil && reply.AuditStatus == dbr.PostAuditApproved {
-		// 仅即时过审的回复计入回复数 待审核的在过审时补记(见UpdateCommentReplyAuditStatus)
-		// 宽松处理错误
-		s.db.Table(_comment_).Where("id=?", reply.CommentID).Update("reply_count", gorm.Expr("reply_count+1"))
-	}
-	return
-}
-
-func (s *commentManageSrv) DeleteCommentReply(reply *ms.CommentReply) (err error) {
-	db := s.db.Begin()
-	defer db.Rollback()
-	err = reply.Delete(db)
-	if err != nil {
-		return
-	}
-	err = db.Model(&dbr.TweetCommentThumbs{}).
-		Where("user_id=? AND comment_id=? AND reply_id=?", reply.UserID, reply.CommentID, reply.ID).Updates(map[string]any{
-		"deleted_on": time.Now().Unix(),
-		"is_del":     1,
-	}).Error
-	if err != nil {
-		return
-	}
-	// 仅已过审回复曾计入reply_count 待审/未过审回复删除时不回减
-	if reply.AuditStatus == dbr.PostAuditApproved {
-		// 宽松处理错误
-		db.Table(_comment_).Where("id=?", reply.CommentID).Update("reply_count", gorm.Expr("reply_count-1"))
-	}
-	db.Commit()
-	return
-}
-
-func (s *commentManageSrv) CreateCommentContent(content *ms.CommentContent) (*ms.CommentContent, error) {
-	return content.Create(s.db)
-}
-
 func (s *commentManageSrv) ThumbsUpComment(userId int64, tweetId, commentId int64) error {
 	db := s.db.Begin()
 	defer db.Rollback()

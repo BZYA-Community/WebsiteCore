@@ -5,8 +5,8 @@
 package web
 
 import (
+	"context"
 	"fmt"
-	"time"
 	"unicode/utf8"
 
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
@@ -23,11 +23,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	// _MaxWhisperNumDaily 当日单用户私信总数限制（TODO 配置化、积分兑换等）
-	_maxCaptchaTimes int = 2
-)
-
 type coreSrv struct {
 	api.UnimplementedCoreServant
 	*base.DaoServant
@@ -38,15 +33,14 @@ type coreSrv struct {
 }
 
 func (s *coreSrv) Chain() gin.HandlersChain {
-	return gin.HandlersChain{chain.JWT()}
+	return gin.HandlersChain{chain.JWT(), chain.Authorize()}
 }
 
 func (s *coreSrv) SyncSearchIndex(req *web.SyncSearchIndexReq) error {
-	if req.User != nil && req.User.IsAdmin {
-		s.PushAllPostToSearch()
-	} else {
-		logrus.Warnf("sync search index need admin permision user: %#v", req.User)
+	if !req.User.HasPermission("site.manage") {
+		return web.ErrNoPermission
 	}
+	s.PushAllPostToSearch()
 	return nil
 }
 
@@ -61,21 +55,26 @@ func (s *coreSrv) GetUserInfo(req *web.UserInfoReq) (*web.UserInfoResp, error) {
 		return nil, web.ErrGetFollowCountFailed
 	}
 	resp := &web.UserInfoResp{
-		Id:          user.ID,
-		Nickname:    user.Nickname,
-		Username:    user.Username,
-		Status:      user.Status,
-		Avatar:      user.Avatar,
-		IsAdmin:     user.IsAdmin,
-		Roles:       dbr.SplitRoles(user.Roles),
-		Identity:    dbr.IdentityOf(user.Roles, user.Phone),
-		CreatedOn:   user.CreatedOn,
-		Follows:     follows,
-		Followings:  followings,
-		TweetsCount: user.TweetsCount,
+		Email:           maskEmail(req.User.Email),
+		ContactVerified: req.User.ContactVerified(),
+		Id:              user.ID,
+		Nickname:        user.Nickname,
+		Username:        user.Username,
+		Status:          user.Status,
+		Avatar:          user.Avatar,
+		IsAdmin:         req.User.HasPermission("user.manage"),
+		IsOperator:      req.User.IsOperator,
+		IdentityGroups:  req.User.GroupList(),
+		Permissions:     req.User.PermissionList(),
+		Roles:           req.User.RoleList(),
+		Identity:        req.User.DisplayIdentity(),
+		CreatedOn:       user.CreatedOn,
+		Follows:         follows,
+		Followings:      followings,
+		TweetsCount:     user.TweetsCount,
 	}
-	if user.Phone != "" {
-		resp.Phone = dbr.MaskPhone(user.Phone)
+	if req.User.Phone != "" {
+		resp.Phone = dbr.MaskPhone(req.User.Phone)
 	}
 	return resp, nil
 }
@@ -198,40 +197,7 @@ func (s *coreSrv) GetCollections(req *web.GetCollectionsReq) (*web.GetCollection
 }
 
 func (s *coreSrv) UserPhoneBind(req *web.UserPhoneBindReq) error {
-	// 手机重复性检查
-	u, err := s.Ds.GetUserByPhone(req.Phone)
-	if err == nil && u.Model != nil && u.ID != 0 && u.ID != req.User.ID {
-		return web.ErrExistedUserPhone
-	}
-
-	// 如果禁止phone verify 则允许通过任意验证码
-	if _enablePhoneVerify {
-		c, err := s.Ds.GetLatestPhoneCaptcha(req.Phone)
-		if err != nil {
-			return web.ErrErrorPhoneCaptcha
-		}
-		if c.Captcha != req.Captcha {
-			return web.ErrErrorPhoneCaptcha
-		}
-		if c.ExpiredOn < time.Now().Unix() {
-			return web.ErrErrorPhoneCaptcha
-		}
-		if c.UseTimes >= _maxCaptchaTimes {
-			return web.ErrMaxPhoneCaptchaUseTimes
-		}
-		// 更新检测次数
-		s.Ds.UsePhoneCaptcha(c)
-	}
-
-	// 执行绑定
-	user := req.User
-	user.Phone = req.Phone
-	if err := s.Ds.UpdateUser(user); err != nil {
-		// TODO: 优化错误处理逻辑，失败后上面的逻辑也应该回退
-		logrus.Errorf("Ds.UpdateUser err: %s", err)
-		return xerror.ServerError
-	}
-	return nil
+	return contactError(s.Ds.VerifyContactCode(context.Background(), req.User.ID, "phone", req.Phone, req.Captcha))
 }
 
 func (s *coreSrv) GetStars(req *web.GetStarsReq) (*web.GetStarsResp, error) {
@@ -270,7 +236,7 @@ func (s *coreSrv) ChangePassword(req *web.ChangePasswordReq) error {
 	}
 	// 更新入库
 	user.Password, user.Salt = encryptPasswordAndSalt(req.Password)
-	if err := s.Ds.UpdateUser(user); err != nil {
+	if err := s.Ds.UpdateUser(user, "password", "salt"); err != nil {
 		logrus.Errorf("Ds.UpdateUser err: %s", err)
 		return xerror.ServerError
 	}
@@ -308,68 +274,31 @@ func (s *coreSrv) ChangeNickname(req *web.ChangeNicknameReq) error {
 		return web.ErrNicknameLengthLimit
 	}
 	user := req.User
-	// 审核开关: 无管理角色的用户昵称变更先暂存 待审核通过后生效(见auditSrv)
-	if conf.AuditSetting.Enabled && !user.HasAnyRole() {
-		user.PendingNickname = req.Nickname
-		if err := s.Ds.UpdateUser(user); err != nil {
-			logrus.Errorf("Ds.UpdateUser err: %s", err)
-			return xerror.ServerError
-		}
-		// 用户信息有缓存(GetUserInfo*) 暂存字段写入后需失效缓存 否则审核端读到旧数据
-		onChangeUsernameEvent(user.ID, user.Username)
-		return nil
+	if _, err := s.Ds.SubmitProfileReview(user, ms.ReviewNickname, req.Nickname); err != nil {
+		return reviewError(err)
 	}
-	user.Nickname = req.Nickname
-	if err := s.Ds.UpdateUser(user); err != nil {
-		logrus.Errorf("Ds.UpdateUser err: %s", err)
-		return xerror.ServerError
-	}
-	// 缓存处理
 	onChangeUsernameEvent(user.ID, user.Username)
 	return nil
 }
 
-func (s *coreSrv) ChangeAvatar(req *web.ChangeAvatarReq) (resp *web.ChangeAvatarResp, xerr error) {
-	// 校验前移(#25): 先确认是本站合法附件, 校验通过后才注册失败回滚删除,
-	// 避免把客户端提交的原始字符串交给删除路径
+func (s *coreSrv) ChangeAvatar(req *web.ChangeAvatarReq) (*web.ChangeAvatarResp, error) {
 	if err := s.Ds.CheckAttachment(req.Avatar); err != nil {
 		logrus.Errorf("Ds.CheckAttachment failed: %s", err)
-		return resp, xerror.InvalidParams
+		return nil, xerror.InvalidParams
 	}
-	defer func() {
-		if xerr != nil {
-			deleteOssObjects(s.oss, []string{req.Avatar})
-		}
-	}()
 
 	// 待审对象也立即持久化: 防止临时对象过期清理在审核完成前误删头像文件
 	if err := s.oss.PersistObject(s.oss.ObjectKey(req.Avatar)); err != nil {
 		logrus.Errorf("Ds.ChangeUserAvatar persist object failed: %s", err)
-		return resp, xerror.ServerError
+		return nil, xerror.ServerError
 	}
 	user := req.User
-	// 审核开关: 无管理角色的用户头像变更先暂存 待审核通过后生效(见auditSrv)
-	if conf.AuditSetting.Enabled && !user.HasAnyRole() {
-		user.PendingAvatar = req.Avatar
-		if err := s.Ds.UpdateUser(user); err != nil {
-			logrus.Errorf("Ds.UpdateUser failed: %s", err)
-			return resp, xerror.ServerError
-		}
-		// 用户信息有缓存(GetUserInfo*) 暂存字段写入后需失效缓存 否则审核端读到旧数据
-		onChangeUsernameEvent(user.ID, user.Username)
-		return &web.ChangeAvatarResp{Pending: true}, nil
+	result, err := s.Ds.SubmitProfileReview(user, ms.ReviewAvatar, req.Avatar)
+	if err != nil {
+		return nil, reviewError(err)
 	}
-	oldAvatar := user.Avatar
-	user.Avatar = req.Avatar
-	if err := s.Ds.UpdateUser(user); err != nil {
-		logrus.Errorf("Ds.UpdateUser failed: %s", err)
-		return resp, xerror.ServerError
-	}
-	// 缓存处理
 	onChangeUsernameEvent(user.ID, user.Username)
-	// 清理旧头像对象(仅本站OSS的public/avatar/前缀)
-	deleteOldAvatar(s.oss, oldAvatar, req.Avatar)
-	return &web.ChangeAvatarResp{}, nil
+	return &web.ChangeAvatarResp{Pending: result.Pending}, nil
 }
 
 func (s *coreSrv) TweetCollectionStatus(req *web.TweetCollectionStatusReq) (*web.TweetCollectionStatusResp, error) {

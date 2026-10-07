@@ -158,11 +158,14 @@ func (s *meiliTweetSearchServant) queryAny(user *ms.User, offset, limit int) (*c
 }
 
 func (s *meiliTweetSearchServant) filterList(user *ms.User) string {
+	if user != nil && !user.HasPermission("post.view") {
+		return "visibility=-1"
+	}
 	if user == nil {
 		return s.publicFilter
 	}
 
-	if user.IsAdmin {
+	if user.HasPermission("content.view_private") {
 		return ""
 	}
 

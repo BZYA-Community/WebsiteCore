@@ -153,14 +153,14 @@ const actionOpts = computed(() => {
       : props.message.sender_user;
   let options: DropdownOption[] = [];
   // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
-  if (canWhisperUser(user)) {
+  if (canWhisperUser()) {
     options.push({
       label: t('message.whisperAt', { username: user.username }),
       key: 'whisper',
       icon: renderIcon(PaperPlaneOutline),
     });
   }
-  if (userInfo.value.id != user.id) {
+  if (userInfo.value.id != user.id && storeUser.hasPermission('community.interact')) {
     if (user.is_following) {
       options.push({
         label: t('message.unfollowAt', { username: user.username }),

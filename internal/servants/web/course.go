@@ -5,18 +5,14 @@
 package web
 
 import (
-	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/base64"
-	"encoding/json"
-	"fmt"
+	"path"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
+	"github.com/BZYA-Community/WebsiteCore/internal/authz"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
@@ -25,9 +21,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
 	"github.com/BZYA-Community/WebsiteCore/pkg/utils"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
-	"github.com/alimy/tryst/cfg"
 	"github.com/gin-gonic/gin"
-	"github.com/gofrs/uuid/v5"
 	"github.com/sirupsen/logrus"
 )
 
@@ -59,15 +53,15 @@ type courseAdminSrv struct {
 }
 
 func (s *courseLooseSrv) Chain() gin.HandlersChain {
-	return gin.HandlersChain{chain.JwtLoose()}
+	return gin.HandlersChain{chain.JwtLoose(), chain.Authorize()}
 }
 
 func (s *coursePrivSrv) Chain() gin.HandlersChain {
-	return gin.HandlersChain{chain.JWT(), chain.Priv()}
+	return gin.HandlersChain{chain.JWT(), chain.Authorize()}
 }
 
 func (s *courseAdminSrv) Chain() gin.HandlersChain {
-	return gin.HandlersChain{chain.JWT(), chain.Admin()}
+	return gin.HandlersChain{chain.JWT(), chain.Authorize()}
 }
 
 // ===== 公开读取 =====
@@ -153,7 +147,7 @@ func (s *courseLooseSrv) CourseComments(req *web.CourseCommentsReq) (*web.Course
 	viewerIsAuditor := false
 	if req.User != nil {
 		viewerId = req.User.ID
-		viewerIsAuditor = req.User.IsAdmin || req.User.HasRole(ms.RoleAuditor)
+		viewerIsAuditor = req.User.HasPermission("audit.view_all")
 	}
 	limit, offset := req.PageSize, (req.Page-1)*req.PageSize
 	comments, total, err := s.Ds.GetCourseComments(req.ID, viewerId, viewerIsAuditor, limit, offset)
@@ -206,11 +200,17 @@ func (s *courseLooseSrv) CourseComments(req *web.CourseCommentsReq) (*web.Course
 }
 
 func (s *courseLooseSrv) CourseVideo(req *web.CourseVideoReq) (*web.CourseVideoResp, error) {
+	if !req.User.HasPermission(authz.CourseView) {
+		return nil, web.ErrNoPermission
+	}
 	course, err := s.Ds.GetCourseByID(req.ID)
 	if err != nil || course.Model == nil || course.ID <= 0 {
 		return nil, web.ErrCourseNotExist
 	}
 	objectKey := s.oss.ObjectKey(course.VideoURL)
+	if objectKey == "" || !strings.HasPrefix(objectKey, courseVideoPrefix) {
+		return nil, web.ErrCourseVideoInvalid
+	}
 	signedURL, err := s.oss.SignURL(objectKey, courseVideoSignExpireSec)
 	if err != nil {
 		logrus.Errorf("oss.SignURL err: %s", err)
@@ -246,29 +246,21 @@ func (s *coursePrivSrv) CreateCourseComment(req *web.CreateCourseCommentReq) (*w
 		logrus.Errorf("Ds.GetUserByID err: %s", err)
 		return nil, web.ErrCreateCourseCommentFailed
 	}
-	mediaContents, err := persistMediaContents(s.oss, req.Contents)
-	if err != nil {
+	if !user.HasPermission("course.view") || !user.HasPermission("comment.create") {
+		return nil, web.ErrNoPermission
+	}
+	if err := persistMediaContents(s.oss, req.Contents); err != nil {
 		return nil, web.ErrCreateCourseCommentFailed
 	}
-	// 审核开关: 无管理角色的用户评论需先过审 课程评论计数延迟到过审时生效
-	needAudit := conf.AuditSetting.Enabled && !user.HasAnyRole()
+	// Course questions are always reviewed, including teacher/operator submissions.
 	comment := &ms.CourseComment{
-		CourseID: course.ID,
-		UserID:   req.Uid,
-		IP:       req.ClientIP,
-		IPLoc:    utils.GetIPLoc(req.ClientIP),
+		CourseID:    course.ID,
+		UserID:      req.Uid,
+		IP:          req.ClientIP,
+		IPLoc:       utils.GetIPLoc(req.ClientIP),
+		AuditStatus: ms.PostAuditPending,
 	}
-	if needAudit {
-		comment.AuditStatus = ms.PostAuditPending
-	} else {
-		comment.AuditStatus = ms.PostAuditApproved
-	}
-	comment, err = s.Ds.CreateCourseComment(comment)
-	if err != nil {
-		logrus.Errorf("Ds.CreateCourseComment err: %s", err)
-		deleteOssObjects(s.oss, mediaContents)
-		return nil, web.ErrCreateCourseCommentFailed
-	}
+	questionContents := make([]*ms.CourseCommentContent, 0, len(req.Contents))
 	for _, item := range req.Contents {
 		// 检查附件是否是本站资源
 		if item.Type == ms.ContentTypeImage || item.Type == ms.ContentTypeVideo || item.Type == ms.ContentTypeAttachment {
@@ -276,21 +268,17 @@ func (s *coursePrivSrv) CreateCourseComment(req *web.CreateCourseCommentReq) (*w
 				continue
 			}
 		}
-		commentContent := &ms.CourseCommentContent{
-			CommentID: comment.ID,
-			UserID:    req.Uid,
-			Content:   item.Content,
-			Type:      item.Type,
-			Sort:      item.Sort,
-		}
-		if _, err = s.Ds.CreateCourseCommentContent(commentContent); err != nil {
-			logrus.Errorf("Ds.CreateCourseCommentContent err: %s", err)
-		}
+		questionContents = append(questionContents, &ms.CourseCommentContent{
+			UserID:  req.Uid,
+			Content: item.Content,
+			Type:    item.Type,
+			Sort:    item.Sort,
+		})
 	}
-	if comment.AuditStatus == ms.PostAuditApproved {
-		if err := s.Ds.AdjustCourseCommentCount(course.ID, 1); err != nil {
-			logrus.Errorf("Ds.AdjustCourseCommentCount err: %s", err)
-		}
+	comment, err = s.Ds.CreateCourseQuestionWithContents(comment, questionContents)
+	if err != nil {
+		logrus.Errorf("Ds.CreateCourseQuestionWithContents err: %s", err)
+		return nil, web.ErrCreateCourseCommentFailed
 	}
 	return (*web.CreateCourseCommentResp)(comment.Format()), nil
 }
@@ -308,7 +296,7 @@ func (s *coursePrivSrv) CreateCourseCommentReply(req *web.CreateCourseCommentRep
 		logrus.Errorf("Ds.GetUserByID err: %s", err)
 		return nil, web.ErrCreateCourseCommentFailed
 	}
-	if !canReplyToComment(comment.AuditStatus, comment.UserID, user) {
+	if !user.HasPermission("course.view") || !canReplyToComment(user, comment.UserID, comment.AuditStatus) {
 		return nil, web.ErrNoPermission
 	}
 	atUserID := req.AtUserID
@@ -321,30 +309,20 @@ func (s *coursePrivSrv) CreateCourseCommentReply(req *web.CreateCourseCommentRep
 			atUserID = 0
 		}
 	}
-	// 审核开关: 无管理角色的用户回复需先过审 计数延迟到过审时生效
-	needAudit := conf.AuditSetting.Enabled && !user.HasAnyRole()
+	// Answers use the same mandatory review policy as questions.
 	reply := &ms.CourseCommentReply{
-		CommentID: req.CommentID,
-		UserID:    req.Uid,
-		AtUserID:  atUserID,
-		Content:   req.Content,
-		IP:        req.ClientIP,
-		IPLoc:     utils.GetIPLoc(req.ClientIP),
-	}
-	if needAudit {
-		reply.AuditStatus = ms.PostAuditPending
-	} else {
-		reply.AuditStatus = ms.PostAuditApproved
+		CommentID:   req.CommentID,
+		UserID:      req.Uid,
+		AtUserID:    atUserID,
+		Content:     req.Content,
+		IP:          req.ClientIP,
+		IPLoc:       utils.GetIPLoc(req.ClientIP),
+		AuditStatus: ms.PostAuditPending,
 	}
 	reply, err = s.Ds.CreateCourseCommentReply(reply)
 	if err != nil {
 		logrus.Errorf("Ds.CreateCourseCommentReply err: %s", err)
 		return nil, web.ErrCreateCourseCommentFailed
-	}
-	if reply.AuditStatus == ms.PostAuditApproved {
-		if err := s.Ds.AdjustCourseCommentCount(comment.CourseID, 1); err != nil {
-			logrus.Errorf("Ds.AdjustCourseCommentCount err: %s", err)
-		}
 	}
 	return (*web.CreateCourseCommentReplyResp)(reply.Format()), nil
 }
@@ -359,18 +337,12 @@ func (s *coursePrivSrv) DeleteCourseComment(req *web.DeleteCourseCommentReq) err
 		logrus.Errorf("Ds.GetUserByID err: %s", err)
 		return web.ErrDeleteCourseCommentFailed
 	}
-	if comment.UserID != req.Uid && !user.IsAdmin {
+	if comment.UserID != req.Uid && !user.HasPermission("content.manage") {
 		return web.ErrNoPermission
 	}
 	if err := s.Ds.DeleteCourseComment(comment); err != nil {
 		logrus.Errorf("Ds.DeleteCourseComment err: %s", err)
 		return web.ErrDeleteCourseCommentFailed
-	}
-	// 仅已过审评论曾计入课程评论数 删除时回减
-	if comment.AuditStatus == ms.PostAuditApproved {
-		if err := s.Ds.AdjustCourseCommentCount(comment.CourseID, -1); err != nil {
-			logrus.Errorf("Ds.AdjustCourseCommentCount err: %s", err)
-		}
 	}
 	return nil
 }
@@ -385,43 +357,52 @@ func (s *coursePrivSrv) DeleteCourseCommentReply(req *web.DeleteCourseCommentRep
 		logrus.Errorf("Ds.GetUserByID err: %s", err)
 		return web.ErrDeleteCourseCommentFailed
 	}
-	if reply.UserID != req.Uid && !user.IsAdmin {
+	if reply.UserID != req.Uid && !user.HasPermission("content.manage") {
 		return web.ErrNoPermission
 	}
 	if err := s.Ds.DeleteCourseCommentReply(reply); err != nil {
 		logrus.Errorf("Ds.DeleteCourseCommentReply err: %s", err)
 		return web.ErrDeleteCourseCommentFailed
 	}
-	// 仅已过审回复曾计入课程评论数 删除时回减(父评论reply_count已在DAO内回减)
-	if reply.AuditStatus == ms.PostAuditApproved {
-		if comment, err := s.Ds.GetCourseCommentByID(reply.CommentID); err == nil {
-			if err := s.Ds.AdjustCourseCommentCount(comment.CourseID, -1); err != nil {
-				logrus.Errorf("Ds.AdjustCourseCommentCount err: %s", err)
-			}
-		}
-	}
 	return nil
 }
 
 // ===== 管理(管理员/运维) =====
 
+func canManageCourse(user *ms.User, teacherID int64) bool {
+	return user != nil && (user.HasPermission("course.manage") ||
+		(user.ID == teacherID && user.HasPermission("course.manage_own")))
+}
+
+func canUploadCourse(user *ms.User) bool {
+	return user != nil && user.HasPermission("course.upload") &&
+		(user.HasPermission("course.manage") || user.HasPermission("course.manage_own"))
+}
+
 func (s *courseAdminSrv) CreateCourseGroup(req *web.CourseGroupReq) (*web.CourseGroupResp, error) {
+	if req.User == nil || !req.User.HasPermission("course.manage") {
+		return nil, web.ErrNoPermission
+	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" || utf8.RuneCountInString(name) > 64 {
 		return nil, xerror.InvalidParams.WithDetails("分组名称为1~64字")
 	}
-	group, err := s.Ds.CreateCourseGroup(&ms.CourseGroup{
-		Name: name,
-		Sort: req.Sort,
+	group, err := s.Ds.CreateCourseGroup(req.User, &ms.CourseGroup{
+		Name:     name,
+		Sort:     req.Sort,
+		ParentID: req.ParentID,
 	})
 	if err != nil {
 		logrus.Errorf("Ds.CreateCourseGroup err: %s", err)
-		return nil, web.ErrCreateCourseFailed
+		return nil, courseMutationError(err, web.ErrCreateCourseFailed)
 	}
 	return (*web.CourseGroupResp)(group.Format(0)), nil
 }
 
 func (s *courseAdminSrv) UpdateCourseGroup(req *web.UpdateCourseGroupReq) error {
+	if req.User == nil || !req.User.HasPermission("course.manage") {
+		return web.ErrNoPermission
+	}
 	name := strings.TrimSpace(req.Name)
 	if name == "" || utf8.RuneCountInString(name) > 64 {
 		return xerror.InvalidParams.WithDetails("分组名称为1~64字")
@@ -429,37 +410,43 @@ func (s *courseAdminSrv) UpdateCourseGroup(req *web.UpdateCourseGroupReq) error 
 	if _, err := s.Ds.GetCourseGroupByID(req.ID); err != nil {
 		return web.ErrCourseGroupNotExist
 	}
-	return s.Ds.UpdateCourseGroup(&ms.CourseGroup{
-		Model: &ms.Model{ID: req.ID},
-		Name:  name,
-		Sort:  req.Sort,
-	})
+	return courseMutationError(s.Ds.UpdateCourseGroup(req.User, &ms.CourseGroup{
+		Model:    &ms.Model{ID: req.ID},
+		Name:     name,
+		Sort:     req.Sort,
+		ParentID: req.ParentID,
+	}), web.ErrUpdateCourseFailed)
 }
 
 func (s *courseAdminSrv) DeleteCourseGroup(req *web.DeleteCourseGroupReq) error {
+	if req.User == nil || !req.User.HasPermission("course.manage") {
+		return web.ErrNoPermission
+	}
 	if _, err := s.Ds.GetCourseGroupByID(req.ID); err != nil {
 		return web.ErrCourseGroupNotExist
 	}
-	if count, err := s.Ds.CountCoursesByGroup(req.ID); err != nil {
-		logrus.Errorf("Ds.CountCoursesByGroup err: %s", err)
-		return web.ErrDeleteCourseFailed
-	} else if count > 0 {
-		return web.ErrCourseGroupNotEmpty
-	}
-	return s.Ds.DeleteCourseGroup(req.ID)
+	return courseMutationError(s.Ds.DeleteCourseGroup(req.User, req.ID), web.ErrDeleteCourseFailed)
 }
 
 func (s *courseAdminSrv) CreateCourse(req *web.CreateCourseReq) (*web.CreateCourseResp, error) {
-	course, videoKey, err := s.buildCourse(req.GroupID, req.TeacherID, req.Title, req.Intro, req.Video, req.Cover, nil)
+	if req.User == nil || !canManageCourse(req.User, req.User.ID) {
+		return nil, web.ErrNoPermission
+	}
+	teacherID := req.TeacherID
+	if !req.User.HasPermission("course.manage") || teacherID == 0 {
+		teacherID = req.User.ID
+	}
+	if req.Video != "" {
+		return nil, xerror.InvalidParams.WithDetails("请通过课节附件添加已验证的课程资源")
+	}
+	course, err := s.buildCourse(req.GroupID, teacherID, req.Title, req.Intro, req.TeacherIntro, req.Cover, nil)
 	if err != nil {
 		return nil, err
 	}
-	course, err = s.Ds.CreateCourse(course)
+	course, err = s.Ds.CreateCourse(req.User, course)
 	if err != nil {
 		logrus.Errorf("Ds.CreateCourse err: %s", err)
-		// 落库失败清理已上传的视频对象
-		s.oss.DeleteObjects([]string{videoKey})
-		return nil, web.ErrCreateCourseFailed
+		return nil, courseMutationError(err, web.ErrCreateCourseFailed)
 	}
 	return (*web.CreateCourseResp)(course.Format()), nil
 }
@@ -469,80 +456,70 @@ func (s *courseAdminSrv) UpdateCourse(req *web.UpdateCourseReq) error {
 	if err != nil || course.Model == nil || course.ID <= 0 {
 		return web.ErrCourseNotExist
 	}
-	oldVideoKey := s.oss.ObjectKey(course.VideoURL)
-	oldCoverKey := s.oss.ObjectKey(course.Cover)
-	video, cover := req.Video, req.Cover
-	if video == "" {
-		video = course.VideoURL
+	teacherID := req.TeacherID
+	if teacherID == 0 {
+		teacherID = course.TeacherID
 	}
-	if cover == "" {
-		cover = course.Cover
+	if !canManageCourse(req.User, course.TeacherID) ||
+		(!req.User.HasPermission("course.manage") && teacherID != req.User.ID) {
+		return web.ErrNoPermission
 	}
-	updated, _, err := s.buildCourse(req.GroupID, req.TeacherID, req.Title, req.Intro, video, cover, course)
+	if req.Video != "" {
+		return xerror.InvalidParams.WithDetails("请通过课节附件添加已验证的课程资源")
+	}
+	updated, err := s.buildCourse(req.GroupID, teacherID, req.Title, req.Intro, req.TeacherIntro, req.Cover, course)
 	if err != nil {
 		return err
 	}
 	updated.Model = course.Model
-	if err := s.Ds.UpdateCourse(updated); err != nil {
+	if err := s.Ds.UpdateCourse(req.User, updated); err != nil {
 		logrus.Errorf("Ds.UpdateCourse err: %s", err)
-		return web.ErrUpdateCourseFailed
-	}
-	// 更换视频/封面后清理旧对象(宽松处理)
-	var staleKeys []string
-	if newKey := s.oss.ObjectKey(updated.VideoURL); oldVideoKey != "" && newKey != oldVideoKey {
-		staleKeys = append(staleKeys, oldVideoKey)
-	}
-	if newKey := s.oss.ObjectKey(updated.Cover); oldCoverKey != "" && newKey != oldCoverKey {
-		staleKeys = append(staleKeys, oldCoverKey)
-	}
-	if len(staleKeys) > 0 {
-		s.oss.DeleteObjects(staleKeys)
+		return courseMutationError(err, web.ErrUpdateCourseFailed)
 	}
 	return nil
 }
 
-// buildCourse 校验并组装课程(分组/老师存在性, 视频/封面OSS对象有效性)
-// 返回组装好的课程与视频对象键(供调用方在落库失败时清理)
-func (s *courseAdminSrv) buildCourse(groupID, teacherID int64, title, intro, video, cover string, exist *ms.Course) (*ms.Course, string, error) {
+// buildCourse only edits catalog metadata. Resources belong to verified lessons.
+func (s *courseAdminSrv) buildCourse(groupID, teacherID int64, title, intro, teacherIntro, cover string, exist *ms.Course) (*ms.Course, error) {
 	title = strings.TrimSpace(title)
 	if title == "" || utf8.RuneCountInString(title) > 128 {
-		return nil, "", xerror.InvalidParams.WithDetails("课程标题为1~128字")
+		return nil, xerror.InvalidParams.WithDetails("课程标题为1~128字")
 	}
-	if utf8.RuneCountInString(intro) > 2000 {
-		return nil, "", xerror.InvalidParams.WithDetails("课程简介最长2000字")
+	if utf8.RuneCountInString(intro) > 2000 || utf8.RuneCountInString(teacherIntro) > 2000 {
+		return nil, xerror.InvalidParams.WithDetails("课程及老师简介最长2000字")
 	}
 	if _, err := s.Ds.GetCourseGroupByID(groupID); err != nil {
-		return nil, "", web.ErrCourseGroupNotExist
+		return nil, web.ErrCourseGroupNotExist
 	}
 	if _, err := s.Ds.GetUserByID(teacherID); err != nil {
-		return nil, "", web.ErrCourseTeacherInvalid
+		return nil, web.ErrCourseTeacherInvalid
 	}
-	// 视频: 直传模式传对象键, 代理模式传完整URL, 统一归一化为键校验
-	videoKey := video
-	if strings.Contains(video, "://") {
-		videoKey = s.oss.ObjectKey(video)
-	}
-	if !strings.HasPrefix(videoKey, courseVideoPrefix) {
-		return nil, "", web.ErrCourseVideoInvalid
-	}
-	if exist == nil || exist.VideoURL == "" || s.oss.ObjectKey(exist.VideoURL) != videoKey {
-		// 新上传的对象: 校验存在并转持久
-		if ok, err := s.oss.IsObjectExist(videoKey); err != nil || !ok {
-			return nil, "", web.ErrCourseVideoInvalid
+	cover = strings.TrimSpace(cover)
+	if cover != "" {
+		key := s.oss.ObjectKey(cover)
+		if (!strings.HasPrefix(key, "public/image/") && !strings.HasPrefix(key, "image/")) || path.Clean(key) != key || strings.ContainsAny(key, "%?#\\") {
+			return nil, xerror.InvalidParams.WithDetails("课程封面必须使用本站公开图片")
 		}
-		if err := s.oss.PersistObject(videoKey); err != nil {
-			logrus.Warnf("oss.PersistObject(%s) err: %s", videoKey, err)
+		if err := s.oss.PersistObject(key); err != nil {
+			return nil, web.ErrFileUploadFailed
 		}
+		if exists, err := s.oss.IsObjectExist(key); err != nil || !exists {
+			return nil, web.ErrFileUploadFailed
+		}
+		cover = s.oss.ObjectURL(key)
 	}
 	course := &ms.Course{
-		GroupID:   groupID,
-		TeacherID: teacherID,
-		Title:     title,
-		Intro:     intro,
-		VideoURL:  s.oss.ObjectURL(videoKey),
-		Cover:     strings.TrimSpace(cover),
+		GroupID:      groupID,
+		TeacherID:    teacherID,
+		Title:        title,
+		Intro:        intro,
+		TeacherIntro: teacherIntro,
+		Cover:        cover,
 	}
-	return course, videoKey, nil
+	if exist != nil {
+		course.VideoURL = exist.VideoURL
+	}
+	return course, nil
 }
 
 func (s *courseAdminSrv) DeleteCourse(req *web.DeleteCourseReq) error {
@@ -550,91 +527,14 @@ func (s *courseAdminSrv) DeleteCourse(req *web.DeleteCourseReq) error {
 	if err != nil || course.Model == nil || course.ID <= 0 {
 		return web.ErrCourseNotExist
 	}
-	if err := s.Ds.DeleteCourse(course); err != nil {
+	if !canManageCourse(req.User, course.TeacherID) {
+		return web.ErrNoPermission
+	}
+	if err := s.Ds.DeleteCourse(req.User, course); err != nil {
 		logrus.Errorf("Ds.DeleteCourse err: %s", err)
-		return web.ErrDeleteCourseFailed
-	}
-	// 清理OSS对象(宽松处理 不影响删除结果)
-	keys := []string{}
-	if key := s.oss.ObjectKey(course.VideoURL); key != "" {
-		keys = append(keys, key)
-	}
-	if key := s.oss.ObjectKey(course.Cover); key != "" {
-		keys = append(keys, key)
-	}
-	if len(keys) > 0 {
-		s.oss.DeleteObjects(keys)
-	}
-	// 审计日志: post_id列复用为课程id, action前缀course_区分
-	if req.User != nil {
-		if err := s.Ds.CreateAuditLog(&ms.AuditLog{
-			PostID:     course.ID,
-			OperatorID: req.User.ID,
-			Action:     "course_delete",
-		}); err != nil {
-			logrus.Errorf("Ds.CreateAuditLog err: %s", err)
-		}
+		return courseMutationError(err, web.ErrDeleteCourseFailed)
 	}
 	return nil
-}
-
-// CourseUploadCredential 视频上传凭证: AliOSS返回PostObject直传签名, 其他OSS返回proxy(走后端中转)
-func (s *courseAdminSrv) CourseUploadCredential(req *web.CourseUploadCredentialReq) (*web.CourseUploadCredentialResp, error) {
-	var fileExt string
-	switch strings.ToLower(req.Ext) {
-	case ".mp4", "mp4":
-		fileExt = ".mp4"
-	case ".mov", "mov":
-		fileExt = ".mov"
-	default:
-		return nil, web.ErrCourseVideoInvalid.WithDetails("课程视频仅允许 mp4/mov 类型")
-	}
-	if !cfg.If("AliOSS") {
-		return &web.CourseUploadCredentialResp{Mode: "proxy"}, nil
-	}
-	objectKey := courseVideoPrefix + time.Now().Format("200601") + "/" + uuid.Must(uuid.NewV4()).String() + fileExt
-	// Ali OSS PostObject policy: 标准表单直传签名(密钥不出服务端)
-	expiration := time.Now().Add(10 * time.Minute).UTC().Format("2006-01-02T15:04:05.000Z")
-	policyBytes, err := json.Marshal(map[string]any{
-		"expiration": expiration,
-		"conditions": []any{
-			map[string]string{"bucket": conf.AliOSSSetting.Bucket},
-			[]string{"eq", "$key", objectKey},
-			[]any{"content-length-range", 1, 524288000}, // 500MB
-			[]string{"eq", "$success_action_status", "200"},
-		},
-	})
-	if err != nil {
-		logrus.Errorf("marshal oss policy err: %s", err)
-		return nil, web.ErrCourseUploadCredentialFailed
-	}
-	policy := base64.StdEncoding.EncodeToString(policyBytes)
-	mac := hmac.New(sha1.New, []byte(conf.AliOSSSetting.AccessKeySecret))
-	mac.Write([]byte(policy))
-	signature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
-	// 直传地址用Endpoint而非Domain(Domain可能是CDN/自定义域名)
-	host := fmt.Sprintf("https://%s.%s", conf.AliOSSSetting.Bucket, conf.AliOSSSetting.Endpoint)
-	return &web.CourseUploadCredentialResp{
-		Mode:        "direct",
-		Host:        host,
-		AccessKeyID: conf.AliOSSSetting.AccessKeyID,
-		Policy:      policy,
-		Signature:   signature,
-		Key:         objectKey,
-		Expire:      time.Now().Add(10 * time.Minute).Unix(),
-	}, nil
-}
-
-// UploadCourseVideo 代理模式上传课程视频(非AliOSS或直传不可用时)
-func (s *courseAdminSrv) UploadCourseVideo(req *web.UploadCourseVideoReq) (*web.UploadCourseVideoResp, error) {
-	defer req.File.Close()
-	objectKey := courseVideoPrefix + time.Now().Format("200601") + "/" + uuid.Must(uuid.NewV4()).String() + req.FileExt
-	objectURL, err := s.oss.PutObject(objectKey, req.File, req.FileSize, req.ContentType, false)
-	if err != nil {
-		logrus.Errorf("oss.PutObject err: %s", err)
-		return nil, web.ErrFileUploadFailed
-	}
-	return &web.UploadCourseVideoResp{VideoURL: objectURL}, nil
 }
 
 func newCourseLooseSrv(s *base.DaoServant, oss core.ObjectStorageService) api.CourseLoose {

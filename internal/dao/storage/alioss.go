@@ -6,7 +6,6 @@ package storage
 
 import (
 	"io"
-	"net/url"
 	"strings"
 	"time"
 
@@ -45,6 +44,10 @@ func (s *aliossCreateServant) PutObject(objectKey string, reader io.Reader, obje
 	options := []oss.Option{
 		oss.ContentLength(objectSize),
 		oss.ContentType(contentType),
+		oss.ForbidOverWrite(true),
+	}
+	if strings.HasPrefix(objectKey, "attachment/") {
+		options = append(options, oss.ObjectACL(oss.ACLPrivate))
 	}
 	err := s.bucket.PutObject(objectKey, reader, options...)
 	if err != nil {
@@ -62,6 +65,10 @@ func (s *aliossCreateRetentionServant) PutObject(objectKey string, reader io.Rea
 	options := []oss.Option{
 		oss.ContentLength(objectSize),
 		oss.ContentType(contentType),
+		oss.ForbidOverWrite(true),
+	}
+	if strings.HasPrefix(objectKey, "attachment/") {
+		options = append(options, oss.ObjectACL(oss.ACLPrivate))
 	}
 	if !persistance {
 		options = append(options, oss.Expires(time.Now().Add(s.retainInDays)))
@@ -85,6 +92,10 @@ func (s *aliossCreateTempDirServant) PutObject(objectKey string, reader io.Reade
 	options := []oss.Option{
 		oss.ContentLength(objectSize),
 		oss.ContentType(contentType),
+		oss.ForbidOverWrite(true),
+	}
+	if strings.HasPrefix(objectKey, "attachment/") {
+		options = append(options, oss.ObjectACL(oss.ACLPrivate))
 	}
 	err := s.bucket.PutObject(objectName, reader, options...)
 	if err != nil {
@@ -102,7 +113,11 @@ func (s *aliossCreateTempDirServant) PersistObject(objectKey string) error {
 		logrus.Debugf("object exist so do nothing objectKey: %s", objectKey)
 		return nil
 	}
-	if _, err := s.bucket.CopyObject(s.tempDir+objectKey, objectKey); err != nil {
+	options := []oss.Option{oss.ForbidOverWrite(true)}
+	if strings.HasPrefix(objectKey, "attachment/") {
+		options = append(options, oss.ObjectACL(oss.ACLPrivate))
+	}
+	if _, err := s.bucket.CopyObject(s.tempDir+objectKey, objectKey, options...); err != nil {
 		return err
 	}
 	return s.bucket.DeleteObject(s.tempDir + objectKey)
@@ -122,26 +137,7 @@ func (s *aliossServant) IsObjectExist(objectKey string) (bool, error) {
 }
 
 func (s *aliossServant) SignURL(objectKey string, expiredInSec int64) (string, error) {
-	signedURL, err := s.bucket.SignURL(objectKey, oss.HTTPGet, expiredInSec)
-	if err != nil {
-		logrus.Errorf("client.SignURL err: %v", err)
-		return "", err
-	}
-
-	ur, err := url.Parse(signedURL)
-	if err != nil {
-		logrus.Errorf("url.Parse err: %v", err)
-		return "", err
-	}
-
-	epath, err := url.PathUnescape(ur.Path)
-	if err != nil {
-		logrus.Errorf("url.PathUnescape err: %v", err)
-		return "", err
-	}
-
-	ur.Path, ur.RawPath = epath, epath
-	return ur.String(), nil
+	return s.bucket.SignURL(objectKey, oss.HTTPGet, expiredInSec)
 }
 
 func (s *aliossServant) ObjectURL(objetKey string) string {
@@ -149,7 +145,7 @@ func (s *aliossServant) ObjectURL(objetKey string) string {
 }
 
 func (s *aliossServant) ObjectKey(objectUrl string) string {
-	return strings.Replace(objectUrl, s.domain, "", -1)
+	return strings.TrimPrefix(objectUrl, s.domain)
 }
 
 func (s *aliossServant) Name() string {

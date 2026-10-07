@@ -16,6 +16,15 @@ type ObjectStorageService interface {
 	SignURL(objectKey string, expiredInSec int64) (string, error)
 	ObjectURL(objetKey string) string
 	ObjectKey(cUrl string) string
+	InspectObject(objectKey string) (*ObjectMetadata, error)
+	PromoteObject(sourceKey, destinationKey, etag string) error
+}
+
+type ObjectMetadata struct {
+	Size        int64
+	ContentType string
+	Header      []byte
+	ETag        string
 }
 
 // OssCreateService Object Storage System Object Create service

@@ -22,11 +22,13 @@ type Admin struct {
 	// AdminUserList 管理·用户列表搜索
 	AdminUserList func(Get, web.AdminUserListReq) web.AdminUserListResp `mir:"admin/user/list"`
 	// AdminUserDetail 管理·用户详情(完整手机号 管理级可见)
-	AdminUserDetail func(Get, web.AdminUserDetailReq) web.AdminUserDetailResp `mir:"admin/user/detail"`
-	// AdminUserRoleChange 管理·变更用户角色
-	AdminUserRoleChange func(Post, web.AdminUserRoleReq) `mir:"admin/user/role"`
-	// AdminUserRoleLogs 管理·角色变更记录
-	AdminUserRoleLogs func(Get, web.AdminUserRoleLogsReq) web.AdminUserRoleLogsResp `mir:"admin/user/role/logs"`
+	AdminUserDetail         func(Get, web.AdminUserDetailReq) web.AdminUserDetailResp   `mir:"admin/user/detail"`
+	ListIdentityGroups      func(Get) web.IdentityGroupsResp                            `mir:"admin/identity/groups"`
+	SaveIdentityGroup       func(Post, web.SaveIdentityGroupReq) web.IdentityGroupsResp `mir:"admin/identity/groups"`
+	DeleteIdentityGroup     func(Delete, web.DeleteIdentityGroupReq)                    `mir:"admin/identity/groups"`
+	ListIdentityPermissions func(Get) web.IdentityPermissionsResp                       `mir:"admin/identity/permissions"`
+	SetUserIdentityGroups   func(Post, web.SetUserIdentityReq)                          `mir:"admin/user/identity"`
+	ListIdentityLogs        func(Get, web.IdentityLogsReq) web.IdentityLogsResp         `mir:"admin/identity/logs"`
 	// AdminUserDelete 管理·软删除用户(标记is_del, 数据保留可恢复)
 	AdminUserDelete func(Post, web.AdminUserDeleteReq) `mir:"admin/user/delete"`
 }

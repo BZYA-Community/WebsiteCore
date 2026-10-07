@@ -36,7 +36,15 @@ func (s *webService) String() string {
 }
 
 func newWebEngine() *gin.Engine {
-	return newHTTPEngine(httpEngineOptions{API: true, Sentry: conf.UseSentryGin()})
+	e := newHTTPEngine(httpEngineOptions{API: true, Sentry: conf.UseSentryGin()})
+	var trustedProxies []string
+	if conf.WebServerSetting != nil {
+		trustedProxies = conf.WebServerSetting.TrustedProxies
+	}
+	if err := e.SetTrustedProxies(trustedProxies); err != nil {
+		panic(fmt.Errorf("configure trusted proxies: %w", err))
+	}
+	return e
 }
 
 func newWebService() Service {

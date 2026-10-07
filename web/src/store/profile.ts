@@ -1,9 +1,15 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
+import { getSiteProfile } from '@/api/site';
+const uploadHardLimits = { attachment_max_bytes: 15 * 1024 ** 2, course_attachment_max_bytes: 50 * 1024 ** 2, course_resource_max_bytes: 2 * 1024 ** 3, video_input_max_bytes: 30 * 1024 ** 2 };
 
 export const useStoreProfile = defineStore("profile", () => {
 
     const profile = ref({
+        coursesEnabled: false,
+        accountVerifyMode: 'email' as 'email' | 'phone',
+        contactVerificationAvailable: false,
+        uploadLimits: { ...uploadHardLimits },
         enableTrendsBar: true,
         allowTweetAttachment: true,
         allowTweetVideo: true,
@@ -66,7 +72,20 @@ export const useStoreProfile = defineStore("profile", () => {
         profile.value.copyrightRightLink = import.meta.env.VITE_COPYRIGHT_RIGHT_LINK;
     }
 
-    function updateSiteProfile(data: Record<string, any>) {
+    function updateCapabilities(data: Partial<NetReq.SiteProfile>) {
+        profile.value.coursesEnabled = data.courses_enabled ?? profile.value.coursesEnabled;
+        profile.value.accountVerifyMode = data.account_verify_mode ?? profile.value.accountVerifyMode;
+        profile.value.contactVerificationAvailable = data.contact_verification_available ?? profile.value.contactVerificationAvailable;
+        if (data.upload_limits) {
+            for (const key of Object.keys(uploadHardLimits) as (keyof typeof uploadHardLimits)[]) {
+                const value = data.upload_limits[key];
+                if (Number.isSafeInteger(value) && value > 0) profile.value.uploadLimits[key] = Math.min(value, uploadHardLimits[key]);
+            }
+        }
+    }
+
+    function updateSiteProfile(data: Partial<NetReq.SiteProfile>) {
+        updateCapabilities(data);
         profile.value.enableTrendsBar = data.enable_trends_bar ?? profile.value.enableTrendsBar;
 
         profile.value.allowTweetAttachment =
@@ -104,9 +123,26 @@ export const useStoreProfile = defineStore("profile", () => {
             data.copyright_right_link ?? profile.value.copyrightRightLink;
     }
 
+    let profileLoaded = false;
+    let pending: Promise<void> | undefined;
+    async function loadSiteProfile() {
+        if (profileLoaded) return;
+        if (pending) return pending;
+        loadDefaultSiteProfile();
+        pending = getSiteProfile().then((data) => {
+            if (import.meta.env.VITE_USE_WEB_PROFILE?.toLowerCase() === 'true') {
+                updateSiteProfile(data);
+            } else {
+                updateCapabilities(data);
+            }
+            profileLoaded = true;
+        }).finally(() => { pending = undefined; });
+        return pending;
+    }
+
     return {
         profile,
-        loadDefaultSiteProfile, updateSiteProfile,
+        loadDefaultSiteProfile, updateSiteProfile, loadSiteProfile,
     }
 
 });

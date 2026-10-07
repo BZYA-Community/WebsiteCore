@@ -46,8 +46,8 @@
                     </span>
                     <n-popconfirm
                         v-if="
-                            userInfo.is_admin ||
-                            userInfo.id === comment.user.id
+                            storeUser.hasPermission('content.manage') ||
+                            (storeUser.hasPermission('comment.create') && userInfo.id === comment.user.id)
                         "
                         :negative-text="t('common.cancel')"
                         :positive-text="t('common.confirm')"

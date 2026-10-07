@@ -19,6 +19,7 @@ type Store interface {
 	GetPostContentsByIDs(ids []int64) ([]*ms.PostContent, error)
 	GetUsersByIDs(ids []int64) ([]*ms.User, error)
 	GetUserByUsername(username string) (*ms.User, error)
+	ReviewTaskForTarget(actor *ms.User, kind string, targetID int64) (*ms.ReviewTask, error)
 }
 
 // Views hides bulk enrichment, deleted authors, and the shared read policy.
@@ -85,12 +86,15 @@ func (s *Views) PrepareTweet(user *ms.User, tweet *ms.PostFormated) error {
 }
 
 // CanViewTweet 统一校验用户对帖子的读权限(与TweetDetail的可见性判定保持同口径):
-// 作者本人/管理员/审核员直接放行; 其余要求帖子已过审且满足可见性
-// (公开 / 关注可见=访问者关注了作者), 私密帖仅作者与管理侧可见
+// Ownership, moderation and private-content access are independent of identity names.
 // post 同时兼容 *ms.Post 与 *ms.PostFormated
 func (s *Views) CanViewTweet(user *ms.User, post any) bool {
+	if user != nil && !user.HasPermission("post.view") {
+		return false
+	}
 	var (
 		userID   int64
+		postID   int64
 		visible  ms.PostVisibleT
 		audit    ms.PostAuditT
 		hasValue bool
@@ -99,10 +103,14 @@ func (s *Views) CanViewTweet(user *ms.User, post any) bool {
 	case *ms.Post:
 		if p != nil {
 			userID, visible, audit, hasValue = p.UserID, p.Visibility, p.AuditStatus, true
+			if p.Model != nil {
+				postID = p.ID
+			}
 		}
 	case *ms.PostFormated:
 		if p != nil {
 			userID, visible, audit, hasValue = p.UserID, p.Visibility, p.AuditStatus, true
+			postID = p.ID
 		}
 	default:
 		return false
@@ -110,13 +118,24 @@ func (s *Views) CanViewTweet(user *ms.User, post any) bool {
 	if !hasValue {
 		return false
 	}
-	// 作者本人/管理员/审核员直接放行
-	if user != nil && (user.ID == userID || user.IsAdmin || user.HasRole(ms.RoleAuditor)) {
+	if user != nil && user.ID == userID {
 		return true
 	}
-	// 其余情况要求帖子已过审
 	if audit != ms.PostAuditApproved {
-		return false
+		if user == nil {
+			return false
+		}
+		if user.HasPermission("audit.view_all") {
+			return true
+		}
+		if !user.HasPermission("content.review") || s.store == nil {
+			return false
+		}
+		task, err := s.store.ReviewTaskForTarget(user, ms.ReviewPost, postID)
+		return err == nil && task != nil && task.AssigneeID == user.ID
+	}
+	if user != nil && user.HasPermission("content.view_private") {
+		return true
 	}
 	switch visible {
 	case ms.PostVisitPublic:
@@ -173,9 +192,10 @@ func (s *Views) GetTweetBy(id int64) (*ms.PostFormated, error) {
 	for _, user := range users {
 		postFormated.User = user.Format()
 	}
-	if postFormated.User == nil {
+	if len(users) == 0 || postFormated.User == nil {
 		// 作者用户已不存在时填充占位 避免前端空指针
-		postFormated.User = ms.GhostUserFormated
+		ghost := *ms.GhostUserFormated
+		postFormated.User = &ghost
 	}
 	for _, content := range postContents {
 		if content.PostID == post.ID {
@@ -196,7 +216,7 @@ func (s *Views) RelationTypFrom(me *ms.User, username string) (res *cs.VistUser,
 		return
 	}
 	he, xerr := s.store.GetUserByUsername(username)
-	if xerr != nil || (he.Model != nil && he.ID <= 0) {
+	if xerr != nil || he == nil || he.Model == nil || he.ID <= 0 {
 		return nil, fmt.Errorf("get user failed with username: %s", username)
 	}
 	res.UserId = he.ID
@@ -206,7 +226,7 @@ func (s *Views) RelationTypFrom(me *ms.User, username string) (res *cs.VistUser,
 		return
 	}
 	// visit by admin/other(好友功能已移除 不存在好友关系)
-	if me.IsAdmin {
+	if me.HasPermission("content.view_private") {
 		res.RelTyp = cs.RelationAdmin
 	} else {
 		res.RelTyp = cs.RelationGuest

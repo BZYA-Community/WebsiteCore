@@ -44,7 +44,6 @@ type tweetsCache interface {
 
 type cacheIndexSrv struct {
 	ips core.IndexPostsService
-	ams core.AuthorizationManageService
 
 	name               string
 	version            *semver.Version
@@ -118,7 +117,8 @@ func (s *cacheIndexSrv) keyFrom(user *ms.User, offset int, limit int) string {
 	if user != nil {
 		userId = user.ID
 	}
-	return fmt.Sprintf("%s:%d:%d:%d", _cacheIndexKey, userId, offset, limit)
+	return fmt.Sprintf("%s:%d:%t:%t:%d:%d", _cacheIndexKey, userId,
+		user.HasPermission("post.view"), user.HasPermission("content.view_private"), offset, limit)
 }
 
 func (s *cacheIndexSrv) SendAction(act core.IdxAct, post *ms.Post) {
@@ -200,10 +200,9 @@ func (s *cacheIndexSrv) Version() *semver.Version {
 	return s.version
 }
 
-func newCacheIndexSrv(ips core.IndexPostsService, ams core.AuthorizationManageService, tc tweetsCache) *cacheIndexSrv {
+func newCacheIndexSrv(ips core.IndexPostsService, tc tweetsCache) *cacheIndexSrv {
 	cacheIndex := &cacheIndexSrv{
 		ips:             ips,
-		ams:             ams,
 		cache:           tc,
 		name:            tc.Name(),
 		version:         tc.Version(),

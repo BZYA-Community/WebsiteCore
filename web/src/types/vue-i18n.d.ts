@@ -19,6 +19,7 @@ import type adminAudit from '../locales/zh-CN/adminAudit.json';
 import type adminUsers from '../locales/zh-CN/adminUsers.json';
 import type adminSettings from '../locales/zh-CN/adminSettings.json';
 import type errors from '../locales/zh-CN/errors.json';
+import type identity from '../locales/zh-CN/identity.json';
 
 declare module 'vue-i18n' {
   interface DefineLocaleMessage {
@@ -38,6 +39,7 @@ declare module 'vue-i18n' {
     adminUsers: typeof adminUsers;
     adminSettings: typeof adminSettings;
     errors: typeof errors;
+    identity: typeof identity;
   }
 }
 

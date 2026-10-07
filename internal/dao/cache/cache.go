@@ -23,7 +23,7 @@ func NewRedisCache() core.RedisCache {
 	}
 }
 
-func NewBigCacheIndexService(ips core.IndexPostsService, ams core.AuthorizationManageService) (core.CacheIndexService, core.VersionInfo) {
+func NewBigCacheIndexService(ips core.IndexPostsService) (core.CacheIndexService, core.VersionInfo) {
 	s := conf.BigCacheIndexSetting
 	c := bigcache.DefaultConfig(s.ExpireInSecond)
 	c.Shards = s.MaxIndexPage
@@ -36,14 +36,14 @@ func NewBigCacheIndexService(ips core.IndexPostsService, ams core.AuthorizationM
 	if err != nil {
 		logrus.Fatalf("initial bigCahceIndex failure by err: %v", err)
 	}
-	cacheIndex := newCacheIndexSrv(ips, ams, &bigCacheTweetsCache{
+	cacheIndex := newCacheIndexSrv(ips, &bigCacheTweetsCache{
 		bc: bc,
 	})
 	return cacheIndex, cacheIndex
 }
 
-func NewRedisCacheIndexService(ips core.IndexPostsService, ams core.AuthorizationManageService) (core.CacheIndexService, core.VersionInfo) {
-	cacheIndex := newCacheIndexSrv(ips, ams, &redisCacheTweetsCache{
+func NewRedisCacheIndexService(ips core.IndexPostsService) (core.CacheIndexService, core.VersionInfo) {
+	cacheIndex := newCacheIndexSrv(ips, &redisCacheTweetsCache{
 		expireDuration: conf.RedisCacheIndexSetting.ExpireInSecond,
 		expireInSecond: int64(conf.RedisCacheIndexSetting.ExpireInSecond / time.Second),
 		c:              conf.MustRedisClient(),

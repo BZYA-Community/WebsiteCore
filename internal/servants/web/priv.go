@@ -6,9 +6,10 @@ package web
 
 import (
 	"image"
+	_ "image/gif"
+	_ "image/jpeg"
 	"io"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
@@ -23,10 +24,10 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/pkg/utils"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/alimy/tryst/cfg"
-	"github.com/disintegration/imaging"
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid/v5"
 	"github.com/sirupsen/logrus"
+	_ "golang.org/x/image/webp"
 )
 
 var _uploadAttachmentTypeMap = map[string]ms.AttachmentType{
@@ -55,7 +56,7 @@ func (s *privChain) ChainCreateTweet() (res gin.HandlersChain) {
 }
 
 func (s *privSrv) Chain() gin.HandlersChain {
-	return gin.HandlersChain{chain.JWT(), chain.Priv()}
+	return gin.HandlersChain{chain.JWT(), chain.Authorize(), chain.UploadBodyLimit()}
 }
 
 func (s *privSrv) ThumbsDownTweetReply(req *web.TweetReplyThumbsReq) error {
@@ -147,19 +148,37 @@ func (s *privSrv) UploadAttachment(req *web.UploadAttachmentReq) (*web.UploadAtt
 		logrus.Errorf("oss.putObject err: %s", err)
 		return nil, web.ErrFileUploadFailed
 	}
+	stored := false
+	defer func() {
+		if !stored {
+			// Only this request's server-generated key can be safely discarded.
+			key := ossSavePath
+			if cfg.If("OSS:TempDir") {
+				key = conf.ObjectStorage.TempDirSlash() + key
+			}
+			if err := s.oss.DeleteObject(key); err != nil {
+				logrus.WithError(err).Warn("failed to clean up an unpublished upload")
+			}
+		}
+	}()
 
 	// 构造附件Model
 	attachment := &ms.Attachment{
+		Model:    &ms.Model{},
+		Purpose:  "community",
+		MimeType: req.ContentType,
+		Verified: true,
 		UserID:   req.Uid,
 		FileSize: req.FileSize,
 		Content:  objectUrl,
 		Type:     _uploadAttachmentTypeMap[req.UploadType],
 	}
 	if attachment.Type == ms.AttachmentTypeImage {
-		var src image.Image
-		src, err = imaging.Decode(req.File)
-		if err == nil {
-			attachment.ImgWidth, attachment.ImgHeight = getImageSize(src.Bounds())
+		if _, err := req.File.Seek(0, io.SeekStart); err != nil {
+			return nil, web.ErrFileUploadFailed
+		}
+		if config, _, err := image.DecodeConfig(req.File); err == nil {
+			attachment.ImgWidth, attachment.ImgHeight = config.Width, config.Height
 		}
 	}
 	attachment.ID, err = s.Ds.CreateAttachment(attachment)
@@ -167,6 +186,7 @@ func (s *privSrv) UploadAttachment(req *web.UploadAttachmentReq) (*web.UploadAtt
 		logrus.Errorf("Ds.CreateAttachment err: %s", err)
 		return nil, web.ErrFileUploadFailed
 	}
+	stored = true
 
 	return &web.UploadAttachmentResp{
 		UserID:    req.Uid,
@@ -228,19 +248,16 @@ func validTweetContents(contents []*web.PostContentItem) error {
 	return nil
 }
 
-func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, xerr error) {
-	// 基础内容校验(空/纯空白/文本超长直接拒绝, 避免先上传媒体再回滚)
-	if xerr = validTweetContents(req.Contents); xerr != nil {
-		return nil, xerr
+func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (*web.CreateTweetResp, error) {
+	if req.User == nil || !req.User.HasPermission("post.create") {
+		return nil, web.ErrNoPermission
 	}
-	var mediaContents []string
-	defer func() {
-		if xerr != nil {
-			deleteOssObjects(s.oss, mediaContents)
-		}
-	}()
+	// 基础内容校验(空/纯空白/文本超长直接拒绝, 避免先上传媒体再回滚)
+	if err := validTweetContents(req.Contents); err != nil {
+		return nil, err
+	}
 
-	// 校验前移(#25): 先校验全部内容项, 未通过校验的项不落OSS、不进回滚删除列表
+	// Validate references before publishing them; they may be shared elsewhere.
 	validContents := make([]*web.PostContentItem, 0, len(req.Contents))
 	for _, item := range req.Contents {
 		if err := item.Check(s.Ds); err != nil {
@@ -251,11 +268,9 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 		validContents = append(validContents, item)
 	}
 
-	contents, err := persistMediaContents(s.oss, validContents)
-	if err != nil {
+	if err := persistMediaContents(s.oss, validContents); err != nil {
 		return nil, web.ErrCreatePostFailed
 	}
-	mediaContents = contents
 	tags := tagsFrom(req.Tags)
 	post := &ms.Post{
 		UserID:     req.User.ID,
@@ -264,43 +279,31 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (_ *web.CreateTweetResp, 
 		IPLoc:      utils.GetIPLoc(req.ClientIP),
 		Visibility: ms.PostVisibleT(req.Visibility.ToVisibleValue()),
 	}
-	// 内容审核开启时 普通用户(无任何管理角色)的非私密新帖进入待审核
-	// 导师/审核/管理员/运维免审 私密帖仅自己可见不进审核队列
-	// 注意: 免审路径必须显式置为已过审 PostAuditApproved(1) 否则零值0即待审核
-	if conf.AuditSetting.Enabled && !req.User.HasAnyRole() && post.Visibility != ms.PostVisitPrivate {
+	// Public content requires review unless explicitly exempted by permission.
+	if conf.AuditSetting.Enabled && !req.User.HasPermission("content.publish_unreviewed") && post.Visibility != ms.PostVisitPrivate {
 		post.AuditStatus = ms.PostAuditPending
 	} else {
 		post.AuditStatus = ms.PostAuditApproved
 	}
-	post, err = s.Ds.CreatePost(post)
-	if err != nil {
-		logrus.Errorf("Ds.CreatePost err: %s", err)
-		return nil, web.ErrCreatePostFailed
-	}
-
-	// 创建推文内容(内容项已在持久化前通过 Check 校验)
+	postContents := make([]*ms.PostContent, 0, len(validContents))
 	for _, item := range validContents {
-		postContent := &ms.PostContent{
-			PostID:  post.ID,
+		postContents = append(postContents, &ms.PostContent{
 			UserID:  req.User.ID,
 			Content: item.Content,
 			Type:    item.Type,
 			Sort:    item.Sort,
-		}
-		if _, err = s.Ds.CreatePostContent(postContent); err != nil {
-			logrus.Infof("Ds.CreatePostContent err: %s", err)
-			return nil, web.ErrCreateCommentFailed
-		}
+		})
+	}
+	post, err := s.Ds.CreatePostWithContents(post, postContents)
+	if err != nil {
+		logrus.Errorf("Ds.CreatePostWithContents err: %s", err)
+		return nil, web.ErrCreatePostFailed
 	}
 
 	// 私密推文不创建标签与用户提醒
 	if post.Visibility != core.PostVisitPrivate {
 		// 仅已过审帖子创建标签计数: 待审帖的标签在过审时补建(见auditSrv.AuditPostAction),
 		// 避免未过审的标签文本提前进入公开话题列表(quote_num>0即展示)
-		if post.AuditStatus == ms.PostAuditApproved {
-			s.Ds.UpsertTags(req.User.ID, tags)
-		}
-
 		// 创建用户消息提醒
 		for _, u := range req.Users {
 			user, err := s.Ds.GetUserByUsername(u)
@@ -343,16 +346,14 @@ func (s *privSrv) DeleteTweet(req *web.DeleteTweetReq) error {
 		logrus.Errorf("Ds.GetPostByID err: %s", err)
 		return web.ErrGetPostFailed
 	}
-	if post.UserID != req.User.ID && !req.User.IsAdmin {
+	if post.UserID != req.User.ID && !req.User.HasPermission("content.manage") {
 		return web.ErrNoPermission
 	}
-	mediaContents, err := s.Ds.DeletePost(post)
+	_, err = s.Ds.DeletePost(post)
 	if err != nil {
 		logrus.Errorf("Ds.DeletePost delete post failed: %s", err)
 		return web.ErrDeletePostFailed
 	}
-	// 删除推文的媒体内容
-	deleteOssObjects(s.oss, mediaContents)
 	// 删除索引
 	err = s.DeleteSearchPost(post)
 	if err != nil {
@@ -372,7 +373,7 @@ func (s *privSrv) DeleteCommentReply(req *web.DeleteCommentReplyReq) error {
 		logrus.Errorf("Ds.GetCommentReplyByID err: %s", err)
 		return web.ErrGetReplyFailed
 	}
-	if req.User.ID != reply.UserID && !req.User.IsAdmin {
+	if req.User.ID != reply.UserID && !req.User.HasPermission("content.manage") {
 		return web.ErrNoPermission
 	}
 	// 执行删除
@@ -405,17 +406,17 @@ func (s *privSrv) CreateCommentReply(req *web.CreateCommentReplyReq) (_ *web.Cre
 		logrus.Errorf("Ds.GetUserByID err: %s", err)
 		return nil, web.ErrCreateReplyFailed
 	}
-	if !s.CanViewTweet(user, post) {
+	if !user.HasPermission("comment.create") || !s.CanViewTweet(user, post) {
 		return nil, web.ErrNoPermission
 	}
-	if !canReplyToComment(comment.AuditStatus, comment.UserID, user) {
+	if !canReplyToComment(user, comment.UserID, comment.AuditStatus) {
 		return nil, web.ErrNoPermission
 	}
 	if post.IsLock > 0 {
 		return nil, web.ErrNoPermission
 	}
-	// 审核开关: 无管理角色的用户回复需先过审 计数/索引/通知延迟到过审时生效(见auditSrv)
-	needAudit := conf.AuditSetting.Enabled && !user.HasAnyRole() && post.Visibility != ms.PostVisitPrivate
+	// Review and publication counters depend on the explicit exemption permission.
+	needAudit := conf.AuditSetting.Enabled && !user.HasPermission("content.publish_unreviewed") && post.Visibility != ms.PostVisitPrivate
 
 	// 创建评论
 	reply := &ms.CommentReply{
@@ -438,11 +439,11 @@ func (s *privSrv) CreateCommentReply(req *web.CreateCommentReplyReq) (_ *web.Cre
 	}
 
 	if reply.AuditStatus == ms.PostAuditApproved {
-		// 更新Post回复数
-		post.CommentCount++
-		post.LatestRepliedOn = time.Now().Unix()
-		s.Ds.UpdatePost(post)
-
+		// Counts were committed with the reply; refresh before indexing.
+		post, err = s.Ds.GetPostByID(post.ID)
+		if err != nil {
+			return nil, web.ErrGetPostFailed
+		}
 		// 更新索引
 		s.PushPostToSearch(post)
 
@@ -498,26 +499,15 @@ func (s *privSrv) DeleteComment(req *web.DeleteCommentReq) error {
 		logrus.Errorf("Ds.GetCommentByID err: %v\n", err)
 		return web.ErrGetCommentFailed
 	}
-	if req.User.ID != comment.UserID && !req.User.IsAdmin {
+	if req.User.ID != comment.UserID && !req.User.HasPermission("content.manage") {
 		return web.ErrNoPermission
 	}
-	// 加载post
-	post, err := s.Ds.GetPostByID(comment.PostID)
-	if err != nil {
-		return web.ErrDeleteCommentFailed
-	}
-	// 更新post回复数(仅已过审评论曾计入 待审/未过审评论删除不回减)
-	if comment.AuditStatus == ms.PostAuditApproved {
-		post.CommentCount--
-	}
-	if err := s.Ds.UpdatePost(post); err != nil {
-		logrus.Errorf("Ds.UpdatePost err: %s", err)
-		return web.ErrDeleteCommentFailed
-	}
-	// TODO: 优化删除逻辑，事务化删除comment
 	if err := s.Ds.DeleteComment(comment); err != nil {
 		logrus.Errorf("Ds.DeleteComment err: %s", err)
 		return web.ErrDeleteCommentFailed
+	}
+	if post, err := s.Ds.GetPostByID(comment.PostID); err == nil {
+		s.PushPostToSearch(post)
 	}
 	onCommentActionEvent(comment.PostID, comment.ID, _commentActionDelete)
 	return nil
@@ -539,19 +529,8 @@ func (s *privSrv) HighlightComment(req *web.HighlightCommentReq) (*web.Highlight
 	}, nil
 }
 
-func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateCommentResp, xerr error) {
-	var (
-		mediaContents []string
-		err           error
-	)
-	defer func() {
-		if xerr != nil {
-			deleteOssObjects(s.oss, mediaContents)
-		}
-	}()
-
-	// 校验前移(#25): 先校验全部内容项再持久化, 未通过校验的项不落OSS、不入库、
-	// 也不进入回滚删除列表, 避免失败路径拿着客户端原始字符串执行删除
+func (s *privSrv) CreateComment(req *web.CreateCommentReq) (*web.CreateCommentResp, error) {
+	// Validate references before publishing them; they may be shared elsewhere.
 	validContents := make([]*web.PostContentItem, 0, len(req.Contents))
 	for _, item := range req.Contents {
 		if err := item.Check(s.Ds); err != nil {
@@ -561,7 +540,7 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 		validContents = append(validContents, item)
 	}
 
-	if mediaContents, err = persistMediaContents(s.oss, validContents); err != nil {
+	if err := persistMediaContents(s.oss, validContents); err != nil {
 		return nil, xerror.ServerError
 	}
 
@@ -577,7 +556,7 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 		logrus.Errorf("Ds.GetUserByID err: %s", err)
 		return nil, xerror.ServerError
 	}
-	if !s.CanViewTweet(user, post) {
+	if !user.HasPermission("comment.create") || !s.CanViewTweet(user, post) {
 		return nil, web.ErrNoPermission
 	}
 	if post.IsLock > 0 {
@@ -586,9 +565,9 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 	if post.CommentCount >= conf.AppSetting.MaxCommentCount {
 		return nil, web.ErrMaxCommentCount
 	}
-	// 审核开关: 无管理角色的用户评论需先过审 计数/索引/通知延迟到过审时生效(见auditSrv)
+	// Review and publication counters depend on the explicit exemption permission.
 	// 私密帖子仅作者可见 无需审核
-	needAudit := conf.AuditSetting.Enabled && !user.HasAnyRole() && post.Visibility != ms.PostVisitPrivate
+	needAudit := conf.AuditSetting.Enabled && !user.HasPermission("content.publish_unreviewed") && post.Visibility != ms.PostVisitPrivate
 	comment := &ms.Comment{
 		PostID: post.ID,
 		UserID: req.Uid,
@@ -600,32 +579,26 @@ func (s *privSrv) CreateComment(req *web.CreateCommentReq) (_ *web.CreateComment
 	} else {
 		comment.AuditStatus = ms.PostAuditApproved
 	}
-	comment, err = s.Ds.CreateComment(comment)
+	commentContents := make([]*ms.CommentContent, 0, len(validContents))
+	for _, item := range validContents {
+		commentContents = append(commentContents, &ms.CommentContent{
+			UserID:  req.Uid,
+			Content: item.Content,
+			Type:    item.Type,
+			Sort:    item.Sort,
+		})
+	}
+	comment, err = s.Ds.CreateCommentWithContents(comment, commentContents)
 	if err != nil {
-		logrus.Errorf("Ds.CreateComment err:%s", err)
+		logrus.Errorf("Ds.CreateCommentWithContents err:%s", err)
 		return nil, web.ErrCreateCommentFailed
 	}
 
-	for _, item := range validContents {
-		// 内容项已在持久化前通过 Check 校验(含附件是否本站资源)
-		postContent := &ms.CommentContent{
-			CommentID: comment.ID,
-			UserID:    req.Uid,
-			Content:   item.Content,
-			Type:      item.Type,
-			Sort:      item.Sort,
-		}
-		if _, err := s.Ds.CreateCommentContent(postContent); err != nil {
-			logrus.Errorf("Ds.CreateCommentContent err:%s", err)
-		}
-	}
-
 	if comment.AuditStatus == ms.PostAuditApproved {
-		// 更新Post回复数
-		post.CommentCount++
-		post.LatestRepliedOn = time.Now().Unix()
-		s.Ds.UpdatePost(post)
-
+		post, err = s.Ds.GetPostByID(post.ID)
+		if err != nil {
+			return nil, web.ErrGetPostFailed
+		}
 		// 更新索引
 		s.PushPostToSearch(post)
 
@@ -714,24 +687,12 @@ func (s *privSrv) VisibleTweet(req *web.VisibleTweetReq) (*web.VisibleTweetResp,
 	if xerr := checkPermision(req.User, post.UserID); xerr != nil {
 		return nil, xerr
 	}
-	oldVisibility := post.Visibility
-	if err = s.Ds.VisiblePost(post, req.Visibility.ToVisibleValue()); err != nil {
-		logrus.Warnf("s.Ds.VisiblePost: %s", err)
+	post, err = s.Ds.SetPostVisibilityForReview(req.User, post.ID, ms.PostVisibleT(req.Visibility.ToVisibleValue()))
+	if err != nil {
+		logrus.Warnf("s.Ds.SetPostVisibilityForReview: %s", err)
 		return nil, web.ErrVisblePostFailed
 	}
-	post.Visibility = ms.PostVisibleT(req.Visibility.ToVisibleValue())
-
-	// 内容审核: 普通用户将私密帖(含被审核打回的帖子)重新设为非私密可见时 重新进入审核队列
-	if conf.AuditSetting.Enabled && !req.User.HasAnyRole() &&
-		oldVisibility == ms.PostVisitPrivate && post.Visibility != ms.PostVisitPrivate {
-		post.AuditStatus = ms.PostAuditPending
-		if err = s.Ds.UpdatePost(post); err != nil {
-			logrus.Errorf("Ds.UpdatePost err: %s", err)
-			return nil, web.ErrVisblePostFailed
-		}
-		// 过期作者个人动态缓存(状态从未通过变回待审核)
-		cache.OnExpireIndexTweetEvent(post.UserID)
-	}
+	cache.OnExpireIndexTweetEvent(post.UserID)
 
 	// 搜索索引同步: 仅已过审的非私密帖保留在索引中
 	if post.Visibility == ms.PostVisitPrivate || post.AuditStatus != ms.PostAuditApproved {
@@ -753,7 +714,7 @@ func (s *privSrv) StickTweet(req *web.StickTweetReq) (*web.StickTweetResp, error
 		logrus.Errorf("Ds.GetPostByID err: %v\n", err)
 		return nil, web.ErrStickPostFailed
 	}
-	if !req.User.IsAdmin {
+	if !req.User.HasPermission("content.manage") {
 		return nil, web.ErrNoPermission
 	}
 	newStatus := 1 - post.IsTop
@@ -785,7 +746,7 @@ func (s *privSrv) LockTweet(req *web.LockTweetReq) (*web.LockTweetResp, error) {
 	if err != nil {
 		return nil, web.ErrLockPostFailed
 	}
-	if post.UserID != req.User.ID && !req.User.IsAdmin {
+	if post.UserID != req.User.ID && !req.User.HasPermission("content.manage") {
 		return nil, web.ErrNoPermission
 	}
 	newStatus := 1 - post.IsLock
@@ -812,12 +773,6 @@ func (s *privSrv) deletePostCommentReply(reply *ms.CommentReply) error {
 	if err != nil {
 		return err
 	}
-	// 更新Post回复数(仅已过审回复曾计入 待审/未过审回复删除不回减)
-	if reply.AuditStatus == ms.PostAuditApproved {
-		post.CommentCount--
-		post.LatestRepliedOn = time.Now().Unix()
-	}
-	s.Ds.UpdatePost(post)
 	// 更新索引
 	s.PushPostToSearch(post)
 	return nil
@@ -869,7 +824,7 @@ func (s *privSrv) checkPostActPermission(post *ms.Post, userID int64) error {
 		logrus.Errorf("Ds.GetUserByID err: %s", err)
 		return web.ErrNoPermission
 	}
-	if !s.CanViewTweet(user, post) {
+	if !user.HasPermission("community.interact") || !s.CanViewTweet(user, post) {
 		return web.ErrNoPermission
 	}
 	if post.Visibility == core.PostVisitPrivate && post.UserID != userID {
@@ -894,9 +849,10 @@ func (s *privSrv) createPostStar(postID, userID int64) (*ms.PostStar, error) {
 		return nil, xerror.ServerError
 	}
 
-	// 更新Post点赞数
-	post.UpvoteCount++
-	s.Ds.UpdatePost(post)
+	post, err = s.Ds.GetPostByID(post.ID)
+	if err != nil {
+		return nil, xerror.ServerError
+	}
 
 	// 更新索引
 	s.PushPostToSearch(post)
@@ -918,9 +874,10 @@ func (s *privSrv) deletePostStar(star *ms.PostStar) error {
 		return xerror.ServerError
 	}
 
-	// 更新Post点赞数
-	post.UpvoteCount--
-	s.Ds.UpdatePost(post)
+	post, err = s.Ds.GetPostByID(post.ID)
+	if err != nil {
+		return xerror.ServerError
+	}
 
 	// 更新索引
 	s.PushPostToSearch(post)
@@ -943,9 +900,10 @@ func (s *privSrv) createPostCollection(postID, userID int64) (*ms.PostCollection
 		return nil, xerror.ServerError
 	}
 
-	// 更新Post点赞数
-	post.CollectionCount++
-	s.Ds.UpdatePost(post)
+	post, err = s.Ds.GetPostByID(post.ID)
+	if err != nil {
+		return nil, xerror.ServerError
+	}
 
 	// 更新索引
 	s.PushPostToSearch(post)
@@ -966,9 +924,10 @@ func (s *privSrv) deletePostCollection(collection *ms.PostCollection) error {
 		return xerror.ServerError
 	}
 
-	// 更新Post点赞数
-	post.CollectionCount--
-	s.Ds.UpdatePost(post)
+	post, err = s.Ds.GetPostByID(post.ID)
+	if err != nil {
+		return xerror.ServerError
+	}
 
 	// 更新索引
 	s.PushPostToSearch(post)

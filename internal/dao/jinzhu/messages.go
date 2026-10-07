@@ -5,11 +5,15 @@
 package jinzhu
 
 import (
+	"fmt"
+
+	"github.com/BZYA-Community/WebsiteCore/internal/authz"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type messageSrv struct {
@@ -23,7 +27,73 @@ func newMessageService(db *gorm.DB) core.MessageService {
 }
 
 func (s *messageSrv) CreateMessage(msg *ms.Message) (*ms.Message, error) {
-	return msg.Create(s.db)
+	if msg == nil {
+		return nil, authz.ErrInvalid
+	}
+	if msg.Type != ms.MsgTypeWhisper {
+		return msg.Create(s.db)
+	}
+	if msg.SenderUserID <= 0 || msg.ReceiverUserID <= 0 || msg.SenderUserID == msg.ReceiverUserID {
+		return nil, authz.ErrDenied
+	}
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		// Both directions share one transaction lock across server processes.
+		pair := fmt.Sprintf("whisper:%d:%d", min(msg.SenderUserID, msg.ReceiverUserID), max(msg.SenderUserID, msg.ReceiverUserID))
+		if err := tx.Exec("SELECT pg_advisory_xact_lock(hashtextextended(?, 0))", pair).Error; err != nil {
+			return err
+		}
+		// Identity mutations take this policy row exclusively. Keep policy and
+		// account status stable until the message commits, in the same lock order.
+		var policy dbr.IdentityGroup
+		if err := tx.Clauses(clause.Locking{Strength: "SHARE"}).Where("key = ?", "guest").First(&policy).Error; err != nil {
+			return err
+		}
+		var users []*ms.User
+		if err := tx.Clauses(clause.Locking{Strength: "SHARE"}).
+			Where("id IN ? AND is_del = 0", []int64{msg.SenderUserID, msg.ReceiverUserID}).Order("id ASC").Find(&users).Error; err != nil {
+			return err
+		}
+		if len(users) != 2 {
+			return authz.ErrDenied
+		}
+		if err := dbr.LoadUserIdentities(tx, users...); err != nil {
+			return err
+		}
+		sender, receiver := users[0], users[1]
+		if sender.ID != msg.SenderUserID {
+			sender, receiver = receiver, sender
+		}
+		if receiver.Status != ms.UserStatusNormal {
+			return authz.ErrDenied
+		}
+		messages := &messageSrv{db: tx}
+		hasReply, err := messages.HasWhispered(receiver.ID, sender.ID)
+		if err != nil {
+			return err
+		}
+		if hasReply {
+			if !sender.HasPermission(authz.MessageReply) {
+				return authz.ErrDenied
+			}
+		} else {
+			if !sender.HasPermission(authz.MessageInitiate) {
+				return authz.ErrDenied
+			}
+			hasPending, err := messages.HasWhispered(sender.ID, receiver.ID)
+			if err != nil {
+				return err
+			}
+			if hasPending {
+				return core.ErrWhisperOnePending
+			}
+		}
+		_, err = msg.Create(tx)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+	return msg, nil
 }
 
 func (s *messageSrv) GetUnreadCount(userID int64) (int64, error) {
@@ -126,7 +196,7 @@ func (s *messageSrv) GetWhisperHistory(userID, otherID int64, limit, offset int)
 // HasWhispered sender是否曾给receiver发过私信(首条限制判定)
 func (s *messageSrv) HasWhispered(senderID, receiverID int64) (bool, error) {
 	var count int64
-	err := s.db.Table(_message_).
+	err := s.db.Model(&dbr.Message{}).
 		Where("sender_user_id=? AND receiver_user_id=? AND type=4 AND is_del=0", senderID, receiverID).
 		Limit(1).Count(&count).Error
 	return count > 0, err

@@ -74,6 +74,15 @@ Each sub-service has its own HTTP server block (`RunMode`, `HttpIp`, `HttpPort`,
 
 Keep every port except `WebServer` bound to `127.0.0.1` or an internal interface in production.
 
+`WebServer.trusted_proxies` defaults to `[]`. With that default, client IP limits use the TCP peer address and ignore `X-Forwarded-For` and `X-Real-IP`. If an actual reverse proxy sits in front of the service, list only its IP addresses or narrowly scoped CIDRs:
+
+```yaml
+WebServer:
+  trusted_proxies: ["127.0.0.1", "::1"] # Only when the reverse proxy runs on this host.
+```
+
+Invalid entries stop startup. Do not trust `0.0.0.0/0`, `::/0`, or a subnet containing untrusted clients. Configure the trusted proxy to replace incoming client IP headers or append the actual connection peer to its forwarding chain. Restrict direct access to the backend port when using a proxy. With an empty list behind a proxy, users share that proxy's IP limits; setting the correct trusted proxy addresses restores per-client limits without accepting forged headers from arbitrary peers.
+
 ### App behavior (`App`)
 
 `RunMode` (`debug`/`release`), `MaxCommentCount`, `MaxWhisperDaily` (daily private-message cap), `MaxCaptchaTimes`, `DefaultContextTimeout`, `DefaultPageSize`, `MaxPageSize`.

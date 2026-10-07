@@ -131,9 +131,9 @@ func (p *pushAllPostToSearchEvent) Action() error {
 // Search writes stay asynchronous for HTTP callers; the application module
 // returns errors to the existing event manager for reporting.
 func (s *DaoServant) PushAllPostToSearch() {
-	events.OnEvent(&pushAllPostToSearchEvent{fn: func() error { return s.index.Sync(context.Background()) }})
+	events.OnEvent(&pushAllPostToSearchEvent{fn: func() error { return s.Index.Sync(context.Background()) }})
 }
 func (s *DaoServant) PushPostToSearch(post *ms.Post) {
-	events.OnEvent(&pushPostToSearchEvent{fn: s.index.Put, post: post})
+	events.OnEvent(&pushPostToSearchEvent{fn: s.Index.Put, post: post})
 }
-func (s *DaoServant) DeleteSearchPost(post *ms.Post) error { return s.index.Delete(post) }
+func (s *DaoServant) DeleteSearchPost(post *ms.Post) error { return s.Index.Delete(post) }

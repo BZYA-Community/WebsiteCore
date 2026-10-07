@@ -34,18 +34,14 @@ type TweetService interface {
 
 // TweetManageService 推文管理服务，包括创建/删除/更新推文
 type TweetManageService interface {
-	CreatePost(post *ms.Post) (*ms.Post, error)
 	DeletePost(post *ms.Post) ([]string, error)
 	LockPost(post *ms.Post) error
 	StickPost(post *ms.Post) error
 	HighlightPost(userId, postId int64) (int, error)
-	VisiblePost(post *ms.Post, visibility cs.TweetVisibleType) error
-	UpdatePost(post *ms.Post) error
 	CreatePostStar(postID, userID int64) (*ms.PostStar, error)
 	DeletePostStar(p *ms.PostStar) error
 	CreatePostCollection(postID, userID int64) (*ms.PostCollection, error)
 	DeletePostCollection(p *ms.PostCollection) error
-	CreatePostContent(content *ms.PostContent) (*ms.PostContent, error)
 	CreateAttachment(obj *ms.Attachment) (int64, error)
 }
 

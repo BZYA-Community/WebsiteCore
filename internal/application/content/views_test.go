@@ -10,11 +10,15 @@ import (
 )
 
 type memoryStore struct {
-	post     *ms.Post
-	contents []*ms.PostContent
-	users    []*ms.User
-	follows  map[int64]bool
-	err      error
+	post         *ms.Post
+	contents     []*ms.PostContent
+	users        []*ms.User
+	follows      map[int64]bool
+	err          error
+	reviewTask   *ms.ReviewTask
+	reviewErr    error
+	reviewKind   string
+	reviewTarget int64
 }
 
 func (s *memoryStore) IsMyFollow(_ int64, _ ...int64) (map[int64]bool, error) {
@@ -34,10 +38,17 @@ func (s *memoryStore) GetUserByUsername(name string) (*ms.User, error) {
 	}
 	return nil, errors.New("missing user")
 }
-func user(id int64, roles string) *ms.User { return &ms.User{Model: &ms.Model{ID: id}, Roles: roles} }
+func (s *memoryStore) ReviewTaskForTarget(_ *ms.User, kind string, target int64) (*ms.ReviewTask, error) {
+	s.reviewKind, s.reviewTarget = kind, target
+	return s.reviewTask, s.reviewErr
+}
+func user(id int64, permissions ...string) *ms.User {
+	return &ms.User{Model: &ms.Model{ID: id}, Status: ms.UserStatusNormal, Permissions: append([]string{"post.view"}, permissions...)}
+}
 
 func TestReadPolicyAcrossRepresentations(t *testing.T) {
-	views := content.New(&memoryStore{follows: map[int64]bool{10: true}})
+	store := &memoryStore{follows: map[int64]bool{10: true}, reviewTask: &ms.ReviewTask{AssigneeID: 20}}
+	views := content.New(store)
 	for _, tc := range []struct {
 		name       string
 		viewer     *ms.User
@@ -47,28 +58,47 @@ func TestReadPolicyAcrossRepresentations(t *testing.T) {
 	}{
 		{"public guest", nil, ms.PostVisitPublic, ms.PostAuditApproved, true},
 		{"pending guest", nil, ms.PostVisitPublic, ms.PostAuditPending, false},
-		{"pending author", user(10, ""), ms.PostVisitPrivate, ms.PostAuditPending, true},
-		{"pending admin", &ms.User{Model: &ms.Model{ID: 20}, IsAdmin: true}, ms.PostVisitPrivate, ms.PostAuditPending, true},
-		{"pending auditor", user(20, ms.RoleAuditor), ms.PostVisitPrivate, ms.PostAuditPending, true},
-		{"mentor private", user(20, ms.RoleMentor), ms.PostVisitPrivate, ms.PostAuditApproved, false},
+		{"pending author", user(10), ms.PostVisitPrivate, ms.PostAuditPending, true},
+		{"legacy admin", &ms.User{Model: &ms.Model{ID: 20}, Status: ms.UserStatusNormal, IsAdmin: true, Permissions: []string{"post.view"}}, ms.PostVisitPrivate, ms.PostAuditPending, false},
+		{"legacy auditor", &ms.User{Model: &ms.Model{ID: 20}, Status: ms.UserStatusNormal, Roles: "auditor", Permissions: []string{"post.view"}}, ms.PostVisitPrivate, ms.PostAuditPending, false},
+		{"assigned reviewer", user(20, "content.review"), ms.PostVisitPrivate, ms.PostAuditPending, true},
+		{"unassigned reviewer", user(30, "content.review"), ms.PostVisitPrivate, ms.PostAuditPending, false},
+		{"global review reader", user(20, "audit.view_all"), ms.PostVisitPrivate, ms.PostAuditPending, true},
+		{"private access does not grant review", user(20, "content.view_private"), ms.PostVisitPrivate, ms.PostAuditPending, false},
+		{"review does not grant private access", user(20, "content.review"), ms.PostVisitPrivate, ms.PostAuditApproved, false},
+		{"private reader", user(20, "content.view_private"), ms.PostVisitPrivate, ms.PostAuditApproved, true},
+		{"owner view revoked", &ms.User{Model: &ms.Model{ID: 10}, Status: ms.UserStatusNormal}, ms.PostVisitPrivate, ms.PostAuditApproved, false},
 		{"following guest", nil, ms.PostVisitFollowing, ms.PostAuditApproved, false},
-		{"following user", user(20, ""), ms.PostVisitFollowing, ms.PostAuditApproved, true},
-		{"legacy friend", user(20, ""), ms.PostVisitFriend, ms.PostAuditApproved, false},
-		{"unknown", user(20, ""), 99, ms.PostAuditApproved, false},
+		{"following user", user(20), ms.PostVisitFollowing, ms.PostAuditApproved, true},
+		{"legacy friend", user(20), ms.PostVisitFriend, ms.PostAuditApproved, false},
+		{"unknown", user(20), 99, ms.PostAuditApproved, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			post := &ms.Post{Model: &ms.Model{ID: 1}, UserID: 10, Visibility: tc.visibility, AuditStatus: tc.audit}
 			for _, value := range []any{post, post.Format()} {
+				store.reviewKind, store.reviewTarget = "", 0
 				if got := views.CanViewTweet(tc.viewer, value); got != tc.want {
 					t.Fatalf("CanViewTweet(%T) = %v, want %v", value, got, tc.want)
+				}
+				if tc.audit != ms.PostAuditApproved && tc.viewer.HasPermission("content.review") && (store.reviewKind != ms.ReviewPost || store.reviewTarget != post.ID) {
+					t.Fatal("review lookup did not use the post target")
 				}
 			}
 		})
 	}
 	for _, post := range []any{nil, (*ms.Post)(nil), (*ms.PostFormated)(nil), "invalid"} {
-		if views.CanViewTweet(user(10, ""), post) {
+		if views.CanViewTweet(user(10), post) {
 			t.Fatalf("invalid post %T accepted", post)
 		}
+	}
+	post := &ms.Post{Model: &ms.Model{ID: 1}, UserID: 10, AuditStatus: ms.PostAuditPending}
+	store.reviewTask = nil
+	if views.CanViewTweet(user(20, "content.review"), post) {
+		t.Fatal("missing assignment accepted")
+	}
+	store.reviewTask, store.reviewErr = &ms.ReviewTask{AssigneeID: 20}, errors.New("review unavailable")
+	if views.CanViewTweet(user(20, "content.review"), post) {
+		t.Fatal("failed assignment lookup accepted")
 	}
 }
 
@@ -83,10 +113,10 @@ func TestReadAssemblesContentAndIsolatesDeletedAuthors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(first.Contents) != 1 || first.Contents[0].Content != "hello" || first.User.ID != 0 {
+	if len(first.Contents) != 1 || first.Contents[0].Content != "hello" || first.User.ID != ms.GhostUserFormated.ID {
 		t.Fatalf("view = %+v", first)
 	}
-	if err = views.PrepareTweet(user(20, ""), first); err != nil {
+	if err = views.PrepareTweet(user(20), first); err != nil {
 		t.Fatal(err)
 	}
 	second, err := views.GetTweetBy(5)
@@ -128,8 +158,9 @@ func TestProfileRelationUsesAuthenticatedIdentity(t *testing.T) {
 	}{
 		{self, "me", cs.RelationSelf},
 		{nil, "me", cs.RelationGuest},
-		{&ms.User{Model: &ms.Model{ID: 20}, Username: "admin", IsAdmin: true}, "me", cs.RelationAdmin},
-		{user(20, ""), "me", cs.RelationGuest},
+		{&ms.User{Model: &ms.Model{ID: 20}, Status: ms.UserStatusNormal, Username: "admin", IsAdmin: true}, "me", cs.RelationGuest},
+		{user(20, "content.view_private"), "me", cs.RelationAdmin},
+		{user(20), "me", cs.RelationGuest},
 	} {
 		got, err := views.RelationTypFrom(tc.viewer, tc.name)
 		if err != nil || got.UserId != 10 || got.RelTyp != tc.want {

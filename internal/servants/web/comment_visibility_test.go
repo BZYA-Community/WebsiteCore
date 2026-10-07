@@ -7,10 +7,10 @@ import (
 )
 
 func TestCanReplyToComment(t *testing.T) {
-	author := &ms.User{Model: &ms.Model{ID: 10}}
-	stranger := &ms.User{Model: &ms.Model{ID: 20}}
-	auditor := &ms.User{Model: &ms.Model{ID: 30}, Roles: ms.RoleAuditor}
-	admin := &ms.User{Model: &ms.Model{ID: 40}, IsAdmin: true}
+	author := permissionUser(10, "comment.create")
+	stranger := permissionUser(20, "comment.create")
+	auditor := permissionUser(30, "comment.create", "audit.view_all")
+	admin := permissionUser(40, "comment.create", "audit.view_all")
 	tests := []struct {
 		name   string
 		status ms.PostAuditT
@@ -27,10 +27,12 @@ func TestCanReplyToComment(t *testing.T) {
 		{name: "pending auditor", status: ms.PostAuditPending, viewer: auditor, want: true},
 		{name: "pending admin", status: ms.PostAuditPending, viewer: admin, want: true},
 		{name: "pending anonymous", status: ms.PostAuditPending, viewer: nil, want: false},
+		{name: "approved anonymous", status: ms.PostAuditApproved, viewer: nil, want: false},
+		{name: "approved revoked permission", status: ms.PostAuditApproved, viewer: permissionUser(20), want: false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := canReplyToComment(tt.status, author.ID, tt.viewer); got != tt.want {
+			if got := canReplyToComment(tt.viewer, author.ID, tt.status); got != tt.want {
 				t.Fatalf("canReplyToComment() = %v, want %v", got, tt.want)
 			}
 		})

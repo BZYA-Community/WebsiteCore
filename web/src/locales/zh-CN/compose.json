@@ -12,11 +12,10 @@
   "visibilityPrivate": "私密",
   "visibilityFollowing": "关注可见",
   "imageFormatError": "图片仅允许 webp/png/jpg/gif 格式",
-  "imageSizeError": "图片大小不能超过10MB",
-  "videoFormatError": "视频仅允许 mp4/mov 格式",
-  "videoSizeError": "视频大小不能超过100MB",
+  "videoFormatError": "视频仅支持 mp4/mov/webm 格式",
+  "videoSizeError": "视频原文件不能超过 {limit} MB",
   "attachmentFormatError": "附件仅允许 zip 格式",
-  "attachmentSizeError": "附件大小不能超过100MB",
+  "attachmentSizeError": "普通附件不能超过 {limit} MB",
   "uploadFailed": "上传失败",
   "contentRequired": "请输入内容哦",
   "publishSuccessAudit": "发布成功，内容审核通过后对他人可见",
@@ -26,5 +25,14 @@
     "editorPlaceholder": "支持 Markdown：井号后加空格是标题，#话题# 或 #话题 加空格是话题标签",
     "draftTip": "草稿自动保存，仅保留最近一次未发布的内容",
     "draftRecovered": "已恢复上次未发布的草稿"
-  }
+  },
+  "emptyFileError": "无法上传空文件。",
+  "compressionUnsupported": "此浏览器无法压缩视频。请使用支持媒体录制的桌面浏览器重试。原视频不会上传。",
+  "compressionFailed": "视频压缩失败，请检查文件是否能够播放后重试。原视频不会上传。",
+  "compressedTooLarge": "压缩后的视频仍超过 {limit} MB，请缩短视频或降低分辨率后重试。",
+  "compressionBusy": "请等待当前视频压缩完成。",
+  "compressionProgress": "正在本地压缩视频，耗时约等于视频时长。请保持此页面打开。",
+  "addImage": "添加图片",
+  "addVideo": "添加视频",
+  "addAttachment": "添加附件"
 }

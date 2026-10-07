@@ -84,9 +84,9 @@ for (const loc of TARGET_LOCALES) {
   }
 }
 
-// 3. unused（errors.* 走 translateErrMsg 动态拼接/默认参数，豁免）
+// 3. unused: error codes and permission catalog labels are resolved dynamically.
 const unused = [...sourceKeys.keys()]
-  .filter((k) => !usedKeys.has(k) && !k.startsWith('errors.'))
+  .filter((k) => !usedKeys.has(k) && !k.startsWith('errors.') && !k.startsWith('identity.permission.'))
   .sort();
 if (unused.length) {
   console.warn(`\n⚠️  [unused] 语言包存在但代码未引用 (${unused.length}):`);

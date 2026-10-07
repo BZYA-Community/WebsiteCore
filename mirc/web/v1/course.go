@@ -16,6 +16,10 @@ type CourseLoose struct {
 	CourseList func(Get, web.CourseListReq) web.CourseListResp `mir:"course/list"`
 	// CourseDetail 课程详情
 	CourseDetail func(Get, web.CourseDetailReq) web.CourseDetailResp `mir:"course"`
+	// CourseLessons authenticated course content, excluded from the public catalog.
+	CourseLessons func(Get, web.CourseLessonsReq) web.CourseLessonsResp `mir:"course/lessons"`
+	// CourseAttachment signs an attachment referenced by an existing lesson.
+	CourseAttachment func(Get, web.CourseAttachmentReq) web.CourseAttachmentResp `mir:"course/attachment"`
 	// CourseComments 课程评论列表(审核可见性与帖子评论同口径)
 	CourseComments func(Get, web.CourseCommentsReq) web.CourseCommentsResp `mir:"course/comments"`
 	// CourseVideo 课程视频签名播放地址
@@ -53,9 +57,10 @@ type CourseAdmin struct {
 	// UpdateCourse 更新课程
 	UpdateCourse func(Post, web.UpdateCourseReq) `mir:"admin/course/update"`
 	// DeleteCourse 删除课程(硬删除 连带评论与OSS对象)
-	DeleteCourse func(Post, web.DeleteCourseReq) `mir:"admin/course/delete"`
-	// CourseUploadCredential 获取视频上传凭证(AliOSS直传policy/其他OSS返回proxy)
-	CourseUploadCredential func(Get, web.CourseUploadCredentialReq) web.CourseUploadCredentialResp `mir:"admin/course/upload-credential"`
-	// UploadCourseVideo 代理模式上传课程视频(multipart)
-	UploadCourseVideo func(Post, web.UploadCourseVideoReq) web.UploadCourseVideoResp `mir:"admin/course/video"`
+	DeleteCourse         func(Post, web.DeleteCourseReq)                                      `mir:"admin/course/delete"`
+	CreateCourseLesson   func(Post, web.CourseLessonReq) web.CourseLessonResp                 `mir:"admin/course/lesson"`
+	UpdateCourseLesson   func(Post, web.UpdateCourseLessonReq) web.CourseLessonResp           `mir:"admin/course/lesson/update"`
+	DeleteCourseLesson   func(Post, web.DeleteCourseLessonReq)                                `mir:"admin/course/lesson/delete"`
+	CourseUploadInit     func(Post, web.CourseUploadInitReq) web.CourseUploadInitResp         `mir:"admin/course/upload/init"`
+	CourseUploadComplete func(Post, web.CourseUploadCompleteReq) web.CourseUploadCompleteResp `mir:"admin/course/upload/complete"`
 }

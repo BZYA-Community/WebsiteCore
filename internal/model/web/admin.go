@@ -5,6 +5,7 @@
 package web
 
 import (
+	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 )
 
@@ -39,15 +40,18 @@ func (r *AdminUserListReq) SetPageInfo(page, pageSize int) {
 
 // AdminUserItem 用户列表条目(手机号脱敏显示)
 type AdminUserItem struct {
-	ID        int64    `json:"id"`
-	Nickname  string   `json:"nickname"`
-	Username  string   `json:"username"`
-	Phone     string   `json:"phone"`
-	Roles     []string `json:"roles"`
-	Identity  string   `json:"identity"`
-	Status    int      `json:"status"`
-	IsAdmin   bool     `json:"is_admin"`
-	CreatedOn int64    `json:"created_on"`
+	IsOperator     bool               `json:"is_operator"`
+	IdentityGroups []ms.IdentityGroup `json:"identity_groups"`
+	Permissions    []string           `json:"permissions"`
+	ID             int64              `json:"id"`
+	Nickname       string             `json:"nickname"`
+	Username       string             `json:"username"`
+	Phone          string             `json:"phone"`
+	Roles          []string           `json:"roles"`
+	Identity       string             `json:"identity"`
+	Status         int                `json:"status"`
+	IsAdmin        bool               `json:"is_admin"`
+	CreatedOn      int64              `json:"created_on"`
 }
 
 type AdminUserListResp joint.PageResp
@@ -60,15 +64,18 @@ type AdminUserDetailReq struct {
 
 // AdminUserDetailResp 用户详情(管理级可见完整手机号)
 type AdminUserDetailResp struct {
-	ID        int64    `json:"id"`
-	Nickname  string   `json:"nickname"`
-	Username  string   `json:"username"`
-	Phone     string   `json:"phone"`
-	Roles     []string `json:"roles"`
-	Identity  string   `json:"identity"`
-	Status    int      `json:"status"`
-	IsAdmin   bool     `json:"is_admin"`
-	CreatedOn int64    `json:"created_on"`
+	IsOperator     bool               `json:"is_operator"`
+	IdentityGroups []ms.IdentityGroup `json:"identity_groups"`
+	Permissions    []string           `json:"permissions"`
+	ID             int64              `json:"id"`
+	Nickname       string             `json:"nickname"`
+	Username       string             `json:"username"`
+	Phone          string             `json:"phone"`
+	Roles          []string           `json:"roles"`
+	Identity       string             `json:"identity"`
+	Status         int                `json:"status"`
+	IsAdmin        bool               `json:"is_admin"`
+	CreatedOn      int64              `json:"created_on"`
 }
 
 // AdminUserRoleReq 用户管理·变更用户角色
@@ -127,6 +134,8 @@ type AdminAuditPostsResp joint.PageResp
 
 // AdminAuditPostReq 审核动作·action: approve通过 reject拒绝(需reason) delete删除
 type AdminAuditPostReq struct {
+	TaskID   int64 `json:"task_id" binding:"required,min=1"`
+	Revision int64 `json:"revision" binding:"required,min=1"`
 	BaseInfo `json:"-" binding:"-"`
 	PostID   int64  `json:"post_id" binding:"required"`
 	Action   string `json:"action" binding:"required,oneof=approve reject delete"`
@@ -149,6 +158,8 @@ type AdminAuditCommentsResp joint.PageResp
 
 // AdminAuditCommentReq 评论审核动作·comment_type: 0帖子评论 1帖子回复 2课程评论 3课程回复
 type AdminAuditCommentReq struct {
+	TaskID   int64 `json:"task_id" binding:"required,min=1"`
+	Revision int64 `json:"revision" binding:"required,min=1"`
 	BaseInfo `json:"-" binding:"-"`
 	ID       int64 `json:"id" binding:"required"`
 	// 0为合法值(评论) 不能加required 否则zero value校验失败
@@ -159,6 +170,8 @@ type AdminAuditCommentReq struct {
 
 // AdminAuditCommentItem 评论审核队列条目(评论与回复合并)
 type AdminAuditCommentItem struct {
+	Contents    []*PostContentItem   `json:"contents"`
+	ReviewTask  *ms.ReviewTask       `json:"review_task"`
 	ID          int64                `json:"id"`
 	CommentType int                  `json:"comment_type"` // 0帖子评论 1帖子回复 2课程评论 3课程回复
 	PostID      int64                `json:"post_id"`
@@ -191,6 +204,8 @@ type AdminAuditNicknamesResp joint.PageResp
 
 // AdminAuditNicknameReq 昵称审核动作
 type AdminAuditNicknameReq struct {
+	TaskID   int64 `json:"task_id" binding:"required,min=1"`
+	Revision int64 `json:"revision" binding:"required,min=1"`
 	BaseInfo `json:"-" binding:"-"`
 	UserID   int64  `json:"user_id" binding:"required"`
 	Action   string `json:"action" binding:"required,oneof=approve reject"`
@@ -199,11 +214,12 @@ type AdminAuditNicknameReq struct {
 
 // AdminAuditNicknameItem 昵称审核队列条目
 type AdminAuditNicknameItem struct {
-	UserID          int64  `json:"user_id"`
-	Username        string `json:"username"`
-	Nickname        string `json:"nickname"`
-	PendingNickname string `json:"pending_nickname"`
-	CreatedOn       int64  `json:"created_on"`
+	ReviewTask      *ms.ReviewTask `json:"review_task"`
+	UserID          int64          `json:"user_id"`
+	Username        string         `json:"username"`
+	Nickname        string         `json:"nickname"`
+	PendingNickname string         `json:"pending_nickname"`
+	CreatedOn       int64          `json:"created_on"`
 }
 
 // AdminAuditAvatarsReq 头像审核队列
@@ -221,6 +237,8 @@ type AdminAuditAvatarsResp joint.PageResp
 
 // AdminAuditAvatarReq 头像审核动作
 type AdminAuditAvatarReq struct {
+	TaskID   int64 `json:"task_id" binding:"required,min=1"`
+	Revision int64 `json:"revision" binding:"required,min=1"`
 	BaseInfo `json:"-" binding:"-"`
 	UserID   int64  `json:"user_id" binding:"required"`
 	Action   string `json:"action" binding:"required,oneof=approve reject"`
@@ -229,11 +247,12 @@ type AdminAuditAvatarReq struct {
 
 // AdminAuditAvatarItem 头像审核队列条目
 type AdminAuditAvatarItem struct {
-	UserID        int64  `json:"user_id"`
-	Username      string `json:"username"`
-	Avatar        string `json:"avatar"`
-	PendingAvatar string `json:"pending_avatar"`
-	CreatedOn     int64  `json:"created_on"`
+	ReviewTask    *ms.ReviewTask `json:"review_task"`
+	UserID        int64          `json:"user_id"`
+	Username      string         `json:"username"`
+	Avatar        string         `json:"avatar"`
+	PendingAvatar string         `json:"pending_avatar"`
+	CreatedOn     int64          `json:"created_on"`
 }
 
 // AdminAuditLogsReq 审核日志

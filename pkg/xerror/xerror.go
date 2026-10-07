@@ -97,7 +97,7 @@ func HttpStatusCode(e error) (statusCode int, code int) {
 		UnauthorizedAuthFailed.StatusCode(),
 		UnauthorizedTokenError.StatusCode(),
 		UnauthorizedTokenGenerate.StatusCode(),
-		UnauthorizedTokenTimeout.StatusCode():
+		UnauthorizedTokenTimeout.StatusCode(), 20006: // Disabled accounts cannot authenticate.
 		statusCode = http.StatusUnauthorized
 	case TooManyRequests.StatusCode():
 		statusCode = http.StatusTooManyRequests

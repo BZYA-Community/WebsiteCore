@@ -315,13 +315,8 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
-import { storeToRefs } from "pinia";
-import { useRouter } from "vue-router";
-import { userInfo as fetchUserInfo } from "@/api/auth";
 import { getSiteProfile } from "@/api/site";
-import { useStoreMain } from "@/store/main";
 import { useStoreProfile } from "@/store/profile";
-import { TOKEN_KEY, useStoreUser } from "@/store/user";
 import { Api } from "@/utils/request";
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
@@ -372,11 +367,7 @@ const sectionLabelMap = computed<Record<string, string>>(() => ({
     alipay: t('adminSettings.section.alipay'),
 }));
 
-const storeMain = useStoreMain();
-const storeUser = useStoreUser();
 const storeProfile = useStoreProfile();
-const { userInfo } = storeToRefs(storeUser);
-const router = useRouter();
 
 const loading = ref(false);
 const saving = ref(false);
@@ -700,39 +691,6 @@ const loadSettings = async () => {
     }
 };
 
-const ensureAdminAccess = async () => {
-    if (!localStorage.getItem(TOKEN_KEY) && userInfo.value.id === 0) {
-        storeMain.triggerAuth(true);
-        storeMain.triggerAuthKey("signin");
-        router.replace({
-            name: "home",
-        });
-        return false;
-    }
-
-    if (userInfo.value.id === 0) {
-        try {
-            const currentUser = await fetchUserInfo();
-            storeUser.updateUserinfo(currentUser);
-        } catch (_err) {
-            storeUser.userLogout();
-            router.replace({
-                name: "home",
-            });
-            return false;
-        }
-    }
-
-    if (!userInfo.value.is_admin) {
-        router.replace({
-            name: "404",
-        });
-        return false;
-    }
-
-    return true;
-};
-
 const collectChangedItems = (): Api.Admin.NetParams.SettingValueInput[] | null => {
     normalizeDependentDrafts();
 
@@ -859,10 +817,6 @@ const handleSave = async (e: MouseEvent) => {
 };
 
 onMounted(async () => {
-    const allowed = await ensureAdminAccess();
-    if (!allowed) {
-        return;
-    }
     await loadSettings();
 });
 </script>

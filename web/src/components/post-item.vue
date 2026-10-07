@@ -154,7 +154,7 @@
             </template>
             <template #action>
                 <n-space justify="space-between">
-                    <div class="opt-item hover" @click.stop="handlePostStar">
+                    <div class="opt-item hover" @click.stop="handlePostStar" :aria-disabled="!storeUser.hasPermission('community.interact')">
                         <n-icon size="18" class="opt-item-icon">
                             <heart-outline />
                         </n-icon>
@@ -166,7 +166,7 @@
                         </n-icon>
                         {{ post.comment_count }}
                     </div>
-                    <div class="opt-item hover" @click.stop="handlePostCollection">
+                    <div class="opt-item hover" @click.stop="handlePostCollection" :aria-disabled="!storeUser.hasPermission('community.interact')">
                         <n-icon size="18" class="opt-item-icon">
                             <bookmark-outline />
                         </n-icon>
@@ -181,6 +181,7 @@
 <script setup lang="ts">
 import { h, ref, computed } from 'vue';
 import { useStoreMain } from '@/store/main';
+import { useStoreUser } from '@/store/user';
 import { useRouter } from 'vue-router';
 import { NIcon, useDialog } from 'naive-ui';
 import { useI18n } from 'vue-i18n';
@@ -214,6 +215,7 @@ const { t } = useI18n();
 const router = useRouter();
 
 const storeMain = useStoreMain();
+const storeUser = useStoreUser();
 const storeProfile = useStoreProfile();
 const { theme } = storeToRefs(storeMain);
 const { profile } = storeToRefs(storeProfile);
@@ -249,14 +251,14 @@ const renderIcon = (icon: Component) => {
 const tweetOptions = computed(() => {
   let options: DropdownOption[] = [];
   // 私信入口: 道友仅对高级身份可见(后端仍强制校验)
-  if (!props.isOwner && canWhisperUser(props.post.user)) {
+  if (!props.isOwner && canWhisperUser()) {
     options.push({
       label: t('post.menu.whisper', { user: props.post.user.username }),
       key: 'whisper',
       icon: renderIcon(PaperPlaneOutline),
     });
   }
-  if (!props.isOwner && props.addFollowAction) {
+  if (!props.isOwner && props.addFollowAction && storeUser.hasPermission('community.interact')) {
     if (props.post.user.is_following) {
       options.push({
         label: t('post.menu.unfollowUser', { user: props.post.user.username }),
@@ -308,6 +310,7 @@ const handleTweetAction = async (
 // 使用 usePostContent composable
 const post = usePostContent(props.post);
 const handlePostStar = () => {
+  if (!storeUser.hasPermission('community.interact')) return;
   postStar({
     id: post.value.id,
   })
@@ -330,6 +333,7 @@ const handlePostStar = () => {
     });
 };
 const handlePostCollection = () => {
+  if (!storeUser.hasPermission('community.interact')) return;
   postCollection({
     id: post.value.id,
   })

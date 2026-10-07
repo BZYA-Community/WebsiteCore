@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
@@ -50,8 +49,13 @@ func (s *auditSrv) SoftDeleteUser(user *ms.User) error {
 	return user.Delete(s.db)
 }
 
-func (s *auditSrv) ListAuditPosts(status int, offset, limit int) (res []*ms.Post, total int64, err error) {
+func (s *auditSrv) ListAuditPosts(actor *ms.User, status int, offset, limit int) (res []*ms.Post, total int64, err error) {
+	actor, err = freshReviewActor(s.db, actor)
+	if err != nil {
+		return
+	}
 	db := s.db.Model(&dbr.Post{}).Where("is_del = ?", 0)
+	db = db.Where("id IN (?)", reviewTaskScope(s.db.Model(&ms.ReviewTask{}), actor).Select("target_id").Where("kind = ?", "post"))
 	if status >= 0 && status <= int(dbr.PostAuditRejected) {
 		db = db.Where("audit_status = ?", status)
 	}
@@ -65,24 +69,35 @@ func (s *auditSrv) ListAuditPosts(status int, offset, limit int) (res []*ms.Post
 	return
 }
 
-func (s *auditSrv) CreateAuditLog(log *ms.AuditLog) error {
-	_, err := log.Create(s.db)
-	return err
-}
-
-// ListAuditComments 评论审核队列: 评论与回复UNION合并按创建时间倒序分页
-// status: 0待审核 1已通过 2未通过 -1全部
-func (s *auditSrv) ListAuditComments(status int, offset, limit int) (res []*dbr.AuditCommentRow, total int64, err error) {
-	condC, condR, condCC, condCR := "", "", "", ""
-	var args []any
-	if status >= 0 && status <= int(dbr.PostAuditRejected) {
-		condC = " AND c.audit_status = ?"
-		condR = " AND r.audit_status = ?"
-		condCC = " AND cc.audit_status = ?"
-		condCR = " AND cr.audit_status = ?"
-		// 注意: 四个UNION分支的顺序参数, 追加顺序必须与SQL分支顺序一致
-		args = append(args, status, status, status, status)
+func (s *auditSrv) ListAuditComments(actor *ms.User, status int, offset, limit int) (res []*dbr.AuditCommentRow, total int64, err error) {
+	actor, err = freshReviewActor(s.db, actor)
+	if err != nil {
+		return
 	}
+	var tasks []*ms.ReviewTask
+	if err = reviewTaskScope(s.db, actor).Select("kind", "target_id").Where("kind IN ?", []string{ms.ReviewComment, ms.ReviewReply, ms.ReviewCourseQuestion, ms.ReviewCourseAnswer}).Find(&tasks).Error; err != nil {
+		return
+	}
+	ids := map[string][]int64{}
+	for _, task := range tasks {
+		ids[task.Kind] = append(ids[task.Kind], task.TargetID)
+	}
+
+	condC, condR, condCC, condCR := " AND c.id IN ?", " AND r.id IN ?", " AND cc.id IN ?", " AND cr.id IN ?"
+	var args []any
+	for _, kind := range []string{ms.ReviewComment, ms.ReviewReply, ms.ReviewCourseQuestion, ms.ReviewCourseAnswer} {
+		args = append(args, ids[kind])
+		if status >= 0 && status <= int(dbr.PostAuditRejected) {
+			args = append(args, status)
+		}
+	}
+	if status >= 0 && status <= int(dbr.PostAuditRejected) {
+		condC += " AND c.audit_status = ?"
+		condR += " AND r.audit_status = ?"
+		condCC += " AND cc.audit_status = ?"
+		condCR += " AND cr.audit_status = ?"
+	}
+
 	// comment_type: 0帖子评论 1帖子回复 2课程评论 3课程回复; post_id列在课程类型下承载course_id
 	union := fmt.Sprintf(`SELECT c.id, 0 AS comment_type, c.post_id, 0 AS comment_id, c.user_id, c.audit_status, c.created_on
 FROM %s c WHERE c.is_del = 0%s
@@ -95,7 +110,10 @@ FROM %s cc WHERE cc.is_del = 0%s
 UNION ALL
 SELECT cr.id, 3 AS comment_type, pc.course_id, cr.comment_id, cr.user_id, cr.audit_status, cr.created_on
 FROM %s cr JOIN %s pc ON cr.comment_id = pc.id WHERE cr.is_del = 0%s`,
-		_comment_, condC, _commentReply_, _comment_, condR, _courseComment_, condCC, _courseCommentReply_, _courseComment_, condCR)
+		s.db.NamingStrategy.TableName("comment"), condC,
+		s.db.NamingStrategy.TableName("comment_reply"), s.db.NamingStrategy.TableName("comment"), condR,
+		s.db.NamingStrategy.TableName("course_comment"), condCC,
+		s.db.NamingStrategy.TableName("course_comment_reply"), s.db.NamingStrategy.TableName("course_comment"), condCR)
 	if err = s.db.Raw("SELECT COUNT(*) FROM ("+union+") t", args...).Scan(&total).Error; err != nil {
 		return
 	}
@@ -104,46 +122,14 @@ FROM %s cr JOIN %s pc ON cr.comment_id = pc.id WHERE cr.is_del = 0%s`,
 	return
 }
 
-// UpdateCommentAuditStatus 更新评论审核状态 返回旧状态供上层联动帖子评论数/通知
-func (s *auditSrv) UpdateCommentAuditStatus(id int64, status int) (oldStatus int, err error) {
-	var comment dbr.Comment
-	if err = s.db.Where("id = ? AND is_del = ?", id, 0).First(&comment).Error; err != nil {
+// ListAuditNicknames returns pending profiles in the actor's assignment scope.
+func (s *auditSrv) ListAuditNicknames(actor *ms.User, offset, limit int) (res []*ms.User, total int64, err error) {
+	actor, err = freshReviewActor(s.db, actor)
+	if err != nil {
 		return
 	}
-	oldStatus = int(comment.AuditStatus)
-	err = s.db.Model(&dbr.Comment{}).Where("id = ?", id).Updates(map[string]any{
-		"audit_status": status,
-		"modified_on":  time.Now().Unix(),
-	}).Error
-	return
-}
-
-// UpdateCommentReplyAuditStatus 更新回复审核状态 返回旧状态 并联动父评论reply_count
-func (s *auditSrv) UpdateCommentReplyAuditStatus(id int64, status int) (oldStatus int, err error) {
-	var reply dbr.CommentReply
-	if err = s.db.Where("id = ? AND is_del = ?", id, 0).First(&reply).Error; err != nil {
-		return
-	}
-	oldStatus = int(reply.AuditStatus)
-	if err = s.db.Model(&dbr.CommentReply{}).Where("id = ?", id).Updates(map[string]any{
-		"audit_status": status,
-		"modified_on":  time.Now().Unix(),
-	}).Error; err != nil {
-		return
-	}
-	// 待审/未过审 -> 过审: 补记回复数; 过审 -> 拒绝: 回减
-	switch {
-	case oldStatus != int(dbr.PostAuditApproved) && status == int(dbr.PostAuditApproved):
-		err = s.db.Table(_comment_).Where("id = ?", reply.CommentID).Update("reply_count", gorm.Expr("reply_count+1")).Error
-	case oldStatus == int(dbr.PostAuditApproved) && status != int(dbr.PostAuditApproved):
-		err = s.db.Table(_comment_).Where("id = ?", reply.CommentID).Update("reply_count", gorm.Expr("reply_count-1")).Error
-	}
-	return
-}
-
-// ListAuditNicknames 昵称审核队列: pending_nickname非空的用户
-func (s *auditSrv) ListAuditNicknames(offset, limit int) (res []*ms.User, total int64, err error) {
 	db := s.db.Model(&dbr.User{}).Where("is_del = ? AND pending_nickname <> ''", 0)
+	db = db.Where("id IN (?)", reviewTaskScope(s.db.Model(&ms.ReviewTask{}), actor).Select("target_id").Where("kind = ?", "nickname"))
 	if err = db.Count(&total).Error; err != nil {
 		return
 	}
@@ -154,18 +140,14 @@ func (s *auditSrv) ListAuditNicknames(offset, limit int) (res []*ms.User, total 
 	return
 }
 
-// UpdateUserNickname 昵称审核结果落库(指定列更新 零值pending可清空)
-func (s *auditSrv) UpdateUserNickname(user *ms.User, nickname, pendingNickname string) error {
-	return s.db.Model(&dbr.User{}).Where("id = ?", user.ID).Updates(map[string]any{
-		"nickname":         nickname,
-		"pending_nickname": pendingNickname,
-		"modified_on":      time.Now().Unix(),
-	}).Error
-}
-
-// ListAuditAvatars 头像审核队列: pending_avatar非空的用户
-func (s *auditSrv) ListAuditAvatars(offset, limit int) (res []*ms.User, total int64, err error) {
+// ListAuditAvatars returns pending profiles in the actor's assignment scope.
+func (s *auditSrv) ListAuditAvatars(actor *ms.User, offset, limit int) (res []*ms.User, total int64, err error) {
+	actor, err = freshReviewActor(s.db, actor)
+	if err != nil {
+		return
+	}
 	db := s.db.Model(&dbr.User{}).Where("is_del = ? AND pending_avatar <> ''", 0)
+	db = db.Where("id IN (?)", reviewTaskScope(s.db.Model(&ms.ReviewTask{}), actor).Select("target_id").Where("kind = ?", "avatar"))
 	if err = db.Count(&total).Error; err != nil {
 		return
 	}
@@ -176,17 +158,15 @@ func (s *auditSrv) ListAuditAvatars(offset, limit int) (res []*ms.User, total in
 	return
 }
 
-// UpdateUserAvatar 头像审核结果落库(指定列更新 零值pending可清空)
-func (s *auditSrv) UpdateUserAvatar(user *ms.User, avatar, pendingAvatar string) error {
-	return s.db.Model(&dbr.User{}).Where("id = ?", user.ID).Updates(map[string]any{
-		"avatar":         avatar,
-		"pending_avatar": pendingAvatar,
-		"modified_on":    time.Now().Unix(),
-	}).Error
-}
-
-func (s *auditSrv) ListAuditLogs(offset, limit int) (res []*ms.AuditLog, total int64, err error) {
+func (s *auditSrv) ListAuditLogs(actor *ms.User, offset, limit int) (res []*ms.AuditLog, total int64, err error) {
+	actor, err = freshReviewActor(s.db, actor)
+	if err != nil {
+		return
+	}
 	db := s.db.Model(&dbr.AuditLog{}).Where("is_del = ?", 0)
+	if !actor.HasPermission("audit.view_all") {
+		db = db.Where("operator_id = ?", actor.ID)
+	}
 	if err = db.Count(&total).Error; err != nil {
 		return
 	}

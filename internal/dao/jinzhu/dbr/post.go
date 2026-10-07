@@ -53,6 +53,7 @@ type Post struct {
 }
 
 type PostFormated struct {
+	ReviewTask      *ReviewTask            `json:"review_task,omitempty"`
 	ID              int64                  `json:"id"`
 	UserID          int64                  `json:"user_id"`
 	User            *UserFormated          `json:"user"`
@@ -224,8 +225,16 @@ func (p *Post) Count(db *gorm.DB, conditions ConditionsT) (int64, error) {
 	return count, nil
 }
 
-func (p *Post) Update(db *gorm.DB) error {
-	return db.Model(&Post{}).Where("id = ? AND is_del = ?", p.Model.ID, 0).Save(p).Error
+func (p *Post) Update(db *gorm.DB, fields ...string) error {
+	if p == nil || p.Model == nil || p.ID <= 0 || len(fields) == 0 {
+		return gorm.ErrInvalidData
+	}
+	for _, field := range fields {
+		if field != "is_lock" && field != "is_top" && field != "is_essence" {
+			return gorm.ErrInvalidData
+		}
+	}
+	return db.Model(&Post{}).Where("id = ? AND is_del = 0", p.ID).Select(fields).Updates(p).Error
 }
 
 func (p PostVisibleT) String() string {

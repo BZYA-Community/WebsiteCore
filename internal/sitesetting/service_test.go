@@ -58,8 +58,8 @@ func TestUpdateEditableProfilePersistsOnlyEditableKeys(t *testing.T) {
 	if !profile.AllowUserRegister {
 		t.Fatalf("AllowUserRegister = false, want bootstrap true")
 	}
-	if !profile.AllowPhoneBind {
-		t.Fatalf("AllowPhoneBind = false, want bootstrap true")
+	if profile.AllowPhoneBind || profile.AccountVerifyMode != "email" {
+		t.Fatal("legacy bootstrap flag enabled phone binding in email mode")
 	}
 	if profile.DefaultTweetVisibility != "public" {
 		t.Fatalf("DefaultTweetVisibility = %q, want public", profile.DefaultTweetVisibility)

@@ -16,7 +16,7 @@ type BaseServant = httpx.Servant
 type DaoServant struct {
 	*BaseServant
 	*content.Views
-	index *searchindex.Index
+	Index *searchindex.Index
 
 	Dsa   core.WebDataServantA
 	Ds    core.DataService
@@ -37,6 +37,6 @@ func NewDaoServant() *DaoServant {
 		Ds:          ds,
 		Views:       content.New(ds),
 		Ts:          ts,
-		index:       searchindex.New(ds, ts, redis),
+		Index:       searchindex.New(ds, ts, redis),
 	}
 }

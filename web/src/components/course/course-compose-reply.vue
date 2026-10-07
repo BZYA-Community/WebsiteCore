@@ -5,16 +5,16 @@
                 {{ formatPrettyTime(comment.created_on) }}
             </span>
             <div class="actions">
-                <span class="show reply-btn" v-if="userLogined && !showReply" @click="switchReply(true)">
+                <span class="show reply-btn" v-if="storeUser.hasPermission('comment.create') && userLogined && !showReply" @click="switchReply(true)">
                     {{ t('course.action.reply') }}
                 </span>
-                <span class="hide reply-btn" v-if="userLogined && showReply" @click="switchReply(false)">
+                <span class="hide reply-btn" v-if="storeUser.hasPermission('comment.create') && userLogined && showReply" @click="switchReply(false)">
                     {{ t('common.cancel') }}
                 </span>
             </div>
         </div>
 
-        <div class="reply-input-wrap" v-if="showReply">
+        <div class="reply-input-wrap" v-if="showReply && storeUser.hasPermission('comment.create')">
             <n-input-group>
                 <n-input ref="inputInstRef" size="small" :placeholder="
                     props.atUsername

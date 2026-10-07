@@ -96,6 +96,9 @@ func setupSetting(suite []string, noDefault bool) error {
 		"WebProfile":        &WebProfileSetting,
 		"Audit":             &AuditSetting,
 		"Operator":          &OperatorSetting,
+		"courses":           &CourseSetting,
+		"account_verify":    &AccountVerifySetting,
+		"uploads":           &UploadSetting,
 	}
 	for k, v := range objects {
 		err := vp.UnmarshalKey(k, v)
@@ -104,9 +107,24 @@ func setupSetting(suite []string, noDefault bool) error {
 		}
 	}
 
+	if err := WebServerSetting.ValidateTrustedProxies(); err != nil {
+		return err
+	}
 	// yaml 缺省 Audit 段时保持默认开启内容审核
+	if AccountVerifySetting == nil {
+		return errors.New("account_verify defaults are missing")
+	}
+	if err := AccountVerifySetting.Validate(); err != nil {
+		return err
+	}
+	if err := UploadLimits().Validate(); err != nil {
+		return err
+	}
 	if AuditSetting == nil {
 		AuditSetting = &AuditConf{Enabled: true}
+	}
+	if err := AuditSetting.NormalizeReviewSettings(); err != nil {
+		return err
 	}
 
 	CacheSetting.CientSideCacheExpire *= time.Second

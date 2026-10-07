@@ -52,6 +52,13 @@ func (s *followingManageSrv) ListFollows(userId int64, limit, offset int) (*ms.C
 	res := &ms.ContactList{
 		Total: totoal,
 	}
+	users := make([]*dbr.User, 0, len(follows))
+	for _, f := range follows {
+		users = append(users, f.User)
+	}
+	if err := dbr.LoadUserIdentities(s.db, users...); err != nil {
+		return nil, err
+	}
 	for _, f := range follows {
 		res.Contacts = append(res.Contacts, ms.ContactItem{
 			UserId:    f.User.ID,
@@ -71,7 +78,7 @@ func (s *followingManageSrv) ListFollowings(userId int64, limit, offset int) (*m
 	if err != nil {
 		return nil, err
 	}
-	followings, err := s.u.ListUserInfoById(s.db, followingIds)
+	followings, err := s.u.List(s.db, &dbr.ConditionsT{"id IN ?": followingIds}, 0, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +91,8 @@ func (s *followingManageSrv) ListFollowings(userId int64, limit, offset int) (*m
 			Username:  user.Username,
 			Nickname:  user.Nickname,
 			Avatar:    user.Avatar,
-			Roles:     dbr.SplitRoles(user.Roles),
+			Roles:     user.RoleList(),
+			Identity:  user.DisplayIdentity(),
 			CreatedOn: user.CreatedOn,
 		})
 	}

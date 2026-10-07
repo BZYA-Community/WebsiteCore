@@ -73,8 +73,10 @@ func (s *sqlTweetSearchServant) Search(user *ms.User, q *core.QueryReq, offset, 
 func (s *sqlTweetSearchServant) baseQuery(user *ms.User) *gorm.DB {
 	db := s.db.Model(&dbr.Post{}).Where("audit_status = ?", dbr.PostAuditApproved)
 	switch {
-	case user != nil && user.IsAdmin:
-		// 管理员不过滤
+	case user != nil && !user.HasPermission("post.view"):
+		db = db.Where("1 = 0")
+	case user != nil && user.HasPermission("content.view_private"):
+		// Private-content access is independent of identity names.
 	case user == nil:
 		db = db.Where("visibility = ?", core.PostVisitPublic)
 	default:

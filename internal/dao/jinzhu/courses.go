@@ -5,8 +5,6 @@
 package jinzhu
 
 import (
-	"time"
-
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
@@ -81,7 +79,24 @@ func (s *courseSrv) ListCourseGroups() ([]*ms.CourseGroupFormated, error) {
 func (s *courseSrv) ListCourses(groupId int64, keyword string, offset, limit int) (res []*ms.Course, total int64, err error) {
 	db := s.db.Model(&dbr.Course{}).Where("is_del = ?", 0)
 	if groupId > 0 {
-		db = db.Where("group_id = ?", groupId)
+		groups, listErr := (&dbr.CourseGroup{}).List(s.db)
+		if listErr != nil {
+			return nil, 0, listErr
+		}
+		children := make(map[int64][]int64, len(groups))
+		for _, group := range groups {
+			children[group.ParentID] = append(children[group.ParentID], group.ID)
+		}
+		ids, seen := []int64{groupId}, map[int64]bool{groupId: true}
+		for i := 0; i < len(ids); i++ {
+			for _, child := range children[ids[i]] {
+				if !seen[child] {
+					seen[child] = true
+					ids = append(ids, child)
+				}
+			}
+		}
+		db = db.Where("group_id IN ?", ids)
 	}
 	if keyword != "" {
 		like := "%" + keyword + "%"
@@ -176,44 +191,34 @@ func (s *courseSrv) GetCourseCommentRepliesByID(ids []int64, viewerId int64, vie
 	return repliesFormated, nil
 }
 
-func (s *courseManageSrv) CreateCourseGroup(g *ms.CourseGroup) (*ms.CourseGroup, error) {
-	return g.Create(s.db)
-}
-
-func (s *courseManageSrv) UpdateCourseGroup(g *ms.CourseGroup) error {
-	return g.Update(s.db)
-}
-
-func (s *courseManageSrv) DeleteCourseGroup(id int64) error {
-	group := &dbr.CourseGroup{
-		Model: &dbr.Model{ID: id},
-	}
-	// 硬删除(与课程一致 不走软删)
-	return group.Delete(s.db)
-}
-
 func (s *courseManageSrv) CountCoursesByGroup(groupId int64) (count int64, err error) {
 	err = s.db.Model(&dbr.Course{}).Where("group_id = ? AND is_del = ?", groupId, 0).Count(&count).Error
 	return
 }
 
-func (s *courseManageSrv) CreateCourse(c *ms.Course) (*ms.Course, error) {
-	return c.Create(s.db)
-}
-
-func (s *courseManageSrv) UpdateCourse(c *ms.Course) error {
-	return c.Update(s.db)
-}
-
 // DeleteCourse 课程硬删除: 同事务硬删其评论/回复/内容(课程无状态流转 不走软删)
-func (s *courseManageSrv) DeleteCourse(course *ms.Course) error {
+func (s *courseManageSrv) DeleteCourse(actor *ms.User, course *ms.Course) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
+		fresh, err := lockManagedCourse(tx, actor, course.ID)
+		if err != nil {
+			return err
+		}
 		var commentIds []int64
 		if err := tx.Model(&dbr.CourseComment{}).Unscoped().Where("course_id = ?", course.ID).
 			Select("id").Find(&commentIds).Error; err != nil {
 			return err
 		}
 		if len(commentIds) > 0 {
+			var answerIDs []int64
+			if err := tx.Model(&dbr.CourseCommentReply{}).Unscoped().Where("comment_id IN ?", commentIds).Pluck("id", &answerIDs).Error; err != nil {
+				return err
+			}
+			if err := cancelTargetReviewsTx(tx, ms.ReviewCourseQuestion, commentIds); err != nil {
+				return err
+			}
+			if err := cancelTargetReviewsTx(tx, ms.ReviewCourseAnswer, answerIDs); err != nil {
+				return err
+			}
 			if err := tx.Unscoped().Where("comment_id IN ?", commentIds).Delete(&dbr.CourseCommentContent{}).Error; err != nil {
 				return err
 			}
@@ -224,7 +229,17 @@ func (s *courseManageSrv) DeleteCourse(course *ms.Course) error {
 		if err := tx.Unscoped().Where("course_id = ?", course.ID).Delete(&dbr.CourseComment{}).Error; err != nil {
 			return err
 		}
-		return course.DeleteUnscoped(tx)
+		lessonIDs := tx.Model(&dbr.CourseLesson{}).Unscoped().Select("id").Where("course_id = ?", course.ID)
+		if err := tx.Where("lesson_id IN (?)", lessonIDs).Delete(&dbr.CourseLessonAttachment{}).Error; err != nil {
+			return err
+		}
+		if err := tx.Unscoped().Where("course_id = ?", course.ID).Delete(&dbr.CourseLesson{}).Error; err != nil {
+			return err
+		}
+		if err := course.DeleteUnscoped(tx); err != nil {
+			return err
+		}
+		return dbr.AppendOperationLog(tx, actor.ID, "delete", "course", course.ID, fresh.Format(), nil)
 	})
 }
 
@@ -234,79 +249,6 @@ func (s *courseManageSrv) IncrCoursePlayCount(id int64) (count int64, err error)
 		return
 	}
 	err = s.db.Model(&dbr.Course{}).Where("id = ?", id).Pluck("play_count", &count).Error
-	return
-}
-
-func (s *courseManageSrv) CreateCourseComment(c *ms.CourseComment) (*ms.CourseComment, error) {
-	return c.Create(s.db)
-}
-
-func (s *courseManageSrv) CreateCourseCommentContent(c *ms.CourseCommentContent) (*ms.CourseCommentContent, error) {
-	return c.Create(s.db)
-}
-
-func (s *courseManageSrv) CreateCourseCommentReply(reply *ms.CourseCommentReply) (res *ms.CourseCommentReply, err error) {
-	if res, err = reply.Create(s.db); err == nil && reply.AuditStatus == dbr.PostAuditApproved {
-		// 仅即时过审的回复计入回复数 待审核的在过审时补记(见UpdateCourseCommentReplyAuditStatus)
-		// 宽松处理错误
-		s.db.Model(&dbr.CourseComment{}).Where("id = ?", reply.CommentID).Update("reply_count", gorm.Expr("reply_count+1"))
-	}
-	return
-}
-
-func (s *courseManageSrv) DeleteCourseComment(c *ms.CourseComment) error {
-	return c.Delete(s.db)
-}
-
-func (s *courseManageSrv) DeleteCourseCommentReply(r *ms.CourseCommentReply) error {
-	db := s.db.Begin()
-	defer db.Rollback()
-	if err := r.Delete(db); err != nil {
-		return err
-	}
-	// 仅已过审回复曾计入reply_count 待审/未过审回复删除时不回减
-	if r.AuditStatus == dbr.PostAuditApproved {
-		// 宽松处理错误
-		db.Model(&dbr.CourseComment{}).Where("id = ?", r.CommentID).Update("reply_count", gorm.Expr("reply_count-1"))
-	}
-	db.Commit()
-	return nil
-}
-
-// UpdateCourseCommentAuditStatus 更新课程评论审核状态 返回旧状态供上层联动课程评论数/通知
-func (s *courseManageSrv) UpdateCourseCommentAuditStatus(id int64, status int) (oldStatus int, err error) {
-	var comment dbr.CourseComment
-	if err = s.db.Where("id = ? AND is_del = ?", id, 0).First(&comment).Error; err != nil {
-		return
-	}
-	oldStatus = int(comment.AuditStatus)
-	err = s.db.Model(&dbr.CourseComment{}).Where("id = ?", id).Updates(map[string]any{
-		"audit_status": status,
-		"modified_on":  time.Now().Unix(),
-	}).Error
-	return
-}
-
-// UpdateCourseCommentReplyAuditStatus 更新课程回复审核状态 返回旧状态 并联动父评论reply_count
-func (s *courseManageSrv) UpdateCourseCommentReplyAuditStatus(id int64, status int) (oldStatus int, err error) {
-	var reply dbr.CourseCommentReply
-	if err = s.db.Where("id = ? AND is_del = ?", id, 0).First(&reply).Error; err != nil {
-		return
-	}
-	oldStatus = int(reply.AuditStatus)
-	if err = s.db.Model(&dbr.CourseCommentReply{}).Where("id = ?", id).Updates(map[string]any{
-		"audit_status": status,
-		"modified_on":  time.Now().Unix(),
-	}).Error; err != nil {
-		return
-	}
-	// 待审/未过审 -> 过审: 补记回复数; 过审 -> 拒绝: 回减
-	switch {
-	case oldStatus != int(dbr.PostAuditApproved) && status == int(dbr.PostAuditApproved):
-		err = s.db.Model(&dbr.CourseComment{}).Where("id = ?", reply.CommentID).Update("reply_count", gorm.Expr("reply_count+1")).Error
-	case oldStatus == int(dbr.PostAuditApproved) && status != int(dbr.PostAuditApproved):
-		err = s.db.Model(&dbr.CourseComment{}).Where("id = ?", reply.CommentID).Update("reply_count", gorm.Expr("reply_count-1")).Error
-	}
 	return
 }
 

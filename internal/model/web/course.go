@@ -5,14 +5,8 @@
 package web
 
 import (
-	"mime/multipart"
-
-	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
-
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
-	"github.com/BZYA-Community/WebsiteCore/internal/transport/httpx"
-	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
-	"github.com/gin-gonic/gin"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 )
 
 // ===== 课程公开读取(游客可用) =====
@@ -120,6 +114,7 @@ type CourseGroupReq struct {
 	BaseInfo `json:"-" binding:"-"`
 	Name     string `json:"name" binding:"required"`
 	Sort     int    `json:"sort"`
+	ParentID int64  `json:"parent_id"`
 }
 
 type CourseGroupResp = ms.CourseGroupFormated
@@ -129,6 +124,7 @@ type UpdateCourseGroupReq struct {
 	ID       int64  `json:"id" binding:"required"`
 	Name     string `json:"name" binding:"required"`
 	Sort     int    `json:"sort"`
+	ParentID int64  `json:"parent_id"`
 }
 
 type DeleteCourseGroupReq struct {
@@ -138,93 +134,32 @@ type DeleteCourseGroupReq struct {
 
 // CreateCourseReq 创建课程: Video 为OSS对象键(直传)或完整URL(代理上传返回), Cover为图片URL
 type CreateCourseReq struct {
-	BaseInfo  `json:"-" binding:"-"`
-	GroupID   int64  `json:"group_id" binding:"required"`
-	TeacherID int64  `json:"teacher_id" binding:"required"`
-	Title     string `json:"title" binding:"required"`
-	Intro     string `json:"intro"`
-	Video     string `json:"video" binding:"required"`
-	Cover     string `json:"cover"`
+	BaseInfo     `json:"-" binding:"-"`
+	GroupID      int64  `json:"group_id" binding:"required"`
+	TeacherID    int64  `json:"teacher_id"`
+	TeacherIntro string `json:"teacher_intro"`
+	Title        string `json:"title" binding:"required"`
+	Intro        string `json:"intro"`
+	Video        string `json:"video"`
+	Cover        string `json:"cover"`
 }
 
 type CreateCourseResp = ms.CourseFormated
 
 // UpdateCourseReq 更新课程: Video/Cover 为空字符串表示不更换
 type UpdateCourseReq struct {
-	BaseInfo  `json:"-" binding:"-"`
-	ID        int64  `json:"id" binding:"required"`
-	GroupID   int64  `json:"group_id" binding:"required"`
-	TeacherID int64  `json:"teacher_id" binding:"required"`
-	Title     string `json:"title" binding:"required"`
-	Intro     string `json:"intro"`
-	Video     string `json:"video"`
-	Cover     string `json:"cover"`
+	BaseInfo     `json:"-" binding:"-"`
+	ID           int64  `json:"id" binding:"required"`
+	GroupID      int64  `json:"group_id" binding:"required"`
+	TeacherID    int64  `json:"teacher_id"`
+	TeacherIntro string `json:"teacher_intro"`
+	Title        string `json:"title" binding:"required"`
+	Intro        string `json:"intro"`
+	Video        string `json:"video"`
+	Cover        string `json:"cover"`
 }
 
 type DeleteCourseReq struct {
 	BaseInfo `json:"-" binding:"-"`
 	ID       int64 `json:"id" binding:"required"`
-}
-
-// CourseUploadCredentialReq 获取视频上传凭证: AliOSS返回直传policy, 其他OSS返回proxy模式
-type CourseUploadCredentialReq struct {
-	BaseInfo `form:"-" binding:"-"`
-	Ext      string `form:"ext" binding:"required"`
-}
-
-type CourseUploadCredentialResp struct {
-	Mode string `json:"mode"` // direct=浏览器直传OSS / proxy=后端中转上传
-	// 以下仅 direct 模式返回
-	Host        string `json:"host,omitempty"`
-	AccessKeyID string `json:"access_key_id,omitempty"`
-	Policy      string `json:"policy,omitempty"`
-	Signature   string `json:"signature,omitempty"`
-	Key         string `json:"key,omitempty"`
-	Expire      int64  `json:"expire,omitempty"`
-}
-
-// UploadCourseVideoReq 代理模式视频上传(multipart)
-type UploadCourseVideoReq struct {
-	SimpleInfo  `json:"-" binding:"-"`
-	File        multipart.File
-	FileSize    int64
-	FileExt     string
-	ContentType string
-}
-
-type UploadCourseVideoResp struct {
-	VideoURL string `json:"video_url"`
-}
-
-func (r *UploadCourseVideoReq) Bind(c *gin.Context) (xerr error) {
-	userId, exist := httpx.UserIdFrom(c)
-	if !exist {
-		return xerror.UnauthorizedAuthNotExist
-	}
-	file, fileHeader, err := c.Request.FormFile("file")
-	if err != nil {
-		return ErrFileUploadFailed
-	}
-	defer func() {
-		if xerr != nil {
-			file.Close()
-		}
-	}()
-	// 课程视频上限500MB(代理上传受HTTP读写超时约束, 生产环境建议Ali直传)
-	if fileHeader.Size > 1024*1024*500 {
-		return ErrFileInvalidSize.WithDetails("课程视频最大允许500MB")
-	}
-	contentType := fileHeader.Header.Get("Content-Type")
-	var fileExt string
-	switch contentType {
-	case "video/mp4":
-		fileExt = ".mp4"
-	case "video/quicktime":
-		fileExt = ".mov"
-	default:
-		return ErrFileInvalidExt.WithDetails("课程视频仅允许 mp4/mov 类型")
-	}
-	r.SimpleInfo = SimpleInfo{Uid: userId}
-	r.File, r.FileSize, r.FileExt, r.ContentType = file, fileHeader.Size, fileExt, contentType
-	return nil
 }
