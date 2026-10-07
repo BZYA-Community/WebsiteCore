@@ -103,7 +103,7 @@ func maskPhone(phone string) string {
 // AdminUserList 用户管理·搜索用户列表
 func (s *adminSrv) AdminUserList(req *web.AdminUserListReq) (*web.AdminUserListResp, error) {
 	limit, offset := req.PageSize, (req.Page-1)*req.PageSize
-	users, total, err := s.Ds.GetUsersByAdminQuery(req.Keyword, offset, limit)
+	users, total, err := s.Ds.GetUsersByAdminQuery(req.Keyword, req.RegisteredFrom, req.RegisteredTo, offset, limit)
 	if err != nil {
 		logrus.Errorf("Ds.GetUsersByAdminQuery err: %s", err)
 		return nil, web.ErrGetPostsFailed

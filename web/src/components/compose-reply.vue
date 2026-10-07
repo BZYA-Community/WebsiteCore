@@ -55,7 +55,6 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useStoreMain } from '@/store/main';
 import { useStoreUser } from '@/store/user';
 import { formatPrettyTime } from '@/utils/formatTime';
 import {
@@ -88,7 +87,6 @@ const props = withDefaults(
   },
 );
 
-const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const { userLogined } = storeToRefs(storeUser);
 

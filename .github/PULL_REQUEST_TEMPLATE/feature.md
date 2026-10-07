@@ -9,20 +9,21 @@
 <!-- Bullet list: what was added, what behavior changed, what it replaces.
      Call out separately: generated code (auto/), migrations, config keys (embedded + sample), docs. -->
 
-## BVT — backend (mandatory, see CONTRIBUTING.md)
+## BVT — backend (see [development guide](../../docs/development.md#build-verification-before-a-pr))
 
 - [ ] `go build ./...` clean
 - [ ] `go vet ./...` clean
 - [ ] `golangci-lint run ./...` clean
 - [ ] `go test ./...` all green
 - [ ] Touched `mirc/`: ran `make gen-mir`, no hand edits in `auto/`
-- [ ] Touched schema: migration pair in **both** `scripts/migration/{postgres,mysql}/`, verified with a `migration`-tagged build
+- [ ] Touched schema: up/down pair in `scripts/migration/postgres/`, verified with a `migration`-tagged build
 - [ ] Touched config: `internal/conf/config.yaml` and `config.yaml.sample` updated together
 - [ ] No build artifacts committed
 
 ## BVT — frontend (mandatory if `web/` changed)
 
 - [ ] `npm run lint` — 0 errors
+- [ ] `npm run i18n:check` and applicable permission/media/course/sidebar/admin regression tests pass
 - [ ] `npm run build` — succeeds
 - [ ] No overlapping or overflowing content at 1920 / 1600 / 1366 / 1200 / 1000 / 821 / 375 viewports:
   - [ ] `python scripts/verify_sidebar_830.py` — ALL PASS

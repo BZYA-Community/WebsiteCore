@@ -7,7 +7,6 @@ package app
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"time"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
@@ -41,20 +40,15 @@ func GenerateToken(user *ms.User) (string, error) {
 	return token, err
 }
 
-func ParseToken(token string) (res *Claims, err error) {
-	var tokenClaims *jwt.Token
-	tokenClaims, err = jwt.ParseWithClaims(token, &Claims{}, func(t *jwt.Token) (any, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-		}
+func ParseToken(token string) (*Claims, error) {
+	claims := &Claims{}
+	_, err := jwt.ParseWithClaims(token, claims, func(_ *jwt.Token) (any, error) {
 		return GetJWTSecret(), nil
-	})
-	if err == nil && tokenClaims != nil && tokenClaims.Valid {
-		res, _ = tokenClaims.Claims.(*Claims)
-	} else {
-		err = jwt.ErrTokenNotValidYet
+	}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}), jwt.WithExpirationRequired())
+	if err != nil {
+		return nil, err
 	}
-	return
+	return claims, nil
 }
 
 func IssuerFrom(data string) string {

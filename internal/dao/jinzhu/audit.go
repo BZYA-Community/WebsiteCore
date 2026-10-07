@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/authz"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
@@ -23,8 +24,17 @@ func newAuditService(db *gorm.DB) core.SiteAdminService {
 	return &auditSrv{db: db}
 }
 
-func (s *auditSrv) GetUsersByAdminQuery(keyword string, offset, limit int) (res []*ms.User, total int64, err error) {
+func (s *auditSrv) GetUsersByAdminQuery(keyword string, registeredFrom, registeredTo int64, offset, limit int) (res []*ms.User, total int64, err error) {
+	if registeredFrom < 0 || registeredTo < 0 || (registeredTo > 0 && registeredFrom > registeredTo) {
+		return nil, 0, authz.ErrInvalid
+	}
 	db := s.db.Model(&dbr.User{}).Where("is_del = ?", 0)
+	if registeredFrom > 0 {
+		db = db.Where("created_on >= ?", registeredFrom)
+	}
+	if registeredTo > 0 {
+		db = db.Where("created_on <= ?", registeredTo)
+	}
 	kw := strings.TrimSpace(keyword)
 	if kw != "" {
 		like := "%" + kw + "%"

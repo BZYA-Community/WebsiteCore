@@ -14,7 +14,7 @@
         <router-link :to="categoryLink(0)" :aria-current="!selectedCategory && !appliedKeyword ? 'page' : undefined" :class="{ active: !selectedCategory && !appliedKeyword }">{{ t('courseCatalog.allCategories') }}</router-link>
         <router-link v-for="group in roots" :key="group.id" :to="categoryLink(group.id)" :class="{ active: selectedPath[0]?.id === group.id }" :aria-current="selectedPath[0]?.id === group.id ? 'page' : undefined">{{ group.name }}</router-link>
       </nav>
-      <div v-if="managing" class="management-bar">
+      <div v-if="managing && !groupsLoading && !groupsFailed" class="management-bar">
         <span>{{ t('courseCatalog.managementHint') }}</span>
         <n-space>
           <n-button v-if="canManageGroups" @click="editGroup()">{{ selectedGroup ? t('courseCatalog.addSubcategory') : t('courseCatalog.addMajor') }}</n-button>
@@ -29,7 +29,7 @@
           <template v-for="group in selectedPath" :key="group.id"><span aria-hidden="true">/</span><router-link :to="categoryLink(group.id)">{{ group.name }}</router-link></template>
           <template v-if="appliedKeyword"><span aria-hidden="true">/</span><span>{{ t('courseCatalog.searchResults') }}</span></template>
         </nav>
-        <div v-if="selectedCategory && !selectedGroup" class="catalog-status"><p>{{ t('courseCatalog.categoryMissing') }}</p><router-link :to="categoryLink(0)">{{ t('courseCatalog.allCategories') }}</router-link></div>
+        <div v-if="selectedCategory && !selectedGroup" class="catalog-status" role="status"><p>{{ t('courseCatalog.categoryMissing') }}</p><router-link :to="categoryLink(0)">{{ t('courseCatalog.allCategories') }}</router-link><n-button @click="loadGroups">{{ t('courseCatalog.retry') }}</n-button></div>
         <template v-else-if="!selectedCategory && !appliedKeyword && !focusedCourseId">
           <section v-for="group in roots" :key="group.id" class="major-section">
             <header class="section-heading">
@@ -219,7 +219,7 @@ const groupEditor = ref(false);
 const savingGroup = ref(false);
 const groupDraft = reactive({ id: 0, name: '', parent_id: 0, sort: 0 });
 const parentOptions = computed(() => [{ label: t('course.list.rootCategory'), value: 0 }, ...categoryOptions.value.filter(option => !pathFor(option.value).some(group => group.id === groupDraft.id))]);
-function editGroup(group?: CourseGroup, parentID = selectedCategory.value) {
+function editGroup(group?: CourseGroup, parentID = selectedGroup.value?.id || 0) {
   Object.assign(groupDraft, { id: group?.id || 0, name: group?.name || '', parent_id: group?.parent_id ?? parentID, sort: group?.sort || 0 });
   groupEditor.value = true;
 }
@@ -251,7 +251,7 @@ async function searchTeachers(keyword: string) {
   finally { teacherLoading.value = false; }
 }
 function editCourse(course?: CourseItem) {
-  Object.assign(courseDraft, { id: course?.id || 0, group_id: course?.group_id || selectedCategory.value || null, teacher_id: course?.teacher_id || storeUser.userInfo.id, title: course?.title || '', intro: course?.intro || '', teacher_intro: course?.teacher_intro || '' });
+  Object.assign(courseDraft, { id: course?.id || 0, group_id: course?.group_id || selectedGroup.value?.id || null, teacher_id: course?.teacher_id || storeUser.userInfo.id, title: course?.title || '', intro: course?.intro || '', teacher_intro: course?.teacher_intro || '' });
   const teacher = course?.teacher || storeUser.userInfo;
   teacherOptions.value = [{ label: `${teacher.nickname} (@${teacher.username})`, value: courseDraft.teacher_id }];
   courseEditor.value = true;
@@ -283,12 +283,12 @@ onMounted(async () => { await loadGroups(); await loadCourses(); });
 
 <style scoped lang="less">
 .catalog-page { box-sizing: border-box; padding: 16px; border: 1px solid var(--course-line); border-top: 0; color: var(--course-text); font-size: 14px; }
-.catalog-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; h1 { font-size: 18px; font-weight: 500; line-height: 1.5; margin: 0 0 6px; } p { margin: 0; color: var(--course-muted); line-height: 1.6; } }
+.catalog-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; h1 { font-size: 18px; font-weight: 500; line-height: 1.5; margin: 0 0 6px; } p { margin: 0; color: var(--course-muted); line-height: 1.6; } }
 .catalog-search { display: flex; gap: 8px; margin: 16px 0; .n-input { flex: 1; min-width: 0; } }
 .major-nav, .sibling-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; a { padding: 4px 14px; border-radius: 16px; text-decoration: none; color: var(--course-muted); background: var(--course-hover); } a:hover, a.active { color: var(--course-accent); background: var(--course-tint); } }
 .management-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; border-block: 1px solid var(--course-line); padding: 12px 0; margin-bottom: 16px; color: var(--course-muted); font-size: 13px; }
 .major-section { padding: 16px 0; border-top: 1px solid var(--course-line); }
-.section-heading, .selection-heading, .outline-heading { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; h2, h3 { margin: 0; font-size: 16px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; } a { color: inherit; text-decoration: none; &:hover { color: var(--course-accent); } } }
+.section-heading, .selection-heading, .outline-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: flex-start; h2, h3 { margin: 0; font-size: 16px; font-weight: 500; line-height: 1.5; overflow-wrap: anywhere; } a { color: inherit; text-decoration: none; &:hover { color: var(--course-accent); } } }
 .section-heading { margin-bottom: 12px; > div:first-child { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; } span { color: var(--course-muted); font-size: 12px; } }
 .subcategory-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 8px; }
 .subcategory-link { min-width: 0; display: flex; gap: 12px; align-items: center; justify-content: space-between; color: var(--course-text); text-decoration: none; padding: 12px; border-radius: var(--course-radius); border: 1px solid var(--course-line); &:hover { color: var(--course-accent); background: var(--course-hover); } strong { display: block; font-weight: 400; overflow-wrap: anywhere; } small { display: block; color: var(--course-muted); font-size: 12px; margin-top: 4px; } .n-icon { flex: 0 0 auto; color: var(--course-muted); } }

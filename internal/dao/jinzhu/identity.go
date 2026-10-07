@@ -243,11 +243,23 @@ func (s *identitySrv) DeleteIdentityGroup(actor *ms.User, id int64) error {
 }
 
 func (s *identitySrv) SetUserIdentityGroups(actor *ms.User, userID int64, groupIDs []int64) error {
-	if userID <= 0 {
+	return s.SetUsersIdentityGroups(actor, []int64{userID}, groupIDs)
+}
+
+func (s *identitySrv) SetUsersIdentityGroups(actor *ms.User, userIDs, groupIDs []int64) error {
+	if len(userIDs) == 0 || len(userIDs) > 100 || len(groupIDs) > 100 {
 		return authz.ErrInvalid
 	}
-	if actor != nil && actor.Model != nil && actor.ID == userID {
-		return authz.ErrDenied
+	userIDs = slices.Clone(userIDs)
+	slices.Sort(userIDs)
+	userIDs = slices.Compact(userIDs)
+	for _, id := range userIDs {
+		if id <= 0 {
+			return authz.ErrInvalid
+		}
+		if actor != nil && actor.Model != nil && actor.ID == id {
+			return authz.ErrDenied
+		}
 	}
 	groupIDs = slices.Clone(groupIDs)
 	slices.Sort(groupIDs)
@@ -256,13 +268,6 @@ func (s *identitySrv) SetUserIdentityGroups(actor *ms.User, userID int64, groupI
 		fresh, err := lockIdentityPolicy(tx, actor, authz.IdentityManage)
 		if err != nil {
 			return err
-		}
-		var user ms.User
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND is_del = 0", userID).First(&user).Error; err != nil {
-			return err
-		}
-		if user.IsOperator {
-			return authz.ErrDenied
 		}
 		groups, err := listIdentityGroups(tx)
 		if err != nil {
@@ -280,28 +285,43 @@ func (s *identitySrv) SetUserIdentityGroups(actor *ms.User, userID int64, groupI
 			}
 			next = append(next, group)
 		}
-		rows := []dbr.UserIdentityGroup{}
-		if err := tx.Where("user_id = ?", userID).Order("group_id ASC").Find(&rows).Error; err != nil {
-			return err
-		}
-		old := []*ms.IdentityGroup{}
-		for _, row := range rows {
-			if group := byID[row.GroupID]; group != nil {
-				old = append(old, group)
-			}
-		}
-		if !mayGrant(fresh, old...) || !mayGrant(fresh, next...) {
+		if !mayGrant(fresh, next...) {
 			return authz.ErrDenied
 		}
-		if err := tx.Where("user_id = ?", userID).Delete(&dbr.UserIdentityGroup{}).Error; err != nil {
-			return err
-		}
-		for _, id := range groupIDs {
-			if err := tx.Create(&dbr.UserIdentityGroup{UserID: userID, GroupID: id}).Error; err != nil {
+		for _, userID := range userIDs {
+			var user ms.User
+			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND is_del = 0", userID).First(&user).Error; err != nil {
+				return err
+			}
+			if user.IsOperator {
+				return authz.ErrDenied
+			}
+			rows := []dbr.UserIdentityGroup{}
+			if err := tx.Where("user_id = ?", userID).Order("group_id ASC").Find(&rows).Error; err != nil {
+				return err
+			}
+			old := []*ms.IdentityGroup{}
+			for _, row := range rows {
+				if group := byID[row.GroupID]; group != nil {
+					old = append(old, group)
+				}
+			}
+			if !mayGrant(fresh, old...) {
+				return authz.ErrDenied
+			}
+			if err := tx.Where("user_id = ?", userID).Delete(&dbr.UserIdentityGroup{}).Error; err != nil {
+				return err
+			}
+			for _, id := range groupIDs {
+				if err := tx.Create(&dbr.UserIdentityGroup{UserID: userID, GroupID: id}).Error; err != nil {
+					return err
+				}
+			}
+			if err := identityLog(tx, fresh.ID, "user.groups", 0, userID, old, next); err != nil {
 				return err
 			}
 		}
-		return identityLog(tx, fresh.ID, "user.groups", 0, userID, old, next)
+		return nil
 	})
 }
 

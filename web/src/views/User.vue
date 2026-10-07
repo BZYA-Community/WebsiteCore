@@ -140,7 +140,6 @@ import {
 } from '@vicons/ionicons5';
 import InfiniteLoading from 'v3-infinite-loading';
 import { useStoreUser } from '@/store/user';
-import { useStoreProfile } from '@/store/profile';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
 import UserAction, { canWhisperUser, useChatJump } from '@/composables/useUserAction';
@@ -152,10 +151,8 @@ const dialog = useDialog();
 
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
-const storeProfile = useStoreProfile();
 const { desktopModelShow } = storeToRefs(storeMain);
-const { userLogined, userInfo } = storeToRefs(storeUser);
-const { profile } = storeToRefs(storeProfile);
+const { userInfo } = storeToRefs(storeUser);
 
 const route = useRoute();
 const router = useRouter();

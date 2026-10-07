@@ -102,7 +102,6 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useStoreMain } from '@/store/main';
 import { Trash } from '@vicons/tabler';
 import { formatPrettyTime } from '@/utils/formatTime';
 import {
@@ -131,7 +130,6 @@ const props = withDefaults(
   {},
 );
 
-const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const { userInfo, userLogined } = storeToRefs(storeUser);
 

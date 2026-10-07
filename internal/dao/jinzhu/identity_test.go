@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/authz"
@@ -100,6 +101,84 @@ func TestIdentityPolicyTransactions(t *testing.T) {
 	}
 	if !member.HasPermission(authz.CourseView) {
 		t.Fatal("verified member missing view permission")
+	}
+	second := createUser("second", "verified", false)
+	migrationSQL := strings.NewReplacer(
+		"p_identity_group_permission", prefix+"identity_group_permission",
+		"p_identity_group", prefix+"identity_group",
+		"p_user_identity_group", prefix+"user_identity_group",
+		"p_user", prefix+"user",
+		"idx_user_created_on_active", prefix+"created_on_active",
+	).Replace
+	migrationUp, err := os.ReadFile("../../../scripts/migration/postgres/0033_reviewer_identity.up.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec(migrationSQL(string(migrationUp))).Error; err != nil {
+		t.Fatal(err)
+	}
+	var reviewer ms.IdentityGroup
+	if err := db.Where("key = ?", "reviewer").First(&reviewer).Error; err != nil || !reviewer.Builtin || reviewer.Name != "审核员" {
+		t.Fatalf("reviewer migration: %+v %v", reviewer, err)
+	}
+	if err := s.SetUserIdentityGroups(operator, second.ID, []int64{reviewer.ID}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.LoadUserIdentities(second); err != nil || !second.HasPermission(authz.ContentReview) || second.HasPermission(authz.UserManage) || second.HasPermission(authz.AuditViewAll) {
+		t.Fatalf("reviewer permissions exceeded assigned content review: %v", err)
+	}
+	migrationDown, err := os.ReadFile("../../../scripts/migration/postgres/0033_reviewer_identity.down.sql")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Exec(migrationSQL(string(migrationDown))).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := s.LoadUserIdentities(second); err != nil || !second.HasPermission(authz.ContentReview) {
+		t.Fatalf("rollback deleted an assigned reviewer identity: %v", err)
+	}
+	if err := db.Exec(migrationSQL(string(migrationUp))).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetUsersIdentityGroups(operator, []int64{member.ID, second.ID, member.ID}, []int64{adminGroup.ID}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.LoadUserIdentities(member, second); err != nil || !member.HasPermission(authz.IdentityManage) || !second.HasPermission(authz.IdentityManage) {
+		t.Fatalf("batch memberships were not applied: %v", err)
+	}
+	if err := s.SetUsersIdentityGroups(operator, []int64{member.ID, second.ID + 100000}, nil); !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatalf("batch containing missing user: %v", err)
+	}
+	if err := s.LoadUserIdentities(member); err != nil || !member.HasPermission(authz.IdentityManage) {
+		t.Fatalf("failed batch partially committed: %v", err)
+	}
+	if err := s.SetUsersIdentityGroups(operator, []int64{member.ID, operator.ID}, nil); !errors.Is(err, authz.ErrDenied) {
+		t.Fatalf("batch accepted own/operator account: %v", err)
+	}
+	if err := s.SetUsersIdentityGroups(admin, []int64{member.ID, second.ID}, nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.LoadUserIdentities(member, second); err != nil || member.HasPermission(authz.IdentityManage) || second.HasPermission(authz.IdentityManage) {
+		t.Fatalf("bulk removal retained extra grants: %v", err)
+	}
+	if err := db.Model(member).Update("created_on", 100).Error; err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Model(second).Update("created_on", 200).Error; err != nil {
+		t.Fatal(err)
+	}
+	for _, query := range []struct {
+		keyword  string
+		from, to int64
+		want     int64
+	}{
+		{"", 100, 200, 2}, {"", 100, 100, 1}, {"second", 100, 200, 1},
+		{"second", 100, 199, 0}, {"", 0, 100, 1},
+	} {
+		rows, total, err := (&auditSrv{db: db}).GetUsersByAdminQuery(query.keyword, query.from, query.to, 0, 1)
+		if err != nil || total != query.want || len(rows) > 1 {
+			t.Fatalf("registration query %+v: total=%d rows=%d err=%v", query, total, len(rows), err)
+		}
 	}
 	anonymous := &ms.User{Status: ms.UserStatusNormal}
 	if err := s.LoadUserIdentities(anonymous); err != nil {

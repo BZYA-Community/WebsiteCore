@@ -11,7 +11,7 @@ import (
 // SiteAdminService 站点管理服务(后台用户管理/内容审核/角色与审核日志)
 type SiteAdminService interface {
 	// 用户管理: 按关键词(ID/用户名/昵称/手机号)搜索用户
-	GetUsersByAdminQuery(keyword string, offset, limit int) ([]*ms.User, int64, error)
+	GetUsersByAdminQuery(keyword string, registeredFrom, registeredTo int64, offset, limit int) ([]*ms.User, int64, error)
 	// 用户管理: 软删除用户(is_del=1, 无法登录/前台消失, 数据保留可恢复)
 	SoftDeleteUser(user *ms.User) error
 	// 审核队列: status为审核状态 -1表示全部 仅含未软删帖子

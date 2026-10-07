@@ -138,8 +138,6 @@ The frontend is internationalized with **vue-i18n** (`zh-CN` source + `en`; lang
 | [docs/ci-cd.md](docs/ci-cd.md) | CI pipelines, AI review, weekly report |
 | [docs/features-status.md](docs/features-status.md) | Feature flag maturity matrix |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | Change history of this fork |
-| [docs/governance.md](docs/governance.md) | Community governance charter (Chinese) |
-| [docs/requirements-starisle-v2.0.md](docs/requirements-starisle-v2.0.md) | Product requirements baseline (Chinese) |
 | [docs/openapi/](docs/openapi/) | OpenAPI assets (served at `/docs/openapi` with the `docs` build tag) |
 
 Full index: [docs/README.md](docs/README.md).

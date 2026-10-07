@@ -76,6 +76,9 @@ func (s *adminSrv) ListIdentityPermissions() (*web.IdentityPermissionsResp, erro
 	return &web.IdentityPermissionsResp{Permissions: items}, nil
 }
 func (s *adminSrv) SetUserIdentityGroups(req *web.SetUserIdentityReq) error {
+	if len(req.UserIDs) > 0 {
+		return identityError(s.Ds.SetUsersIdentityGroups(req.User, req.UserIDs, req.GroupIDs))
+	}
 	return identityError(s.Ds.SetUserIdentityGroups(req.User, req.UserID, req.GroupIDs))
 }
 func (s *adminSrv) ListIdentityLogs(req *web.IdentityLogsReq) (*web.IdentityLogsResp, error) {
