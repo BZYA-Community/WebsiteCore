@@ -36,7 +36,7 @@
 
 ## 简介
 
-WebsiteCore 是一个自托管的微社区/论坛系统：Go 后端（Gin + GORM + Redis + Meilisearch）内嵌 Vue 3 前端单页应用，单二进制即可运行。在上游 paopao-ce 基础上，本仓库增加了身份组体系、内容审核流、会话化站内私信与课程模块，由学生社区自主维护，服务于一个面向未成年人的平台。
+WebsiteCore 是一个自托管的微社区/论坛系统：Go 后端（Gin + GORM + Redis + Meilisearch）内嵌 Vue 3 前端单页应用，单二进制即可运行。在上游 paopao-ce 基础上，本仓库增加了身份组体系、内容审核流、会话化站内私信与课程模块。
 
 ## 功能特性
 
