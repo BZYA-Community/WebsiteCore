@@ -125,12 +125,6 @@ cd web && npm run i18n:check   # 语言包校验(缺失/未使用/中英结构�
 
 详细说明见 [web/README.md](web/README.md) 的 Internationalization 章节。
 
-## 贡献
-
-每个 PR 必须通过 CI、AI 审查与 **BVT（构建验证测试）**：后端语法/构建/lint/测试检查；前端改动还须通过语言包校验（`npm run i18n:check`：缺失 key / 未使用 key / 中英结构一致性）与标准视口下的页面重叠检查。完整流程、角色晋升制度与审查规则见 [CONTRIBUTING.md](CONTRIBUTING.md)。
-
-本仓库由学生社区自主维护，所有贡献都会记录在每周五自动生成的周报中。
-
 ## 目录结构
 
 ```
