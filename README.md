@@ -36,7 +36,7 @@ English | [简体中文](README_ZH.md)
 
 ## About
 
-WebsiteCore is a self-hosted micro-community / forum system: a Go backend (Gin + GORM + Redis + Meilisearch) embedding a Vue 3 single-page app, shipped as a single binary. On top of the upstream paopao-ce it adds an identity-group system, a content moderation pipeline, conversational in-site messaging, and a course module — and it is built and governed by a student community, for a platform serving minors.
+WebsiteCore is a self-hosted micro-community / forum system: a Go backend (Gin + GORM + Redis + Meilisearch) embedding a Vue 3 single-page app, shipped as a single binary. On top of the upstream paopao-ce it adds an identity-group system, a content moderation pipeline, conversational in-site messaging, and a course module.
 
 ## Features
 
