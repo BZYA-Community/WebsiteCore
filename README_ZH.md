@@ -36,7 +36,7 @@
 
 ## 简介
 
-WebsiteCore 是一个自托管的微社区/论坛系统：Go 后端（Gin + GORM + Redis + Meilisearch）内嵌 Vue 3 前端单页应用，单二进制即可运行。在上游 paopao-ce 基础上，本仓库增加了身份组体系、内容审核流、会话化站内私信与课程模块，由学生社区自主维护，服务于一个面向未成年人的平台。
+WebsiteCore 是一个自托管的微社区/论坛系统：Go 后端（Gin + GORM + Redis + Meilisearch）内嵌 Vue 3 前端单页应用，单二进制即可运行。在上游 paopao-ce 基础上，本仓库增加了身份组体系、内容审核流、会话化站内私信与课程模块。
 
 ## 功能特性
 
@@ -124,12 +124,6 @@ cd web && npm run i18n:check   # 语言包校验(缺失/未使用/中英结构�
 - **禁止硬编码**：UI 文案不允许直接写中文，必须同时往 `zh-CN` 与 `en` 的对应 namespace JSON 添加 key 后用 `t()` 渲染，提交前跑 `npm run i18n:check`（CI 也会检查）。
 
 详细说明见 [web/README.md](web/README.md) 的 Internationalization 章节。
-
-## 贡献
-
-每个 PR 必须通过 CI、适用的 AI 审查与 **BVT（构建验证测试）**：后端构建/lint/测试检查；前端改动还须通过回归测试、语言包校验与标准视口下的布局检查。检查步骤见[开发指南](docs/development.md#build-verification-before-a-pr)，审查规则见 [CI/CD](docs/ci-cd.md)。
-
-本仓库由学生社区自主维护，所有贡献都会记录在每周五自动生成的周报中。
 
 ## 目录结构
 

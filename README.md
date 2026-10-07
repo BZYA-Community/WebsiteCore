@@ -36,7 +36,7 @@ English | [简体中文](README_ZH.md)
 
 ## About
 
-WebsiteCore is a self-hosted micro-community / forum system: a Go backend (Gin + GORM + Redis + Meilisearch) embedding a Vue 3 single-page app, shipped as a single binary. On top of the upstream paopao-ce it adds an identity-group system, a content moderation pipeline, conversational in-site messaging, and a course module — and it is built and governed by a student community, for a platform serving minors.
+WebsiteCore is a self-hosted micro-community / forum system: a Go backend (Gin + GORM + Redis + Meilisearch) embedding a Vue 3 single-page app, shipped as a single binary. On top of the upstream paopao-ce it adds an identity-group system, a content moderation pipeline, conversational in-site messaging, and a course module.
 
 ## Features
 
@@ -114,12 +114,6 @@ cd web && npm run i18n:check  # locale pack validation (missing/unused/zh-CN-en 
 Standard flow for a new API: declare it in `mirc/web/v1/` → `make gen-mir` generates the routing skeleton → implement it in `internal/servants/web/`. Schema changes go into `scripts/migration/postgres/` as numbered `NNNN_name.{up,down}.sql` pairs. Full guide: [docs/development.md](docs/development.md).
 
 The frontend is internationalized with **vue-i18n** (`zh-CN` source + `en`; language picker in the bottom-left sidebar). Locale packs live in `web/src/locales/<locale>/<namespace>.json` — plain nested JSON, ready for Crowdin/Weblate/Tolgee so the community can maintain more languages. Never hardcode UI copy: add keys to both locales and render with `t()`. Details: the Internationalization section in [web/README.md](web/README.md).
-
-## Contributing
-
-Every PR must pass CI, applicable AI review, and the **BVT** (Build Verification Test): backend build/lint/test checks, and — for frontend changes — regression tests, locale-pack checks and layout checks at the standard viewports. See the [development guide](docs/development.md#build-verification-before-a-pr) for the checks and [CI/CD](docs/ci-cd.md) for review rules.
-
-This repository is maintained by a student community; contributions are recorded in the weekly report published every Friday.
 
 ## Repository layout
 
