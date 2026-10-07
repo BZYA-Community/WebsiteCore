@@ -192,7 +192,7 @@ func (s *Views) GetTweetBy(id int64) (*ms.PostFormated, error) {
 	for _, user := range users {
 		postFormated.User = user.Format()
 	}
-	if postFormated.User == nil {
+	if len(users) == 0 || postFormated.User == nil {
 		// 作者用户已不存在时填充占位 避免前端空指针
 		ghost := *ms.GhostUserFormated
 		postFormated.User = &ghost
