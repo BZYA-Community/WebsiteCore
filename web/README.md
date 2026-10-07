@@ -1,6 +1,6 @@
 # WebsiteCore Web Frontend
 
-The Vue 3 single-page application served by the WebsiteCore backend. In production it is compiled into `dist/` and embedded into the Go binary (see `embed.go`, activated by the `embed` build tag).
+The Vue 3 single-page application served by the WebsiteCore backend. In production it is compiled into `dist/` and embedded into the Go binary by default (see `embed.go`; the `slim embed` tag combination omits it). The `Frontend:EmbedWeb` feature controls serving the SPA.
 
 ## Stack
 
@@ -9,7 +9,8 @@ Vue 3 (script setup, TypeScript) · Vite · Naive UI (auto-imported via unplugin
 ## Commands
 
 ```sh
-npm install
+corepack enable
+yarn install --frozen-lockfile
 npm run dev        # Vite dev server
 npm run build      # production bundle -> dist/ (embedded by `make build-web` from the repo root)
 npm run preview    # preview a production build
@@ -20,7 +21,7 @@ npm run check      # Biome check --write
 npm run i18n:check # locale pack validation (missing / unused / zh-CN-en parity)
 ```
 
-Formatting is owned by **Biome** (`biome.json`); code-quality linting by **ESLint** (`eslint.config.js`, flat config: `vue flat/strongly-recommended` + `typescript-eslint recommended`). CI runs `npm run lint` and `npm run build` on Node 22.
+Formatting of supported JavaScript, TypeScript, JSON and CSS files is owned by **Biome** (`biome.json`); format Vue templates consistently with nearby components. Code-quality linting uses **ESLint** (`eslint.config.js`, flat config: `vue flat/strongly-recommended` + `typescript-eslint recommended`). CI uses the Yarn lockfile on Node 22 and runs lint, locale checks, the permission/media/course/sidebar/admin regression tests and the Vite build.
 
 ## Configuration
 
@@ -60,4 +61,4 @@ Built on **vue-i18n v11** (composition mode) with `@intlify/unplugin-vue-i18n` p
 
 - `dist/` is a build artifact — never commit its contents (the `.gitkeep` placeholder must stay).
 - Never hardcode UI copy in components — add keys to `src/locales/zh-CN/<namespace>.json` **and** `src/locales/en/<namespace>.json`, then render with `t()`. Copy must stay appropriate for a community of minors. Run `npm run i18n:check` before committing.
-- Any layout change must pass the frontend BVT (no overlapping/overflowing content at the standard viewports) — see the root [`CONTRIBUTING.md`](../CONTRIBUTING.md) and the Playwright scripts under `../scripts/`.
+- Any layout change must pass the frontend BVT (no overlapping/overflowing content at the standard viewports) — see [`docs/development.md`](../docs/development.md) and the Playwright scripts under `../scripts/`.

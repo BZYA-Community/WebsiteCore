@@ -7,18 +7,19 @@ import ts from 'typescript';
 const source = fs.readFileSync(new URL('../src/views/Courses.vue', import.meta.url), 'utf8')
   .match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
   .replace(/^import .*;\r?$/gm, '');
-const code = ts.transpileModule(source + '\nmodule.exports = {groupsLoading, loading, courses, removeCourse};',
+const code = ts.transpileModule(source + '\nmodule.exports = {groupsLoading, loading, courses, removeCourse, selectedGroup, selectedPath, editGroup, groupDraft, editCourse, courseDraft};',
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 const course = { id: 1, group_id: 2, teacher_id: 8, title: 'Delete me' };
 let savedCourses = [course, { ...course, id: 2, title: 'Keep me' }];
 let failDelete = false;
 const requestsForDeleted = [], successMessages = [];
+const route = vue.reactive({ query: { category: '2', manage: '1' } });
 const context = {
   ...vue,
   module: { exports: {} },
   window: { $message: { success: (message) => successMessages.push(message) } },
   useI18n: () => ({ t: (key) => key }),
-  useRoute: () => vue.reactive({ query: { category: '2', manage: '1' } }),
+  useRoute: () => route,
   useRouter: () => ({}),
   useStoreUser: () => ({ hasPermission: () => true, hasAnyPermission: () => true, userInfo: { id: 8 } }),
   useStoreMain: () => ({}),
@@ -65,7 +66,22 @@ try {
   assert.deepEqual(requestsForDeleted, [], 'refresh must not remount the deleted course and request its lessons');
   assert.deepEqual(Array.from(page.courses.value, (item) => item.id), [2]);
   assert.deepEqual(successMessages, ['course.deleteSuccess']);
-  console.log('Course catalog deletion checks passed: failed-delete retention, no deleted lesson reload, remaining course preserved.');
+  route.query.category = '999';
+  await tick();
+  assert.equal(page.selectedGroup.value, undefined);
+  assert.equal(page.selectedPath.value.length, 0);
+  page.editGroup();
+  assert.equal(page.groupDraft.parent_id, 0, 'a missing category must not become the new major category parent');
+  page.editCourse();
+  assert.equal(page.courseDraft.group_id, null, 'a missing category requires an explicit valid selection');
+  route.query.category = '2';
+  await tick();
+  assert.equal(page.selectedGroup.value.id, 2, 'query changes reactively select the valid category');
+  page.editGroup();
+  assert.equal(page.groupDraft.parent_id, 2);
+  page.editCourse();
+  assert.equal(page.courseDraft.group_id, 2);
+  console.log('Course catalog checks passed: deletion retention, no stale lesson reload, missing-category defaults, reactive category selection.');
 } finally {
   app.unmount();
 }

@@ -170,7 +170,7 @@
 
 <script setup lang="ts">
 import { useMediaUpload } from '@/composables/useMediaUpload';
-import { onMounted, computed, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { debounce } from 'lodash';

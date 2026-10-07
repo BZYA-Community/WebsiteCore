@@ -1,14 +1,14 @@
 :root {
-    // 中间栏宽度自适应浏览器视口: 视口宽-两侧栏约640px, 下限620保证可读, 上限1000防止行长失控
+    // 中间栏先为侧栏留出空间, 上限1000防止行长失控; 窄屏不能强制620px挤出侧栏
     // 注意用100%而非100vw: 100vw包含经典滚动条宽度, 页面间滚动条出现/消失会导致整栏横跳(切换页面闪一下)
     // 如需固定宽度可改回写死的像素值, 如 620px
-    --content-main: clamp(620px, calc(100% - 640px), 1000px);
+    --content-main: min(1000px, calc(100% - 640px));
 }
 
 // 1140px以下右侧栏已隐藏, 中间栏只需让出左侧栏空间
 @media screen and (max-width: 1140px) {
     :root {
-        --content-main: clamp(620px, calc(100% - 440px), 1000px);
+        --content-main: min(1000px, calc(100% - 440px));
     }
 }
 
@@ -19,6 +19,10 @@ html {
 
 // 移动端原生即为覆盖式滚动条, 无需预留gutter, 避免浪费宽度
 @media screen and (max-width: 821px) {
+    :root {
+        --content-main: 100%;
+    }
+
     html {
         scrollbar-gutter: auto;
     }
@@ -42,6 +46,7 @@ html {
 
     .content-wrap {
         width: 100%;
+        min-width: 0;
         max-width: var(--content-main);
         position: relative;
     }

@@ -32,6 +32,9 @@ export const deleteIdentityGroup = (id: number) =>
 export const setUserIdentity = (user_id: number, group_ids: number[]) =>
   request({ method: 'post', url: '/v1/admin/user/identity', data: { user_id, group_ids } });
 
+export const setUsersIdentity = (user_ids: number[], group_ids: number[]) =>
+  request({ method: 'post', url: '/v1/admin/user/identity', data: { user_ids, group_ids } });
+
 export interface IdentityLog {
   id: number;
   actor_id: number;

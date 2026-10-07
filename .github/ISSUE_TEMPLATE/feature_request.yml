@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Suggest an idea for the platform. Remember this is a community for minors — proposals must fit that audience.
-        The product baseline is [`docs/requirements-starisle-v2.0.md`](../../docs/requirements-starisle-v2.0.md); check it first to see whether your idea is already planned.
+        Check the [implemented feature scopes](https://github.com/BZYA-Community/WebsiteCore/blob/main/docs/community-framework.md) and existing issues first to see whether your idea is already planned.
   - type: textarea
     id: problem
     attributes:

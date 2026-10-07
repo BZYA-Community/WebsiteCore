@@ -67,16 +67,28 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: yarn
+          cache-dependency-path: web/yarn.lock
 
-      # package-lock.json 未纳入版本管理, 使用 npm install
+      - name: Setup Yarn
+        run: corepack enable
+
       - name: Install dependencies
-        run: npm install
+        run: yarn install --frozen-lockfile
 
       - name: Code quality (ESLint)
         run: npm run lint
 
       - name: i18n locale packs (missing/unused/parity)
         run: npm run i18n:check
+
+      - name: Frontend regression tests
+        run: |
+          yarn test:permissions
+          yarn test:media
+          yarn test:courses
+          yarn test:sidebar
+          yarn test:admin
 
       - name: Syntax check (build)
         run: npm run build

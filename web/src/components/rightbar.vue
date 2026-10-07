@@ -107,7 +107,7 @@ const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const storeProfile = useStoreProfile();
 const { collapsedRight, refreshTopicFollow } = storeToRefs(storeMain);
-const { userInfo, userLogined } = storeToRefs(storeUser);
+const { userLogined } = storeToRefs(storeUser);
 const { profile } = storeToRefs(storeProfile);
 
 const router = useRouter();

@@ -34,7 +34,7 @@ Everything that must be true before a WebsiteCore instance accepts traffic from 
 - [ ] **ICP filing (ICP 备案)** completed for the domain, and the filing number is displayed in the site footer (`WebProfile.Copyright*` settings are the natural place).
 - [ ] **Public security filing (公安备案)** within 30 days of launch, where required.
 - [ ] Privacy policy published, written for a minor-user audience and their guardians: what is collected (account, posts, phone number if bound), why, how long it is kept, how to request deletion.
-- [ ] Data minimization respected per [../governance.md](../governance.md) section 6: exporting or sharing user data requires maintainer approval; phone numbers are collected only for binding.
+- [ ] Collect only required user data; restrict access to exports and document their purpose and retention.
 - [ ] An abuse/report contact is reachable (email or in-site), and someone checks it.
 - [ ] Real-name/phone-binding requirements, if enabled, follow current regulations for community platforms.
 
@@ -51,7 +51,7 @@ Everything that must be true before a WebsiteCore instance accepts traffic from 
 - [ ] systemd `Restart=always` verified (kill the process, watch it come back).
 - [ ] Logs are being written and rotated (`LoggerFile` under `custom/`, plus journald for the service itself). Consider `LoggerOtlp`/Sentry for centralized error tracking — do not expose their endpoints publicly.
 - [ ] Monitoring in place (uptime check on the homepage; Prometheus scrape of the internal `Metrics` port if enabled).
-- [ ] Upgrade path agreed: production deploys only tagged releases, behind the GitHub Environments approval flow described in [../governance.md](../governance.md) section 5.
+- [ ] Upgrade and rollback procedures agreed, using tested release tags as described in [production.md](production.md).
 - [ ] Subscribe to dependency updates: Dependabot runs weekly against the `dev` branch; security fixes flow through the normal PR + review process ([../ci-cd.md](../ci-cd.md)).
 - [ ] Vulnerability reporting channel published: GitHub private security report, per [../../SECURITY.md](../../SECURITY.md).
 

@@ -226,7 +226,6 @@ import {
   EyeOffOutline,
   BodyOutline,
   WalkOutline,
-  PersonOutline,
   FlameOutline,
 } from '@vicons/ionicons5';
 import { MoreHorizFilled } from '@vicons/material';
@@ -246,7 +245,6 @@ import { VisibilityEnum } from '@/utils/IEnum';
 import copy from 'copy-to-clipboard';
 import { storeToRefs } from 'pinia';
 import { useStoreUser } from '@/store/user';
-import { Api } from '@/utils/request';
 import UserAction, { canWhisperUser, useChatJump } from '@/composables/useUserAction';
 import { usePostContent } from '@/composables/usePostContent';
 

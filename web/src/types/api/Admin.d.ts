@@ -77,6 +77,8 @@ declare namespace Api {
 
             interface UserListReq {
                 keyword?: string;
+                registered_from?: number;
+                registered_to?: number;
                 page: number;
                 page_size: number;
             }

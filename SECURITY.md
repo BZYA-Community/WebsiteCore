@@ -32,3 +32,15 @@ Please report security vulnerabilities privately:
 ## Scope notes
 
 Things we treat as security-relevant in this fork include: authentication/JWT bypasses, authorization flaws around identity groups and the content-audit pipeline, private-message permission leaks, path traversal in object storage, injection issues, and secret leakage in code or logs.
+
+## Dependency verification
+
+Use the minimum Go security patch in `go.mod` and install frontend dependencies with `yarn install --frozen-lockfile`. Check both dependency advisories and whether the affected code is reachable:
+
+```sh
+govulncheck -show verbose ./...
+cd web
+yarn audit --registry https://registry.npmjs.org
+```
+
+The October 2026 local audit fixed the reachable Go advisories and the frontend `source-map-js` advisory. Two upstream advisories have no published fix: [GO-2026-5932](https://pkg.go.dev/vuln/GO-2026-5932) concerns `x/crypto/openpgp`, which the project does not import; [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) concerns `braces` through the i18n build plugin's `fast-glob`. That plugin is a development dependency and receives the fixed locale-file pattern from `web/vite.config.ts`, not request input. Do not add OpenPGP imports or feed untrusted patterns to build tools. Recheck upstream fixes when updating dependencies; these scope notes do not replace a fresh scan.

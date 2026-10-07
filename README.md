@@ -117,7 +117,7 @@ The frontend is internationalized with **vue-i18n** (`zh-CN` source + `en`; lang
 
 ## Contributing
 
-Every PR must pass CI, the AI review, and the **BVT** (Build Verification Test): backend syntax/build/lint/test checks, and — for frontend changes — the locale-pack check (`npm run i18n:check`: missing keys / unused keys / zh-CN-en parity) plus layout checks ensuring no overlapping content at the standard viewports. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full process, role/promotion system, and review rules.
+Every PR must pass CI, applicable AI review, and the **BVT** (Build Verification Test): backend build/lint/test checks, and — for frontend changes — regression tests, locale-pack checks and layout checks at the standard viewports. See the [development guide](docs/development.md#build-verification-before-a-pr) for the checks and [CI/CD](docs/ci-cd.md) for review rules.
 
 This repository is maintained by a student community; contributions are recorded in the weekly report published every Friday.
 
@@ -144,8 +144,6 @@ This repository is maintained by a student community; contributions are recorded
 | [docs/ci-cd.md](docs/ci-cd.md) | CI pipelines, AI review, weekly report |
 | [docs/features-status.md](docs/features-status.md) | Feature flag maturity matrix |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | Change history of this fork |
-| [docs/governance.md](docs/governance.md) | Community governance charter (Chinese) |
-| [docs/requirements-starisle-v2.0.md](docs/requirements-starisle-v2.0.md) | Product requirements baseline (Chinese) |
 | [docs/openapi/](docs/openapi/) | OpenAPI assets (served at `/docs/openapi` with the `docs` build tag) |
 
 Full index: [docs/README.md](docs/README.md).
