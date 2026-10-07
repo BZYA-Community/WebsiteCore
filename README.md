@@ -115,12 +115,6 @@ Standard flow for a new API: declare it in `mirc/web/v1/` → `make gen-mir` gen
 
 The frontend is internationalized with **vue-i18n** (`zh-CN` source + `en`; language picker in the bottom-left sidebar). Locale packs live in `web/src/locales/<locale>/<namespace>.json` — plain nested JSON, ready for Crowdin/Weblate/Tolgee so the community can maintain more languages. Never hardcode UI copy: add keys to both locales and render with `t()`. Details: the Internationalization section in [web/README.md](web/README.md).
 
-## Contributing
-
-Every PR must pass CI, the AI review, and the **BVT** (Build Verification Test): backend syntax/build/lint/test checks, and — for frontend changes — the locale-pack check (`npm run i18n:check`: missing keys / unused keys / zh-CN-en parity) plus layout checks ensuring no overlapping content at the standard viewports. See [CONTRIBUTING.md](CONTRIBUTING.md) for the full process, role/promotion system, and review rules.
-
-This repository is maintained by a student community; contributions are recorded in the weekly report published every Friday.
-
 ## Repository layout
 
 ```
