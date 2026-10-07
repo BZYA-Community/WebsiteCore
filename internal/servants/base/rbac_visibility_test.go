@@ -3,6 +3,7 @@ package base
 import (
 	"testing"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/application/content"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 )
@@ -50,13 +51,14 @@ func TestTweetVisibilityDoesNotInferPermissionsFromRoles(t *testing.T) {
 			if tt.owner {
 				post.UserID = user.ID
 			}
-			s := &DaoServant{Ds: &visibilityData{follows: tt.follows, assigned: tt.assigned}}
+			ds := &visibilityData{follows: tt.follows, assigned: tt.assigned}
+			s := &DaoServant{Ds: ds, Views: content.New(ds)}
 			if got := s.CanViewTweet(user, post); got != tt.want {
 				t.Fatalf("CanViewTweet=%v, want %v", got, tt.want)
 			}
 		})
 	}
-	s := &DaoServant{}
+	s := &DaoServant{Views: content.New(nil)}
 	if s.CanViewTweet(nil, (*ms.Post)(nil)) || s.CanViewTweet(nil, &ms.Post{AuditStatus: ms.PostAuditPending, Visibility: core.PostVisitPublic}) {
 		t.Fatal("anonymous read exposed missing or pending content")
 	}

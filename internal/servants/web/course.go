@@ -9,6 +9,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
+
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
 	"github.com/BZYA-Community/WebsiteCore/internal/authz"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
@@ -85,7 +87,7 @@ func (s *courseLooseSrv) CourseList(req *web.CourseListReq) (*web.CourseListResp
 	if err != nil {
 		return nil, web.ErrGetCourseListFailed
 	}
-	return (*web.CourseListResp)(base.PageRespFrom(formated, req.Page, req.PageSize, total)), nil
+	return (*web.CourseListResp)(joint.PageRespFrom(formated, req.Page, req.PageSize, total)), nil
 }
 
 func (s *courseLooseSrv) CourseDetail(req *web.CourseDetailReq) (*web.CourseDetailResp, error) {
@@ -194,7 +196,7 @@ func (s *courseLooseSrv) CourseComments(req *web.CourseCommentsReq) (*web.Course
 		}
 		items = append(items, item)
 	}
-	return (*web.CourseCommentsResp)(base.PageRespFrom(items, req.Page, req.PageSize, total)), nil
+	return (*web.CourseCommentsResp)(joint.PageRespFrom(items, req.Page, req.PageSize, total)), nil
 }
 
 func (s *courseLooseSrv) CourseVideo(req *web.CourseVideoReq) (*web.CourseVideoResp, error) {
@@ -499,6 +501,9 @@ func (s *courseAdminSrv) buildCourse(groupID, teacherID int64, title, intro, tea
 			return nil, xerror.InvalidParams.WithDetails("课程封面必须使用本站公开图片")
 		}
 		if err := s.oss.PersistObject(key); err != nil {
+			return nil, web.ErrFileUploadFailed
+		}
+		if exists, err := s.oss.IsObjectExist(key); err != nil || !exists {
 			return nil, web.ErrFileUploadFailed
 		}
 		cover = s.oss.ObjectURL(key)

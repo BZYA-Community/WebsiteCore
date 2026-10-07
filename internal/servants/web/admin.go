@@ -8,6 +8,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
+
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
@@ -126,7 +128,7 @@ func (s *adminSrv) AdminUserList(req *web.AdminUserListReq) (*web.AdminUserListR
 			CreatedOn:      user.CreatedOn,
 		})
 	}
-	return (*web.AdminUserListResp)(base.PageRespFrom(items, req.Page, req.PageSize, total)), nil
+	return (*web.AdminUserListResp)(joint.PageRespFrom(items, req.Page, req.PageSize, total)), nil
 }
 
 // AdminUserDetail 用户管理·用户详情(完整手机号)

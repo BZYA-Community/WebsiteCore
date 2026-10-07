@@ -64,6 +64,11 @@ type httpServerConf struct {
 	TrustedProxies []string `mapstructure:"trusted_proxies"`
 }
 
+// Addr returns the configured HTTP listen address.
+func (c *httpServerConf) Addr() string {
+	return c.HttpIp + ":" + c.HttpPort
+}
+
 type appConf struct {
 	RunMode               string
 	MaxCommentCount       int64

@@ -2,7 +2,7 @@
 
 This document records the accepted direction for the modular WebsiteCore refactor. New repository artifacts use English; the product keeps Chinese and English translations.
 
-The five phases are implemented and locally verified. See [verification results and remaining deployment gates](community-verification.md). Phase 1 is committed separately; the integrated Phase 2–5 changes remain local for review, with per-feature issue scopes below. No multi-feature PR has been published.
+The five phases are implemented and committed for an integrated pull request, with per-feature scopes below. See [verification results and remaining deployment gates](community-verification.md) and the [deployment and browser BVT record](deploy/2026-10-07-bvt.md).
 
 | Phase | Deliverable | Tracking |
 | --- | --- | --- |
@@ -19,7 +19,7 @@ Verification of the configured contact method automatically grants Member identi
 
 Operator accounts are configured separately and cannot be created by assigning a group. Permissions apply at the server, with ownership and content visibility constraints retained. Course questions and replies require review; course uploads do not.
 
-There is no production deployment to preserve. This permits replacing obsolete identity semantics without a legacy-role compatibility layer, but does not authorize deletion of files or existing development data.
+The original development baseline permitted replacing obsolete identity semantics without a legacy-role compatibility layer. The [deployment record](deploy/2026-10-07-bvt.md) now documents a migrated installation; subsequent changes must preserve its data and account for schema compatibility.
 
 ## Delivery rules
 

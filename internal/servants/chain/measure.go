@@ -5,7 +5,7 @@
 package chain
 
 import (
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/internal/transport/httpx"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,7 +14,7 @@ func OnlineUserMeasure() gin.HandlerFunc {
 		// 此midleware后面是真正的http handlder，让handler先执行
 		c.Next()
 		// 更新用户在线状态
-		if uid, ok := base.UserIdFrom(c); ok {
+		if uid, ok := httpx.UserIdFrom(c); ok {
 			OnUserOnlineMetric(_ac, uid)
 		}
 	}

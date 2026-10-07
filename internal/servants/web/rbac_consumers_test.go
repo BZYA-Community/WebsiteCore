@@ -104,14 +104,14 @@ func TestRepliesRespectHiddenParents(t *testing.T) {
 		if canReplyToComment(permissionUser(1, "comment.create"), 2, status) {
 			t.Fatal("unrelated user can reply to hidden parent")
 		}
-		if !canReplyToComment(permissionUser(2, "comment.create"), 2, status) {
-			t.Fatal("author cannot reply to own hidden parent")
+		if got := canReplyToComment(permissionUser(2, "comment.create"), 2, status); got != (status == ms.PostAuditPending) {
+			t.Fatal("author may reply only to pending parents")
 		}
 		if canReplyToComment(permissionUser(1, "comment.create", "content.review"), 2, status) {
 			t.Fatal("unassigned reviewer can reply to hidden parent")
 		}
-		if !canReplyToComment(permissionUser(1, "comment.create", "audit.view_all"), 2, status) {
-			t.Fatal("review administrator cannot reply to hidden parent")
+		if got := canReplyToComment(permissionUser(1, "comment.create", "audit.view_all"), 2, status); got != (status == ms.PostAuditPending) {
+			t.Fatal("review administrator may reply only to pending parents")
 		}
 	}
 	if canReplyToComment(permissionUser(2), 2, ms.PostAuditApproved) {

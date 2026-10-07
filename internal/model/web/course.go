@@ -6,7 +6,7 @@ package web
 
 import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 )
 
 // ===== 课程公开读取(游客可用) =====
@@ -32,7 +32,7 @@ func (r *CourseListReq) SetPageInfo(page, pageSize int) {
 	r.Page, r.PageSize = page, pageSize
 }
 
-type CourseListResp base.PageResp
+type CourseListResp joint.PageResp
 
 type CourseDetailReq struct {
 	BaseInfo `form:"-" binding:"-"`
@@ -54,7 +54,7 @@ func (r *CourseCommentsReq) SetPageInfo(page, pageSize int) {
 	r.Page, r.PageSize = page, pageSize
 }
 
-type CourseCommentsResp base.PageResp
+type CourseCommentsResp joint.PageResp
 
 // CourseVideoReq 获取课程视频签名播放地址
 type CourseVideoReq struct {

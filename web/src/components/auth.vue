@@ -38,7 +38,7 @@
                             <n-form-item-row :label="t('auth.field.password')" path="password">
                                 <n-input
                                     type="password"
-                                    show-password-on="mousedown"
+                                    show-password-on="click"
                                     v-model:value="loginForm.password"
                                     :placeholder="t('auth.placeholder.password')"
                                     @keyup.enter.prevent="handleLogin"
@@ -87,7 +87,7 @@
                             <n-form-item-row :label="t('auth.field.password')" path="password">
                                 <n-input
                                     type="password"
-                                    show-password-on="mousedown"
+                                    show-password-on="click"
                                     v-model:value="loginForm.password"
                                     :placeholder="t('auth.placeholder.password')"
                                     @keyup.enter.prevent="handleLogin"
@@ -120,7 +120,7 @@
                             <n-form-item-row :label="t('auth.field.password')" path="password">
                                 <n-input
                                     type="password"
-                                    show-password-on="mousedown"
+                                    show-password-on="click"
                                     :placeholder="t('auth.placeholder.registerPassword')"
                                     v-model:value="registerForm.password"
                                     @keyup.enter.prevent="handleRegister"
@@ -129,7 +129,7 @@
                             <n-form-item-row :label="t('auth.field.repassword')" path="repassword">
                                 <n-input
                                     type="password"
-                                    show-password-on="mousedown"
+                                    show-password-on="click"
                                     :placeholder="t('auth.placeholder.repassword')"
                                     v-model:value="registerForm.repassword"
                                     @keyup.enter.prevent="handleRegister"

@@ -38,7 +38,7 @@ service.interceptors.response.use(
 		if (+response?.status === 401) {
 			const currentToken = localStorage.getItem(TOKEN_KEY);
 			const requestToken = error.config?.headers?.get?.('Authorization') ?? error.config?.headers?.Authorization;
-			if (currentToken && requestToken !== `Bearer ${currentToken}`) return Promise.reject(response?.data || {});
+			if ((currentToken || requestToken) && requestToken !== `Bearer ${currentToken}`) return Promise.reject(response?.data || {});
 			useStoreUser().userLogout();
 
 			if (response?.data.code !== 10005) {

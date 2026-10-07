@@ -6,6 +6,7 @@ import (
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
 	"github.com/BZYA-Community/WebsiteCore/internal/authz"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
@@ -82,5 +83,5 @@ func (s *adminSrv) ListIdentityLogs(req *web.IdentityLogsReq) (*web.IdentityLogs
 	if err != nil {
 		return nil, identityError(err)
 	}
-	return (*web.IdentityLogsResp)(base.PageRespFrom(rows, req.Page, req.PageSize, total)), nil
+	return (*web.IdentityLogsResp)(joint.PageRespFrom(rows, req.Page, req.PageSize, total)), nil
 }

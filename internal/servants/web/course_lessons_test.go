@@ -2,7 +2,6 @@ package web
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/authz"
@@ -13,13 +12,9 @@ import (
 )
 
 type courseCoverStorage struct {
-	permissionStorage
-	persisted string
-	failure   error
-}
-
-func (s *courseCoverStorage) ObjectKey(value string) string {
-	return strings.TrimPrefix(value, "https://storage.example.test/")
+	sharedAttachmentStorage
+	failure, checkError error
+	missing             bool
 }
 
 func (s *courseCoverStorage) ObjectURL(key string) string {
@@ -27,35 +22,101 @@ func (s *courseCoverStorage) ObjectURL(key string) string {
 }
 
 func (s *courseCoverStorage) PersistObject(key string) error {
-	s.persisted = key
+	s.persisted = append(s.persisted, key)
 	return s.failure
+}
+
+func (s *courseCoverStorage) IsObjectExist(string) (bool, error) {
+	return !s.missing, s.checkError
+}
+
+type courseCoverData struct {
+	permissionData
+	saveError error
+	writes    int
+}
+
+func (d *courseCoverData) GetCourseByID(int64) (*ms.Course, error) { return d.course, nil }
+func (d *courseCoverData) CreateCourse(actor *ms.User, course *ms.Course) (*ms.Course, error) {
+	d.writes++
+	if d.saveError != nil {
+		return nil, d.saveError
+	}
+	return d.permissionData.CreateCourse(actor, course)
+}
+func (d *courseCoverData) UpdateCourse(_ *ms.User, course *ms.Course) error {
+	d.writes++
+	if d.saveError != nil {
+		return d.saveError
+	}
+	d.course = course
+	return nil
 }
 
 func TestCourseCoverPublicationPrecedesCatalogWrite(t *testing.T) {
 	actor := permissionUser(1, authz.CourseManageOwn)
+	const oldCover = "https://storage.example.test/public/image/old.jpg"
 	for _, tc := range []struct {
 		name, cover, wantKey string
 		storageError         error
+		checkError           error
+		missing              bool
+		saveError            error
+		update               bool
 		wantError            bool
 	}{
 		{name: "new public image is persisted", cover: "https://storage.example.test/public/image/cover.png", wantKey: "public/image/cover.png"},
 		{name: "legacy public image is persisted", cover: "image/cover.png", wantKey: "image/cover.png"},
+		{name: "course without cover can be created"},
+		{name: "replacement preserves old shared cover", cover: "public/image/new.webp", wantKey: "public/image/new.webp", update: true},
+		{name: "existing cover can be retained", cover: oldCover, wantKey: "public/image/old.jpg", update: true},
 		{name: "storage failure blocks catalog", cover: "public/image/cover.png", wantKey: "public/image/cover.png", storageError: errors.New("publish failed"), wantError: true},
+		{name: "replacement storage failure preserves catalog", cover: "public/image/new.webp", wantKey: "public/image/new.webp", storageError: errors.New("publish failed"), update: true, wantError: true},
+		{name: "missing replacement blocks catalog", cover: "public/image/missing.webp", wantKey: "public/image/missing.webp", missing: true, update: true, wantError: true},
+		{name: "replacement inspection failure blocks catalog", cover: "public/image/new.webp", wantKey: "public/image/new.webp", checkError: errors.New("inspect failed"), update: true, wantError: true},
+		{name: "create database failure preserves shared cover", cover: oldCover, wantKey: "public/image/old.jpg", saveError: errors.New("insert failed"), wantError: true},
+		{name: "update database failure preserves shared covers", cover: "public/image/new.webp", wantKey: "public/image/new.webp", saveError: errors.New("update failed"), update: true, wantError: true},
 		{name: "private key never published", cover: "attachment/course/staging/resource.pdf", wantError: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			ds := &permissionData{user: actor}
-			storage := &courseCoverStorage{failure: tc.storageError}
+			ds := &courseCoverData{permissionData: permissionData{user: actor}, saveError: tc.saveError}
+			if tc.update {
+				ds.course = &ms.Course{Model: &ms.Model{ID: 3}, GroupID: 6, TeacherID: actor.ID, Title: "Original", Cover: oldCover}
+			}
+			original := ds.course
+			storage := &courseCoverStorage{failure: tc.storageError, checkError: tc.checkError, missing: tc.missing}
 			s := &courseAdminSrv{DaoServant: &base.DaoServant{Ds: ds}, oss: storage}
-			_, err := s.CreateCourse(&model.CreateCourseReq{BaseInfo: model.BaseInfo{User: actor}, GroupID: 6, Title: "Course", Cover: tc.cover})
-			if (err != nil) != tc.wantError || storage.persisted != tc.wantKey {
+			var err error
+			if tc.update {
+				err = s.UpdateCourse(&model.UpdateCourseReq{BaseInfo: model.BaseInfo{User: actor}, ID: 3, GroupID: 6, Title: "Course", Cover: tc.cover})
+			} else {
+				_, err = s.CreateCourse(&model.CreateCourseReq{BaseInfo: model.BaseInfo{User: actor}, GroupID: 6, Title: "Course", Cover: tc.cover})
+			}
+			if (err != nil) != tc.wantError {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if (tc.wantKey == "" && len(storage.persisted) != 0) || (tc.wantKey != "" && (len(storage.persisted) != 1 || storage.persisted[0] != tc.wantKey)) {
 				t.Fatalf("err=%v persisted=%q", err, storage.persisted)
 			}
-			if tc.wantError && ds.course != nil {
-				t.Fatal("failed cover publication still wrote catalog metadata")
+			wantWrites := 1
+			if tc.wantError && tc.saveError == nil {
+				wantWrites = 0
 			}
-			if !tc.wantError && (ds.course == nil || ds.course.Cover != storage.ObjectURL(tc.wantKey)) {
+			if ds.writes != wantWrites || (tc.wantError && ds.course != original) {
+				t.Fatalf("failed operation changed catalog: writes=%d course=%+v", ds.writes, ds.course)
+			}
+			if original != nil && (original.Cover != oldCover || original.Title != "Original") {
+				t.Fatal("mutated the original course before saving")
+			}
+			wantCover := ""
+			if tc.wantKey != "" {
+				wantCover = storage.ObjectURL(tc.wantKey)
+			}
+			if !tc.wantError && (ds.course == nil || ds.course.Cover != wantCover) {
 				t.Fatalf("wrong public cover URL: %+v", ds.course)
+			}
+			if len(storage.deleted) != 0 {
+				t.Fatalf("deleted a shared cover: %v", storage.deleted)
 			}
 		})
 	}

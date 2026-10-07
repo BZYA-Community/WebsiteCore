@@ -2,7 +2,7 @@ package web
 
 import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
-	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 )
 
 type IdentityReq struct {
@@ -50,4 +50,4 @@ type IdentityLogsReq struct {
 
 func (r *IdentityLogsReq) SetPageInfo(page, pageSize int) { r.Page, r.PageSize = page, pageSize }
 
-type IdentityLogsResp base.PageResp
+type IdentityLogsResp joint.PageResp

@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/application/content"
+	"github.com/BZYA-Community/WebsiteCore/internal/application/searchindex"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
@@ -104,7 +106,8 @@ func TestSharedAttachmentsSurviveContentFailuresAndDeletion(t *testing.T) {
 			actor := permissionUser(1, "profile.edit", "post.create", "post.view", "comment.create", "course.view")
 			ds := &sharedAttachmentData{user: actor}
 			storage := &sharedAttachmentStorage{}
-			base := &base.DaoServant{Ds: ds, Ts: &sharedAttachmentSearch{}}
+			ts := &sharedAttachmentSearch{}
+			base := &base.DaoServant{Ds: ds, Ts: ts, Views: content.New(ds), Index: searchindex.New(ds, ts, nil)}
 			contents := []*model.PostContentItem{{Content: sharedAttachmentURL, Type: ms.ContentTypeImage}}
 			var err error
 			switch kind {

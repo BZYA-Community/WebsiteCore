@@ -88,4 +88,41 @@ for (const failure of [new Error('Network unavailable'), { code: 20007 }]) {
   await assert.rejects(pendingFailure, (error) => error === failure);
   assert.equal(storage.get(TOKEN_KEY), 'valid-session', 'ordinary failures must preserve the session');
 }
-console.log('Permission and session-race checks passed, including invalidated bootstrap recovery and current-session error preservation.');
+
+// Two concurrent expired requests must not invalidate the guest recovery started by the first 401.
+const requestSource = readFileSync(new URL('../src/utils/request.ts', import.meta.url), 'utf8').replace('import.meta.env.VITE_HOST', "''");
+const requestCompiled = ts.transpileModule(requestSource, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
+const requestModule = { exports: {} };
+const requestModules = {
+  '@/store/user': { useStoreUser, TOKEN_KEY },
+  '@/store/main': { useStoreMain: () => ({ triggerAuth() {} }) },
+  '@/locales/errorCodes': { translateErrMsg: () => '' },
+};
+new Function('require', 'module', 'exports', 'localStorage', 'window', requestCompiled)(
+  (name) => requestModules[name] ?? require(name), requestModule, requestModule.exports, localStorage, {},
+);
+const service = requestModule.exports.default;
+const requests = new Map();
+service.defaults.adapter = (config) => new Promise((_resolve, reject) => {
+  requests.set(config.url, () => reject({ config, response: { status: 401, data: { code: 20006 } } }));
+});
+let resolveGuest;
+modules['@/api/auth'].userInfo = () => service.get('/v1/user/info');
+modules['@/api/identity'].getIdentity = () => new Promise((resolve) => { resolveGuest = resolve; });
+setActivePinia(createPinia());
+const concurrent = useStoreUser();
+storage.set(TOKEN_KEY, 'expired-session');
+const pendingConcurrent = Promise.all([concurrent.loadSession(), concurrent.loadSession()]);
+const pendingTopics = assert.rejects(service.get('/v1/topics'), (error) => error.code === 20006);
+await new Promise(setImmediate);
+requests.get('/v1/user/info')();
+await new Promise(setImmediate);
+assert.equal(storage.has(TOKEN_KEY), false);
+assert.equal(typeof resolveGuest, 'function', 'first 401 must start guest recovery');
+requests.get('/v1/topics')();
+await pendingTopics;
+resolveGuest({ permissions: ['post.view'] });
+await pendingConcurrent;
+assert.equal(concurrent.userLogined, false);
+assert.equal(concurrent.hasPermission('post.view'), true, 'late 401 must preserve guest recovery');
+console.log('Permission and session-race checks passed, including concurrent 401 guest recovery and current-session error preservation.');

@@ -74,7 +74,7 @@ A phone number can only be bound to one account; binding a number already used b
 
 This platform targets a youth community in mainland China. When enabling phone binding:
 
-- Only collect phone numbers with a stated purpose and a privacy policy (data minimization is required by [../governance.md](../governance.md), section 6).
+- Only collect phone numbers with a stated purpose and a privacy policy.
 - SMS templates must be approved by the provider; do not send marketing content through verification templates.
 - Keep the daily cap in place — it limits both cost and SMS-bombing abuse.
 - Exporting or sharing user phone numbers requires maintainer approval.

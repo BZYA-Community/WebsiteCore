@@ -22,7 +22,7 @@ Browser checks use desktop Edge/Chromium and widths 1920, 1600, 1366, 1200, 1000
 
 Backend build, migration-tagged build, vet, golangci-lint and the full test suite passed. Frontend production build and permission/media tests passed; ESLint reported 0 errors and 136 pre-existing style warnings. Translation parity passed with 775 keys and 624 references. In total, 77 real API/browser checks and 14 intercepted-response browser checks passed; these are separate from the HTTP script counts above.
 
-Run the repository's backend and frontend BVT from [CONTRIBUTING.md](../CONTRIBUTING.md). Set `TEST_POSTGRES_DSN` to a disposable PostgreSQL instance before `go test ./...`; otherwise database integration tests explicitly skip. These tests create isolated random tables or schemas and clean them up.
+Run the backend and frontend checks below, using the toolchain in the [development guide](development.md). Set `TEST_POSTGRES_DSN` to a disposable PostgreSQL instance before `go test ./...`; otherwise database integration tests explicitly skip. These tests create isolated random tables or schemas and clean them up.
 
 ```sh
 go build ./...

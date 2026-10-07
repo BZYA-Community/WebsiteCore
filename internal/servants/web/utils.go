@@ -129,8 +129,10 @@ func checkPermision(user *ms.User, targetUserId int64) error {
 	return nil
 }
 
-// A hidden parent can only receive replies from its author or a reviewer.
+// Pending parents accept replies from their author or an authorized moderator;
+// rejected parents never accept replies.
 func canReplyToComment(user *ms.User, authorID int64, status ms.PostAuditT) bool {
 	return user != nil && user.HasPermission("comment.create") &&
-		(status == ms.PostAuditApproved || user.ID == authorID || user.HasPermission("audit.view_all"))
+		(status == ms.PostAuditApproved || status == ms.PostAuditPending &&
+			(user.ID == authorID || user.HasPermission("audit.view_all")))
 }
