@@ -49,7 +49,7 @@ A production binary built with `TAGS='embed migration'` can also migrate automat
 
 ### Adding a migration (contributors)
 
-Schema changes must go through migrations — never edit the production database by hand (see [../governance.md](../governance.md), section 6).
+Schema changes must go through migrations — never edit the production database by hand.
 
 1. Create the next-numbered pair: `scripts/migration/postgres/NNNN_name.{up,down}.sql`.
 2. Write a working `down` migration.
@@ -80,7 +80,7 @@ Postgres:
 
 ## Backup and restore
 
-Back up before every migration and on a daily schedule. Backup files must be stored outside the repository with restrictive permissions (mode 600 per governance policy).
+Back up before every migration and on a daily schedule. Store backups outside the repository with restrictive permissions (mode 600 on Unix).
 
 ```sh
 # Backup (custom format, compressed, restorable selectively)

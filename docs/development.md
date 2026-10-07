@@ -1,14 +1,14 @@
 # Development Guide
 
-How to set up a working environment, how the codebase is organized, and how to make changes safely. Read [../CONTRIBUTING.md](../CONTRIBUTING.md) for the PR process and the mandatory BVT checks before submitting anything.
+How to set up a working environment, how the codebase is organized, and how to make changes safely. Before submitting a PR, run the [BVT checks](#build-verification-before-a-pr) and use the matching [PR template](../.github/PULL_REQUEST_TEMPLATE/). Report security vulnerabilities privately as described in [SECURITY.md](../SECURITY.md).
 
 ## Toolchain
 
 | Tool | Version | Used for |
 | --- | --- | --- |
-| Go | see `go.mod` (1.26+) | backend |
+| Go | see `go.mod` (1.26.6+) | backend; includes required security fixes |
 | Node.js | 22.x (CI parity); 20.19+ works | frontend |
-| npm or Yarn 1.x | — | frontend deps; `make build-web` uses Yarn, CI uses npm |
+| Yarn | 1.22.22 (`web/package.json`) | locked frontend dependencies; local and CI |
 | Docker + Compose | recent | PostgreSQL / Redis / Meilisearch dev stack |
 | GNU make | — | task runner |
 | gofumpt, go-enum | latest | formatting and codegen (`make install-tools`) |
@@ -54,7 +54,7 @@ The layering rule: `servants` implement interfaces generated from `mirc` definit
 
 ```sh
 make run TAGS='embed'   # run API + embedded frontend
-make run                # run API only
+make run                # run with configured features (includes embedded SPA by default)
 make build              # binary to release/paopao
 make test               # go test ./...
 make fmt                # gofumpt
@@ -63,14 +63,14 @@ make migrate            # apply DB migrations (adds the migration tag for you)
 make deps-up|down|logs|status|reset   # dependency stack
 ```
 
-Build tags: `embed` (serve the compiled SPA from the binary), `migration` (include the migration engine), `docs` (OpenAPI docs service on :8011). Combine as needed: `make run TAGS='embed migration'`.
+The compiled SPA is embedded by default; serving it is controlled by the `Frontend:EmbedWeb` feature. The `slim embed` tag combination omits the embedded frontend. Other build tags: `migration` (include the migration engine), `docs` (OpenAPI docs service on :8011). Combine as needed: `make run TAGS='embed migration'`.
 
 ### Adding or changing an API
 
 1. Declare the endpoint in `mirc/web/v1/` (or `mirc/admin/`, ... — see [../mirc/README.md](../mirc/README.md) for the service table).
 2. Regenerate: `make gen-mir` (runs `go generate mirc/gen.go`, writes `auto/api/...`, then gofumpt). Never hand-edit `auto/`.
 3. Implement the handler in `internal/servants/web/` (or the matching service).
-4. If persistence changes are needed, add a migration pair to **both** `scripts/migration/postgres/` and `scripts/migration/mysql/` (see [deploy/database.md](deploy/database.md)).
+4. If persistence changes are needed, add an up/down migration pair to `scripts/migration/postgres/` (see [deploy/database.md](deploy/database.md)). PostgreSQL is the supported database.
 5. If you touched configuration, update `internal/conf/config.yaml` (embedded) **and** `config.yaml.sample` in the same PR.
 
 ### Enum codegen
@@ -83,7 +83,8 @@ make gen-enum    # go generate ./internal/model/enum/...
 
 ```sh
 cd web
-npm install
+corepack enable
+yarn install --frozen-lockfile
 npm run dev        # Vite dev server
 npm run lint       # ESLint
 npm run lint:fix
@@ -105,6 +106,34 @@ Frontend feature flags (`VITE_ALLOW_*`, `VITE_DEFAULT_*` in `web/.env`) mirror t
 
 ## Testing
 
+### Build verification before a PR
+
+Keep the change focused, add a regression check for a bug fix, and describe the behavior and validation in the PR. Do not commit credentials, personal data, build output or changes to generated files made by hand. Preserve existing copyright and license notices; contributions use the repository's [MIT license](../LICENSE).
+
+For backend changes, run:
+
+```sh
+go build ./...
+go vet ./...
+golangci-lint run ./...
+go test ./...
+```
+
+For frontend changes, run these from `web/` after installing the locked dependencies:
+
+```sh
+yarn lint
+yarn i18n:check
+yarn test:permissions
+yarn test:media
+yarn test:courses
+yarn test:sidebar
+yarn test:admin
+yarn build
+```
+
+Check changed screens at the standard viewports below, including keyboard access, loading, empty and failure states. Attach relevant output or screenshots to the PR. For schema or configuration changes, also follow the migration and configuration steps above.
+
 ### Unit tests
 
 ```sh
@@ -124,7 +153,7 @@ These hit a running local instance (default `http://127.0.0.1:8008`) and/or driv
 | `measure_width.py` | Column layout at 7 viewports: 1920 / 1600 / 1366 / 1200 / 1000 / 821 / 375 |
 | `screenshot.py`, `screenshots_audit.py` | Page screenshots for manual visual comparison |
 
-Run the ones relevant to your change and paste the summary lines into the PR (the PR template has a section for this). The **BVT** — the mandatory minimum for every PR — is defined in [../CONTRIBUTING.md](../CONTRIBUTING.md).
+Run the ones relevant to your change and paste the summary lines into the PR (the PR template has a section for this), alongside the [BVT checks](#build-verification-before-a-pr).
 
 ## Debugging and profiling
 

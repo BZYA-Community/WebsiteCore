@@ -257,7 +257,7 @@ sudo systemctl start websitecore          # Migration feature applies new schema
 sudo journalctl -u websitecore -n 50
 ```
 
-Rollback = restore the previous binary (and the database dump if a migration ran). Per governance policy, production only ever runs tagged releases, not `main` HEAD — see [../governance.md](../governance.md), section 5.
+Rollback = restore the previous binary (and the database dump if a migration ran). Deploy a tested release tag and record its version so the previous release can be restored.
 
 ## Running dependencies without Docker
 

@@ -1,6 +1,7 @@
 {
   "name": "paopao-web",
   "private": true,
+  "type": "module",
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
@@ -13,6 +14,8 @@
     "i18n:check": "node scripts/i18n-check.mjs",
     "test:permissions": "node --experimental-strip-types scripts/permissions.test.mjs",
     "test:media": "node --experimental-strip-types scripts/media-upload.test.mjs",
+    "test:sidebar": "node scripts/sidebar-polling.test.mjs",
+    "test:admin": "node scripts/admin-users.test.mjs",
     "test:courses": "node scripts/course-editor.test.mjs && node scripts/course-watch.test.mjs && node scripts/course-catalog.test.mjs"
   },
   "dependencies": {
@@ -31,23 +34,21 @@
     "moment": "^2.30.1",
     "naive-ui": "^2.41.0",
     "pinia": "^3.0.4",
-    "qrcanvas-vue": "^3.0.0",
-    "qrcode": "^1.5.4",
-    "unplugin-vue-components": "^28.5.0",
     "v3-infinite-loading": "^1.3.2",
     "vfonts": "^0.0.3",
     "vue": "^3.5.30",
     "vue-advanced-chat": "^2.1.2",
     "vue-advanced-cropper": "^2.8.9",
     "vue-i18n": "^11",
-    "vue-router": "4",
-    "vuex": "^4.1.0"
+    "vue-router": "4"
+  },
+  "resolutions": {
+    "source-map-js": "^1.2.2"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@intlify/unplugin-vue-i18n": "^11.2.5",
     "@types/node": "^22.14.1",
-    "@types/qrcode": "^1.5.5",
     "@vitejs/plugin-vue": "^6.0.5",
     "@vue/compiler-sfc": "^3.5.13",
     "eslint": "^10.11.0",
@@ -55,6 +56,7 @@
     "globals": "^17.12.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.70.1",
+    "unplugin-vue-components": "^32.1.0",
     "vite": "^8.0.0",
     "vue-eslint-parser": "^10.4.1"
   },

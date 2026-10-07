@@ -8,7 +8,7 @@
 
 <!-- Which pages, and what was wrong / missing / outdated. -->
 
-## Documentation BVT (see CONTRIBUTING.md)
+## Documentation BVT (see [development guide](../../docs/development.md#build-verification-before-a-pr))
 
 - [ ] Every link I added or touched resolves (relative paths checked from the file's own directory)
 - [ ] Every command I documented matches the current `Makefile` / `scripts/` / workflows

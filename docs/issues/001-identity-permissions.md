@@ -9,6 +9,9 @@ Status: implemented and locally verified. This local issue tracks Phase 1 of the
 - Guests can browse public posts and the course catalog. Members can view courses, publish posts and comments, upload content, and initiate private messages.
 - Admin has community-management and review permissions. Publishing without review is an independent grant and is absent from every default group.
 - Operator is a deployment-managed account flag, belongs to no identity group, and has all known permissions while active. Unknown permissions are always denied.
+- The built-in `reviewer` (审核员) group grants `content.review` for assigned content, without user, identity or site administration. Migration `0033_reviewer_identity` adds it without overwriting an existing custom group.
+- User management accepts an inclusive registration timestamp range (`registered_from` / `registered_to`, Unix seconds), combined with keyword search and pagination. The date picker includes the entire final day in the browser's local timezone.
+- `POST /v1/admin/user/identity` accepts either `user_id` or `user_ids` (1–100 IDs), plus `group_ids`. Groups replace explicit memberships; empty groups remove explicit memberships while preserving automatic base identities. A batch is atomic, rechecks current authority, rejects self/operator changes and grants above the actor, and logs each changed user.
 - The project is not deployed to production. Existing legacy roles are not automatically promoted into new permissions; no historical data or user documents are deleted.
 
 ## Implementation boundary

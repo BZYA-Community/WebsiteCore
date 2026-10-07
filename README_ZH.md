@@ -148,8 +148,6 @@ cd web && npm run i18n:check   # 语言包校验(缺失/未使用/中英结构�
 | [docs/ci-cd.md](docs/ci-cd.md) | CI 流水线、AI 审查、周报 |
 | [docs/features-status.md](docs/features-status.md) | 功能项成熟度矩阵 |
 | [docs/CHANGELOG.md](docs/CHANGELOG.md) | 本仓库变更记录 |
-| [docs/governance.md](docs/governance.md) | 社区治理章程 |
-| [docs/requirements-starisle-v2.0.md](docs/requirements-starisle-v2.0.md) | 平台需求基线 |
 | [docs/openapi/](docs/openapi/) | OpenAPI 文档资源（`docs` tag 运行时由 `/docs/openapi` 提供） |
 
 完整索引见 [docs/README.md](docs/README.md)。

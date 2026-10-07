@@ -50,6 +50,15 @@ def main(args):
             print(json.dumps(page.evaluate("({width: innerWidth, document: document.documentElement.scrollWidth, elements: [...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1).slice(0,15).map(e=>({tag:e.tagName, class:e.className, right:e.getBoundingClientRect().right, width:e.getBoundingClientRect().width}))})")), flush=True)
             page.screenshot(path=str(output / "overflow.png"), full_page=True)
         check(name, page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1"))
+        if page.viewport_size["width"] > 821:
+            page.locator('.sidebar-wrap').wait_for()
+            check(name + "; sidebar stays visible and clear of content", page.evaluate("""() => {
+                const sidebar = document.querySelector('.sidebar-wrap').getBoundingClientRect();
+                const content = document.querySelector('.content-wrap').getBoundingClientRect();
+                const rightbar = document.querySelector('.rightbar-wrap')?.getBoundingClientRect();
+                return sidebar.left >= 0 && sidebar.right <= content.left + 1 &&
+                    (!rightbar || (rightbar.left >= content.right - 1 && rightbar.right <= innerWidth));
+            }"""))
 
     screenshots = []
     with sync_playwright() as playwright:
@@ -193,6 +202,14 @@ def main(args):
                 name = f"watch-{width}-zh.png"
                 page.screenshot(path=str(output / name), full_page=True)
                 screenshots.append(name)
+        # Start mobile with no sidebar mounted; resize without reload across both breakpoints.
+        page.set_viewport_size({"width": 390, "height": 844})
+        page.goto(f"{base}/#/courses", wait_until="networkidle")
+        page.reload(wait_until="networkidle")
+        for width in [822, 1000, 1140, 1141, 1366, 821, 390, 1000]:
+            page.set_viewport_size({"width": width, "height": 844})
+            page.wait_for_function("document.querySelectorAll('.sidebar-wrap').length === (innerWidth > 821 ? 1 : 0) && document.querySelectorAll('.rightbar-wrap').length === (innerWidth > 1140 ? 1 : 0)")
+            no_overflow(page, f"{width}px catalog resize without reload has no horizontal overflow")
         context.close()
         for width in [1366, 390]:
             themed = browser.new_context(viewport={"width": width, "height": 1000 if width > 400 else 844})

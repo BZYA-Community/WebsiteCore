@@ -28,31 +28,14 @@
                 <div class="username">@{{ userInfo.username }}</div>
             </div>
 
-            <div class="user-mini-wrap">
-                <lang-switcher size="medium" :icon-size="24" />
-                <n-button class="logout" quaternary circle :title="t('sidebar.logout')" @click="handleLogout">
-                    <template #icon>
-                        <n-icon :size="24">
-                            <log-out-outline />
-                        </n-icon>
-                    </template>
-                </n-button>
-            </div>
         </div>
-        <div class="user-wrap" v-else>
-            <div v-if="!profile.allowUserRegister" class="login-only-wrap">
-                <n-button strong secondary round type="primary" @click="triggerAuth('signin')">
-                    {{ t('sidebar.login') }}
-                </n-button>
-            </div>
-            <div v-if="profile.allowUserRegister" class="login-wrap">
-                <n-button strong secondary round type="primary" @click="triggerAuth('signin')">
-                    {{ t('sidebar.login') }}
-                </n-button>
-                <n-button strong secondary round type="info" @click="triggerAuth('signup')">
-                    {{ t('sidebar.signup') }}
-                </n-button>
-            </div>
+        <div class="user-wrap guest-wrap" v-else>
+            <n-button class="guest-auth" strong secondary round size="small" type="primary" @click="triggerAuth('signin')">
+                {{ t('sidebar.login') }}
+            </n-button>
+            <n-button v-if="profile.allowUserRegister" class="guest-auth" quaternary size="small" @click="triggerAuth('signup')">
+                {{ t('sidebar.signup') }}
+            </n-button>
             <div class="guest-lang">
                 <lang-switcher size="small" :icon-size="20" />
             </div>
@@ -61,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { h, ref, watch, computed, onMounted } from 'vue';
+import { h, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { routePermissions } from '@/router';
 import { useI18n } from 'vue-i18n';
@@ -96,49 +79,38 @@ const { profile } = storeToRefs(storeProfile);
 
 const route = useRoute();
 const router = useRouter();
-const hasUnreadMsg = ref(false);
-const selectedPath = ref<any>(route.name === 'course' ? 'courses' : route.name || '');
-const msgLoop = ref();
+const hasUnreadMsg = computed(() => unreadMsgCount.value > 0);
+const selectedPath = computed(() => route.name === 'course' ? 'courses' : route.name || '');
 
-watch(route, () => {
-  selectedPath.value = route.name === 'course' ? 'courses' : route.name;
-});
-watch(() => [unreadMsgCount, userInfo, profile], () => {
-  hasUnreadMsg.value = unreadMsgCount.value > 0;
-  if (userInfo.value.id > 0) {
-    if (!msgLoop.value) {
-      Api.v1.user.get.msgcount.unread({})
-        .then((res) => {
-          hasUnreadMsg.value = res.count > 0;
-          storeMain.updateUnreadMsgCount(res.count);
-        })
-        .catch((err) => {
-          console.log(err);
-        });
+watch(
+  () => [userInfo.value.id, storeUser.hasPermission('profile.edit'), profile.value.defaultMsgLoopInterval] as const,
+  ([id, allowed, interval], _previous, onCleanup) => {
+    storeMain.updateUnreadMsgCount(0);
+    if (id <= 0 || !allowed) return;
 
-      msgLoop.value = setInterval(() => {
-        Api.v1.user.get.msgcount.unread({})
-          .then((res) => {
-            hasUnreadMsg.value = res.count > 0;
-            storeMain.updateUnreadMsgCount(res.count);
-          })
-          .catch((err) => {
-            console.log(err);
-          });
-      }, profile.value.defaultMsgLoopInterval);
-    }
-  } else {
-    if (msgLoop.value) {
-      clearInterval(msgLoop.value);
-    }
-  }
-});
-onMounted(() => {
-  window.onresize = () => {
-    storeMain.triggerCollapsedLeft(document.body.clientWidth <= 821);
-    storeMain.triggerCollapsedRight(document.body.clientWidth <= 1140);
-  };
-});
+    let active = true;
+    let pending = false;
+    const refreshUnread = async () => {
+      if (pending) return;
+      pending = true;
+      try {
+        const res = await Api.v1.user.get.msgcount.unread({});
+        if (active) storeMain.updateUnreadMsgCount(res.count);
+      } catch (err) {
+        if (active) console.warn('Failed to load unread message count', err);
+      } finally {
+        pending = false;
+      }
+    };
+    const timer = setInterval(refreshUnread, Math.max(1000, interval || 5000));
+    onCleanup(() => {
+      active = false;
+      clearInterval(timer);
+    });
+    void refreshUnread();
+  },
+  { immediate: true, flush: 'sync' },
+);
 const menuOptions = computed(() => [
   { label: t('nav.home'), key: 'home', icon: () => h(HomeOutline), href: '/' },
   { label: t('nav.topic'), key: 'topic', icon: () => h(Hash), href: '/topic' },
@@ -187,8 +159,7 @@ const renderMenuIcon = (option: AnyObject) => {
   return h(NIcon, null, { default: option.icon });
 };
 
-const goRouter = (name: string, item: any = {}) => {
-  selectedPath.value = name;
+const goRouter = (name: string) => {
   router.push({
     name,
     query: {
@@ -268,15 +239,25 @@ window.$message = useMessage();
         flex-shrink: 0;
         padding: 12px 12px 0;
 
-        .user-mini-wrap {
-            display: none;
+        &.guest-wrap {
+            gap: 6px;
+            padding-inline: 8px;
+
+            .guest-auth {
+                flex: 1;
+                min-width: 0;
+                padding: 0 8px;
+            }
         }
 
         .user-avatar {
             margin-right: 8px;
+            flex-shrink: 0;
         }
 
         .user-info {
+            flex: 1;
+            min-width: 0;
             display: flex;
             flex-direction: column;
 
@@ -290,19 +271,22 @@ window.$message = useMessage();
                 align-items: center;
 
                 .nickname-txt {
-                    max-width: 90px;
+                    flex: 1;
+                    min-width: 0;
                     text-overflow: ellipsis;
                     overflow: hidden;
                     white-space: nowrap;
                 }
 
                 .lang-btn {
+                    flex-shrink: 0;
                     display: inline-flex;
                     align-items: center;
                     margin-left: 6px;
                 }
 
                 .logout {
+                    flex-shrink: 0;
                     margin-left: 6px;
                 }
             }
@@ -311,7 +295,7 @@ window.$message = useMessage();
                 font-size: 14px;
                 line-height: 16px;
                 height: 16px;
-                width: 120px;
+                width: 100%;
                 text-overflow: ellipsis;
                 overflow: hidden;
                 white-space: nowrap;
@@ -319,32 +303,10 @@ window.$message = useMessage();
             }
         }
 
-        .login-only-wrap {
-            display: flex;
-            justify-content: center;
-            width: 100%;
-
-            button {
-                margin: 0 4px;
-                width: 80%
-            }
-        }
-
-        .login-wrap {
-            display: flex;
-            justify-content: center;
-            width: 100%;
-
-            button {
-                margin: 0 4px;
-            }
-        }
-
         .guest-lang {
             display: flex;
             align-items: center;
             flex-shrink: 0;
-            margin-left: 4px;
         }
     }
 }
@@ -370,15 +332,13 @@ window.$message = useMessage();
     .user-wrap {
 
         .user-avatar,
-        .user-info,
-        .login-only-wrap,
-        .login-wrap,
-        .guest-lang {
+        .user-info {
             margin-bottom: 32px;
         }
 
-        //     .user-mini-wrap {
-        //         display: block !important;
-        //     }
+        &.guest-wrap {
+            margin-bottom: 32px;
+        }
+
     }
 }</style>

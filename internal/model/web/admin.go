@@ -7,6 +7,8 @@ package web
 import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
+	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
+	"github.com/gin-gonic/gin"
 )
 
 type ChangeUserStatusReq struct {
@@ -28,10 +30,22 @@ type SiteInfoResp struct {
 
 // AdminUserListReq 用户管理·搜索用户列表(keyword匹配ID/用户名/昵称/手机号)
 type AdminUserListReq struct {
-	BaseInfo `form:"-" binding:"-"`
-	Keyword  string `form:"keyword"`
-	Page     int    `form:"-" binding:"-"`
-	PageSize int    `form:"-" binding:"-"`
+	BaseInfo       `form:"-" binding:"-"`
+	Keyword        string `form:"keyword"`
+	RegisteredFrom int64  `form:"registered_from" binding:"min=0"`
+	RegisteredTo   int64  `form:"registered_to" binding:"min=0"`
+	Page           int    `form:"-" binding:"-"`
+	PageSize       int    `form:"-" binding:"-"`
+}
+
+func (r *AdminUserListReq) Bind(c *gin.Context) error {
+	if err := bindAny(c, r); err != nil {
+		return err
+	}
+	if r.RegisteredTo > 0 && r.RegisteredFrom > r.RegisteredTo {
+		return xerror.InvalidParams.WithDetails("注册时间范围的开始不能晚于结束")
+	}
+	return nil
 }
 
 func (r *AdminUserListReq) SetPageInfo(page, pageSize int) {

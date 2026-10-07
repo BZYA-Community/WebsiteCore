@@ -44,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 import { useStoreMain } from '@/store/main';
 import { darkTheme, lightTheme, zhCN, enUS, dateZhCN, dateEnUS } from 'naive-ui';
 import { storeToRefs } from 'pinia';
@@ -56,6 +56,16 @@ const { theme, desktopModelShow } = storeToRefs(storeMain);
 const { locale } = useI18n();
 const route = useRoute();
 const isCourseRoute = computed(() => ['courses', 'course'].includes(String(route.name)));
+
+function updateLayout() {
+    storeMain.triggerCollapsedLeft(window.innerWidth <= 821);
+    storeMain.triggerCollapsedRight(window.innerWidth <= 1140);
+}
+onMounted(() => {
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
+});
+onUnmounted(() => window.removeEventListener('resize', updateLayout));
 
 const iTheme = computed(() => (theme.value === 'dark' ? darkTheme : null));
 const courseThemeVars = computed(() => {

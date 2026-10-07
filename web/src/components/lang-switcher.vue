@@ -1,7 +1,7 @@
 <template>
     <n-popover trigger="click" placement="top-end">
         <template #trigger>
-            <n-button quaternary circle :size="size">
+            <n-button quaternary circle :size="size" :aria-label="t('sidebar.language')" :title="t('sidebar.language')">
                 <template #icon>
                     <n-icon :size="iconSize">
                         <language-outline />

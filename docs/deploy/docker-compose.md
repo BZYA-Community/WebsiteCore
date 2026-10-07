@@ -10,13 +10,13 @@ The recommended production layout runs the binary natively with only the depende
 # ---- frontend stage ----
 FROM node:22 AS frontend
 WORKDIR /src/web
-COPY web/package.json web/yarn.lock* ./
-RUN yarn install --frozen-lockfile || npm install
+COPY web/package.json web/yarn.lock ./
+RUN corepack enable && yarn install --frozen-lockfile
 COPY web/ .
-RUN yarn build || npm run build        # produces /src/web/dist
+RUN yarn build        # produces /src/web/dist
 
 # ---- backend stage ----
-FROM golang:1.24 AS backend
+FROM golang:1.26.6 AS backend
 WORKDIR /src
 COPY go.mod go.sum ./
 RUN go mod download
