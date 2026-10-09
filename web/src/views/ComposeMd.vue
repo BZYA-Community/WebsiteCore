@@ -252,7 +252,7 @@ import { MdEditor } from 'md-editor-v3';
 import type { ToolbarNames } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
 import { createPost } from '@/api/post';
-import { parsePostTag } from '@/utils/content';
+import { parsePostTag, redirectPostEasterEgg } from '@/utils/content';
 import { MD_MAX_LENGTH, mdTheme } from '@/utils/markdown';
 import { userInfo as fetchUserInfo } from '@/api/auth';
 import type { UploadFileInfo, UploadInst } from 'naive-ui';
@@ -345,6 +345,7 @@ const changeContent = (v: string) => {
     content.value = v;
   }
   saveDraft();
+  redirectPostEasterEgg(v);
 };
 
 const setUploadType = (type: string) => {

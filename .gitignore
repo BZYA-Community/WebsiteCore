@@ -11,6 +11,7 @@ __debug_bin
 /.envrc
 /release
 /data
+/doc/
 /custom
 /.custom
 /run.sh
