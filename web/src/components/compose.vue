@@ -311,7 +311,7 @@ import {
   CreateOutline,
 } from '@vicons/ionicons5';
 import { createPost } from '@/api/post';
-import { parsePostTag } from '@/utils/content';
+import { parsePostTag, redirectPostEasterEgg } from '@/utils/content';
 import type { MentionOption, UploadFileInfo, UploadInst } from 'naive-ui';
 import { VisibilityEnum, PostItemTypeEnum } from '@/utils/IEnum';
 import { storeToRefs } from 'pinia';
@@ -449,6 +449,7 @@ const changeContent = (v: string) => {
   } else {
     content.value = v;
   }
+  redirectPostEasterEgg(v);
 };
 const setUploadType = (type: string) => {
   if (processingVideo.value || fileQueue.value.some((file) => file.status === 'uploading' || file.status === 'pending')) return;

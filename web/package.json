@@ -14,6 +14,7 @@
     "i18n:check": "node scripts/i18n-check.mjs",
     "test:permissions": "node --experimental-strip-types scripts/permissions.test.mjs",
     "test:media": "node --experimental-strip-types scripts/media-upload.test.mjs",
+    "test:compose": "node --experimental-strip-types scripts/compose-easter-egg.test.mjs",
     "test:sidebar": "node scripts/sidebar-polling.test.mjs",
     "test:admin": "node scripts/admin-users.test.mjs",
     "test:courses": "node scripts/course-editor.test.mjs && node scripts/course-watch.test.mjs && node scripts/course-catalog.test.mjs"

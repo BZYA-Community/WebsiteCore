@@ -86,6 +86,7 @@ jobs:
         run: |
           yarn test:permissions
           yarn test:media
+          yarn test:compose
           yarn test:courses
           yarn test:sidebar
           yarn test:admin
