@@ -55,8 +55,8 @@
           <div v-if="!roots.length" class="catalog-status"><p>{{ t('course.list.noGroups') }}</p><p>{{ managing ? t('courseCatalog.createFirstCategory') : t('courseCatalog.comingSoon') }}</p></div>
         </template>
         <template v-else>
-          <header class="selection-heading">
-            <div><h2>{{ appliedKeyword ? t('courseCatalog.searchFor', { keyword: appliedKeyword }) : focusedCourseId ? (courses[0]?.title || t('courseCatalog.viewLessons')) : selectedGroup?.name }}</h2><p>{{ t('courseCatalog.chooseLesson') }}</p></div>
+          <header v-if="!focusedCourseId" class="selection-heading">
+            <div><h2>{{ appliedKeyword ? t('courseCatalog.searchFor', { keyword: appliedKeyword }) : selectedGroup?.name }}</h2><p>{{ t('courseCatalog.chooseLesson') }}</p></div>
             <div v-if="managing && selectedGroup && canManageGroups" class="category-actions">
               <n-button size="small" @click="editGroup(selectedGroup)">{{ t('course.list.editGroup') }}</n-button>
               <n-popconfirm @positive-click="removeGroup(selectedGroup)"><template #trigger><n-button size="small" quaternary type="error">{{ t('common.delete') }}</n-button></template>{{ t('course.list.deleteGroupConfirm', { name: selectedGroup.name }) }}</n-popconfirm>
