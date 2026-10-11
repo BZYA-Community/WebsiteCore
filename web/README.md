@@ -29,6 +29,7 @@ Environment files: `.env` (defaults, committed) and `.env.local` (personal overr
 
 - `VITE_HOST` — API base URL (`src/utils/request.ts`). Empty means same-origin, which is correct for the embedded production build. For standalone `npm run dev` against a local backend, set `VITE_HOST="http://127.0.0.1:8008"` in `.env.local`.
 - `VITE_USE_WEB_PROFILE=true` — fetch feature flags from the backend `WebProfile` at runtime, making the admin UI (`/#/admin/settings`) authoritative over the `VITE_ALLOW_*` / `VITE_DEFAULT_*` build-time values.
+- `VITE_ENABLE_POST_EASTER_EGGS=false` — build-time switch for exact-match video redirects in both post editors. Only the literal `true` includes the easter egg mappings and redirects in the frontend bundle; false or unset removes them. Changing it requires rebuilding the frontend and, when served from an embedded Go binary, rebuilding that binary. This switch is independent of `WebProfile`.
 
 ## Layout
 

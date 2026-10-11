@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
 import ts from 'typescript';
-import { redirectPostEasterEgg } from '../src/utils/content.ts';
+import { build } from 'vite';
 
 const cases = [
   ['Never Gonna Give You Up', 'https://www.bilibili.com/video/BV1dyXqBaEE5/'],
@@ -39,44 +40,80 @@ const cases = [
 ];
 const limit = cases[0][0].length;
 const redirects = [];
-globalThis.window = { location: { assign: (url) => redirects.push(url) } };
+const contentEntry = new URL('../src/utils/content.ts', import.meta.url);
+const contentSource = fs.readFileSync(contentEntry, 'utf8');
+const envFlag = 'import.meta.env.VITE_ENABLE_POST_EASTER_EGGS';
 
-for (const file of ['components/compose.vue', 'views/ComposeMd.vue']) {
-  const source = fs.readFileSync(new URL(`../src/${file}`, import.meta.url), 'utf8')
-    .match(/const changeContent = \(v: string\) => \{[\s\S]*?\r?\n\};/)[0];
-  const code = ts.transpileModule(source + '\nchangeContent;',
-    { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
-  redirects.length = 0;
-  const content = { value: '' };
-  let draftsSaved = 0;
-  const changeContent = vm.runInNewContext(code, {
-    content, maxInputLength: { value: limit }, MD_MAX_LENGTH: limit, redirectPostEasterEgg,
-    saveDraft: () => { draftsSaved++; },
+for (const flag of [undefined, 'false', 'true', '', 'TRUE', '1']) {
+  const enabled = flag === 'true';
+  const helperCode = ts.transpileModule(contentSource.replaceAll(envFlag,
+    flag === undefined ? 'undefined' : JSON.stringify(flag)), {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+  }).outputText;
+  const redirectPostEasterEgg = vm.runInNewContext(helperCode + '\nexports.redirectPostEasterEgg;', {
+    exports: {}, window: { location: { assign: (url) => redirects.push(url) } },
   });
 
-  const nonMatches = [
-    '', '普通帖子', 'never gonna give you up', '__proto__', 'constructor', 'toString',
-    '听!狂欢在那神佑的山巅', '你好,世界',
-  ];
-  for (const value of nonMatches) {
-    changeContent(value);
-    assert.equal(content.value, value.substring(0, limit), `${file}: preserve input limits`);
-    assert.equal(redirects.length, 0, `${file}: only exact input may redirect`);
-  }
-
-  for (const [trigger, url] of cases) {
+  for (const file of ['components/compose.vue', 'views/ComposeMd.vue']) {
+    const source = fs.readFileSync(new URL(`../src/${file}`, import.meta.url), 'utf8')
+      .match(/const changeContent = \(v: string\) => \{[\s\S]*?\r?\n\};/)[0];
+    const code = ts.transpileModule(source + '\nchangeContent;',
+      { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
     redirects.length = 0;
-    for (const value of [` ${trigger}`, `${trigger} `, `${trigger}\n`, `${trigger} extra`, trigger.slice(0, -1)]) {
+    const content = { value: '' };
+    let draftsSaved = 0;
+    const changeContent = vm.runInNewContext(code, {
+      content, maxInputLength: { value: limit }, MD_MAX_LENGTH: limit, redirectPostEasterEgg,
+      saveDraft: () => { draftsSaved++; },
+    });
+
+    const nonMatches = [
+      '', '普通帖子', 'never gonna give you up', '__proto__', 'constructor', 'toString',
+      '听!狂欢在那神佑的山巅', '你好,世界',
+    ];
+    for (const value of nonMatches) {
       changeContent(value);
       assert.equal(content.value, value.substring(0, limit), `${file}: preserve input limits`);
       assert.equal(redirects.length, 0, `${file}: only exact input may redirect`);
     }
-    changeContent(trigger);
-    assert.equal(content.value, trigger);
-    assert.deepEqual(redirects, [url], `${file}: ${trigger} redirects to its specified video`);
-  }
-  if (file === 'views/ComposeMd.vue') {
-    assert.equal(draftsSaved, nonMatches.length + cases.length * 6, 'Markdown input still saves drafts');
+
+    for (const [trigger, url] of cases) {
+      redirects.length = 0;
+      for (const value of [` ${trigger}`, `${trigger} `, `${trigger}\n`, `${trigger} extra`, trigger.slice(0, -1)]) {
+        changeContent(value);
+        assert.equal(content.value, value.substring(0, limit), `${file}: preserve input limits`);
+        assert.equal(redirects.length, 0, `${file}: only exact input may redirect`);
+      }
+      changeContent(trigger);
+      assert.equal(content.value, trigger);
+      assert.deepEqual(redirects, enabled ? [url] : [], `${file}: ${trigger}, flag=${String(flag)}`);
+    }
+    if (file === 'views/ComposeMd.vue') {
+      assert.equal(draftsSaved, nonMatches.length + cases.length * 6, 'Markdown input still saves drafts');
+    }
   }
 }
-console.log(`Compose easter egg checks passed: ${cases.length} mappings in both editors, near misses, input limits and Markdown drafts.`);
+
+for (const flag of [undefined, 'false', 'true']) {
+  const result = await build({
+    configFile: false,
+    envDir: false,
+    logLevel: 'silent',
+    define: { [envFlag]: flag === undefined ? 'undefined' : JSON.stringify(flag) },
+    build: {
+      write: false,
+      minify: true,
+      lib: { entry: fileURLToPath(contentEntry), formats: ['es'] },
+    },
+  });
+  const code = [result].flat().flatMap((item) => item.output)
+    .filter((item) => item.type === 'chunk').map((item) => item.code).join('\n');
+  const enabled = flag === 'true';
+  for (const [trigger, url] of cases) {
+    const videoId = url.split('/').at(-2);
+    assert.equal(code.includes(trigger), enabled, `compiled trigger ${trigger}, flag=${String(flag)}`);
+    assert.equal(code.includes(videoId), enabled, `compiled video ${videoId}, flag=${String(flag)}`);
+  }
+  assert.equal(code.includes('https://www.bilibili.com/video/'), enabled, `compiled redirect, flag=${String(flag)}`);
+}
+console.log(`Compose easter egg checks passed: ${cases.length} mappings in both editors, env defaults and opt-in, near misses, input limits, Markdown drafts and compiled removal.`);

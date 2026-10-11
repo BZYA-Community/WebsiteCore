@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_USE_FRIENDSHIP: string;
   readonly VITE_USE_WEB_PROFILE: string;
   readonly VITE_ENABLE_TRENDS_BAR: string;
+  readonly VITE_ENABLE_POST_EASTER_EGGS: string;
   readonly VITE_ALLOW_USER_REGISTER: string;
   readonly VITE_ALLOW_PHONE_BIND: string;
   readonly VITE_ALLOW_ACTIVATION: string;
