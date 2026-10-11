@@ -1,4 +1,4 @@
-const postEasterEggVideos = new Map([
+const postEasterEggVideos = import.meta.env.VITE_ENABLE_POST_EASTER_EGGS === 'true' ? new Map([
   ['Never Gonna Give You Up', 'BV1dyXqBaEE5'],
   ['毕业旅行', 'BV1Kj411g7Lu'],
   ['神州平板', 'BV1jN411o7zS'],
@@ -30,10 +30,10 @@ const postEasterEggVideos = new Map([
   ['未行之路', 'BV1bD421G7hy'],
   ['烬中歌', 'BV1xZ421Y7a1'],
   ['雪霁逢椿', 'BV1ZF411g7EZ'],
-]);
+]) : undefined;
 
 export const redirectPostEasterEgg = (content: string) => {
-  const videoId = postEasterEggVideos.get(content);
+  const videoId = postEasterEggVideos?.get(content);
   if (videoId) {
     window.location.assign(`https://www.bilibili.com/video/${videoId}/`);
   }
