@@ -35,9 +35,23 @@
                 :responsive-breakpoint="821"
                 @fetch-messages="onFetchMessages($event.detail[0])"
                 @send-message="onSendMessage($event.detail[0])"
-            />
+            >
+                <!-- Native Web Component slots require the slot attribute. -->
+                <!-- eslint-disable vue/no-deprecated-slot-attribute -->
+                <template v-for="message in messages" :key="message._id">
+                    <system-notification
+                        v-if="message.notification"
+                        :slot="`message_${message._id}`"
+                        :notice="message.notification"
+                        :date="message.date"
+                        :time="message.timestamp"
+                        :dark="storeMain.theme === 'dark'"
+                    />
+                </template>
+                <!-- eslint-enable vue/no-deprecated-slot-attribute -->
+            </vue-advanced-chat>
             <n-alert
-                v-if="activeRoomId && !canSend"
+                v-if="activeRoomId && activeRoomId !== '0' && !canSend"
                 class="chat-tip"
                 type="warning"
                 :bordered="false"
@@ -54,6 +68,7 @@ import { useRoute } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { useChatRooms } from '@/composables/useChatRooms';
+import SystemNotification from '@/components/system-notification.vue';
 
 const { t } = useI18n();
 
@@ -83,7 +98,9 @@ const textMessages = computed(() => ({
     ROOM_EMPTY: t('message.chat.roomEmpty'),
     NEW_MESSAGES: t('message.chat.newMessages'),
     MESSAGES_EMPTY: t('message.chat.messagesEmpty'),
-    CONVERSATION_STARTED: t('message.chat.conversationStarted'),
+    CONVERSATION_STARTED: activeRoomId.value === '0'
+        ? t('message.chat.notificationHistory')
+        : t('message.chat.conversationStarted'),
     TYPE_MESSAGE: t('message.chat.typeMessage'),
     SEARCH: t('message.chat.searchRoom'),
     IS_ONLINE: t('message.chat.isOnline'),

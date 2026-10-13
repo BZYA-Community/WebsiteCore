@@ -128,6 +128,7 @@ yarn test:permissions
 yarn test:media
 yarn test:courses
 yarn test:sidebar
+yarn test:chat
 yarn test:admin
 yarn build
 ```
@@ -149,6 +150,7 @@ These hit a running local instance (default `http://127.0.0.1:8008`) and/or driv
 | `test_audit_flow.py` | Comment / reply / nickname moderation flow end to end (API level) |
 | `test_course_flow.py` | Course module flows (two-phase; needs `daoyou1`/`daoyou2`/`testaudit` accounts) |
 | `test_whisper_matrix.py` | Private-message permission matrix (phone binding required, peer-to-peer rules, first-message limits) |
+| `verify_chat_notifications.py` | Notification links, text escaping, keyboard access, responsive light/dark layouts and loading states (synthetic API responses; start the frontend dev server first) |
 | `verify_sidebar_830.py` | No sidebar/content overlap at the 830px viewport breakpoint |
 | `measure_width.py` | Column layout at 7 viewports: 1920 / 1600 / 1366 / 1200 / 1000 / 821 / 375 |
 | `screenshot.py`, `screenshots_audit.py` | Page screenshots for manual visual comparison |
