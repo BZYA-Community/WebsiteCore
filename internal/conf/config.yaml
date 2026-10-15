@@ -204,6 +204,7 @@ account_verify:
   cooldown_seconds: 60
   max_attempts: 5
   max_daily_sends: 10
+  dev_skip_code: false          # 本地开发专用(需 App.RunMode: debug): 开启后任意 6 位验证码均通过, 且不会真实发送邮件/短信
   aliyun:
     endpoint: https://alimail-cn.aliyuncs.com
     client_id: ""

@@ -204,6 +204,28 @@ func TestContactVerificationTransactions(t *testing.T) {
 	if err := s.VerifyContactCode(ctx, rollback.ID, "email", "rollback@example.test", codes["rollback@example.test"]); err != nil {
 		t.Fatalf("rollback consumed code: %v", err)
 	}
+	previousApp, previousSkip := conf.AppSetting, conf.AccountVerifySetting.DevSkipCode
+	t.Cleanup(func() { conf.AppSetting, conf.AccountVerifySetting.DevSkipCode = previousApp, previousSkip })
+	conf.AppSetting = nil
+	if err := json.Unmarshal([]byte(`{"RunMode":"debug"}`), &conf.AppSetting); err != nil {
+		t.Fatal(err)
+	}
+	conf.AccountVerifySetting.DevSkipCode = true
+	dev := newUser()
+	if err := s.SendContactCode(ctx, dev.ID, "email", "dev@example.test", "127.0.0.1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, delivered := codes["dev@example.test"]; delivered {
+		t.Fatal("dev_skip_code still handed the code to the mail provider")
+	}
+	if err := s.VerifyContactCode(ctx, dev.ID, "email", "dev@example.test", "000000"); err != nil {
+		t.Fatal(err)
+	}
+	var devBound dbr.User
+	if err := db.First(&devBound, dev.ID).Error; err != nil || !devBound.ContactVerified() {
+		t.Fatalf("dev_skip_code did not bind the contact: %v", err)
+	}
+	conf.AppSetting, conf.AccountVerifySetting.DevSkipCode = previousApp, previousSkip
 	oldSMS := conf.SmsJuheSetting
 	t.Cleanup(func() { conf.SmsJuheSetting = oldSMS })
 	conf.SmsJuheSetting = nil

@@ -27,3 +27,48 @@ func TestAccountVerificationConfiguration(t *testing.T) {
 		t.Fatal("accepted unbounded/zero attempts")
 	}
 }
+
+func TestAccountVerificationDevSkipCode(t *testing.T) {
+	previousVerify, previousApp := AccountVerifySetting, AppSetting
+	t.Cleanup(func() { AccountVerifySetting, AppSetting = previousVerify, previousApp })
+
+	newConf := func(devSkip bool) AccountVerifyConf {
+		return AccountVerifyConf{Mode: "email", CodeTTLSeconds: 300, CooldownSeconds: 60, MaxAttempts: 5, MaxDailySends: 10, DevSkipCode: devSkip, Aliyun: AliyunMailConf{Endpoint: "https://alimail-cn.aliyuncs.com"}}
+	}
+
+	// Flag off: unchanged behavior, no provider credentials -> unavailable.
+	off := newConf(false)
+	if err := off.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	AccountVerifySetting, AppSetting = &off, nil
+	if ContactVerificationDevBypass() || VerificationAvailable() {
+		t.Fatal("flag off activated the development bypass")
+	}
+
+	// Flag on outside a development run mode: startup must refuse it.
+	on := newConf(true)
+	AppSetting = &appConf{RunMode: "release"}
+	if err := on.Validate(); err == nil {
+		t.Fatal("accepted dev_skip_code with a non-development run mode")
+	}
+	AccountVerifySetting = &on
+	if ContactVerificationDevBypass() || VerificationAvailable() {
+		t.Fatal("bypass active outside development")
+	}
+
+	// Flag on in debug: verification works without provider credentials.
+	AppSetting = &appConf{RunMode: "debug"}
+	if err := on.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if !ContactVerificationDevBypass() || !VerificationAvailable() {
+		t.Fatal("debug run mode with dev_skip_code did not enable verification")
+	}
+
+	// Missing run mode: inert, the bypass never activates.
+	AppSetting = nil
+	if ContactVerificationDevBypass() || VerificationAvailable() {
+		t.Fatal("bypass active without a run mode")
+	}
+}

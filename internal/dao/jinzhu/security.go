@@ -135,6 +135,11 @@ func (s *securitySrv) SendContactCode(ctx context.Context, userID int64, mode, a
 	if err != nil {
 		return err
 	}
+	if conf.ContactVerificationDevBypass() {
+		// Development only: never call the mail/SMS provider, but keep the
+		// record valid so any 6-digit code can complete verification.
+		return s.db.Model(record).Update("delivered", true).Error
+	}
 	ttl := time.Duration(cfg.CodeTTLSeconds) * time.Second
 	if mode == "email" {
 		err = s.sendEmail(ctx, address, code, ttl)
@@ -177,7 +182,8 @@ func (s *securitySrv) VerifyContactCode(ctx context.Context, userID int64, mode,
 			return core.ErrContactCode
 		}
 		record.Attempts++
-		matches := record.Mode == mode && record.Address == address && hmac.Equal([]byte(record.CodeHash), []byte(s.contactDigest(fmt.Sprint(userID), mode, address, code)))
+		matches := record.Mode == mode && record.Address == address &&
+			(conf.ContactVerificationDevBypass() || hmac.Equal([]byte(record.CodeHash), []byte(s.contactDigest(fmt.Sprint(userID), mode, address, code))))
 		if !matches {
 			result = core.ErrContactCode
 			return tx.Model(&record).Update("attempts", record.Attempts).Error
