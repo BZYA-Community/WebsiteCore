@@ -102,13 +102,7 @@ func (s *followshipSrv) FollowUser(r *web.FollowUserReq) error {
 		return web.ErrUnfollowUserFailed
 	}
 	// 关注通知(系统会话, 带关注者id便于前端跳转其主页)
-	onCreateMessageEvent(&ms.Message{
-		SenderUserID:   r.User.ID,
-		ReceiverUserID: r.UserId,
-		Type:           ms.MsgTypeSystem,
-		Brief:          "关注了你",
-		Content:        "快去看看 TA 的主页吧",
-	})
+	onCreateMessageEvent(followNotification(r.User, r.UserId))
 	// 触发缓存更新事件
 	// TODO: 合并成一个事件
 	cache.OnCacheMyFollowIdsEvent(s.Ds, r.User.ID)
@@ -116,6 +110,20 @@ func (s *followshipSrv) FollowUser(r *web.FollowUserReq) error {
 	onMessageActionEvent(_messageActionFollow, r.User.ID)
 	onTrendsActionEvent(_trendsActionFollowUser, r.User.ID)
 	return nil
+}
+
+func followNotification(user *ms.User, receiverID int64) *ms.Message {
+	name := user.Nickname
+	if name == "" {
+		name = user.Username
+	}
+	return &ms.Message{
+		SenderUserID:   user.ID,
+		ReceiverUserID: receiverID,
+		Type:           ms.MsgTypeSystem,
+		Brief:          name + "关注了你",
+		Content:        "快去看看 TA 的主页吧",
+	}
 }
 
 func newFollowshipSrv(s *base.DaoServant) api.Followship {

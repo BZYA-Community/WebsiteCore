@@ -5,6 +5,10 @@ import { useStoreProfile } from '@/store/profile';
 import { formatRelativeTime } from '@/utils/formatTime';
 import i18n from '@/locales';
 import moment from 'moment';
+import {
+  toSystemNotification,
+  type SystemNotification,
+} from '@/utils/systemNotification';
 
 /**
  * 私信会话数据流管理(B站式: 左会话列表 + 右聊天窗)
@@ -44,6 +48,7 @@ export interface VACMessage {
   system?: boolean;
   disableActions?: boolean;
   disableReactions?: boolean;
+  notification?: SystemNotification;
 }
 
 const SYSTEM_ROOM_ID = '0';
@@ -54,7 +59,8 @@ export function useChatRooms() {
   const storeUser = useStoreUser();
   const storeProfile = useStoreProfile();
 
-  const dayLabel = (ts: number) => moment.unix(ts).format(t('message.chat.dateFormat'));
+  const dayLabel = (ts: number) =>
+    moment.unix(ts).format(t('message.chat.dateFormat'));
   const timeLabel = (ts: number) => moment.unix(ts).format('HH:mm');
 
   const myId = computed(() => String(storeUser.userInfo.id || 0));
@@ -89,32 +95,25 @@ export function useChatRooms() {
     index: c.last_time,
     lastMessage: c.last_content
       ? {
-          content: (c.last_from_me ? t('message.chat.mePrefix') : '') + c.last_content,
+          content:
+            (c.last_from_me ? t('message.chat.mePrefix') : '') + c.last_content,
           senderId: c.last_from_me ? myId.value : String(c.user_id),
           timestamp: formatRelativeTime(c.last_time),
         }
       : undefined,
   });
 
-  /** 系统会话消息 → 组件气泡内容(通知文本 + 跳转链接) */
-  const composeSystemContent = (m: Item.ChatHistoryItem): string => {
-    const base = `${location.origin}${location.pathname}`;
-    const lines: string[] = [];
-    if (m.brief) lines.push(m.brief);
-    if (m.content) lines.push(m.content);
-    if (m.type >= 1 && m.type <= 3 && m.post_id) {
-      lines.push(t('message.chat.viewDetailLink', { url: `${base}#/post?id=${m.post_id}` }));
-    } else if (m.type === 99 && m.sender_id > 0 && m.sender_username) {
-      lines.push(t('message.chat.viewProfileLink', { url: `${base}#/u?s=${encodeURIComponent(m.sender_username)}` }));
-    }
-    return lines.join('\n');
-  };
-
-  const toMessage = (m: Item.ChatHistoryItem, isSystem: boolean): VACMessage => ({
+  const toMessage = (
+    m: Item.ChatHistoryItem,
+    isSystem: boolean,
+  ): VACMessage => ({
     _id: String(m.id),
-    senderId: String(m.sender_id),
-    username: isSystem ? m.sender_name || t('message.chat.systemUser') : undefined,
-    content: isSystem ? composeSystemContent(m) : m.content,
+    senderId: isSystem ? SYSTEM_ROOM_ID : String(m.sender_id),
+    username: isSystem
+      ? m.sender_name || t('message.chat.systemUser')
+      : undefined,
+    content: m.content,
+    notification: isSystem ? toSystemNotification(m) : undefined,
     date: dayLabel(m.timestamp),
     timestamp: timeLabel(m.timestamp),
     seen: m.seen,
@@ -166,7 +165,11 @@ export function useChatRooms() {
    * 拉取会话历史
    * @param mergeNew true 时为轮询模式: 仅更新已读态并追加新消息, 不打扰滚动位置
    */
-  const loadHistory = async (roomId: string, page: number, mergeNew = false) => {
+  const loadHistory = async (
+    roomId: string,
+    page: number,
+    mergeNew = false,
+  ) => {
     const isSystem = roomId === SYSTEM_ROOM_ID;
     const res = await Api.v1.user.get.chat.history({
       user_id: Number(roomId),
@@ -186,7 +189,11 @@ export function useChatRooms() {
           roomName: res.peer.nickname,
           avatar: res.peer.avatar,
           users: [
-            { _id: roomId, username: res.peer.nickname, avatar: res.peer.avatar },
+            {
+              _id: roomId,
+              username: res.peer.nickname,
+              avatar: res.peer.avatar,
+            },
           ],
         };
         rooms.value = [...rooms.value];
@@ -227,7 +234,10 @@ export function useChatRooms() {
   };
 
   /** fetch-messages: 打开会话(reset)或滚动到顶加载更多 */
-  const onFetchMessages = async (detail: { room: VACRoom; options?: { reset?: boolean } }) => {
+  const onFetchMessages = async (detail: {
+    room: VACRoom;
+    options?: { reset?: boolean };
+  }) => {
     const roomId = detail.room.roomId;
     activeRoomId.value = roomId;
     const reset = detail.options?.reset;
@@ -293,7 +303,10 @@ export function useChatRooms() {
   };
 
   /** 打开与指定用户的会话(入口跳转用); 无历史会话时先造临时 room */
-  const openPeerRoom = async (userId: number, seed?: Partial<Item.ChatContactItem>) => {
+  const openPeerRoom = async (
+    userId: number,
+    seed?: Partial<Item.ChatContactItem>,
+  ) => {
     if (!userId || userId <= 0) return;
     const roomId = String(userId);
     if (!rooms.value.find((r) => r.roomId === roomId)) {
@@ -319,7 +332,10 @@ export function useChatRooms() {
 
   /** 轮询: 会话列表慢轮询 + 活跃会话快轮询 */
   const startPolling = () => {
-    const slow = Math.max(storeProfile.profile.defaultMsgLoopInterval || 5000, 3000);
+    const slow = Math.max(
+      storeProfile.profile.defaultMsgLoopInterval || 5000,
+      3000,
+    );
     contactsTimer = setInterval(() => {
       if (!document.hidden) loadContacts();
     }, slow);
