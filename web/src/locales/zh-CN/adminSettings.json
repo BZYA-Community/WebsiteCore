@@ -40,7 +40,7 @@
     "alioss": "AliOSS",
     "cos": "腾讯 COS",
     "huaweiObs": "华为 OBS",
-    "smsJuhe": "聚合短信",
+    "smsAliyun": "阿里云短信",
     "alipay": "支付宝"
   },
   "mode": {

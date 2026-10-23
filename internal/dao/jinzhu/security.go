@@ -144,7 +144,7 @@ func (s *securitySrv) SendContactCode(ctx context.Context, userID int64, mode, a
 	if mode == "email" {
 		err = s.sendEmail(ctx, address, code, ttl)
 	} else {
-		err = s.phoneVerify.SendPhoneCaptcha(address, code, time.Duration(max(int(ttl.Minutes()), 1)))
+		err = s.phoneVerify.SendPhoneCaptcha(address, code, ttl)
 	}
 	if err != nil {
 		// Preserve throttling after ambiguous provider failures; never leave their code usable.

@@ -28,6 +28,42 @@ func TestAccountVerificationConfiguration(t *testing.T) {
 	}
 }
 
+func TestAliyunSMSConfigurationAvailability(t *testing.T) {
+	previousSMS, previousVerify, previousApp := SmsAliyunSetting, AccountVerifySetting, AppSetting
+	t.Cleanup(func() { SmsAliyunSetting, AccountVerifySetting, AppSetting = previousSMS, previousVerify, previousApp })
+	AccountVerifySetting, AppSetting = &AccountVerifyConf{Mode: "phone"}, &appConf{RunMode: "release"}
+	SmsAliyunSetting = nil
+	if SmsConfigured() || VerificationAvailable() {
+		t.Fatal("missing SMS configuration enabled phone verification")
+	}
+	complete := smsAliyunConf{AccessKeyID: "synthetic-id", AccessKeySecret: "synthetic-secret", SignName: "测试签名", TemplateCode: "SMS_synthetic"}
+	SmsAliyunSetting = &complete
+	if !SmsConfigured() || !VerificationAvailable() {
+		t.Fatal("complete Aliyun SMS configuration did not enable phone verification")
+	}
+	for _, missing := range []string{"AccessKeyID", "AccessKeySecret", "SignName", "TemplateCode"} {
+		partial := complete
+		switch missing {
+		case "AccessKeyID":
+			partial.AccessKeyID = " \t"
+		case "AccessKeySecret":
+			partial.AccessKeySecret = " \t"
+		case "SignName":
+			partial.SignName = " \t"
+		case "TemplateCode":
+			partial.TemplateCode = " \t"
+		}
+		SmsAliyunSetting = &partial
+		if SmsConfigured() || VerificationAvailable() {
+			t.Fatalf("blank %s enabled phone verification", missing)
+		}
+	}
+	AccountVerifySetting.DevSkipCode, AppSetting.RunMode = true, "debug"
+	if SmsConfigured() || !VerificationAvailable() {
+		t.Fatal("explicit development bypass changed the provider configuration requirement")
+	}
+}
+
 func TestAccountVerificationDevSkipCode(t *testing.T) {
 	previousVerify, previousApp := AccountVerifySetting, AppSetting
 	t.Cleanup(func() { AccountVerifySetting, AppSetting = previousVerify, previousApp })

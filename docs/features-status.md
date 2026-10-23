@@ -66,7 +66,7 @@ Enable exactly one backend. When no storage feature is enabled, `LocalOSS` is us
 
 | Feature | Status | Notes |
 | --- | --- | --- |
-| `Sms` | works | Phone-number binding via Juhe SMS (聚合数据); the only built-in provider. See [deploy/sms.md](deploy/sms.md). Without this flag, phone verification is a no-op — disable `AllowPhoneBind` on public sites. |
+| `Sms` | works | Shows the Alibaba Cloud SMS admin settings. Phone-number binding uses `account_verify.mode: phone` and complete `SmsAliyun` settings; complete YAML settings work without this flag. Missing SMS configuration makes phone verification unavailable. Juhe settings are no longer used. See [deploy/sms.md](deploy/sms.md). |
 
 ## Logging
 
