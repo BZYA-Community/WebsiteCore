@@ -226,10 +226,10 @@ func TestContactVerificationTransactions(t *testing.T) {
 		t.Fatalf("dev_skip_code did not bind the contact: %v", err)
 	}
 	conf.AppSetting, conf.AccountVerifySetting.DevSkipCode = previousApp, previousSkip
-	oldSMS := conf.SmsJuheSetting
-	t.Cleanup(func() { conf.SmsJuheSetting = oldSMS })
-	conf.SmsJuheSetting = nil
-	if err := json.Unmarshal([]byte(`{"Key":"synthetic","TplID":"synthetic"}`), &conf.SmsJuheSetting); err != nil {
+	oldSMS := conf.SmsAliyunSetting
+	t.Cleanup(func() { conf.SmsAliyunSetting = oldSMS })
+	conf.SmsAliyunSetting = nil
+	if err := json.Unmarshal([]byte(`{"AccessKeyID":"synthetic","AccessKeySecret":"synthetic","SignName":"测试签名","TemplateCode":"SMS_synthetic"}`), &conf.SmsAliyunSetting); err != nil {
 		t.Fatal(err)
 	}
 	conf.AccountVerifySetting.Mode = "phone"
@@ -239,8 +239,8 @@ func TestContactVerificationTransactions(t *testing.T) {
 	if err := s.SendContactCode(ctx, phoneUser.ID, "phone", "+8613800000000", "127.0.0.1"); err != nil {
 		t.Fatal(err)
 	}
-	if phone.ttl != 5 || len(phone.code) != 6 {
-		t.Fatal("legacy provider did not receive its expected minute-based TTL")
+	if phone.ttl != 5*time.Minute || len(phone.code) != 6 {
+		t.Fatal("phone provider did not receive the verification code and TTL")
 	}
 	if err := s.VerifyContactCode(ctx, phoneUser.ID, "phone", "13800000000", phone.code); err != nil {
 		t.Fatal(err)

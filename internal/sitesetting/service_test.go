@@ -97,6 +97,80 @@ func TestSaveValuesEncryptsSecretsAtRest(t *testing.T) {
 	}
 }
 
+func TestAliyunSMSOverridesEncryptCredentialsAndRequireRestart(t *testing.T) {
+	svc := newTestService(t)
+	previousSMS, previousMode := *conf.SmsAliyunSetting, conf.AccountVerifySetting.Mode
+	t.Cleanup(func() { *conf.SmsAliyunSetting, conf.AccountVerifySetting.Mode = previousSMS, previousMode })
+	conf.AdminSettingsSetting.EncryptionKey = "bootstrap-test-encryption-key"
+	svc.codec = newSecretCodec()
+	ctx := context.Background()
+	_, err := svc.SaveValues(ctx, []web.AdminSettingValueInput{
+		{Key: "sms_aliyun.access_key_id", Value: []byte(`"synthetic-sms-id"`)},
+		{Key: "sms_aliyun.access_key_secret", Value: []byte(`"synthetic-sms-secret"`)},
+		{Key: "sms_aliyun.sign_name", Value: []byte(`"测试签名"`)},
+		{Key: "sms_aliyun.template_code", Value: []byte(`"SMS_synthetic"`)},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if conf.SmsConfigured() {
+		t.Fatal("SMS settings took effect before restart")
+	}
+	for key, plaintext := range map[string]string{"sms_aliyun.access_key_id": "synthetic-sms-id", "sms_aliyun.access_key_secret": "synthetic-sms-secret"} {
+		var record settingRecord
+		if err := svc.db.WithContext(ctx).First(&record, "key = ?", key).Error; err != nil {
+			t.Fatal(err)
+		}
+		if !record.IsEncrypted || !strings.HasPrefix(record.Value, encryptedValuePrefix) || strings.Contains(record.Value, plaintext) {
+			t.Fatalf("SMS credential was not encrypted: %s", key)
+		}
+	}
+	values, err := svc.GetValues(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !values.HasPendingRestart {
+		t.Fatal("SMS overrides did not report pending restart")
+	}
+	count := 0
+	for _, item := range values.Items {
+		if !strings.HasPrefix(item.Key, "sms_aliyun.") {
+			continue
+		}
+		count++
+		if !item.PendingRestart {
+			t.Fatalf("SMS setting did not require restart: %s", item.Key)
+		}
+		if item.Key == "sms_aliyun.access_key_id" || item.Key == "sms_aliyun.access_key_secret" {
+			if !item.Configured || item.Value != nil || item.EffectiveValue != nil {
+				t.Fatalf("SMS credential leaked in values: %s", item.Key)
+			}
+		}
+	}
+	if count != 4 {
+		t.Fatalf("SMS override count = %d, want 4", count)
+	}
+	schema, err := svc.GetSchema()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range schema.Items {
+		if item.Key == "sms_aliyun.access_key_id" || item.Key == "sms_aliyun.access_key_secret" {
+			if !item.Secret || item.BootstrapValue != nil {
+				t.Fatalf("SMS credential leaked in schema: %s", item.Key)
+			}
+		}
+	}
+	if err := svc.ApplyPersistedOverrides(ctx); err != nil {
+		t.Fatal(err)
+	}
+	conf.AccountVerifySetting.Mode = "phone"
+	sms := conf.SmsAliyunSetting
+	if !conf.VerificationAvailable() || sms.AccessKeyID != "synthetic-sms-id" || sms.AccessKeySecret != "synthetic-sms-secret" || sms.SignName != "测试签名" || sms.TemplateCode != "SMS_synthetic" {
+		t.Fatal("persisted SMS settings did not become effective after restart")
+	}
+}
+
 func TestRestartRequiredValuesReportPendingRestart(t *testing.T) {
 	svc := newTestService(t)
 
