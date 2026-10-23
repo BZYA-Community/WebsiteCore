@@ -89,6 +89,7 @@ jobs:
           yarn test:compose
           yarn test:courses
           yarn test:sidebar
+          yarn test:chat
           yarn test:admin
 
       - name: Syntax check (build)

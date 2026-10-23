@@ -24,8 +24,10 @@
     "mePrefix": "我: ",
     "systemRoom": "系统通知",
     "systemUser": "系统",
-    "viewDetailLink": "查看详情: {url}",
-    "viewProfileLink": "查看主页: {url}",
+    "viewPost": "查看动态",
+    "viewProfile": "查看主页",
+    "notificationActions": "通知相关链接",
+    "notificationHistory": "通知记录始于:",
     "loadingNickname": "加载中…"
   }
 }
