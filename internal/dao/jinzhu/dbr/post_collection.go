@@ -32,7 +32,10 @@ func (p *PostCollection) Get(db *gorm.DB) (*PostCollection, error) {
 		db = db.Where(tn+"user_id = ?", p.UserID)
 	}
 
-	db = db.Joins("Post").Where("visibility <> ? OR (visibility = ? AND ? = ?)", PostVisitPrivate, PostVisitPrivate, clause.Column{Table: "Post", Name: "user_id"}, p.UserID).Order(clause.OrderByColumn{Column: clause.Column{Table: "Post", Name: "id"}, Desc: true})
+	// This lookup drives the authenticated collect/uncollect toggle. It must find
+	// the user's active relation even when the post is pending or rejected;
+	// action authorization is enforced separately before either mutation.
+	db = db.Where(tn+"is_del = ?", 0)
 	err := db.First(&star).Error
 	if err != nil {
 		return &star, err
@@ -74,7 +77,7 @@ func (p *PostCollection) List(db *gorm.DB, conditions *ConditionsT, offset, limi
 		}
 	}
 
-	db = db.Joins("Post").Where(`visibility <> ? OR (visibility = ? AND ? = ?)`, PostVisitPrivate, PostVisitPrivate, clause.Column{Table: "Post", Name: "user_id"}, p.UserID).Order(clause.OrderByColumn{Column: clause.Column{Table: "Post", Name: "id"}, Desc: true})
+	db = p.withVisiblePost(db.Joins("Post")).Order(clause.OrderByColumn{Column: clause.Column{Table: "Post", Name: "id"}, Desc: true})
 	if err = db.Where(tn+"is_del = ?", 0).Find(&collections).Error; err != nil {
 		return nil, err
 	}
@@ -98,10 +101,23 @@ func (p *PostCollection) Count(db *gorm.DB, conditions *ConditionsT) (int64, err
 		}
 	}
 
-	db = db.Joins("Post").Where(`visibility <> ? OR (visibility = ? AND ? = ?)`, PostVisitPrivate, PostVisitPrivate, clause.Column{Table: "Post", Name: "user_id"}, p.UserID)
+	db = p.withVisiblePost(db.Joins("Post"))
 	if err := db.Model(p).Count(&count).Error; err != nil {
 		return 0, err
 	}
 
 	return count, nil
+}
+
+func (p *PostCollection) withVisiblePost(db *gorm.DB) *gorm.DB {
+	db = db.Where(clause.Eq{Column: clause.Column{Table: "Post", Name: "is_del"}, Value: 0})
+	following := db.Session(&gorm.Session{NewDB: true}).Model(&Following{}).Select("1").
+		Where("user_id = ? AND follow_id = ?", p.UserID, clause.Column{Table: "Post", Name: "user_id"})
+	return db.Where(
+		"? = ? OR (? = ? AND (? = ? OR (? = ? AND EXISTS (?))))",
+		clause.Column{Table: "Post", Name: "user_id"}, p.UserID,
+		clause.Column{Table: "Post", Name: "audit_status"}, PostAuditApproved,
+		clause.Column{Table: "Post", Name: "visibility"}, PostVisitPublic,
+		clause.Column{Table: "Post", Name: "visibility"}, PostVisitFollowing, following,
+	)
 }
