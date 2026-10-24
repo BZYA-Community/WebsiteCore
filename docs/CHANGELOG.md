@@ -15,7 +15,7 @@ The fork started from paopao-ce on 2026-09-23 (`chore: strip Docker/Tauri and re
 - Conversational private messaging (WeChat/Bilibili style): session list with pinned system contacts, standalone chat window, read/unread state, paginated history, and identity-group messaging rules (member-to-member DMs disabled, first-message limits toward higher roles, lifted after a reply).
 - System notification session: follow / comment / reply / audit / management notices unified into one conversation with jump links to posts and profiles.
 - Course module: groups, courses, comment moderation, play counts, signed playback URLs, direct-to-OSS uploads; standalone Markdown long-form publishing page.
-- Projects module: image-led project catalog and publishing flow, separate title/introduction presentation, external project links, dedicated discussions, and the restart-required `projects.enabled` switch.
+- Projects module: independently stored projects with Markdown introductions, project-only tags, name/tag search, contributors, project followers, linked lightweight announcement posts, external links, dedicated discussions, and the restart-required `projects.enabled` switch.
 - Local development stack: `docker-compose.dev.yml` with pinned PostgreSQL 18.6 / Redis 7.4.11 / Meilisearch v1.54.0, `make deps-*` targets, and migration-based schema setup (`make migrate`).
 - Admin-managed site settings center (`/#/admin/settings`) with encrypted secret storage (`AdminSettings.EncryptionKey`, AES-GCM).
 - Bootstrap operator account provisioning from configuration (`Operator` section).

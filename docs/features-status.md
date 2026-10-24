@@ -96,7 +96,7 @@ These are YAML module switches rather than entries in `Features.Default`.
 | Configuration | Status | Notes |
 | --- | --- | --- |
 | `courses.enabled` | stable | Enables course routes and APIs; defaults to `true` when omitted |
-| `projects.enabled` | works | Enables the Projects catalog, publishing flow, and project-specific post presentation; disabling it rejects new posts with the reserved `项目` tag |
+| `projects.enabled` | works | Enables the independent Projects catalog, publishing flow, name/tag search, project followers and linked announcement posts; disabling it rejects project APIs and new posts with the reserved `项目` tag |
 
 ## Removed in this fork
 

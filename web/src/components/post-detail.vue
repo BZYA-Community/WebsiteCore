@@ -116,7 +116,7 @@
             <div v-if="isProject" class="project-summary">
                 <span class="project-kicker">{{ t('project.detailKicker') }}</span>
                 <h1>{{ projectTitle }}</h1>
-                <p>{{ projectIntro }}</p>
+                <n-button v-if="projectID" text type="primary" @click="goProject">{{ t('project.viewDetails') }}</n-button>
             </div>
             <div v-else-if="displayTexts.length > 0">
                 <span
@@ -130,7 +130,7 @@
             </div>
 
             <div
-                v-if="post.markdowns.length > 0"
+                v-if="!isProject && post.markdowns.length > 0"
                 class="post-markdown-wrap"
                 @click.stop="handleMdClick($event, post.id)"
             >
@@ -147,9 +147,9 @@
             <template #footer>
                 <post-attachment :attachments="post.attachments" />
                 <post-attachment :attachments="post.charge_attachments" />
-                <post-image :imgs="post.imgs" />
+                <post-image :imgs="isProject ? post.imgs.slice(0, 1) : post.imgs" />
                 <post-video :videos="post.videos" :full="true" />
-                <post-link :links="post.links" />
+                <post-link v-if="!isProject" :links="post.links" />
                 <div class="timestamp">
                     {{ t('post.publishAt') }} {{ formatPrettyTime(post.created_on) }}
                     <span v-if="post.ip_loc">
@@ -293,7 +293,13 @@ const emit = defineEmits<{
 const post = usePostContent(props.post, true);
 const isProject = computed(() => isProjectPost(post.value, profile.value.projectsEnabled));
 const projectTitle = computed(() => post.value.titles[0]?.content || t('project.untitled'));
-const projectIntro = computed(() => post.value.texts[0]?.content || '');
+const projectID = computed(() => {
+  for (const link of post.value.links) {
+    const match = /^project:(\d+)$/.exec(link.content);
+    if (match) return Number(match[1]);
+  }
+  return 0;
+});
 const displayTexts = computed(() => [...post.value.titles, ...post.value.texts].sort((a, b) => a.sort - b.sort));
 
 const renderIcon = (icon: Component) => {
@@ -439,6 +445,9 @@ const goPostDetail = (id: number) => {
       id,
     },
   });
+};
+const goProject = () => {
+  if (projectID.value) void router.push({ name: 'project', query: { id: projectID.value } });
 };
 const doClickText = (e: MouseEvent, id: number) => {
   if ((e.target as any).dataset.detail) {
@@ -750,6 +759,18 @@ onMounted(() => {
             font-size: 15px;
             line-height: 1.75;
             white-space: pre-wrap;
+        }
+        .md-editor.md-editor {
+            --md-bk-color: transparent;
+        }
+        .md-editor-preview-wrapper {
+            padding: 0;
+        }
+        .md-editor-preview {
+            font-size: 15px;
+        }
+        .md-editor-preview > :first-child {
+            margin-top: 0;
         }
     }
     .options {

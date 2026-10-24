@@ -34,6 +34,9 @@ type DataService interface {
 	CourseManageService
 	CourseUploadService
 
+	// 项目服务
+	ProjectService
+
 	// 用户服务
 	UserManageService
 	IdentityService

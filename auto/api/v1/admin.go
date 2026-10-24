@@ -93,7 +93,8 @@ func RegisterAdminServant(e *gin.Engine, s Admin) {
 		default:
 		}
 		req := new(web.SetUserIdentityReq)
-		if err := s.Bind(c, req); err != nil {
+		var bv _binding_ = req
+		if err := bv.Bind(c); err != nil {
 			s.Render(c, nil, err)
 			return
 		}
@@ -167,7 +168,8 @@ func RegisterAdminServant(e *gin.Engine, s Admin) {
 		default:
 		}
 		req := new(web.AdminUserListReq)
-		if err := s.Bind(c, req); err != nil {
+		var bv _binding_ = req
+		if err := bv.Bind(c); err != nil {
 			s.Render(c, nil, err)
 			return
 		}

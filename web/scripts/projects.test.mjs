@@ -48,23 +48,43 @@ assert.equal(
 const projectsView = read('src/views/Projects.vue');
 assert.match(
   projectsView,
-  /:key="project\.post\.id"/,
-  'project cards must use the post id as their stable key',
+  /:key="project\.id"/,
+  'project cards must use the independent project id as their stable key',
 );
 assert.match(
   projectsView,
-  /PostItemTypeEnum\.TITLE/,
-  'project publishing must keep the title separate',
+  /createProject\(/,
+  'project publishing must use the independent project API',
 );
 assert.match(
   projectsView,
-  /PostItemTypeEnum\.TEXT/,
-  'project publishing must keep the introduction separate',
+  /tags:\s*draft\.tags/,
+  'project publishing must submit project-specific tags',
 );
 assert.match(
   projectsView,
-  /PostItemTypeEnum\.LINKURL/,
-  'project publishing must include its external link',
+  /getProjects\(\{/,
+  'project listing must use the independent project API',
+);
+assert.match(
+  projectsView,
+  /PROJECT_TITLE_MAX_LENGTH\s*=\s*30/,
+  'project names must be limited to 30 characters',
+);
+assert.match(
+  projectsView,
+  /keyword:\s*keyword\.value/,
+  'project listing must support name search',
+);
+assert.match(
+  projectsView,
+  /tag:\s*tagFilter\.value/,
+  'project listing must support project tag search',
+);
+assert.match(
+  projectsView,
+  /MdEditor/,
+  'project introductions must use the Markdown editor',
 );
 assert.doesNotMatch(
   projectsView,
@@ -89,8 +109,8 @@ const router = read('src/router/index.ts');
 const sidebar = read('src/components/sidebar.vue');
 assert.match(
   router,
-  /to\.name === 'projects'[^\n]+projectsEnabled/,
-  'the Projects route must be disabled by the profile flag',
+  /\['projects', 'project'\][^\n]+projectsEnabled/,
+  'the project list and detail routes must be disabled by the profile flag',
 );
 assert.match(
   sidebar,
@@ -99,5 +119,5 @@ assert.match(
 );
 
 console.log(
-  'Projects checks passed: tags, feature flag, stable keys, structured content, route and navigation gating.',
+  'Projects checks passed: independent API, tags, search, Markdown, feature flag, and route gating.',
 );

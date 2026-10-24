@@ -110,9 +110,11 @@ func HttpStatusCode(e error) (statusCode int, code int) {
 	case 20001, 20002, 20003:
 		// 注册用户名校验(已存在/长度/字符) 属客户端输入问题 HTTP映射400
 		statusCode = http.StatusBadRequest
-	case 30016, 30017:
-		// 推文内容校验(空内容/超长) HTTP映射400
+	case 30016, 30017, 30019, 30024:
+		// 推文/项目内容校验错误 HTTP映射400
 		statusCode = http.StatusBadRequest
+	case 30021:
+		statusCode = http.StatusNotFound
 	case 70003, 70004, 70005, 70006, 70010:
 		// 课程模块客户端输入问题(不存在/讲师无效/分组非空/视频无效) HTTP映射400
 		statusCode = http.StatusBadRequest

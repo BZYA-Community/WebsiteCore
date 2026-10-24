@@ -15,6 +15,12 @@
     </section>
 
     <main class="project-content main-content-wrap">
+      <div class="project-search">
+        <n-input v-model:value="keyword" clearable :placeholder="t('project.searchName')" @keyup.enter="applyFilters" />
+        <n-input v-model:value="tagFilter" clearable :placeholder="t('project.searchTag')" @keyup.enter="applyFilters" />
+        <n-button type="primary" @click="applyFilters">{{ t('project.search') }}</n-button>
+        <n-button v-if="keyword || tagFilter" quaternary @click="clearFilters">{{ t('project.clearSearch') }}</n-button>
+      </div>
       <div class="project-toolbar">
         <div>
           <h2>{{ t('project.latestProjects') }}</h2>
@@ -38,7 +44,7 @@
       </n-empty>
 
       <div v-else class="project-grid">
-        <article v-for="project in projects" :key="project.post.id" class="project-card">
+        <article v-for="project in projects" :key="project.id" class="project-card">
           <div class="project-gallery" :class="{ single: project.images.length === 1 }">
             <n-image
               v-for="(image, index) in project.images.slice(0, 4)"
@@ -52,13 +58,18 @@
           </div>
           <div class="project-body">
             <div class="project-author">
-              <n-avatar round :size="28" :src="project.post.user.avatar" />
-              <span>{{ project.post.user.nickname }}</span>
+              <n-avatar round :size="28" :src="project.creator.avatar" />
+              <span>{{ project.creator.nickname }}</span>
             </div>
             <h3>{{ project.title }}</h3>
-            <p>{{ project.intro }}</p>
+            <div class="project-tags">
+              <n-tag v-for="tag in project.tags" :key="tag" size="small" round clickable @click="filterByTag(tag)">{{ tag }}</n-tag>
+            </div>
+            <div class="project-intro" @click="handleMarkdownClick">
+              <md-preview :model-value="prepareMdRender(project.intro)" :theme="editorTheme" no-mermaid no-katex no-html />
+            </div>
             <div class="project-actions">
-              <n-button text @click="openDiscussion(project.post.id)">{{ t('project.viewDiscussion') }}</n-button>
+              <n-button text @click="openProject(project.id)">{{ t('project.viewDetails') }}</n-button>
               <n-button v-if="project.url" type="primary" tag="a" :href="project.url" target="_blank" rel="noopener noreferrer">
                 {{ t('project.visitProject') }}
                 <template #icon><n-icon><open-outline /></n-icon></template>
@@ -81,10 +92,24 @@
     <n-modal v-model:show="showEditor" preset="card" :title="t('project.editorTitle')" class="project-editor" :mask-closable="!submitting">
       <n-form label-placement="top" @submit.prevent="submitProject">
         <n-form-item :label="t('project.titleLabel')" required>
-          <n-input v-model:value="draft.title" maxlength="80" show-count :placeholder="t('project.titlePlaceholder')" />
+          <n-input v-model:value="draft.title" :maxlength="PROJECT_TITLE_MAX_LENGTH" show-count :placeholder="t('project.titlePlaceholder')" />
         </n-form-item>
         <n-form-item :label="t('project.introLabel')" required>
-          <n-input v-model:value="draft.intro" type="textarea" :autosize="{ minRows: 4, maxRows: 8 }" maxlength="800" show-count :placeholder="t('project.introPlaceholder')" />
+          <md-editor
+            v-model="draft.intro"
+            class="project-markdown-editor"
+            :theme="editorTheme"
+            :max-length="PROJECT_INTRO_MAX_LENGTH"
+            :placeholder="t('project.introPlaceholder')"
+            :toolbars-exclude="markdownToolbarsExclude"
+            no-mermaid
+            no-katex
+            no-html
+          />
+        </n-form-item>
+        <n-form-item :label="t('project.tagsLabel')">
+          <n-dynamic-tags v-model:value="draft.tags" :max="8" />
+          <small class="field-help">{{ t('project.tagsHelp') }}</small>
         </n-form-item>
         <n-form-item :label="t('project.imagesLabel')" required>
           <div class="upload-field">
@@ -123,11 +148,12 @@
 </template>
 
 <script setup lang="ts">
-import { createPost, getPosts } from '@/api/post';
+import { createProject, getProjects } from '@/api/project';
+import type { ProjectItem } from '@/api/project';
 import { useMediaUpload } from '@/composables/useMediaUpload';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
-import { PostItemTypeEnum, VisibilityEnum } from '@/utils/IEnum';
+import { mdTheme, prepareMdRender } from '@/utils/markdown';
 import {
   AddOutline,
   LinkOutline,
@@ -135,18 +161,33 @@ import {
   RefreshOutline,
 } from '@vicons/ionicons5';
 import type { UploadFileInfo, UploadInst, UploadOnFinish } from 'naive-ui';
+import { MdEditor, MdPreview } from 'md-editor-v3';
+import type { ToolbarNames } from 'md-editor-v3';
+import 'md-editor-v3/lib/style.css';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 
-const PROJECT_TAG = '项目';
+const PROJECT_TITLE_MAX_LENGTH = 30;
+const PROJECT_INTRO_MAX_LENGTH = 800;
 const pageSize = 12;
 const { t } = useI18n();
 const router = useRouter();
 const storeUser = useStoreUser();
 const storeMain = useStoreMain();
-const projects = ref<ProjectView[]>([]);
+const editorTheme = computed(() => mdTheme(storeMain.theme));
+const markdownToolbarsExclude: ToolbarNames[] = [
+  'mermaid',
+  'katex',
+  'image',
+  'github',
+  'htmlPreview',
+  'fullscreen',
+];
+const projects = ref<ProjectItem[]>([]);
 const page = ref(1);
+const keyword = ref('');
+const tagFilter = ref('');
 const total = ref(0);
 const loading = ref(false);
 const loadFailed = ref(false);
@@ -155,7 +196,7 @@ const submitting = ref(false);
 const uploadRef = ref<UploadInst>();
 const fileQueue = ref<UploadFileInfo[]>([]);
 const uploadedImages = ref<{ id: string; content: string }[]>([]);
-const draft = reactive({ title: '', intro: '', url: '' });
+const draft = reactive({ title: '', intro: '', url: '', tags: [] as string[] });
 const linkError = ref('');
 const uploadType = ref('public/image');
 const { beforeUpload } = useMediaUpload(uploadType);
@@ -171,14 +212,6 @@ const uploading = computed(() =>
   ),
 );
 
-interface ProjectView {
-  post: Item.PostProps;
-  title: string;
-  intro: string;
-  images: string[];
-  url: string;
-}
-
 function safeExternalURL(value: string) {
   try {
     const parsed = new URL(value.trim());
@@ -188,37 +221,26 @@ function safeExternalURL(value: string) {
   }
 }
 
-function toProject(post: Item.PostProps): ProjectView {
-  const sorted = [...post.contents].sort((a, b) => a.sort - b.sort);
-  return {
-    post,
-    title:
-      sorted.find((item) => item.type === PostItemTypeEnum.TITLE)?.content ||
-      t('project.untitled'),
-    intro:
-      sorted.find((item) => item.type === PostItemTypeEnum.TEXT)?.content || '',
-    images: sorted
-      .filter((item) => item.type === PostItemTypeEnum.IMAGEURL)
-      .map((item) => item.content),
-    url: safeExternalURL(
-      sorted.find((item) => item.type === PostItemTypeEnum.LINKURL)?.content ||
-        '',
-    ),
-  };
+function handleMarkdownClick(event: MouseEvent) {
+  const anchor = (event.target as HTMLElement).closest('a');
+  const href = anchor?.getAttribute('href') || '';
+  if (!anchor || (!href.startsWith('http://') && !href.startsWith('https://')))
+    return;
+  event.preventDefault();
+  window.open(href, '_blank', 'noopener,noreferrer');
 }
 
 async function loadProjects() {
   loading.value = true;
   loadFailed.value = false;
   try {
-    const result = await getPosts({
-      query: PROJECT_TAG,
-      type: 'tag',
-      style: 'newest',
+    const result = await getProjects({
+      keyword: keyword.value.trim() || undefined,
+      tag: tagFilter.value.trim() || undefined,
       page: page.value,
       page_size: pageSize,
     });
-    projects.value = (result.list || []).map(toProject);
+    projects.value = result.list || [];
     total.value = result.pager.total_rows;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch {
@@ -226,6 +248,22 @@ async function loadProjects() {
   } finally {
     loading.value = false;
   }
+}
+
+function applyFilters() {
+  page.value = 1;
+  void loadProjects();
+}
+
+function clearFilters() {
+  keyword.value = '';
+  tagFilter.value = '';
+  applyFilters();
+}
+
+function filterByTag(tag: string) {
+  tagFilter.value = tag;
+  applyFilters();
 }
 
 function startPublishing() {
@@ -277,7 +315,7 @@ function removeUpload({ file }: { file: UploadFileInfo }) {
 }
 
 function resetDraft() {
-  Object.assign(draft, { title: '', intro: '', url: '' });
+  Object.assign(draft, { title: '', intro: '', url: '', tags: [] });
   linkError.value = '';
   uploadedImages.value = [];
   fileQueue.value = [];
@@ -298,34 +336,16 @@ async function submitProject() {
     .filter((image): image is { id: string; content: string } =>
       Boolean(image),
     );
-  let sort = 100;
-  const contents: Partial<Item.PostItemProps>[] = [
-    { content: draft.title.trim(), type: PostItemTypeEnum.TITLE, sort: sort++ },
-    { content: draft.intro.trim(), type: PostItemTypeEnum.TEXT, sort: sort++ },
-    ...orderedImages.map((image) => ({
-      content: image.content,
-      type: PostItemTypeEnum.IMAGEURL,
-      sort: sort++,
-    })),
-    {
-      content: safeExternalURL(draft.url),
-      type: PostItemTypeEnum.LINKURL,
-      sort,
-    },
-  ];
   submitting.value = true;
   try {
-    const result = await createPost({
-      contents,
-      tags: [PROJECT_TAG],
-      users: [],
-      visibility: VisibilityEnum.PUBLIC,
+    await createProject({
+      title: draft.title.trim(),
+      intro: draft.intro.trim(),
+      url: safeExternalURL(draft.url),
+      images: orderedImages.map((image) => image.content),
+      tags: draft.tags.map((tag) => tag.trim()).filter(Boolean),
     });
-    window.$message.success(
-      result.audit_status === 0
-        ? t('compose.publishSuccessAudit')
-        : t('project.publishSuccess'),
-    );
+    window.$message.success(t('project.publishSuccess'));
     showEditor.value = false;
     resetDraft();
     page.value = 1;
@@ -335,8 +355,8 @@ async function submitProject() {
   }
 }
 
-function openDiscussion(id: number) {
-  void router.push({ name: 'post', query: { id } });
+function openProject(id: number) {
+  void router.push({ name: 'project', query: { id } });
 }
 onMounted(loadProjects);
 </script>
@@ -348,6 +368,7 @@ onMounted(loadProjects);
 .project-hero h1 { margin: 8px 0; font-size: clamp(25px, 4vw, 38px); line-height: 1.15; }
 .project-hero p { margin: 0; max-width: 58ch; opacity: .68; line-height: 1.7; }
 .project-content { box-sizing: border-box; min-height: 440px; padding: 24px; border: 1px solid rgba(128, 128, 128, .2); border-top: 0; }
+.project-search { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(140px, .7fr) auto auto; gap: 10px; margin-bottom: 22px; }
 .project-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .project-toolbar h2 { margin: 0 0 4px; font-size: 20px; }
 .project-toolbar span { font-size: 13px; opacity: .58; }
@@ -363,11 +384,19 @@ onMounted(loadProjects);
 .project-body { padding: 18px; }
 .project-author { display: flex; align-items: center; gap: 8px; font-size: 12px; opacity: .7; }
 .project-body h3 { margin: 14px 0 8px; font-size: 20px; line-height: 1.35; overflow-wrap: anywhere; }
-.project-body > p { min-height: 3.4em; margin: 0; opacity: .7; line-height: 1.7; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.project-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.project-intro { min-height: 3.4em; max-height: 7.2em; overflow: hidden; opacity: .7; line-height: 1.7; }
+.project-intro > p { margin: 0; white-space: pre-wrap; }
+.project-intro :deep(.md-editor) { --md-bk-color: transparent; }
+.project-intro :deep(.md-editor-preview-wrapper) { padding: 0; }
+.project-intro :deep(.md-editor-preview) { font-size: 14px; }
+.project-intro :deep(.md-editor-preview > :first-child) { margin-top: 0; }
 .project-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; }
 .project-empty { padding: 70px 0; }
 .project-pagination { justify-content: center; margin-top: 28px; }
 .project-editor { width: min(680px, calc(100vw - 28px)); }
+.project-markdown-editor { height: 320px; }
+.field-help { display: block; margin-left: 10px; opacity: .6; }
 .upload-field { width: 100%; }
 .upload-field small { display: block; margin-top: 8px; opacity: .6; }
 .editor-actions { display: flex; justify-content: flex-end; gap: 10px; }
@@ -375,5 +404,6 @@ onMounted(loadProjects);
   .project-hero { align-items: flex-start; flex-direction: column; padding: 26px 20px; }
   .project-content { padding: 16px; }
   .project-grid { grid-template-columns: 1fr; }
+  .project-search { grid-template-columns: 1fr; }
 }
 </style>

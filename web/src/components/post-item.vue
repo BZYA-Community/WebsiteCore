@@ -1,5 +1,5 @@
 <template>
-    <div class="post-item" :class="{ 'project-post': isProject }" @click="goPostDetail(post.id)">
+    <div class="post-item" :class="{ 'project-post': isProject }" @click="openPostTarget">
         <n-thing content-indented>
             <template #avatar>
                 <n-avatar round :size="30" :src="post.user.avatar" />
@@ -98,7 +98,6 @@
             <template #description v-if="isProject || displayTexts.length > 0 || post.markdowns.length > 0">
                 <div v-if="isProject" class="project-summary">
                     <h3>{{ projectTitle }}</h3>
-                    <p>{{ projectIntro }}</p>
                 </div>
                 <template v-else-if="displayTexts.length > 0">
                     <div v-if="isMobile" @click="goPostDetail(post.id)">
@@ -119,26 +118,28 @@
                         ></span>
                     </template>
                 </template>
-                <div
-                    v-for="md in post.markdowns"
-                    :key="md.id"
-                    class="post-markdown"
-                    @click.stop="handleMdClick($event, post.id)"
-                >
-                    <md-preview
-                        :model-value="mdExcerptText(md.content)"
-                        :theme="editorTheme"
-                        no-mermaid
-                        no-html
-                    />
-                    <span
-                        v-if="mdExcerptMore(md.content)"
-                        class="hash-link read-full-link"
-                        @click.stop="goPostDetail(post.id)"
+                <template v-if="!isProject">
+                    <div
+                        v-for="md in post.markdowns"
+                        :key="md.id"
+                        class="post-markdown"
+                        @click.stop="handleMdClick($event, post.id)"
                     >
-                        {{ t('post.action.readFull') }}
-                    </span>
-                </div>
+                        <md-preview
+                            :model-value="mdExcerptText(md.content)"
+                            :theme="editorTheme"
+                            no-mermaid
+                            no-html
+                        />
+                        <span
+                            v-if="mdExcerptMore(md.content)"
+                            class="hash-link read-full-link"
+                            @click.stop="goPostDetail(post.id)"
+                        >
+                            {{ t('post.action.readFull') }}
+                        </span>
+                    </div>
+                </template>
             </template>
 
             <template #footer>
@@ -151,12 +152,12 @@
                 />
                 <post-image
                     v-if="post.imgs.length > 0"
-                    :imgs="post.imgs" />
+                    :imgs="isProject ? post.imgs.slice(0, 1) : post.imgs" />
                 <post-video
                     v-if="post.videos.length > 0"
                     :videos="post.videos" />
                 <post-link
-                    v-if="post.links.length > 0"
+                    v-if="!isProject && post.links.length > 0"
                     :links="post.links" />
             </template>
             <template #action>
@@ -315,7 +316,13 @@ const handleTweetAction = async (
 const post = usePostContent(props.post);
 const isProject = computed(() => isProjectPost(post.value, profile.value.projectsEnabled));
 const projectTitle = computed(() => post.value.titles[0]?.content || t('project.untitled'));
-const projectIntro = computed(() => post.value.texts[0]?.content || '');
+const projectID = computed(() => {
+  for (const link of post.value.links) {
+    const match = /^project:(\d+)$/.exec(link.content);
+    if (match) return Number(match[1]);
+  }
+  return 0;
+});
 const displayTexts = computed(() => [...post.value.titles, ...post.value.texts].sort((a, b) => a.sort - b.sort));
 const handlePostStar = () => {
   if (!storeUser.hasPermission('community.interact')) return;
@@ -372,6 +379,13 @@ const goPostDetail = (id: number) => {
       id,
     },
   });
+};
+const openPostTarget = () => {
+  if (isProject.value && projectID.value > 0) {
+    void router.push({ name: 'project', query: { id: projectID.value } });
+    return;
+  }
+  goPostDetail(post.value.id);
 };
 const doClickText = (e: MouseEvent, id: number) => {
   const detail = (e.target as any).dataset.detail;
@@ -478,6 +492,21 @@ const handleMdClick = (e: MouseEvent, id: number) => {
             line-height: 1.65;
             white-space: pre-wrap;
         }
+        .md-editor.md-editor {
+            --md-bk-color: transparent;
+        }
+        .md-editor-preview-wrapper {
+            padding: 0;
+        }
+        .md-editor-preview {
+            max-height: 8em;
+            overflow: hidden;
+            color: rgba(51, 54, 57, 0.72);
+            font-size: 14px;
+        }
+        .md-editor-preview > :first-child {
+            margin-top: 0;
+        }
     }
     .timestamp-mobile {
         margin-top: 2px;
@@ -561,7 +590,8 @@ const handleMdClick = (e: MouseEvent, id: number) => {
         }
         background-color: rgba(16, 16, 20, 0.75);
 
-        .project-summary p {
+        .project-summary p,
+        .project-summary .md-editor-preview {
             color: rgba(255, 255, 255, 0.68);
         }
     }

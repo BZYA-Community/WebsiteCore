@@ -177,7 +177,7 @@ projects:
   enabled: true
 ```
 
-`courses.enabled` controls course routes and APIs. `projects.enabled` controls the Projects navigation entry and route, project publishing, and project-specific rendering in the public timeline and post detail pages. Both default to `true` when their section is absent. Disabling Projects also rejects new posts carrying the reserved `项目` tag; existing posts remain ordinary posts and are still accessible through the timeline and their direct links.
+`courses.enabled` controls course routes and APIs. `projects.enabled` controls the Projects navigation entry and route, project publishing, and project-specific rendering in the public timeline and post detail pages. Both default to `true` when their section is absent. Disabling Projects also rejects new posts carrying the reserved `项目` tag; existing posts remain ordinary posts and are still accessible through the timeline and their direct links. Project names are limited to 30 Unicode characters. Project tags are stored separately from post tags, and project introductions support Markdown (with raw HTML disabled).
 
 These switches are file-based and require a server restart after changing `config.yaml`.
 
