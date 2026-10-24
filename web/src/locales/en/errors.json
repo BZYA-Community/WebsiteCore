@@ -69,6 +69,7 @@
     "E30015": "Failed to get post details as guest",
     "E30016": "Content cannot be empty",
     "E30017": "Content exceeds length limit",
+    "E30018": "Projects are disabled",
     "E40001": "Failed to get comment list",
     "E40002": "Failed to publish comment",
     "E40003": "Failed to get comment details",

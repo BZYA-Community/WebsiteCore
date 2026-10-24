@@ -37,6 +37,8 @@ var _uploadAttachmentTypeMap = map[string]ms.AttachmentType{
 	"attachment":    ms.AttachmentTypeOther,
 }
 
+const projectPostTag = "项目"
+
 type privSrv struct {
 	api.UnimplementedPrivServant
 	*base.DaoServant
@@ -251,6 +253,9 @@ func validTweetContents(contents []*web.PostContentItem) error {
 func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (*web.CreateTweetResp, error) {
 	if req.User == nil || !req.User.HasPermission("post.create") {
 		return nil, web.ErrNoPermission
+	}
+	if hasProjectPostTag(req.Tags) && !conf.ProjectsEnabled() {
+		return nil, web.ErrProjectsDisabled
 	}
 	// 基础内容校验(空/纯空白/文本超长直接拒绝, 避免先上传媒体再回滚)
 	if err := validTweetContents(req.Contents); err != nil {

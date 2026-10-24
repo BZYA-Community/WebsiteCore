@@ -89,6 +89,15 @@ Enable exactly one backend. When no storage feature is enabled, `LocalOSS` is us
 | `Migration` | stable | Auto-apply database migrations at startup; requires the `migration` build tag (the `migrate` subcommand always enables both) |
 | `Web:DisallowUserRegister` | works | Close public registration |
 
+## Optional product modules
+
+These are YAML module switches rather than entries in `Features.Default`.
+
+| Configuration | Status | Notes |
+| --- | --- | --- |
+| `courses.enabled` | stable | Enables course routes and APIs; defaults to `true` when omitted |
+| `projects.enabled` | works | Enables the Projects catalog, publishing flow, and project-specific post presentation; disabling it rejects new posts with the reserved `项目` tag |
+
 ## Removed in this fork
 
 | Former feature | Reason |

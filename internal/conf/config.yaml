@@ -198,6 +198,8 @@ Operator:
 # Optional modules and the single active account-verification channel.
 courses:
   enabled: true
+projects:
+  enabled: true                  # 是否启用项目板块
 account_verify:
   mode: email
   code_ttl_seconds: 300

@@ -51,6 +51,7 @@ var (
 	ErrGetPostsNilUser         = xerror.NewError(30015, "使用游客账户获取动态详情失败")
 	ErrPostContentsEmpty       = xerror.NewError(30016, "内容不能为空")
 	ErrPostContentsTooLong     = xerror.NewError(30017, "内容超过长度限制")
+	ErrProjectsDisabled        = xerror.NewError(30018, "项目功能未启用")
 
 	// 课程模块 700xx
 	ErrGetCourseGroupsFailed        = xerror.NewError(70001, "获取课程分组失败")

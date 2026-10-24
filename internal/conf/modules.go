@@ -7,6 +7,7 @@ import (
 )
 
 type CoursesConf struct{ Enabled bool }
+type ProjectsConf struct{ Enabled bool }
 
 type AccountVerifyConf struct {
 	Mode            string         `mapstructure:"mode"`
@@ -27,10 +28,12 @@ type AliyunMailConf struct {
 
 var (
 	CourseSetting        *CoursesConf
+	ProjectSetting       *ProjectsConf
 	AccountVerifySetting *AccountVerifyConf
 )
 
-func CoursesEnabled() bool { return CourseSetting == nil || CourseSetting.Enabled }
+func CoursesEnabled() bool  { return CourseSetting == nil || CourseSetting.Enabled }
+func ProjectsEnabled() bool { return ProjectSetting == nil || ProjectSetting.Enabled }
 
 func VerificationMode() string {
 	if AccountVerifySetting == nil {

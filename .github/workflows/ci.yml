@@ -90,6 +90,7 @@ jobs:
           yarn test:courses
           yarn test:sidebar
           yarn test:admin
+          yarn test:projects
 
       - name: Syntax check (build)
         run: npm run build

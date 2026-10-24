@@ -1,5 +1,5 @@
 <template>
-    <div class="post-item" @click="goPostDetail(post.id)">
+    <div class="post-item" :class="{ 'project-post': isProject }" @click="goPostDetail(post.id)">
         <n-thing content-indented>
             <template #avatar>
                 <n-avatar round :size="30" :src="post.user.avatar" />
@@ -18,6 +18,9 @@
                         </router-link>
                     </span>
                     <span class="username-wrap"> @{{ post.user.username }} </span>
+                    <n-tag v-if="isProject" class="project-tag" type="success" size="small" round>
+                        {{ t('project.postBadge') }}
+                    </n-tag>
                     <n-tag
                         v-if="post.is_top"
                         class="top-tag"
@@ -92,10 +95,14 @@
                     </n-dropdown>
                 </div>
             </template>
-            <template #description v-if="post.texts.length > 0 || post.markdowns.length > 0">
-                <template v-if="post.texts.length > 0">
+            <template #description v-if="isProject || displayTexts.length > 0 || post.markdowns.length > 0">
+                <div v-if="isProject" class="project-summary">
+                    <h3>{{ projectTitle }}</h3>
+                    <p>{{ projectIntro }}</p>
+                </div>
+                <template v-else-if="displayTexts.length > 0">
                     <div v-if="isMobile" @click="goPostDetail(post.id)">
-                        <span v-for="content in post.texts"
+                        <span v-for="content in displayTexts"
                             :key="content.id"
                             class="post-text"
                             @click.stop="doClickText($event, post.id)"
@@ -104,7 +111,7 @@
                     </div>
                     <template v-else>
                         <span
-                            v-for="content in post.texts"
+                            v-for="content in displayTexts"
                             :key="content.id"
                             class="post-text hover"
                             @click.stop="doClickText($event, post.id)"
@@ -164,7 +171,7 @@
                         <n-icon size="18" class="opt-item-icon">
                             <chatbox-outline />
                         </n-icon>
-                        {{ post.comment_count }}
+                        {{ isProject ? t('project.discussionCount', { count: post.comment_count }) : post.comment_count }}
                     </div>
                     <div class="opt-item hover" @click.stop="handlePostCollection" :aria-disabled="!storeUser.hasPermission('community.interact')">
                         <n-icon size="18" class="opt-item-icon">
@@ -206,7 +213,7 @@ import copy from 'copy-to-clipboard';
 import { useStoreProfile } from '@/store/profile';
 import { storeToRefs } from 'pinia';
 import UserAction, { canWhisperUser } from '@/composables/useUserAction';
-import { usePostContent } from '@/composables/usePostContent';
+import { isProjectPost, usePostContent } from '@/composables/usePostContent';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -306,6 +313,10 @@ const handleTweetAction = async (
 
 // 使用 usePostContent composable
 const post = usePostContent(props.post);
+const isProject = computed(() => isProjectPost(post.value, profile.value.projectsEnabled));
+const projectTitle = computed(() => post.value.titles[0]?.content || t('project.untitled'));
+const projectIntro = computed(() => post.value.texts[0]?.content || '');
+const displayTexts = computed(() => [...post.value.titles, ...post.value.texts].sort((a, b) => a.sort - b.sort));
 const handlePostStar = () => {
   if (!storeUser.hasPermission('community.interact')) return;
   postStar({
@@ -448,6 +459,26 @@ const handleMdClick = (e: MouseEvent, id: number) => {
     .top-tag {
         transform: scale(0.75);
     }
+    .project-tag {
+        margin-left: 6px;
+    }
+    .project-summary {
+        margin: 4px 0 2px;
+        padding-left: 12px;
+        border-left: 3px solid #18a058;
+
+        h3 {
+            margin: 0 0 6px;
+            font-size: 19px;
+            line-height: 1.35;
+        }
+        p {
+            margin: 0;
+            color: rgba(51, 54, 57, 0.72);
+            line-height: 1.65;
+            white-space: pre-wrap;
+        }
+    }
     .timestamp-mobile {
         margin-top: 2px;
         opacity: 0.75;
@@ -511,6 +542,10 @@ const handleMdClick = (e: MouseEvent, id: number) => {
         cursor: pointer;
     }
 
+    &.project-post {
+        box-shadow: inset 3px 0 #18a058;
+    }
+
     .n-thing-avatar {
         margin-top: 0;
     }
@@ -525,6 +560,10 @@ const handleMdClick = (e: MouseEvent, id: number) => {
             background: #18181c;
         }
         background-color: rgba(16, 16, 20, 0.75);
+
+        .project-summary p {
+            color: rgba(255, 255, 255, 0.68);
+        }
     }
 }
 </style>

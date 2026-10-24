@@ -23,7 +23,7 @@
 ## BVT — frontend (mandatory if `web/` changed)
 
 - [ ] `npm run lint` — 0 errors
-- [ ] `npm run i18n:check` and applicable permission/media/course/sidebar/admin regression tests pass
+- [ ] `npm run i18n:check` and applicable permission/media/course/project/sidebar/admin regression tests pass
 - [ ] `npm run build` — succeeds
 - [ ] No overlapping or overflowing content at 1920 / 1600 / 1366 / 1200 / 1000 / 821 / 375 viewports:
   - [ ] `python scripts/verify_sidebar_830.py` — ALL PASS

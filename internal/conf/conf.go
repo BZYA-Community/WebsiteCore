@@ -98,6 +98,7 @@ func setupSetting(suite []string, noDefault bool) error {
 		"Audit":             &AuditSetting,
 		"Operator":          &OperatorSetting,
 		"courses":           &CourseSetting,
+		"projects":          &ProjectSetting,
 		"account_verify":    &AccountVerifySetting,
 		"uploads":           &UploadSetting,
 	}

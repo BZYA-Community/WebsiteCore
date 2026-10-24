@@ -112,6 +112,7 @@ func (s *Service) GetProfile(ctx context.Context) (*web.SiteProfileResp, error) 
 	return &web.SiteProfileResp{
 		UploadLimits:                 conf.UploadLimits(),
 		CoursesEnabled:               conf.CoursesEnabled(),
+		ProjectsEnabled:              conf.ProjectsEnabled(),
 		AccountVerifyMode:            conf.VerificationMode(),
 		ContactVerificationAvailable: conf.VerificationAvailable(),
 		EnableTrendsBar:              conf.WebProfileSetting.EnableTrendsBar,

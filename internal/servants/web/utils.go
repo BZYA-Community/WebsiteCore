@@ -121,6 +121,15 @@ func tagsFrom(originTags []string) []string {
 	return tags
 }
 
+func hasProjectPostTag(tags []string) bool {
+	for _, tag := range tags {
+		if strings.TrimSpace(tag) == projectPostTag {
+			return true
+		}
+	}
+	return false
+}
+
 // checkPermision checks ownership or explicit content-management permission.
 func checkPermision(user *ms.User, targetUserId int64) error {
 	if user == nil || (user.ID != targetUserId && !user.HasPermission("content.manage")) {

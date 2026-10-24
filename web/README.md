@@ -19,6 +19,7 @@ npm run lint:fix
 npm run format     # Biome (formatting only)
 npm run check      # Biome check --write
 npm run i18n:check # locale pack validation (missing / unused / zh-CN-en parity)
+npm run test:projects # Projects flag, rendering, and publishing regressions
 ```
 
 Formatting of supported JavaScript, TypeScript, JSON and CSS files is owned by **Biome** (`biome.json`); format Vue templates consistently with nearby components. Code-quality linting uses **ESLint** (`eslint.config.js`, flat config: `vue flat/strongly-recommended` + `typescript-eslint recommended`). CI uses the Yarn lockfile on Node 22 and runs lint, locale checks, the permission/media/course/sidebar/admin regression tests and the Vite build.
@@ -30,6 +31,7 @@ Environment files: `.env` (defaults, committed) and `.env.local` (personal overr
 - `VITE_HOST` — API base URL (`src/utils/request.ts`). Empty means same-origin, which is correct for the embedded production build. For standalone `npm run dev` against a local backend, set `VITE_HOST="http://127.0.0.1:8008"` in `.env.local`.
 - `VITE_USE_WEB_PROFILE=true` — fetch feature flags from the backend `WebProfile` at runtime, making the admin UI (`/#/admin/settings`) authoritative over the `VITE_ALLOW_*` / `VITE_DEFAULT_*` build-time values.
 - `VITE_ENABLE_POST_EASTER_EGGS=false` — build-time switch for exact-match video redirects in both post editors. Only the literal `true` includes the easter egg mappings and redirects in the frontend bundle; false or unset removes them. Changing it requires rebuilding the frontend and, when served from an embedded Go binary, rebuilding that binary. This switch is independent of `WebProfile`.
+- `projects.enabled` is served through the site profile as `projects_enabled`. When false, the Projects route and navigation entry are unavailable and tagged posts use the ordinary post presentation.
 
 ## Layout
 

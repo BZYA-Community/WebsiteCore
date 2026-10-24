@@ -61,6 +61,7 @@ import {
   ConstructOutline,
   LogOutOutline,
   VideocamOutline,
+  RocketOutline,
 } from '@vicons/ionicons5';
 import { Hash } from '@vicons/tabler';
 import LOGO from '@/assets/img/logo.png';
@@ -115,6 +116,7 @@ const menuOptions = computed(() => [
   { label: t('nav.home'), key: 'home', icon: () => h(HomeOutline), href: '/' },
   { label: t('nav.topic'), key: 'topic', icon: () => h(Hash), href: '/topic' },
   { label: t('nav.courses'), key: 'courses', icon: () => h(VideocamOutline), href: '/courses' },
+  { label: t('nav.projects'), key: 'projects', icon: () => h(RocketOutline), href: '/projects' },
   { label: t('nav.profile'), key: 'profile', icon: () => h(LeafOutline), href: '/profile', login: true },
   { label: t('nav.messages'), key: 'messages', icon: () => h(ChatbubblesOutline), href: '/messages', login: true },
   { label: t('nav.collection'), key: 'collection', icon: () => h(BookmarksOutline), href: '/collection', login: true },
@@ -124,6 +126,7 @@ const menuOptions = computed(() => [
   { label: t('nav.adminAudit'), key: 'admin-audit', icon: () => h(ShieldCheckmarkOutline), href: '/admin/audit', login: true },
 ].filter((option) => (!option.login || storeUser.userLogined) &&
   (option.key !== 'courses' || profile.value.coursesEnabled) &&
+  (option.key !== 'projects' || profile.value.projectsEnabled) &&
   (!routePermissions[option.key] || storeUser.hasAnyPermission(routePermissions[option.key]))));
 
 const renderMenuLabel = (option: AnyObject) => {
