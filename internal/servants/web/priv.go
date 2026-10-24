@@ -60,6 +60,9 @@ func (s *privSrv) Chain() gin.HandlersChain {
 }
 
 func (s *privSrv) ThumbsDownTweetReply(req *web.TweetReplyThumbsReq) error {
+	if err := s.checkReplyThumbsTarget(req.TweetId, req.CommentId, req.ReplyId, req.Uid); err != nil {
+		return err
+	}
 	if err := s.Ds.ThumbsDownReply(req.Uid, req.TweetId, req.CommentId, req.ReplyId); err != nil {
 		logrus.Errorf("thumbs down tweet reply error: %s req:%v", err, req)
 		return web.ErrThumbsDownTweetReply
@@ -68,6 +71,9 @@ func (s *privSrv) ThumbsDownTweetReply(req *web.TweetReplyThumbsReq) error {
 }
 
 func (s *privSrv) ThumbsUpTweetReply(req *web.TweetReplyThumbsReq) error {
+	if err := s.checkReplyThumbsTarget(req.TweetId, req.CommentId, req.ReplyId, req.Uid); err != nil {
+		return err
+	}
 	if err := s.Ds.ThumbsUpReply(req.Uid, req.TweetId, req.CommentId, req.ReplyId); err != nil {
 		logrus.Errorf("thumbs up tweet reply error: %s req:%v", err, req)
 		return web.ErrThumbsUpTweetReply
@@ -76,6 +82,9 @@ func (s *privSrv) ThumbsUpTweetReply(req *web.TweetReplyThumbsReq) error {
 }
 
 func (s *privSrv) ThumbsDownTweetComment(req *web.TweetCommentThumbsReq) error {
+	if err := s.checkCommentThumbsTarget(req.TweetId, req.CommentId, req.Uid); err != nil {
+		return err
+	}
 	if err := s.Ds.ThumbsDownComment(req.Uid, req.TweetId, req.CommentId); err != nil {
 		logrus.Errorf("thumbs down tweet comment error: %s req:%v", err, req)
 		return web.ErrThumbsDownTweetComment
@@ -86,6 +95,9 @@ func (s *privSrv) ThumbsDownTweetComment(req *web.TweetCommentThumbsReq) error {
 }
 
 func (s *privSrv) ThumbsUpTweetComment(req *web.TweetCommentThumbsReq) error {
+	if err := s.checkCommentThumbsTarget(req.TweetId, req.CommentId, req.Uid); err != nil {
+		return err
+	}
 	if err := s.Ds.ThumbsUpComment(req.Uid, req.TweetId, req.CommentId); err != nil {
 		logrus.Errorf("thumbs up tweet comment error: %s req:%v", err, req)
 		return web.ErrThumbsUpTweetComment
@@ -812,6 +824,33 @@ func (s *privSrv) createPostPreHandler(commentID int64, userID, atUserID int64) 
 	return post, comment, atUserID, nil
 }
 
+// checkCommentThumbsTarget 评论点赞的目标校验(安全审计02 低-1):
+// 原实现全链路没有 CanViewTweet 检查, 可对私密/待审帖下的评论刷赞/踩;
+// 且 DAO 按 commentId 更新计数, 未校验 tweetId 与评论的从属关系。
+// 此处统一收口: 评论必须属于该帖, 且操作者对该帖满足点赞/收藏同级权限。
+// 所有失败统一返回 ErrNoPermission, 避免借响应差异探测私密帖下评论 ID 是否存在。
+func (s *privSrv) checkCommentThumbsTarget(tweetId, commentId, userID int64) error {
+	comment, err := s.Ds.GetCommentByID(commentId)
+	if err != nil || comment.PostID != tweetId {
+		return web.ErrNoPermission
+	}
+	post, err := s.Ds.GetPostByID(tweetId)
+	if err != nil {
+		return web.ErrNoPermission
+	}
+	return s.checkPostActPermission(post, userID)
+}
+
+// checkReplyThumbsTarget 回复点赞的目标校验(安全审计02 低-1):
+// 回复必须属于该评论, 其余口径同评论点赞。
+func (s *privSrv) checkReplyThumbsTarget(tweetId, commentId, replyId, userID int64) error {
+	reply, err := s.Ds.GetCommentReplyByID(replyId)
+	if err != nil || reply.CommentID != commentId {
+		return web.ErrNoPermission
+	}
+	return s.checkCommentThumbsTarget(tweetId, commentId, userID)
+}
+
 // checkPostActPermission 点赞/收藏等写操作的统一权限校验(收口 #12):
 // 首先复用 CanViewTweet 的统一读口径 —— 作者/管理员/审核员放行, 其余要求已过审且满足可见性
 // (公开 / 关注可见=已关注作者), 修复原先四段近重复的"仅私密帖拒他人"判断漏掉
@@ -842,6 +881,12 @@ func (s *privSrv) createPostStar(postID, userID int64) (*ms.PostStar, error) {
 	// 私密/好友/关注/未过审post不可操作(统一走 CanViewTweet, 关闭 TODO 是bug)
 	if xerr := s.checkPostActPermission(post, userID); xerr != nil {
 		return nil, xerr
+	}
+
+	// 未过审帖子禁止点赞(含作者本人): CanViewTweet 对作者无条件放行,
+	// 需单独拦截, 防止"作者自赞 + 公开点赞列表"绕过审核泄露待审内容(安全审计02 中-1)
+	if post.AuditStatus != ms.PostAuditApproved {
+		return nil, web.ErrNoPermission
 	}
 
 	star, err := s.Ds.CreatePostStar(postID, userID)
@@ -893,6 +938,11 @@ func (s *privSrv) createPostCollection(postID, userID int64) (*ms.PostCollection
 	// 私密/好友/关注/未过审post不可操作(统一走 CanViewTweet, 关闭 TODO 是bug)
 	if xerr := s.checkPostActPermission(post, userID); xerr != nil {
 		return nil, xerr
+	}
+
+	// 未过审帖子禁止收藏(含作者本人), 口径同点赞(安全审计02 中-1)
+	if post.AuditStatus != ms.PostAuditApproved {
+		return nil, web.ErrNoPermission
 	}
 
 	collection, err := s.Ds.CreatePostCollection(postID, userID)
