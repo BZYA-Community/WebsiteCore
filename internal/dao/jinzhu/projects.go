@@ -20,23 +20,49 @@ type projectSrv struct{ db *gorm.DB }
 
 func newProjectService(db *gorm.DB) core.ProjectService { return &projectSrv{db: db} }
 
-func projectVisibleScope(db *gorm.DB, viewerID int64, viewerIsAuditor bool) *gorm.DB {
-	db = db.Table(conf.DatabaseSetting.TablePrefix+"project AS project").
-		Joins("JOIN "+conf.DatabaseSetting.TablePrefix+"post AS post ON post.id = project.post_id AND post.is_del = 0").
-		Where("project.is_del = ?", 0)
-	if !viewerIsAuditor {
-		db = db.Where("post.audit_status = ? OR project.creator_id = ?", ms.PostAuditApproved, viewerID)
+func projectTablePrefix() string {
+	if conf.DatabaseSetting == nil {
+		return "p_"
 	}
-	return db
+	return conf.DatabaseSetting.TablePrefix
 }
 
-func (s *projectSrv) ListProjects(viewerID int64, viewerIsAuditor bool, keyword, tag string, offset, limit int) ([]*ms.ProjectFormated, int64, error) {
-	db := projectVisibleScope(s.db, viewerID, viewerIsAuditor)
+func projectVisibleScope(db *gorm.DB, viewer *ms.User) *gorm.DB {
+	prefix := projectTablePrefix()
+	db = db.Table(prefix+"project AS project").
+		Joins("JOIN "+prefix+"post AS post ON post.id = project.post_id AND post.is_del = 0").
+		Where("project.is_del = ?", 0)
+	if viewer == nil {
+		return db.Where("post.audit_status = ? AND post.visibility = ?", ms.PostAuditApproved, ms.PostVisitPublic)
+	}
+	if !viewer.HasPermission(authz.PostView) {
+		return db.Where("1 = 0")
+	}
+
+	// Keep project discovery on the same policy as content.Views.CanViewTweet.
+	// A project is a separate document, but its linked post remains the source
+	// of truth for publication state and visibility.
+	if viewer.HasPermission(authz.AuditViewAll) {
+		return db.Where("post.user_id = ? OR post.audit_status <> ? OR post.visibility = ? OR ? OR (post.visibility = ? AND EXISTS (SELECT 1 FROM "+prefix+"following f WHERE f.user_id = ? AND f.follow_id = post.user_id AND f.is_del = 0))",
+			viewer.ID, ms.PostAuditApproved, ms.PostVisitPublic, viewer.HasPermission(authz.ContentViewPrivate), ms.PostVisitFollowing, viewer.ID)
+	}
+	pending := "FALSE"
+	args := []any{viewer.ID, ms.PostAuditApproved}
+	if viewer.HasPermission(authz.ContentReview) {
+		pending = "EXISTS (SELECT 1 FROM " + prefix + "review_task rt WHERE rt.kind = ? AND rt.target_id = post.id AND rt.assignee_id = ?)"
+		args = append(args, ms.ReviewPost, viewer.ID)
+	}
+	args = append(args, ms.PostAuditApproved, ms.PostVisitPublic, viewer.HasPermission(authz.ContentViewPrivate), ms.PostVisitFollowing, viewer.ID)
+	return db.Where("post.user_id = ? OR (post.audit_status <> ? AND "+pending+") OR (post.audit_status = ? AND (post.visibility = ? OR ? OR (post.visibility = ? AND EXISTS (SELECT 1 FROM "+prefix+"following f WHERE f.user_id = ? AND f.follow_id = post.user_id AND f.is_del = 0))))", args...)
+}
+
+func (s *projectSrv) ListProjects(viewer *ms.User, keyword, tag string, offset, limit int) ([]*ms.ProjectFormated, int64, error) {
+	db := projectVisibleScope(s.db, viewer)
 	if keyword = strings.TrimSpace(keyword); keyword != "" {
 		db = db.Where("LOWER(project.title) LIKE LOWER(?)", "%"+keyword+"%")
 	}
 	if tag = strings.TrimSpace(tag); tag != "" {
-		db = db.Where("EXISTS (SELECT 1 FROM "+conf.DatabaseSetting.TablePrefix+"project_tag pt WHERE pt.project_id = project.id AND pt.is_del = 0 AND pt.name = ?)", tag)
+		db = db.Where("EXISTS (SELECT 1 FROM "+projectTablePrefix()+"project_tag pt WHERE pt.project_id = project.id AND pt.is_del = 0 AND pt.name = ?)", tag)
 	}
 	var total int64
 	if err := db.Count(&total).Error; err != nil {
@@ -46,14 +72,22 @@ func (s *projectSrv) ListProjects(viewerID int64, viewerIsAuditor bool, keyword,
 	if err := db.Select("project.*").Order("project.id DESC").Offset(offset).Limit(limit).Find(&projects).Error; err != nil {
 		return nil, 0, err
 	}
+	viewerID := int64(0)
+	if viewer != nil {
+		viewerID = viewer.ID
+	}
 	items, err := s.formatProjects(projects, viewerID)
 	return items, total, err
 }
 
-func (s *projectSrv) GetProject(viewerID int64, viewerIsAuditor bool, id int64) (*ms.ProjectFormated, error) {
+func (s *projectSrv) GetProject(viewer *ms.User, id int64) (*ms.ProjectFormated, error) {
 	var project dbr.Project
-	if err := projectVisibleScope(s.db, viewerID, viewerIsAuditor).Select("project.*").Where("project.id = ?", id).First(&project).Error; err != nil {
+	if err := projectVisibleScope(s.db, viewer).Select("project.*").Where("project.id = ?", id).First(&project).Error; err != nil {
 		return nil, err
+	}
+	viewerID := int64(0)
+	if viewer != nil {
+		viewerID = viewer.ID
 	}
 	items, err := s.formatProjects([]*dbr.Project{&project}, viewerID)
 	if err != nil || len(items) == 0 {

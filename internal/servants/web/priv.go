@@ -419,7 +419,7 @@ func (s *privSrv) CreateProject(req *web.CreateProjectReq) (*web.CreateProjectRe
 	}
 	onTrendsActionEvent(_trendsActionCreateTweet, req.User.ID)
 	onTweetActionEvent(_tweetActionCreate, req.User.ID, req.User.Username)
-	formatted, err := s.Ds.GetProject(req.User.ID, req.User.HasPermission("audit.view_all"), project.ID)
+	formatted, err := s.Ds.GetProject(req.User, project.ID)
 	if err != nil {
 		return nil, web.ErrCreateProjectFailed
 	}
@@ -442,7 +442,7 @@ func (s *privSrv) setProjectFollow(req *web.ProjectFollowReq, follow bool) (*web
 	if err != nil || !user.HasPermission("community.interact") {
 		return nil, web.ErrNoPermission
 	}
-	if _, err := s.Ds.GetProject(req.Uid, user.HasPermission("audit.view_all"), req.ID); err != nil {
+	if _, err := s.Ds.GetProject(user, req.ID); err != nil {
 		return nil, web.ErrProjectNotExist
 	}
 	status, count, err := s.Ds.SetProjectFollow(req.ID, req.Uid, follow)

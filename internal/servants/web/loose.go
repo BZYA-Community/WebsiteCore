@@ -43,12 +43,7 @@ func (s *looseSrv) ProjectList(req *web.ProjectListReq) (*web.ProjectListResp, e
 	if !conf.ProjectsEnabled() {
 		return nil, web.ErrProjectsDisabled
 	}
-	viewerID, viewerIsAuditor := int64(0), false
-	if req.User != nil {
-		viewerID = req.User.ID
-		viewerIsAuditor = req.User.HasPermission("audit.view_all")
-	}
-	projects, total, err := s.Ds.ListProjects(viewerID, viewerIsAuditor, req.Keyword, req.Tag, (req.Page-1)*req.PageSize, req.PageSize)
+	projects, total, err := s.Ds.ListProjects(req.User, req.Keyword, req.Tag, (req.Page-1)*req.PageSize, req.PageSize)
 	if err != nil {
 		logrus.Errorf("Ds.ListProjects err: %s", err)
 		return nil, web.ErrGetProjectsFailed
@@ -60,12 +55,7 @@ func (s *looseSrv) ProjectDetail(req *web.ProjectDetailReq) (*web.ProjectDetailR
 	if !conf.ProjectsEnabled() {
 		return nil, web.ErrProjectsDisabled
 	}
-	viewerID, viewerIsAuditor := int64(0), false
-	if req.User != nil {
-		viewerID = req.User.ID
-		viewerIsAuditor = req.User.HasPermission("audit.view_all")
-	}
-	project, err := s.Ds.GetProject(viewerID, viewerIsAuditor, req.ID)
+	project, err := s.Ds.GetProject(req.User, req.ID)
 	if err != nil {
 		return nil, web.ErrProjectNotExist
 	}
