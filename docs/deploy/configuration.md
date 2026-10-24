@@ -170,6 +170,19 @@ Audit:
 
 When enabled, posts/comments/replies/nickname changes from regular users enter a moderation queue and become public only after approval; users with the Mentor role or above are exempt. Every decision is written to an audit log. Editable live from the admin UI (audit group). For a youth-oriented community this should stay enabled.
 
+### Optional product modules (`courses`, `projects`)
+
+```yaml
+courses:
+  enabled: true
+projects:
+  enabled: true
+```
+
+`courses.enabled` controls course routes and APIs. `projects.enabled` controls the Projects navigation entry and route, project publishing, and project-specific rendering in the public timeline and post detail pages. Both default to `true` when their section is absent. Disabling Projects also rejects new posts carrying the reserved `项目` tag; existing posts remain ordinary posts and are still accessible through the timeline and their direct links. Project names are limited to 30 Unicode characters. Project tags are stored separately from post tags, and project introductions support Markdown (with raw HTML disabled).
+
+These switches are file-based and require a server restart after changing `config.yaml`.
+
 ### Bootstrap operator account (`Operator`)
 
 ```yaml

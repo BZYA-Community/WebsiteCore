@@ -18,6 +18,8 @@ type Loose interface {
 	// Chain provide handlers chain for gin
 	Chain() gin.HandlersChain
 
+	ProjectDetail(*web.ProjectDetailReq) (*web.ProjectDetailResp, error)
+	ProjectList(*web.ProjectListReq) (*web.ProjectListResp, error)
 	TweetDetail(*web.TweetDetailReq) (*web.TweetDetailResp, error)
 	TweetComments(*web.TweetCommentsReq) (*web.TweetCommentsResp, error)
 	TopicList(*web.TopicListReq) (*web.TopicListResp, error)
@@ -36,6 +38,34 @@ func RegisterLooseServant(e *gin.Engine, s Loose) {
 	router.Use(middlewares...)
 
 	// register routes info to router
+	router.Handle("GET", "project", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.ProjectDetailReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.ProjectDetail(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("GET", "projects", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.ProjectListReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.ProjectList(req)
+		s.Render(c, resp, err)
+	})
 	router.Handle("GET", "post", func(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
@@ -143,6 +173,14 @@ type UnimplementedLooseServant struct{}
 
 func (UnimplementedLooseServant) Chain() gin.HandlersChain {
 	return nil
+}
+
+func (UnimplementedLooseServant) ProjectDetail(req *web.ProjectDetailReq) (*web.ProjectDetailResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedLooseServant) ProjectList(req *web.ProjectListReq) (*web.ProjectListResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
 func (UnimplementedLooseServant) TweetDetail(req *web.TweetDetailReq) (*web.TweetDetailResp, error) {

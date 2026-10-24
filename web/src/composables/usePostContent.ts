@@ -1,15 +1,38 @@
 import { computed } from 'vue';
 
+export function hasPostTag(post: Pick<Item.PostProps, 'tags'>, tag: string) {
+  if (typeof post.tags === 'string') {
+    return post.tags
+      .split(',')
+      .map((item) => item.trim())
+      .includes(tag);
+  }
+  return Boolean(
+    post.tags && Object.prototype.hasOwnProperty.call(post.tags, tag),
+  );
+}
+
+export function isProjectPost(
+  post: Pick<Item.PostProps, 'tags'>,
+  projectsEnabled: boolean,
+) {
+  return projectsEnabled && hasPostTag(post, '项目');
+}
+
 /**
  * Post 内容解析 composable
  * 将 post.contents 按类型分类到 texts, imgs, videos, links, attachments, charge_attachments
  * 保持与原有代码完全一致的行为
  */
-export function usePostContent(post: Item.PostProps, includeExtraFields: boolean = false) {
+export function usePostContent(
+  post: Item.PostProps,
+  includeExtraFields = false,
+) {
   return computed({
     get: () => {
       const postData: Item.PostComponentProps = Object.assign(
         {
+          titles: [],
           texts: [],
           markdowns: [],
           imgs: [],
@@ -21,7 +44,10 @@ export function usePostContent(post: Item.PostProps, includeExtraFields: boolean
         post,
       );
       (postData.contents || []).map((content) => {
-        if (+content.type === 1 || +content.type === 2) {
+        if (+content.type === 1) {
+          postData.titles.push(content);
+        }
+        if (+content.type === 2) {
           postData.texts.push(content);
         }
         if (+content.type === 9) {

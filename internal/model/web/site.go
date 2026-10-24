@@ -18,6 +18,7 @@ type VersionResp struct {
 type SiteProfileResp struct {
 	UploadLimits                 conf.UploadConf `json:"upload_limits"`
 	CoursesEnabled               bool            `json:"courses_enabled"`
+	ProjectsEnabled              bool            `json:"projects_enabled"`
 	AccountVerifyMode            string          `json:"account_verify_mode"`
 	ContactVerificationAvailable bool            `json:"contact_verification_available"`
 	EnableTrendsBar              bool            `json:"enable_trends_bar"`

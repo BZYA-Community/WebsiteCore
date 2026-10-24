@@ -85,6 +85,9 @@
     "avatarApproved": "已通过头像变更"
   },
   "avatarChangeRequest": "头像变更申请",
+  "project": {
+    "fullContent": "完整项目内容"
+  },
   "task": {
     "assignee": "审核员",
     "deadline": "审核截止",

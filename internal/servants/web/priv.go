@@ -9,6 +9,7 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	"io"
+	"net/url"
 	"strings"
 	"unicode/utf8"
 
@@ -36,6 +37,9 @@ var _uploadAttachmentTypeMap = map[string]ms.AttachmentType{
 	"public/video":  ms.AttachmentTypeVideo,
 	"attachment":    ms.AttachmentTypeOther,
 }
+
+const projectPostTag = "项目"
+const projectTitleMaxLength = 30
 
 type privSrv struct {
 	api.UnimplementedPrivServant
@@ -252,6 +256,12 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (*web.CreateTweetResp, er
 	if req.User == nil || !req.User.HasPermission("post.create") {
 		return nil, web.ErrNoPermission
 	}
+	if hasProjectPostTag(req.Tags) {
+		if !conf.ProjectsEnabled() {
+			return nil, web.ErrProjectsDisabled
+		}
+		return nil, web.ErrProjectInputInvalid.WithDetails("请通过项目发布入口创建项目")
+	}
 	// 基础内容校验(空/纯空白/文本超长直接拒绝, 避免先上传媒体再回滚)
 	if err := validTweetContents(req.Contents); err != nil {
 		return nil, err
@@ -335,6 +345,112 @@ func (s *privSrv) CreateTweet(req *web.CreateTweetReq) (*web.CreateTweetResp, er
 	onTrendsActionEvent(_trendsActionCreateTweet, req.User.ID)
 	onTweetActionEvent(_tweetActionCreate, req.User.ID, req.User.Username)
 	return (*web.CreateTweetResp)(formatedPosts[0]), nil
+}
+
+func (s *privSrv) CreateProject(req *web.CreateProjectReq) (*web.CreateProjectResp, error) {
+	if !conf.ProjectsEnabled() {
+		return nil, web.ErrProjectsDisabled
+	}
+	if req.User == nil || !req.User.HasPermission("post.create") || !req.User.HasPermission("content.upload") {
+		return nil, web.ErrNoPermission
+	}
+	title, intro := strings.TrimSpace(req.Title), strings.TrimSpace(req.Intro)
+	if utf8.RuneCountInString(title) > projectTitleMaxLength {
+		return nil, web.ErrProjectTitleTooLong
+	}
+	if title == "" || intro == "" || utf8.RuneCountInString(intro) > 800 {
+		return nil, web.ErrProjectInputInvalid
+	}
+	parsedURL, err := url.ParseRequestURI(strings.TrimSpace(req.URL))
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {
+		return nil, web.ErrProjectInputInvalid.WithDetails("项目链接必须是有效的 http(s) 地址")
+	}
+	projectTags := make([]string, 0, len(req.Tags))
+	seenTags := make(map[string]bool, len(req.Tags))
+	for _, raw := range req.Tags {
+		tag := strings.TrimSpace(raw)
+		if tag == "" || seenTags[tag] {
+			continue
+		}
+		if utf8.RuneCountInString(tag) > 32 {
+			return nil, web.ErrProjectInputInvalid.WithDetails("项目标签不能超过32字")
+		}
+		seenTags[tag] = true
+		projectTags = append(projectTags, tag)
+	}
+	if len(projectTags) > 8 {
+		return nil, web.ErrProjectInputInvalid.WithDetails("项目标签不能超过8个")
+	}
+	images := make([]*ms.ProjectImage, 0, len(req.Images))
+	for index, imageURL := range req.Images {
+		item := &web.PostContentItem{Content: imageURL, Type: ms.ContentTypeImage, Sort: int64(index)}
+		if err := item.Check(s.Ds); err != nil {
+			return nil, web.ErrProjectInputInvalid.WithDetails("项目概述图不合法")
+		}
+		images = append(images, &ms.ProjectImage{URL: imageURL, Sort: int64(index)})
+	}
+	mediaContents := make([]*web.PostContentItem, 0, len(req.Images))
+	for index, imageURL := range req.Images {
+		mediaContents = append(mediaContents, &web.PostContentItem{Content: imageURL, Type: ms.ContentTypeImage, Sort: int64(index)})
+	}
+	if err := persistMediaContents(s.oss, mediaContents); err != nil {
+		return nil, web.ErrCreateProjectFailed
+	}
+	tags := make([]*ms.ProjectTag, 0, len(projectTags))
+	for _, tag := range projectTags {
+		tags = append(tags, &ms.ProjectTag{Name: tag})
+	}
+	post := &ms.Post{UserID: req.User.ID, Tags: projectPostTag, IP: req.ClientIP, IPLoc: utils.GetIPLoc(req.ClientIP), Visibility: ms.PostVisitPublic}
+	contents := []*ms.PostContent{
+		{Content: title, Type: ms.ContentTypeTitle, Sort: 100},
+		{Content: req.Images[0], Type: ms.ContentTypeImage, Sort: 101},
+		{Content: "project:pending", Type: ms.ContentTypeLink, Sort: 102},
+	}
+	project, post, err := s.Ds.CreateProject(req.User, &core.ProjectCreateInput{
+		Project: &ms.Project{CreatorID: req.User.ID, Title: title, Intro: intro, URL: parsedURL.String()},
+		Images:  images, Tags: tags, Post: post, Contents: contents,
+	})
+	if err != nil {
+		logrus.Errorf("Ds.CreateProject err: %s", err)
+		return nil, web.ErrCreateProjectFailed
+	}
+	if post.AuditStatus != ms.PostAuditPending {
+		s.PushPostToSearch(post)
+	}
+	onTrendsActionEvent(_trendsActionCreateTweet, req.User.ID)
+	onTweetActionEvent(_tweetActionCreate, req.User.ID, req.User.Username)
+	formatted, err := s.Ds.GetProject(req.User, project.ID)
+	if err != nil {
+		return nil, web.ErrCreateProjectFailed
+	}
+	return (*web.CreateProjectResp)(formatted), nil
+}
+
+func (s *privSrv) FollowProject(req *web.ProjectFollowReq) (*web.ProjectFollowResp, error) {
+	return s.setProjectFollow(req, true)
+}
+
+func (s *privSrv) UnfollowProject(req *web.ProjectFollowReq) (*web.ProjectFollowResp, error) {
+	return s.setProjectFollow(req, false)
+}
+
+func (s *privSrv) setProjectFollow(req *web.ProjectFollowReq, follow bool) (*web.ProjectFollowResp, error) {
+	if !conf.ProjectsEnabled() {
+		return nil, web.ErrProjectsDisabled
+	}
+	user, err := s.Ds.GetUserByID(req.Uid)
+	if err != nil || !user.HasPermission("community.interact") {
+		return nil, web.ErrNoPermission
+	}
+	if _, err := s.Ds.GetProject(user, req.ID); err != nil {
+		return nil, web.ErrProjectNotExist
+	}
+	status, count, err := s.Ds.SetProjectFollow(req.ID, req.Uid, follow)
+	if err != nil {
+		logrus.Errorf("Ds.SetProjectFollow err: %s project=%d user=%d", err, req.ID, req.Uid)
+		return nil, web.ErrProjectFollowFailed
+	}
+	return &web.ProjectFollowResp{Status: status, FollowCount: count}, nil
 }
 
 func (s *privSrv) DeleteTweet(req *web.DeleteTweetReq) error {

@@ -1,5 +1,5 @@
 <template>
-    <div class="detail-item" @click="goPostDetail(post.id)">
+    <div class="detail-item" :class="{ 'project-detail': isProject }" @click="goPostDetail(post.id)">
         <n-thing>
             <template #avatar>
                 <n-avatar round :size="30" :src="post.user.avatar" />
@@ -16,6 +16,9 @@
                     {{ post.user.nickname }}
                 </router-link>
                 <span class="username-wrap"> @{{ post.user.username }} </span>
+                <n-tag v-if="isProject" class="project-tag" type="success" size="small" round>
+                    {{ t('project.postBadge') }}
+                </n-tag>
                 <n-tag
                     v-if="post.is_top"
                     class="top-tag"
@@ -110,9 +113,14 @@
                     @positive-click="execVisibilityAction"
                 />
             </template>
-            <div v-if="post.texts.length > 0">
+            <div v-if="isProject" class="project-summary">
+                <span class="project-kicker">{{ t('project.detailKicker') }}</span>
+                <h1>{{ projectTitle }}</h1>
+                <n-button v-if="projectID" text type="primary" @click="goProject">{{ t('project.viewDetails') }}</n-button>
+            </div>
+            <div v-else-if="displayTexts.length > 0">
                 <span
-                    v-for="content in post.texts"
+                    v-for="content in displayTexts"
                     :key="content.id"
                     class="post-text"
                     @click.stop="doClickText($event, post.id)"
@@ -122,7 +130,7 @@
             </div>
 
             <div
-                v-if="post.markdowns.length > 0"
+                v-if="!isProject && post.markdowns.length > 0"
                 class="post-markdown-wrap"
                 @click.stop="handleMdClick($event, post.id)"
             >
@@ -139,9 +147,9 @@
             <template #footer>
                 <post-attachment :attachments="post.attachments" />
                 <post-attachment :attachments="post.charge_attachments" />
-                <post-image :imgs="post.imgs" />
+                <post-image :imgs="isProject ? post.imgs.slice(0, 1) : post.imgs" />
                 <post-video :videos="post.videos" :full="true" />
-                <post-link :links="post.links" />
+                <post-link v-if="!isProject" :links="post.links" />
                 <div class="timestamp">
                     {{ t('post.publishAt') }} {{ formatPrettyTime(post.created_on) }}
                     <span v-if="post.ip_loc">
@@ -245,14 +253,17 @@ import { VisibilityEnum } from '@/utils/IEnum';
 import copy from 'copy-to-clipboard';
 import { storeToRefs } from 'pinia';
 import { useStoreUser } from '@/store/user';
+import { useStoreProfile } from '@/store/profile';
 import UserAction, { canWhisperUser, useChatJump } from '@/composables/useUserAction';
-import { usePostContent } from '@/composables/usePostContent';
+import { isProjectPost, usePostContent } from '@/composables/usePostContent';
 
 const { t } = useI18n();
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
+const storeProfile = useStoreProfile();
 const { collapsedLeft, theme } = storeToRefs(storeMain);
 const { userInfo } = storeToRefs(storeUser);
+const { profile } = storeToRefs(storeProfile);
 const editorTheme = computed(() => mdTheme(theme.value));
 
 const router = useRouter();
@@ -280,6 +291,16 @@ const emit = defineEmits<{
 
 // 使用 usePostContent composable (包含额外字段)
 const post = usePostContent(props.post, true);
+const isProject = computed(() => isProjectPost(post.value, profile.value.projectsEnabled));
+const projectTitle = computed(() => post.value.titles[0]?.content || t('project.untitled'));
+const projectID = computed(() => {
+  for (const link of post.value.links) {
+    const match = /^project:(\d+)$/.exec(link.content);
+    if (match) return Number(match[1]);
+  }
+  return 0;
+});
+const displayTexts = computed(() => [...post.value.titles, ...post.value.texts].sort((a, b) => a.sort - b.sort));
 
 const renderIcon = (icon: Component) => {
   return () => {
@@ -424,6 +445,9 @@ const goPostDetail = (id: number) => {
       id,
     },
   });
+};
+const goProject = () => {
+  if (projectID.value) void router.push({ name: 'project', query: { id: projectID.value } });
 };
 const doClickText = (e: MouseEvent, id: number) => {
   if ((e.target as any).dataset.detail) {
@@ -709,6 +733,46 @@ onMounted(() => {
     .top-tag {
         transform: scale(0.75);
     }
+    .project-tag {
+        margin-left: 6px;
+    }
+    .project-summary {
+        margin: 10px 0 4px;
+        padding: 18px 20px;
+        border: 1px solid rgba(24, 160, 88, 0.25);
+        border-radius: 10px;
+        background: rgba(24, 160, 88, 0.06);
+
+        .project-kicker {
+            color: #18a058;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+        }
+        h1 {
+            margin: 6px 0 10px;
+            font-size: 26px;
+            line-height: 1.3;
+        }
+        p {
+            margin: 0;
+            font-size: 15px;
+            line-height: 1.75;
+            white-space: pre-wrap;
+        }
+        .md-editor.md-editor {
+            --md-bk-color: transparent;
+        }
+        .md-editor-preview-wrapper {
+            padding: 0;
+        }
+        .md-editor-preview {
+            font-size: 15px;
+        }
+        .md-editor-preview > :first-child {
+            margin-top: 0;
+        }
+    }
     .options {
         opacity: 0.75;
     }
@@ -781,6 +845,10 @@ onMounted(() => {
 .dark {
     .detail-item {
         background: #18181c;
+
+        .project-summary {
+            background: rgba(24, 160, 88, 0.1);
+        }
     }
 }
 </style>

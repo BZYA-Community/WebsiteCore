@@ -243,6 +243,8 @@ declare namespace Item {
 
   /** 组件用帖子 */
   interface PostComponentProps extends PostProps {
+    /** 标题内容列表 */
+    titles: PostItemProps[];
     /** 文字段落列表 */
     texts: PostItemProps[];
     /** Markdown长文列表 */

@@ -222,6 +222,14 @@ declare namespace Api {
 
             interface AuditPostItem {
                 review_task?: ReviewTask;
+                project?: {
+                    id: number;
+                    title: string;
+                    intro: string;
+                    url: string;
+                    images: string[];
+                    tags: string[];
+                };
                 id: number;
                 user: {
                     id: number;

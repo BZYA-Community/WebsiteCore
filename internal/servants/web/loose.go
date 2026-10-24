@@ -39,6 +39,29 @@ func (s *looseSrv) Chain() gin.HandlersChain {
 	return gin.HandlersChain{chain.JwtLoose(), chain.Authorize()}
 }
 
+func (s *looseSrv) ProjectList(req *web.ProjectListReq) (*web.ProjectListResp, error) {
+	if !conf.ProjectsEnabled() {
+		return nil, web.ErrProjectsDisabled
+	}
+	projects, total, err := s.Ds.ListProjects(req.User, req.Keyword, req.Tag, (req.Page-1)*req.PageSize, req.PageSize)
+	if err != nil {
+		logrus.Errorf("Ds.ListProjects err: %s", err)
+		return nil, web.ErrGetProjectsFailed
+	}
+	return (*web.ProjectListResp)(joint.PageRespFrom(projects, req.Page, req.PageSize, total)), nil
+}
+
+func (s *looseSrv) ProjectDetail(req *web.ProjectDetailReq) (*web.ProjectDetailResp, error) {
+	if !conf.ProjectsEnabled() {
+		return nil, web.ErrProjectsDisabled
+	}
+	project, err := s.Ds.GetProject(req.User, req.ID)
+	if err != nil {
+		return nil, web.ErrProjectNotExist
+	}
+	return &web.ProjectDetailResp{Project: project}, nil
+}
+
 func (s *looseSrv) Timeline(req *web.TimelineReq) (*web.TimelineResp, error) {
 	limit, offset := req.PageSize, (req.Page-1)*req.PageSize
 	if req.Query == "" && req.Type == "search" {

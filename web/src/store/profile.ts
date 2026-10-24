@@ -7,6 +7,7 @@ export const useStoreProfile = defineStore("profile", () => {
 
     const profile = ref({
         coursesEnabled: false,
+        projectsEnabled: false,
         accountVerifyMode: 'email' as 'email' | 'phone',
         contactVerificationAvailable: false,
         uploadLimits: { ...uploadHardLimits },
@@ -74,6 +75,7 @@ export const useStoreProfile = defineStore("profile", () => {
 
     function updateCapabilities(data: Partial<NetReq.SiteProfile>) {
         profile.value.coursesEnabled = data.courses_enabled ?? profile.value.coursesEnabled;
+        profile.value.projectsEnabled = data.projects_enabled ?? profile.value.projectsEnabled;
         profile.value.accountVerifyMode = data.account_verify_mode ?? profile.value.accountVerifyMode;
         profile.value.contactVerificationAvailable = data.contact_verification_available ?? profile.value.contactVerificationAvailable;
         if (data.upload_limits) {

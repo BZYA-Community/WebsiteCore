@@ -51,6 +51,13 @@ var (
 	ErrGetPostsNilUser         = xerror.NewError(30015, "使用游客账户获取动态详情失败")
 	ErrPostContentsEmpty       = xerror.NewError(30016, "内容不能为空")
 	ErrPostContentsTooLong     = xerror.NewError(30017, "内容超过长度限制")
+	ErrProjectsDisabled        = xerror.NewError(30018, "项目功能未启用")
+	ErrProjectTitleTooLong     = xerror.NewError(30019, "项目名称不能超过30字")
+	ErrProjectNotExist         = xerror.NewError(30021, "项目不存在")
+	ErrGetProjectsFailed       = xerror.NewError(30022, "获取项目失败")
+	ErrCreateProjectFailed     = xerror.NewError(30023, "创建项目失败")
+	ErrProjectInputInvalid     = xerror.NewError(30024, "项目内容不合法")
+	ErrProjectFollowFailed     = xerror.NewError(30025, "项目关注操作失败")
 
 	// 课程模块 700xx
 	ErrGetCourseGroupsFailed        = xerror.NewError(70001, "获取课程分组失败")
