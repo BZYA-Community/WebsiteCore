@@ -257,5 +257,5 @@ For production-oriented deployment references, see:
 ## Operational Notes
 
 - For long-running deployments, it is reasonable to run the backend under a process manager and place Nginx in front of the application.
-- The SMS implementation currently references Juhe in the sample configuration. If that provider is not suitable for your deployment, replace it with another compatible service.
+- SMS uses Alibaba Cloud SMS. Select `account_verify.mode: phone` and configure `SmsAliyun` credentials, an approved signature, and a template using `${code}`; enable `Sms` for admin UI management. See [deploy/sms.md](deploy/sms.md). Juhe settings are no longer used. Missing SMS configuration makes phone verification unavailable.
 - The repository includes multiple runtime combinations; keep your selected `Features` set aligned with the infrastructure you actually provision.

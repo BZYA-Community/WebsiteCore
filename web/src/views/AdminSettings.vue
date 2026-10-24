@@ -363,7 +363,7 @@ const sectionLabelMap = computed<Record<string, string>>(() => ({
     alioss: t('adminSettings.section.alioss'),
     cos: t('adminSettings.section.cos'),
     huawei_obs: t('adminSettings.section.huaweiObs'),
-    sms_juhe: t('adminSettings.section.smsJuhe'),
+    sms_aliyun: t('adminSettings.section.smsAliyun'),
     alipay: t('adminSettings.section.alipay'),
 }));
 
