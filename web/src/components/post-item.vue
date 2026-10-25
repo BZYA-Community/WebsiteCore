@@ -197,6 +197,7 @@ import type { Component } from 'vue';
 import type { DropdownOption } from 'naive-ui';
 import { formatPrettyDate } from '@/utils/formatTime';
 import { preparePost } from '@/utils/content';
+import { openExternalLink } from '@/utils/external-link';
 import { MdPreview } from 'md-editor-v3';
 import { mdTheme, mdExcerpt, prepareMdRender } from '@/utils/markdown';
 import { postStar, postCollection } from '@/api/post';
@@ -317,8 +318,8 @@ const post = usePostContent(props.post);
 const isProject = computed(() => isProjectPost(post.value, profile.value.projectsEnabled));
 const projectTitle = computed(() => post.value.titles[0]?.content || t('project.untitled'));
 const projectID = computed(() => {
-  for (const link of post.value.links) {
-    const match = /^project:(\d+)$/.exec(link.content);
+  for (const content of post.value.contents || []) {
+    const match = +content.type === 6 && /^project:(\d+)$/.exec(content.content);
     if (match) return Number(match[1]);
   }
   return 0;
@@ -446,8 +447,9 @@ const handleMdClick = (e: MouseEvent, id: number) => {
     return;
   }
   if (href.startsWith('http://') || href.startsWith('https://')) {
-    e.preventDefault();
-    window.open(href, '_blank', 'noopener,noreferrer');
+    if (openExternalLink(router, href, {
+      trustedDomains: profile.value.trustedExternalDomains,
+    })) e.preventDefault();
     return;
   }
   if (href === '#') {

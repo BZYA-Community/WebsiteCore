@@ -44,6 +44,7 @@ export interface CreateProjectInput {
 export const getProjects = (params: {
   keyword?: string;
   tag?: string;
+  followed?: boolean;
   page: number;
   page_size: number;
 }): Promise<ProjectPage> => request({ method: 'get', url: '/v1/projects', params });

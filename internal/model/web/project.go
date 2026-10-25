@@ -10,6 +10,7 @@ type ProjectListReq struct {
 	BaseInfo `form:"-" binding:"-"`
 	Keyword  string `form:"keyword"`
 	Tag      string `form:"tag"`
+	Followed bool   `form:"followed"`
 	Page     int    `form:"-" binding:"-"`
 	PageSize int    `form:"-" binding:"-"`
 }

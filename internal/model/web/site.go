@@ -36,6 +36,7 @@ type SiteProfileResp struct {
 	CopyrightLeftLink            string          `json:"copyright_left_link"`
 	CopyrightRight               string          `json:"copyright_right"`
 	CopyrightRightLink           string          `json:"copyright_right_link"`
+	TrustedExternalDomains       []string        `json:"trusted_external_domains"`
 }
 
 type SiteSettingsReq struct {

@@ -64,6 +64,8 @@ for (const flag of [undefined, 'false', 'true', '', 'TRUE', '1']) {
     let draftsSaved = 0;
     const changeContent = vm.runInNewContext(code, {
       content, maxInputLength: { value: limit }, MD_MAX_LENGTH: limit, redirectPostEasterEgg,
+      openExternalLink: (_router, url) => redirects.push(url), router: {},
+      profile: { value: { trustedExternalDomains: [] } },
       saveDraft: () => { draftsSaved++; },
     });
 

@@ -253,6 +253,7 @@ import type { ToolbarNames } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
 import { createPost } from '@/api/post';
 import { parsePostTag, redirectPostEasterEgg } from '@/utils/content';
+import { openExternalLink } from '@/utils/external-link';
 import { MD_MAX_LENGTH, mdTheme } from '@/utils/markdown';
 import { userInfo as fetchUserInfo } from '@/api/auth';
 import type { UploadFileInfo, UploadInst } from 'naive-ui';
@@ -345,7 +346,11 @@ const changeContent = (v: string) => {
     content.value = v;
   }
   saveDraft();
-  redirectPostEasterEgg(v);
+  redirectPostEasterEgg(v, (url) => {
+    if (!openExternalLink(router, url, {
+      trustedDomains: profile.value.trustedExternalDomains,
+    })) window.location.assign(url);
+  });
 };
 
 const setUploadType = (type: string) => {

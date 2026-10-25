@@ -186,6 +186,8 @@ WebProfile:
   CopyrightLeftLink: ""
   CopyrightRight: "Github"
   CopyrightRightLink: "https://github.com/BZYA-Community/WebsiteCore"
+  TrustedExternalDomains:
+  - github.com                    # Trust HTTPS links to this hostname and all of its subdomains
 
 Audit:
   Enabled: true                   # 是否开启内容审核，开启后普通用户新帖需审核通过后公开

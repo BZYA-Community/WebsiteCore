@@ -56,8 +56,29 @@ func projectVisibleScope(db *gorm.DB, viewer *ms.User) *gorm.DB {
 	return db.Where("post.user_id = ? OR (post.audit_status <> ? AND "+pending+") OR (post.audit_status = ? AND (post.visibility = ? OR ? OR (post.visibility = ? AND EXISTS (SELECT 1 FROM "+prefix+"following f WHERE f.user_id = ? AND f.follow_id = post.user_id AND f.is_del = 0))))", args...)
 }
 
-func (s *projectSrv) ListProjects(viewer *ms.User, keyword, tag string, offset, limit int) ([]*ms.ProjectFormated, int64, error) {
+func projectAuditScope(db *gorm.DB, actor *ms.User) *gorm.DB {
+	tasks := reviewTaskScope(db.Session(&gorm.Session{NewDB: true}).Model(&ms.ReviewTask{}), actor).
+		Select("target_id").Where("kind = ?", ms.ReviewPost)
+	return db.Table(projectTablePrefix()+"project AS project").
+		Where("project.is_del = ?", 0).
+		Where("project.post_id IN (?)", tasks)
+}
+
+func projectFollowedScope(db *gorm.DB, viewer *ms.User, followed bool) (*gorm.DB, string) {
+	if !followed {
+		return db, "project.id DESC"
+	}
+	if viewer == nil {
+		return db.Where("1 = 0"), "project.id DESC"
+	}
+	prefix := projectTablePrefix()
+	return db.Joins("JOIN "+prefix+"project_follow AS project_follow ON project_follow.project_id = project.id").
+		Where("project_follow.user_id = ?", viewer.ID), "project_follow.created_on DESC, project.id DESC"
+}
+
+func (s *projectSrv) ListProjects(viewer *ms.User, keyword, tag string, followed bool, offset, limit int) ([]*ms.ProjectFormated, int64, error) {
 	db := projectVisibleScope(s.db, viewer)
+	db, order := projectFollowedScope(db, viewer, followed)
 	if keyword = strings.TrimSpace(keyword); keyword != "" {
 		db = db.Where("LOWER(project.title) LIKE LOWER(?)", "%"+keyword+"%")
 	}
@@ -69,7 +90,7 @@ func (s *projectSrv) ListProjects(viewer *ms.User, keyword, tag string, offset, 
 		return nil, 0, err
 	}
 	var projects []*dbr.Project
-	if err := db.Select("project.*").Order("project.id DESC").Offset(offset).Limit(limit).Find(&projects).Error; err != nil {
+	if err := db.Select("project.*").Order(order).Offset(offset).Limit(limit).Find(&projects).Error; err != nil {
 		return nil, 0, err
 	}
 	viewerID := int64(0)
@@ -96,10 +117,27 @@ func (s *projectSrv) GetProject(viewer *ms.User, id int64) (*ms.ProjectFormated,
 	return items[0], nil
 }
 
-func (s *projectSrv) GetProjectByPostID(postID int64) (*ms.Project, error) {
-	var project dbr.Project
-	err := s.db.Where("post_id = ? AND is_del = ?", postID, 0).First(&project).Error
-	return &project, err
+func (s *projectSrv) GetAuditProjects(actor *ms.User, postIDs []int64) (map[int64]*ms.ProjectFormated, error) {
+	result := make(map[int64]*ms.ProjectFormated)
+	if len(postIDs) == 0 {
+		return result, nil
+	}
+	actor, err := freshReviewActor(s.db, actor)
+	if err != nil {
+		return nil, err
+	}
+	var projects []*dbr.Project
+	if err := projectAuditScope(s.db, actor).Where("project.post_id IN ?", postIDs).Find(&projects).Error; err != nil {
+		return nil, err
+	}
+	items, err := s.formatProjects(projects, actor.ID)
+	if err != nil {
+		return nil, err
+	}
+	for _, project := range items {
+		result[project.PostID] = project
+	}
+	return result, nil
 }
 
 func (s *projectSrv) formatProjects(projects []*dbr.Project, viewerID int64) ([]*ms.ProjectFormated, error) {

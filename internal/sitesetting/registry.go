@@ -8,6 +8,7 @@ import (
 	stdjson "encoding/json"
 	"fmt"
 	"net/url"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -21,10 +22,11 @@ type ValueType string
 type ApplyMode string
 
 const (
-	TypeBool   ValueType = "bool"
-	TypeInt    ValueType = "int"
-	TypeFloat  ValueType = "float"
-	TypeString ValueType = "string"
+	TypeBool       ValueType = "bool"
+	TypeInt        ValueType = "int"
+	TypeFloat      ValueType = "float"
+	TypeString     ValueType = "string"
+	TypeStringList ValueType = "string_list"
 
 	ApplyModeLive            ApplyMode = "live"
 	ApplyModeRestartRequired ApplyMode = "restart_required"
@@ -110,6 +112,7 @@ type confWebProfileSnapshot struct {
 	CopyrightLeftLink       string
 	CopyrightRight          string
 	CopyrightRightLink      string
+	TrustedExternalDomains  []string
 }
 
 type Option struct {
@@ -193,6 +196,7 @@ func ensureBootstrapSnapshot() {
 			CopyrightLeftLink:       conf.WebProfileSetting.CopyrightLeftLink,
 			CopyrightRight:          conf.WebProfileSetting.CopyrightRight,
 			CopyrightRightLink:      conf.WebProfileSetting.CopyrightRightLink,
+			TrustedExternalDomains:  conf.TrustedExternalDomains(),
 		}
 	}
 }
@@ -225,6 +229,13 @@ func Registry() []Definition {
 		stringDef("web_profile.copyright_left_link", "web", "profile", "Copyright left link", "Optional left footer link.", ApplyModeLive, false, true, nil, func() any { return conf.WebProfileSetting.CopyrightLeftLink }, func() any { return bootstrapConfig.WebProfile.CopyrightLeftLink }, validateOptionalURL("copyright_left_link", 255), func(v any) { conf.WebProfileSetting.CopyrightLeftLink = v.(string) }),
 		stringDef("web_profile.copyright_right", "web", "profile", "Copyright right", "Right footer label.", ApplyModeLive, false, true, nil, func() any { return conf.WebProfileSetting.CopyrightRight }, func() any { return bootstrapConfig.WebProfile.CopyrightRight }, validateRequiredTrimmed("copyright_right", 255), func(v any) { conf.WebProfileSetting.CopyrightRight = v.(string) }),
 		stringDef("web_profile.copyright_right_link", "web", "profile", "Copyright right link", "Optional right footer link.", ApplyModeLive, false, true, nil, func() any { return conf.WebProfileSetting.CopyrightRightLink }, func() any { return bootstrapConfig.WebProfile.CopyrightRightLink }, validateOptionalURL("copyright_right_link", 255), func(v any) { conf.WebProfileSetting.CopyrightRightLink = v.(string) }),
+		stringListDef("web_profile.trusted_external_domains", "web", "profile", "Trusted external domains", "HTTPS outbound links to these hostnames and their subdomains skip the leave-community warning.", ApplyModeLive, func() any {
+			return conf.TrustedExternalDomains()
+		}, func() any {
+			return append([]string(nil), bootstrapConfig.WebProfile.TrustedExternalDomains...)
+		}, validateTrustedExternalDomains, func(v any) {
+			conf.SetTrustedExternalDomains(v.([]string))
+		}),
 
 		int64Def("app.max_comment_count", "app", "general", "Max comment count", "Maximum comments allowed on a post.", ApplyModeLive, func() any { return conf.AppSetting.MaxCommentCount }, func() any { return bootstrapConfig.App.MaxCommentCount }, func(v int64) error { return betweenInt64(v, 1, 100000, "max_comment_count") }, func(v any) { conf.AppSetting.MaxCommentCount = v.(int64) }),
 		intDef("app.default_page_size", "app", "general", "Default page size", "Default pagination size.", ApplyModeLive, false, true, func() any { return conf.AppSetting.DefaultPageSize }, func() any { return bootstrapConfig.App.DefaultPageSize }, func(v int) error { return between(v, 1, conf.AppSetting.MaxPageSize, "default_page_size") }, func(v any) { conf.AppSetting.DefaultPageSize = v.(int) }),
@@ -350,6 +361,27 @@ func stringDefWithActive(key, group, section, label, description string, applyMo
 		}
 		return s, nil
 	}, BootstrapOverride: apply}
+}
+
+func stringListDef(key, group, section, label, description string, applyMode ApplyMode, current func() any, bootstrap func() any, validator func([]string) ([]string, error), apply func(any)) Definition {
+	return Definition{Key: key, Group: group, Section: section, Type: TypeStringList, ApplyMode: applyMode, Label: label, Description: description, Active: func() bool { return true }, CurrentValue: current, BootstrapDefault: bootstrap, ValidateValue: func(v any) (any, error) {
+		values, ok := v.([]string)
+		if !ok {
+			return nil, invalidType(key, "string list")
+		}
+		if validator == nil {
+			return append([]string(nil), values...), nil
+		}
+		return validator(values)
+	}, BootstrapOverride: apply}
+}
+
+func validateTrustedExternalDomains(values []string) ([]string, error) {
+	normalized, err := conf.NormalizeTrustedExternalDomains(values)
+	if err != nil {
+		return nil, xerror.InvalidParams.WithDetails(err.Error())
+	}
+	return normalized, nil
 }
 
 func validateVisibility(v string) error {
@@ -494,6 +526,12 @@ func parseRequestValue(def Definition, raw stdjson.RawMessage) (any, error) {
 			return nil, invalidType(def.Key, "string")
 		}
 		target = v
+	case TypeStringList:
+		var v []string
+		if err := stdjson.Unmarshal(raw, &v); err != nil || v == nil {
+			return nil, invalidType(def.Key, "string list")
+		}
+		target = v
 	default:
 		return nil, xerror.ServerError.WithDetails("unsupported settings type")
 	}
@@ -518,6 +556,15 @@ func parseStoredValue(def Definition, raw string) (any, error) {
 		}
 	case TypeString:
 		return def.ValidateValue(raw)
+	case TypeStringList:
+		var values []string
+		if err := stdjson.Unmarshal([]byte(raw), &values); err != nil {
+			return nil, err
+		}
+		if values == nil {
+			return nil, fmt.Errorf("%s must be a JSON string array", def.Key)
+		}
+		return def.ValidateValue(values)
 	default:
 		return nil, xerror.ServerError.WithDetails("unsupported settings type")
 	}
@@ -538,13 +585,16 @@ func serializeValue(def Definition, value any) string {
 		}
 	case TypeFloat:
 		return strconv.FormatFloat(value.(float64), 'f', -1, 64)
+	case TypeStringList:
+		encoded, _ := stdjson.Marshal(value.([]string))
+		return string(encoded)
 	default:
 		return value.(string)
 	}
 }
 
 func valuesEqual(left, right any) bool {
-	return fmt.Sprintf("%v", left) == fmt.Sprintf("%v", right)
+	return reflect.DeepEqual(left, right)
 }
 
 func activeState(def Definition) bool {

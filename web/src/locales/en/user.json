@@ -52,6 +52,9 @@
   },
   "collection": {
     "title": "Favorites",
+    "tabPosts": "Saved posts",
+    "tabProjects": "Followed projects",
+    "projectEmpty": "You are not following any projects yet",
     "noMore": "No more favorites",
     "loadError": "Failed to load",
     "loadMore": "Load more"

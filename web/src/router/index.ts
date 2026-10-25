@@ -144,6 +144,14 @@ const routes = [
     component: () => import('@/views/AdminAudit.vue'),
   },
   {
+    path: '/external-link',
+    name: 'external-link',
+    meta: {
+      titleKey: 'externalLink.pageTitle',
+    },
+    component: () => import('@/views/ExternalLink.vue'),
+  },
+  {
     path: '/404',
     name: '404',
     meta: {
@@ -186,7 +194,7 @@ export const routePermissions: Record<string, string[]> = {
 
 router.beforeEach(async (to) => {
   updateDocumentTitle(to.meta.titleKey);
-  if (to.name === '404') return true;
+  if (['404', 'external-link'].includes(String(to.name))) return true;
   const user = useStoreUser();
   try {
     await Promise.all([user.loadSession(), useStoreProfile().loadSiteProfile()]);

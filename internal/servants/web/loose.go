@@ -43,7 +43,7 @@ func (s *looseSrv) ProjectList(req *web.ProjectListReq) (*web.ProjectListResp, e
 	if !conf.ProjectsEnabled() {
 		return nil, web.ErrProjectsDisabled
 	}
-	projects, total, err := s.Ds.ListProjects(req.User, req.Keyword, req.Tag, (req.Page-1)*req.PageSize, req.PageSize)
+	projects, total, err := s.Ds.ListProjects(req.User, req.Keyword, req.Tag, req.Followed, (req.Page-1)*req.PageSize, req.PageSize)
 	if err != nil {
 		logrus.Errorf("Ds.ListProjects err: %s", err)
 		return nil, web.ErrGetProjectsFailed

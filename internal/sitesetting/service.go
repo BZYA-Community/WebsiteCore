@@ -9,6 +9,7 @@ import (
 	stdjson "encoding/json"
 	"errors"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
@@ -70,6 +71,7 @@ type Service struct {
 	db       *gorm.DB
 	registry map[string]Definition
 	codec    *secretCodec
+	saveMu   sync.Mutex
 }
 
 func NewService(db *gorm.DB) *Service {
@@ -130,6 +132,7 @@ func (s *Service) GetProfile(ctx context.Context) (*web.SiteProfileResp, error) 
 		CopyrightLeftLink:            conf.WebProfileSetting.CopyrightLeftLink,
 		CopyrightRight:               conf.WebProfileSetting.CopyrightRight,
 		CopyrightRightLink:           conf.WebProfileSetting.CopyrightRightLink,
+		TrustedExternalDomains:       conf.TrustedExternalDomains(),
 	}, nil
 }
 
@@ -195,6 +198,9 @@ func (s *Service) GetValues(ctx context.Context) (*web.AdminSettingsValuesResp, 
 }
 
 func (s *Service) SaveValues(ctx context.Context, inputs []web.AdminSettingValueInput) (*web.AdminSettingsSaveResp, error) {
+	s.saveMu.Lock()
+	defer s.saveMu.Unlock()
+
 	if len(inputs) == 0 {
 		return nil, xerror.InvalidParams.WithDetails("items must not be empty")
 	}

@@ -18,6 +18,7 @@
     "test:sidebar": "node scripts/sidebar-polling.test.mjs",
     "test:admin": "node scripts/admin-users.test.mjs",
     "test:projects": "node scripts/projects.test.mjs",
+    "test:external-link": "node --experimental-strip-types scripts/external-link.test.mjs",
     "test:courses": "node scripts/course-editor.test.mjs && node scripts/course-watch.test.mjs && node scripts/course-catalog.test.mjs"
   },
   "dependencies": {

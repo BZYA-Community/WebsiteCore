@@ -5,7 +5,6 @@
 package web
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -22,7 +21,6 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 type auditSrv struct {
@@ -48,9 +46,14 @@ func (s *auditSrv) ListAuditPosts(req *web.AdminAuditPostsReq) (*web.AdminAuditP
 		logrus.Errorf("Ds.MergePosts err: %s", err)
 		return nil, web.ErrGetPostsFailed
 	}
-	viewer, err := s.Ds.GetUserByID(req.Uid)
+	postIDs := make([]int64, 0, len(formated))
+	for _, post := range formated {
+		postIDs = append(postIDs, post.ID)
+	}
+	projects, err := s.Ds.GetAuditProjects(&ms.User{Model: &ms.Model{ID: req.Uid}}, postIDs)
 	if err != nil {
-		return nil, web.ErrGetPostsFailed
+		logrus.Errorf("Ds.GetAuditProjects err: %s", err)
+		return nil, web.ErrGetProjectsFailed
 	}
 	for _, post := range formated {
 		task, err := s.Ds.ReviewTaskForTarget(&ms.User{Model: &ms.Model{ID: req.Uid}}, ms.ReviewPost, post.ID)
@@ -58,17 +61,7 @@ func (s *auditSrv) ListAuditPosts(req *web.AdminAuditPostsReq) (*web.AdminAuditP
 			return nil, reviewError(err)
 		}
 		post.ReviewTask = task
-		project, err := s.Ds.GetProjectByPostID(post.ID)
-		if err == nil {
-			post.Project, err = s.Ds.GetProject(viewer, project.ID)
-			if err != nil {
-				logrus.Errorf("Ds.GetProject for audit err: %s", err)
-				return nil, web.ErrGetProjectsFailed
-			}
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-			logrus.Errorf("Ds.GetProjectByPostID for audit err: %s", err)
-			return nil, web.ErrGetProjectsFailed
-		}
+		post.Project = projects[post.ID]
 	}
 	return (*web.AdminAuditPostsResp)(joint.PageRespFrom(formated, req.Page, req.PageSize, total)), nil
 }

@@ -105,12 +105,15 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import VideoPlayer from '@/components/video-player.vue';
 import { useStoreUser } from '@/store/user';
+import { useStoreProfile } from '@/store/profile';
 import { getCourse, getCourseLessons, getCourseAttachment, getCourseComments, playCourse, type CourseItem, type CourseLesson, type LessonAttachment, type CourseComment } from '@/api/course';
+import { resolveExternalWarningHref } from '@/utils/external-link';
 
 const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const storeUser = useStoreUser();
+const storeProfile = useStoreProfile();
 const courseId = computed(() => Number(route.query.id));
 const loading = ref(true);
 const course = ref<CourseItem | null>(null);
@@ -223,7 +226,14 @@ async function downloadFile(file: LessonAttachment) {
   downloadError.value = '';
   try {
     const result = await getCourseAttachment(file.id);
-    if (revision === downloadRevision) tab.location.replace(safeSignedUrl(result.signed_url));
+    const resourceUrl = safeSignedUrl(result.signed_url);
+    const destination = resolveExternalWarningHref(
+      router,
+      resourceUrl,
+      window.location.origin,
+      storeProfile.profile.trustedExternalDomains,
+    ) || resourceUrl;
+    if (revision === downloadRevision) tab.location.replace(destination);
     else tab.close();
   } catch { tab.close(); if (revision === downloadRevision) downloadError.value = t('courseWatch.downloadError'); }
   finally { if (revision === downloadRevision) downloadingFile.value = 0; }

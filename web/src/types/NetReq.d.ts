@@ -126,5 +126,6 @@ declare namespace NetReq {
     copyright_left_link?: string;
     copyright_right?: string;
     copyright_right_link?: string;
+    trusted_external_domains?: string[];
   }
 }

@@ -152,6 +152,12 @@
                                             :disabled="!isEditable(entry.schema)"
                                         />
                                     </template>
+                                    <template v-else-if="entry.schema.type === 'string_list'">
+                                        <n-dynamic-tags
+                                            v-model:value="draftValues[entry.schema.key]"
+                                            :disabled="!isEditable(entry.schema)"
+                                        />
+                                    </template>
                                     <template v-else-if="hasOptions(entry.schema)">
                                         <n-select
                                             v-model:value="draftValues[entry.schema.key]"
@@ -321,7 +327,7 @@ import { Api } from "@/utils/request";
 import { useI18n } from 'vue-i18n';
 const { t } = useI18n();
 
-type SettingPrimitive = string | number | boolean | null;
+type SettingPrimitive = string | number | boolean | string[] | null;
 type SchemaItem = Api.Admin.NetReq.SettingsSchemaItem;
 type ValueItem = Api.Admin.NetReq.SettingsValueItem;
 type ViewItem = {
@@ -509,6 +515,8 @@ const fallbackValueForType = (schema: SchemaItem): SettingPrimitive => {
         case "int":
         case "float":
             return null;
+        case "string_list":
+            return [];
         default:
             return "";
     }
@@ -531,6 +539,10 @@ const normalizeDraftValue = (
                 return null;
             }
             return typeof value === "number" ? value : Number(value);
+        case "string_list":
+            return Array.isArray(value)
+                ? value.filter((item): item is string => typeof item === "string")
+                : [];
         default:
             return typeof value === "string" ? value : String(value ?? "");
     }
@@ -586,6 +598,9 @@ const formatValue = (value: unknown, schema?: SchemaItem) => {
             return `${value}`;
         }
         return `${value}`;
+    }
+    if (Array.isArray(value)) {
+        return value.length > 0 ? value.join(", ") : t('adminSettings.value.notSet');
     }
     const text = String(value).trim();
     return text.length > 0 ? text : t('adminSettings.value.notSet');
@@ -735,10 +750,22 @@ const collectChangedItems = (): Api.Admin.NetParams.SettingValueInput[] | null =
             continue;
         }
 
+        if (schema.type === "string_list") {
+            const nextList = Array.isArray(nextValue) ? nextValue : [];
+            const initialList = Array.isArray(initialValue) ? initialValue : [];
+            if (JSON.stringify(nextList) !== JSON.stringify(initialList)) {
+                items.push({
+                    key: schema.key,
+                    value: nextList,
+                });
+            }
+            continue;
+        }
+
         if (nextValue !== initialValue) {
             items.push({
                 key: schema.key,
-                value: nextValue as string | number | boolean,
+                value: nextValue as string | number | boolean | string[],
             });
         }
     }

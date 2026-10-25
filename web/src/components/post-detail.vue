@@ -116,7 +116,7 @@
             <div v-if="isProject" class="project-summary">
                 <span class="project-kicker">{{ t('project.detailKicker') }}</span>
                 <h1>{{ projectTitle }}</h1>
-                <n-button v-if="projectID" text type="primary" @click="goProject">{{ t('project.viewDetails') }}</n-button>
+                <n-button v-if="projectID" text type="primary" @click.stop="goProject">{{ t('project.viewDetails') }}</n-button>
             </div>
             <div v-else-if="displayTexts.length > 0">
                 <span
@@ -216,6 +216,7 @@ import { useStoreMain } from '@/store/main';
 import { useRouter } from 'vue-router';
 import { formatPrettyTime } from '@/utils/formatTime';
 import { parsePostTag } from '@/utils/content';
+import { openExternalLink } from '@/utils/external-link';
 import { MdPreview } from 'md-editor-v3';
 import { mdTheme, prepareMdRender } from '@/utils/markdown';
 import {
@@ -294,8 +295,8 @@ const post = usePostContent(props.post, true);
 const isProject = computed(() => isProjectPost(post.value, profile.value.projectsEnabled));
 const projectTitle = computed(() => post.value.titles[0]?.content || t('project.untitled'));
 const projectID = computed(() => {
-  for (const link of post.value.links) {
-    const match = /^project:(\d+)$/.exec(link.content);
+  for (const content of post.value.contents || []) {
+    const match = +content.type === 6 && /^project:(\d+)$/.exec(content.content);
     if (match) return Number(match[1]);
   }
   return 0;
@@ -499,8 +500,9 @@ const handleMdClick = (e: MouseEvent, _id: number) => {
     return;
   }
   if (href.startsWith('http://') || href.startsWith('https://')) {
-    e.preventDefault();
-    window.open(href, '_blank', 'noopener,noreferrer');
+    if (openExternalLink(router, href, {
+      trustedDomains: profile.value.trustedExternalDomains,
+    })) e.preventDefault();
   }
 };
 const handlePostAction = (

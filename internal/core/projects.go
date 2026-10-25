@@ -11,9 +11,9 @@ type ProjectCreateInput struct {
 }
 
 type ProjectService interface {
-	ListProjects(viewer *ms.User, keyword, tag string, offset, limit int) ([]*ms.ProjectFormated, int64, error)
+	ListProjects(viewer *ms.User, keyword, tag string, followed bool, offset, limit int) ([]*ms.ProjectFormated, int64, error)
 	GetProject(viewer *ms.User, id int64) (*ms.ProjectFormated, error)
-	GetProjectByPostID(postID int64) (*ms.Project, error)
+	GetAuditProjects(actor *ms.User, postIDs []int64) (map[int64]*ms.ProjectFormated, error)
 	CreateProject(actor *ms.User, input *ProjectCreateInput) (*ms.Project, *ms.Post, error)
 	SetProjectFollow(projectID, userID int64, follow bool) (bool, int64, error)
 }

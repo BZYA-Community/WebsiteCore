@@ -59,7 +59,7 @@ export function usePostContent(
         if (+content.type === 4) {
           postData.videos.push(content);
         }
-        if (+content.type === 6) {
+        if (+content.type === 6 && !/^project:\d+$/.test(content.content)) {
           postData.links.push(content);
         }
         if (+content.type === 7) {

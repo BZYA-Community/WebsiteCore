@@ -32,7 +32,7 @@
       </div>
 
       <div v-if="loading && projects.length === 0" class="project-grid">
-        <n-card v-for="item in 4" :key="item" class="project-card"><n-skeleton height="220px" /></n-card>
+        <n-card v-for="item in 4" :key="item" class="project-skeleton"><n-skeleton height="220px" /></n-card>
       </div>
 
       <n-result v-else-if="loadFailed" status="error" :title="t('project.loadFailed')">
@@ -44,39 +44,13 @@
       </n-empty>
 
       <div v-else class="project-grid">
-        <article v-for="project in projects" :key="project.id" class="project-card">
-          <div class="project-gallery" :class="{ single: project.images.length === 1 }">
-            <n-image
-              v-for="(image, index) in project.images.slice(0, 4)"
-              :key="image + index"
-              :src="image"
-              object-fit="cover"
-              :alt="project.title"
-              lazy
-            />
-            <span v-if="project.images.length > 4" class="more-images">+{{ project.images.length - 4 }}</span>
-          </div>
-          <div class="project-body">
-            <div class="project-author">
-              <n-avatar round :size="28" :src="project.creator.avatar" />
-              <span>{{ project.creator.nickname }}</span>
-            </div>
-            <h3>{{ project.title }}</h3>
-            <div class="project-tags">
-              <n-tag v-for="tag in project.tags" :key="tag" size="small" round clickable @click="filterByTag(tag)">{{ tag }}</n-tag>
-            </div>
-            <div class="project-intro" @click="handleMarkdownClick">
-              <md-preview :model-value="prepareMdRender(project.intro)" :theme="editorTheme" no-mermaid no-katex no-html />
-            </div>
-            <div class="project-actions">
-              <n-button text @click="openProject(project.id)">{{ t('project.viewDetails') }}</n-button>
-              <n-button v-if="project.url" type="primary" tag="a" :href="project.url" target="_blank" rel="noopener noreferrer">
-                {{ t('project.visitProject') }}
-                <template #icon><n-icon><open-outline /></n-icon></template>
-              </n-button>
-            </div>
-          </div>
-        </article>
+        <project-card
+          v-for="project in projects"
+          :key="project.id"
+          :project="project"
+          tag-clickable
+          @tag-click="filterByTag"
+        />
       </div>
 
       <n-pagination
@@ -150,29 +124,27 @@
 <script setup lang="ts">
 import { createProject, getProjects } from '@/api/project';
 import type { ProjectItem } from '@/api/project';
+import ProjectCard from '@/components/project-card.vue';
 import { useMediaUpload } from '@/composables/useMediaUpload';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
-import { mdTheme, prepareMdRender } from '@/utils/markdown';
+import { mdTheme } from '@/utils/markdown';
 import {
   AddOutline,
   LinkOutline,
-  OpenOutline,
   RefreshOutline,
 } from '@vicons/ionicons5';
 import type { UploadFileInfo, UploadInst, UploadOnFinish } from 'naive-ui';
-import { MdEditor, MdPreview } from 'md-editor-v3';
+import { MdEditor } from 'md-editor-v3';
 import type { ToolbarNames } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRouter } from 'vue-router';
 
 const PROJECT_TITLE_MAX_LENGTH = 30;
 const PROJECT_INTRO_MAX_LENGTH = 800;
 const pageSize = 12;
 const { t } = useI18n();
-const router = useRouter();
 const storeUser = useStoreUser();
 const storeMain = useStoreMain();
 const editorTheme = computed(() => mdTheme(storeMain.theme));
@@ -191,6 +163,7 @@ const tagFilter = ref('');
 const total = ref(0);
 const loading = ref(false);
 const loadFailed = ref(false);
+let projectRequestRevision = 0;
 const showEditor = ref(false);
 const submitting = ref(false);
 const uploadRef = ref<UploadInst>();
@@ -221,32 +194,26 @@ function safeExternalURL(value: string) {
   }
 }
 
-function handleMarkdownClick(event: MouseEvent) {
-  const anchor = (event.target as HTMLElement).closest('a');
-  const href = anchor?.getAttribute('href') || '';
-  if (!anchor || (!href.startsWith('http://') && !href.startsWith('https://')))
-    return;
-  event.preventDefault();
-  window.open(href, '_blank', 'noopener,noreferrer');
-}
-
 async function loadProjects() {
+  const revision = ++projectRequestRevision;
+  const params = {
+    keyword: keyword.value.trim() || undefined,
+    tag: tagFilter.value.trim() || undefined,
+    page: page.value,
+    page_size: pageSize,
+  };
   loading.value = true;
   loadFailed.value = false;
   try {
-    const result = await getProjects({
-      keyword: keyword.value.trim() || undefined,
-      tag: tagFilter.value.trim() || undefined,
-      page: page.value,
-      page_size: pageSize,
-    });
+    const result = await getProjects(params);
+    if (revision !== projectRequestRevision) return;
     projects.value = result.list || [];
     total.value = result.pager.total_rows;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch {
-    loadFailed.value = true;
+    if (revision === projectRequestRevision) loadFailed.value = true;
   } finally {
-    loading.value = false;
+    if (revision === projectRequestRevision) loading.value = false;
   }
 }
 
@@ -355,9 +322,6 @@ async function submitProject() {
   }
 }
 
-function openProject(id: number) {
-  void router.push({ name: 'project', query: { id } });
-}
 onMounted(loadProjects);
 </script>
 
@@ -373,25 +337,7 @@ onMounted(loadProjects);
 .project-toolbar h2 { margin: 0 0 4px; font-size: 20px; }
 .project-toolbar span { font-size: 13px; opacity: .58; }
 .project-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
-.project-card { overflow: hidden; border: 1px solid rgba(128, 128, 128, .2); border-radius: 14px; background: var(--project-surface); transition: transform .2s ease, box-shadow .2s ease; }
-:global(.dark) .project-card { background: rgba(16, 16, 20, .78); }
-.project-card:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(0, 0, 0, .08); }
-.project-gallery { position: relative; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 110px 110px; gap: 2px; background: rgba(128, 128, 128, .12); }
-.project-gallery.single { display: block; height: 222px; }
-.project-gallery :deep(.n-image), .project-gallery :deep(img) { width: 100%; height: 100%; display: block; }
-.project-gallery :deep(img) { object-fit: cover; }
-.more-images { position: absolute; right: 10px; bottom: 10px; padding: 4px 9px; border-radius: 14px; color: #fff; background: rgba(0, 0, 0, .65); font-weight: 600; }
-.project-body { padding: 18px; }
-.project-author { display: flex; align-items: center; gap: 8px; font-size: 12px; opacity: .7; }
-.project-body h3 { margin: 14px 0 8px; font-size: 20px; line-height: 1.35; overflow-wrap: anywhere; }
-.project-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
-.project-intro { min-height: 3.4em; max-height: 7.2em; overflow: hidden; opacity: .7; line-height: 1.7; }
-.project-intro > p { margin: 0; white-space: pre-wrap; }
-.project-intro :deep(.md-editor) { --md-bk-color: transparent; }
-.project-intro :deep(.md-editor-preview-wrapper) { padding: 0; }
-.project-intro :deep(.md-editor-preview) { font-size: 14px; }
-.project-intro :deep(.md-editor-preview > :first-child) { margin-top: 0; }
-.project-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; }
+.project-skeleton { overflow: hidden; border-radius: 14px; }
 .project-empty { padding: 70px 0; }
 .project-pagination { justify-content: center; margin-top: 28px; }
 .project-editor { width: min(680px, calc(100vw - 28px)); }

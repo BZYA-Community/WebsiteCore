@@ -428,6 +428,7 @@ const statisticsColumns = computed(() => [
 ]);
 
 const loading = ref(false);
+let listRequestRevision = 0;
 const acting = ref(false);
 const category = ref<'post' | 'comment' | 'nickname' | 'avatar' | 'logs'>('post');
 const activeTab = ref('pending');
@@ -633,84 +634,99 @@ const openUserInNewTab = (username: string) => {
 };
 
 const loadPosts = async () => {
+    const revision = ++listRequestRevision;
+    const params = {
+        status: tabStatusMap[activeTab.value] ?? 0,
+        page: postPagination.page,
+        page_size: postPagination.pageSize,
+    };
     loading.value = true;
     try {
-        const resp = await Api.v1.admin.get.audit.posts({
-            status: tabStatusMap[activeTab.value] ?? 0,
-            page: postPagination.page,
-            page_size: postPagination.pageSize,
-        });
+        const resp = await Api.v1.admin.get.audit.posts(params);
+        if (revision !== listRequestRevision) return;
         postItems.value = resp.list || [];
         postPagination.itemCount = resp.pager?.total_rows || 0;
     } catch {
         // do nothing
     } finally {
-        loading.value = false;
+        if (revision === listRequestRevision) loading.value = false;
     }
 };
 
 const loadComments = async () => {
+    const revision = ++listRequestRevision;
+    const params = {
+        status: tabStatusMap[activeTab.value] ?? 0,
+        page: commentPagination.page,
+        page_size: commentPagination.pageSize,
+    };
     loading.value = true;
     try {
-        const resp = await Api.v1.admin.get.audit.comments({
-            status: tabStatusMap[activeTab.value] ?? 0,
-            page: commentPagination.page,
-            page_size: commentPagination.pageSize,
-        });
+        const resp = await Api.v1.admin.get.audit.comments(params);
+        if (revision !== listRequestRevision) return;
         commentItems.value = resp.list || [];
         commentPagination.itemCount = resp.pager?.total_rows || 0;
     } catch {
         // do nothing
     } finally {
-        loading.value = false;
+        if (revision === listRequestRevision) loading.value = false;
     }
 };
 
 const loadNicknames = async () => {
+    const revision = ++listRequestRevision;
+    const params = {
+        page: nicknamePagination.page,
+        page_size: nicknamePagination.pageSize,
+    };
     loading.value = true;
     try {
-        const resp = await Api.v1.admin.get.audit.nicknames({
-            page: nicknamePagination.page,
-            page_size: nicknamePagination.pageSize,
-        });
+        const resp = await Api.v1.admin.get.audit.nicknames(params);
+        if (revision !== listRequestRevision) return;
         nicknameItems.value = resp.list || [];
         nicknamePagination.itemCount = resp.pager?.total_rows || 0;
     } catch {
         // do nothing
     } finally {
-        loading.value = false;
+        if (revision === listRequestRevision) loading.value = false;
     }
 };
 
 const loadAvatars = async () => {
+    const revision = ++listRequestRevision;
+    const params = {
+        page: avatarPagination.page,
+        page_size: avatarPagination.pageSize,
+    };
     loading.value = true;
     try {
-        const resp = await Api.v1.admin.get.audit.avatars({
-            page: avatarPagination.page,
-            page_size: avatarPagination.pageSize,
-        });
+        const resp = await Api.v1.admin.get.audit.avatars(params);
+        if (revision !== listRequestRevision) return;
         avatarItems.value = resp.list || [];
         avatarPagination.itemCount = resp.pager?.total_rows || 0;
     } catch {
         // do nothing
     } finally {
-        loading.value = false;
+        if (revision === listRequestRevision) loading.value = false;
     }
 };
 
 const loadLogs = async () => {
+    const revision = ++listRequestRevision;
+    const params = {
+        page: logPagination.page,
+        page_size: logPagination.pageSize,
+    };
     loading.value = true;
     try {
-        const resp = await Api.v1.admin.get.audit.logs({
-            page: logPagination.page,
-            page_size: logPagination.pageSize,
-        });
+        const resp = await Api.v1.admin.get.audit.logs(params);
+        if (revision !== listRequestRevision) return;
         logItems.value = resp.list || [];
         logPagination.itemCount = resp.pager?.total_rows || 0;
     } catch {
         // do nothing
     } finally {
-        loading.value = false;
+        if (revision === listRequestRevision) loading.value = false;
     }
 };
 
