@@ -19,6 +19,7 @@ npm run lint:fix
 npm run format     # Biome (formatting only)
 npm run check      # Biome check --write
 npm run i18n:check # locale pack validation (missing / unused / zh-CN-en parity)
+npm run test:chat  # notification links and private-message regression checks
 ```
 
 Formatting of supported JavaScript, TypeScript, JSON and CSS files is owned by **Biome** (`biome.json`); format Vue templates consistently with nearby components. Code-quality linting uses **ESLint** (`eslint.config.js`, flat config: `vue flat/strongly-recommended` + `typescript-eslint recommended`). CI uses the Yarn lockfile on Node 22 and runs lint, locale checks, the permission/media/course/sidebar/admin regression tests and the Vite build.
