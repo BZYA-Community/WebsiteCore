@@ -74,11 +74,20 @@ account_verify:
   cooldown_seconds: 60
   max_attempts: 5
   max_daily_sends: 10
+  dev_skip_code: false          # 本地开发专用(需 App.RunMode: debug): 开启后任意 6 位验证码均通过, 且不会真实发送邮件/短信
   aliyun:
     endpoint: https://alimail-cn.aliyuncs.com
     client_id: ""
     client_secret: ""
     sender: ""
+
+# 阿里云短信验证码：启用 Sms 功能，并将 account_verify.mode 设为 phone。
+# 也可在管理后台配置；模板须已审核，验证码变量固定为 ${code}。
+SmsAliyun:
+  AccessKeyID: ""
+  AccessKeySecret: ""
+  SignName: ""
+  TemplateCode: ""
 
 uploads:
   attachment_max_bytes: 15728640

@@ -12,6 +12,8 @@ The default provider follows the requested [Alibaba Mail OAuth API](https://help
 
 Phone mode retains the existing Juhe provider and its mainland-China number support. Email mode supports international users. `site/profile` exposes only mode, availability and upload/module settings; secrets stay on the server.
 
+For local development, `account_verify.dev_skip_code` makes verification accept any 6-digit code and skips provider delivery entirely, so smoke tests can use throwaway addresses. Startup refuses the flag unless `App.RunMode` is `debug`, and a warning is logged while it is active; it is never valid for a real deployment.
+
 ## Verification
 
 - Provider contract test uses an in-memory HTTP transport: OAuth form, cached token, draft payload, sending and provider failure.

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/alimy/tryst/cfg"
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -36,7 +37,7 @@ var (
 	SimpleCacheIndexSetting *simpleCacheIndexConf
 	BigCacheIndexSetting    *bigCacheIndexConf
 	RedisCacheIndexSetting  *redisCacheIndexConf
-	SmsJuheSetting          *smsJuheConf
+	SmsAliyunSetting        *smsAliyunConf
 	TweetSearchSetting      *tweetSearchConf
 	MeiliSetting            *meiliConf
 	ObjectStorage           *objectStorageConf
@@ -77,7 +78,7 @@ func setupSetting(suite []string, noDefault bool) error {
 		"SimpleCacheIndex":  &SimpleCacheIndexSetting,
 		"BigCacheIndex":     &BigCacheIndexSetting,
 		"RedisCacheIndex":   &RedisCacheIndexSetting,
-		"SmsJuhe":           &SmsJuheSetting,
+		"SmsAliyun":         &SmsAliyunSetting,
 		"Pyroscope":         &PyroscopeSetting,
 		"Sentry":            &sentrySetting,
 		"Logger":            &loggerSetting,
@@ -150,6 +151,9 @@ func setupSetting(suite []string, noDefault bool) error {
 func Initial(suite []string, noDefault bool) error {
 	if err := setupSetting(suite, noDefault); err != nil {
 		return fmt.Errorf("init.setupSetting err: %w", err)
+	}
+	if ContactVerificationDevBypass() {
+		logrus.Warn("account_verify.dev_skip_code is enabled: contact verification accepts any 6-digit code and sends no mail/SMS (development only)")
 	}
 	setupLogger()
 	initSentry()

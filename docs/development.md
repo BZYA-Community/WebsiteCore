@@ -135,6 +135,10 @@ yarn build
 
 Check changed screens at the standard viewports below, including keyboard access, loading, empty and failure states. Attach relevant output or screenshots to the PR. For schema or configuration changes, also follow the migration and configuration steps above.
 
+### Local contact verification (development only)
+
+`account_verify.dev_skip_code: true` in `config.yaml` accepts any 6-digit verification code and skips mail/SMS delivery entirely, so manual smoke tests can use throwaway email addresses or phone numbers. It requires `App.RunMode: debug` — startup refuses the combination anywhere else — and logs a warning while active. Never enable it for a real deployment.
+
 ### Unit tests
 
 ```sh

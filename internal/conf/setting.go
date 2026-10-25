@@ -147,11 +147,11 @@ type alipayConf struct {
 	InProduction      bool
 }
 
-type smsJuheConf struct {
-	Gateway string
-	Key     string
-	TplID   string
-	TplVal  string
+type smsAliyunConf struct {
+	AccessKeyID     string
+	AccessKeySecret string
+	SignName        string
+	TemplateCode    string
 }
 
 type tweetSearchConf struct {

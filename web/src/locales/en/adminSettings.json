@@ -40,7 +40,7 @@
     "alioss": "AliOSS",
     "cos": "Tencent COS",
     "huaweiObs": "Huawei OBS",
-    "smsJuhe": "Juhe SMS",
+    "smsAliyun": "Alibaba Cloud SMS",
     "alipay": "Alipay"
   },
   "mode": {

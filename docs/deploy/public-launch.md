@@ -25,7 +25,7 @@ Everything that must be true before a WebsiteCore instance accepts traffic from 
 - [ ] `App.RunMode` and `Logger.Level` set to `release` / `error`.
 - [ ] Content moderation is on: `Audit.Enabled: true`. For a youth community this is not optional — regular users' posts, comments, replies, and nickname changes must pass moderation before becoming public.
 - [ ] Decide registration policy: open (`WebProfile.AllowUserRegister`) vs. closed (`Web:DisallowUserRegister` feature). If open, moderation and reporting paths must be staffed.
-- [ ] Phone binding: either configure SMS properly ([sms.md](sms.md)) or disable `WebProfile.AllowPhoneBind`. Never leave it enabled without the `Sms` feature — any code would be accepted.
+- [ ] Phone binding: select `account_verify.mode: phone`, configure all four `SmsAliyun` fields, and restart ([sms.md](sms.md)); enable `Sms` for admin UI management. Confirm real receipt and binding with a deployment-owned number. Missing configuration makes the channel unavailable; `dev_skip_code` must remain `false` in production.
 - [ ] Daily private-message cap (`App.MaxWhisperDaily`) and captcha attempt limits are at sane values.
 - [ ] `client_max_body_size` in Nginx matches the largest upload you intend to allow.
 
