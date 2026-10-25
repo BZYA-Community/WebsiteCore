@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import * as vue from 'vue';
 import ts from 'typescript';
 import { compileStyle, parse } from '@vue/compiler-sfc';
 
@@ -60,6 +61,7 @@ assert.equal(
 );
 
 const projectsView = read('src/views/Projects.vue');
+const projectDetailView = read('src/views/ProjectDetail.vue');
 const projectCard = read('src/components/project-card.vue');
 const collectionView = read('src/views/Collection.vue');
 const projectApi = read('src/api/project.ts');
@@ -141,6 +143,121 @@ assert.match(
   /finally \{\s*if \(revision === projectRequestRevision\) loading\.value = false;/,
   'stale project requests must not clear the current loading state',
 );
+assert.match(
+  projectDetailView,
+  /v-else-if="loadFailed"[^>]*status="error"[\s\S]{0,160}@click="loadProject"/,
+  'project detail request failures must offer a retry action',
+);
+
+const projectDetailSource = parse(projectDetailView).descriptor.scriptSetup.content
+  .replace(/^import [\s\S]*?;\r?$/gm, '');
+const projectDetailCode = ts.transpileModule(
+  `${projectDetailSource}\nmodule.exports = { project, loading, following, loadFailed, notFound, loadProject, toggleFollow };`,
+  { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+).outputText;
+const deferred = () => {
+  let resolve;
+  let reject;
+  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+};
+const detailRoute = vue.reactive({ query: { id: '1' } });
+const detailCalls = [];
+const followCalls = [];
+const projectFixture = (id, followed = false, followCount = id) => ({
+  id,
+  post_id: id * 10,
+  creator: { id: 1, username: 'owner', nickname: 'Owner', avatar: '' },
+  title: `Project ${id}`,
+  intro: 'Intro',
+  url: 'https://example.com',
+  images: [],
+  tags: ['custom'],
+  members: [],
+  followed,
+  follow_count: followCount,
+});
+const projectDetailModule = { exports: {} };
+const projectDetailContext = {
+  ...vue,
+  module: projectDetailModule,
+  window: { $message: { warning() {}, info() {} } },
+  useI18n: () => ({ t: (key) => key }),
+  useRoute: () => detailRoute,
+  useRouter: () => ({ push() {} }),
+  useStoreMain: () => ({ theme: 'light', triggerAuth() {}, triggerAuthKey() {} }),
+  useStoreUser: () => ({ userLogined: true, hasPermission: () => true }),
+  mdTheme: () => 'light',
+  prepareMdRender: (value) => value,
+  getProject: (id) => {
+    const call = deferred();
+    detailCalls.push({ id, ...call });
+    return call.promise;
+  },
+  followProject: (id) => {
+    const call = deferred();
+    followCalls.push({ id, ...call });
+    return call.promise;
+  },
+  unfollowProject: (id) => {
+    const call = deferred();
+    followCalls.push({ id, ...call });
+    return call.promise;
+  },
+};
+const tick = async () => {
+  for (let i = 0; i < 5; i++) {
+    await Promise.resolve();
+    await vue.nextTick();
+  }
+};
+const detailScope = vue.effectScope();
+detailScope.run(() => vm.runInNewContext(projectDetailCode, projectDetailContext));
+const projectDetailPage = projectDetailModule.exports;
+await tick();
+assert.equal(detailCalls[0].id, 1);
+detailRoute.query = { id: '2' };
+await tick();
+assert.equal(detailCalls[1].id, 2);
+detailCalls[1].resolve({ project: projectFixture(2) });
+await tick();
+assert.equal(projectDetailPage.project.value.id, 2);
+detailCalls[0].resolve({ project: projectFixture(1) });
+await tick();
+assert.equal(projectDetailPage.project.value.id, 2, 'an older detail response must not overwrite the current project');
+
+const pendingFollow = projectDetailPage.toggleFollow();
+await tick();
+assert.equal(followCalls[0].id, 2);
+detailRoute.query = { id: '3' };
+await tick();
+detailCalls[2].resolve({ project: projectFixture(3, false, 3) });
+await tick();
+followCalls[0].resolve({ status: true, follow_count: 99 });
+await pendingFollow;
+assert.equal(projectDetailPage.project.value.id, 3);
+assert.equal(projectDetailPage.project.value.followed, false, 'a completed follow must not mutate a project opened later');
+assert.equal(projectDetailPage.project.value.follow_count, 3);
+
+detailRoute.query = { id: '4' };
+await tick();
+detailCalls[3].reject({ code: 30021 });
+await tick();
+assert.equal(projectDetailPage.notFound.value, true, 'project-not-found errors must render the 404 state');
+assert.equal(projectDetailPage.loadFailed.value, false);
+detailRoute.query = { id: '5' };
+await tick();
+detailCalls[4].reject({ code: 30022 });
+await tick();
+assert.equal(projectDetailPage.notFound.value, false);
+assert.equal(projectDetailPage.loadFailed.value, true, 'other request errors must remain retryable');
+const retry = projectDetailPage.loadProject();
+assert.equal(projectDetailPage.loadFailed.value, false);
+detailCalls[5].resolve({ project: projectFixture(5) });
+await retry;
+assert.equal(projectDetailPage.project.value.id, 5, 'retry must recover the project detail');
+assert.equal(projectDetailPage.loading.value, false);
+detailScope.stop();
 
 for (const loader of ['loadPosts', 'loadComments', 'loadNicknames', 'loadAvatars', 'loadLogs']) {
   const body = adminAuditView.match(
@@ -151,6 +268,16 @@ for (const loader of ['loadPosts', 'loadComments', 'loadNicknames', 'loadAvatars
   assert.match(body, /const params = \{/, `${loader} must snapshot its request parameters`);
   assert.match(body, /await[\s\S]*if \(revision !== listRequestRevision\) return;/, `${loader} must ignore stale responses`);
   assert.match(body, /finally \{[\s\S]*if \(revision === listRequestRevision\) loading\.value = false;/, `${loader} must not clear loading for a newer request`);
+}
+
+for (const field of [
+  /selectedProject\.title/,
+  /v-for="tag in selectedProject\.tags"/,
+  /v-for="\(image, index\) in selectedProject\.images"/,
+  /prepareMdRender\(selectedProject\.intro\)/,
+  /selectedProject\.url/,
+]) {
+  assert.match(adminAuditView, field, 'the review dialog must render the complete project and its custom tags');
 }
 
 assert.match(
@@ -250,6 +377,17 @@ assert.match(
   sidebar,
   /option\.key !== 'projects'[^\n]+projectsEnabled/,
   'the Projects navigation item must be disabled by the profile flag',
+);
+assert.match(
+  sidebar,
+  /route\.name === 'project'[^\n]+return 'projects'/,
+  'the project detail route must keep the Projects navigation item selected',
+);
+const i18nTypes = read('src/types/vue-i18n.d.ts');
+assert.match(
+  i18nTypes,
+  /import type externalLink[\s\S]*externalLink: typeof externalLink/,
+  'the external-link locale namespace must participate in typed messages',
 );
 
 console.log(

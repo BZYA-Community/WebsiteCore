@@ -1,9 +1,12 @@
 package sitesetting
 
 import (
+	"context"
 	stdjson "encoding/json"
 	"reflect"
 	"testing"
+
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 )
 
 func TestTrustedExternalDomainsDefinitionNormalizesValues(t *testing.T) {
@@ -44,5 +47,28 @@ func TestTrustedExternalDomainsDefinitionNormalizesValues(t *testing.T) {
 	}
 	if _, err := parseStoredValue(definition, "null"); err == nil {
 		t.Fatal("parseStoredValue(null) error = nil")
+	}
+}
+
+func TestProfileSerializesEmptyTrustedExternalDomainsAsArray(t *testing.T) {
+	previous := conf.WebProfileSetting
+	t.Cleanup(func() { conf.WebProfileSetting = previous })
+	conf.WebProfileSetting = &conf.WebProfileConf{}
+	conf.SetTrustedExternalDomains(nil)
+
+	profile, err := (&Service{}).GetProfile(context.Background())
+	if err != nil {
+		t.Fatalf("GetProfile() error = %v", err)
+	}
+	encoded, err := stdjson.Marshal(profile)
+	if err != nil {
+		t.Fatalf("json.Marshal() error = %v", err)
+	}
+	var payload map[string]stdjson.RawMessage
+	if err := stdjson.Unmarshal(encoded, &payload); err != nil {
+		t.Fatalf("json.Unmarshal() error = %v", err)
+	}
+	if got := string(payload["trusted_external_domains"]); got != "[]" {
+		t.Fatalf("trusted_external_domains = %s, want []", got)
 	}
 }

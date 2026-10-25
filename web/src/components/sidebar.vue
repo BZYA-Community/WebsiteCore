@@ -81,7 +81,11 @@ const { profile } = storeToRefs(storeProfile);
 const route = useRoute();
 const router = useRouter();
 const hasUnreadMsg = computed(() => unreadMsgCount.value > 0);
-const selectedPath = computed(() => route.name === 'course' ? 'courses' : route.name || '');
+const selectedPath = computed(() => {
+  if (route.name === 'course') return 'courses';
+  if (route.name === 'project') return 'projects';
+  return route.name || '';
+});
 
 watch(
   () => [userInfo.value.id, storeUser.hasPermission('profile.edit'), profile.value.defaultMsgLoopInterval] as const,

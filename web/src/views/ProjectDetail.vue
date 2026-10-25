@@ -3,7 +3,10 @@
     <main-nav :title="t('project.detailPageTitle')" :back="true" />
     <main class="project-detail main-content-wrap">
       <n-spin :show="loading">
-        <n-result v-if="loadFailed" status="404" :title="t('project.notFound')" />
+        <n-result v-if="notFound" status="404" :title="t('project.notFound')" />
+        <n-result v-else-if="loadFailed" status="error" :title="t('project.loadFailed')">
+          <template #footer><n-button @click="loadProject">{{ t('project.retry') }}</n-button></template>
+        </n-result>
         <template v-else-if="project">
           <section class="detail-header">
             <div class="detail-heading">
@@ -72,7 +75,7 @@ import { useStoreUser } from '@/store/user';
 import { mdTheme, prepareMdRender } from '@/utils/markdown';
 import { ChatboxOutline, Heart, HeartOutline, OpenOutline, PeopleOutline } from '@vicons/ionicons5';
 import { MdPreview } from 'md-editor-v3';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -86,26 +89,45 @@ const project = ref<ProjectItem>();
 const loading = ref(false);
 const following = ref(false);
 const loadFailed = ref(false);
+const notFound = ref(false);
 const projectID = computed(() => Number(route.query.id));
+let loadRequestRevision = 0;
+let followRequestRevision = 0;
+
+function hasErrorCode(error: unknown, code: number) {
+  return typeof error === 'object' && error !== null
+    && Number((error as { code?: unknown }).code) === code;
+}
 
 async function loadProject() {
-  if (!Number.isInteger(projectID.value) || projectID.value <= 0) {
-    loadFailed.value = true;
+  const revision = ++loadRequestRevision;
+  const id = projectID.value;
+  ++followRequestRevision;
+  project.value = undefined;
+  following.value = false;
+  loadFailed.value = false;
+  notFound.value = false;
+  if (!Number.isInteger(id) || id <= 0) {
+    notFound.value = true;
+    loading.value = false;
     return;
   }
   loading.value = true;
-  loadFailed.value = false;
   try {
-    project.value = (await getProject(projectID.value)).project;
-  } catch {
-    loadFailed.value = true;
+    const result = await getProject(id);
+    if (revision !== loadRequestRevision) return;
+    project.value = result.project;
+  } catch (error) {
+    if (revision !== loadRequestRevision) return;
+    if (hasErrorCode(error, 30021)) notFound.value = true;
+    else loadFailed.value = true;
   } finally {
-    loading.value = false;
+    if (revision === loadRequestRevision) loading.value = false;
   }
 }
 
 async function toggleFollow() {
-  if (!project.value) return;
+  if (!project.value || following.value) return;
   if (!storeUser.userLogined) {
     storeMain.triggerAuth(true);
     storeMain.triggerAuthKey('signin');
@@ -115,13 +137,17 @@ async function toggleFollow() {
     window.$message.warning(t('project.followNoPermission'));
     return;
   }
+  const id = project.value.id;
+  const followed = project.value.followed;
+  const revision = ++followRequestRevision;
   following.value = true;
   try {
-    const result = project.value.followed ? await unfollowProject(project.value.id) : await followProject(project.value.id);
+    const result = followed ? await unfollowProject(id) : await followProject(id);
+    if (revision !== followRequestRevision || project.value?.id !== id) return;
     project.value.followed = result.status;
     project.value.follow_count = result.follow_count;
   } finally {
-    following.value = false;
+    if (revision === followRequestRevision) following.value = false;
   }
 }
 
@@ -130,8 +156,7 @@ function openDiscussion() {
   if (project.value?.post_id) void router.push({ name: 'post', query: { id: project.value.post_id } });
 }
 
-onMounted(loadProject);
-watch(projectID, loadProject);
+watch(projectID, () => void loadProject(), { immediate: true });
 </script>
 
 <style scoped lang="less">

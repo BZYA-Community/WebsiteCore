@@ -232,7 +232,7 @@ func Registry() []Definition {
 		stringListDef("web_profile.trusted_external_domains", "web", "profile", "Trusted external domains", "HTTPS outbound links to these hostnames and their subdomains skip the leave-community warning.", ApplyModeLive, func() any {
 			return conf.TrustedExternalDomains()
 		}, func() any {
-			return append([]string(nil), bootstrapConfig.WebProfile.TrustedExternalDomains...)
+			return append([]string{}, bootstrapConfig.WebProfile.TrustedExternalDomains...)
 		}, validateTrustedExternalDomains, func(v any) {
 			conf.SetTrustedExternalDomains(v.([]string))
 		}),

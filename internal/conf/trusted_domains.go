@@ -80,7 +80,7 @@ func SetTrustedExternalDomains(values []string) {
 	trustedExternalDomainsMu.Lock()
 	defer trustedExternalDomainsMu.Unlock()
 	if WebProfileSetting != nil {
-		WebProfileSetting.TrustedExternalDomains = append([]string(nil), values...)
+		WebProfileSetting.TrustedExternalDomains = append([]string{}, values...)
 	}
 }
 
@@ -88,7 +88,7 @@ func TrustedExternalDomains() []string {
 	trustedExternalDomainsMu.RLock()
 	defer trustedExternalDomainsMu.RUnlock()
 	if WebProfileSetting == nil {
-		return nil
+		return []string{}
 	}
-	return append([]string(nil), WebProfileSetting.TrustedExternalDomains...)
+	return append([]string{}, WebProfileSetting.TrustedExternalDomains...)
 }

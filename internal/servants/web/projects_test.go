@@ -1,12 +1,35 @@
 package web
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
+	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	model "github.com/BZYA-Community/WebsiteCore/internal/model/web"
+	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 )
+
+type projectCreateData struct {
+	core.DataService
+	getProjectCalled bool
+}
+
+func (*projectCreateData) CheckAttachment(string) error { return nil }
+
+func (*projectCreateData) CreateProject(_ *ms.User, input *core.ProjectCreateInput) (*ms.Project, *ms.Post, error) {
+	input.Project.Model = &ms.Model{ID: 11, CreatedOn: 123}
+	input.Project.PostID = 12
+	input.Post.Model = &ms.Model{ID: 12}
+	input.Post.AuditStatus = ms.PostAuditPending
+	return input.Project, input.Post, nil
+}
+
+func (d *projectCreateData) GetProject(*ms.User, int64) (*ms.ProjectFormated, error) {
+	d.getProjectCalled = true
+	return nil, errors.New("GetProject must not be called after creation")
+}
 
 func TestCreateTweetRejectsProjectWhenDisabled(t *testing.T) {
 	previous := conf.ProjectSetting
@@ -38,5 +61,50 @@ func TestProjectTagDetection(t *testing.T) {
 				t.Fatalf("hasProjectPostTag(%q) = %t, want %t", test.tags, got, test.want)
 			}
 		})
+	}
+}
+
+func TestCreateProjectDoesNotRequireViewPermissionAfterCommit(t *testing.T) {
+	previousProjects, previousEvent := conf.ProjectSetting, onProjectCreated
+	t.Cleanup(func() {
+		conf.ProjectSetting = previousProjects
+		onProjectCreated = previousEvent
+	})
+	conf.ProjectSetting = &conf.ProjectsConf{Enabled: true}
+	onProjectCreated = func(*ms.User) {}
+
+	creator := permissionUser(7, "post.create", "content.upload")
+	creator.Username = "creator"
+	if creator.HasPermission("post.view") {
+		t.Fatal("test creator unexpectedly has post.view")
+	}
+	data := &projectCreateData{}
+	servant := &privSrv{
+		DaoServant: &base.DaoServant{Ds: data},
+		oss:        &sharedAttachmentStorage{},
+	}
+	response, err := servant.CreateProject(&model.CreateProjectReq{
+		BaseInfo: model.BaseInfo{User: creator},
+		Title:    "Project",
+		Intro:    "Intro",
+		URL:      "https://example.com",
+		Images:   []string{sharedAttachmentURL},
+		Tags:     []string{"Go"},
+	})
+	if err != nil {
+		t.Fatalf("CreateProject() error = %v", err)
+	}
+	if data.getProjectCalled {
+		t.Fatal("CreateProject() called GetProject after committing")
+	}
+
+	if response.ID != 11 || response.PostID != 12 || response.Creator.ID != creator.ID {
+		t.Fatalf("response identity = project %d post %d creator %d", response.ID, response.PostID, response.Creator.ID)
+	}
+	if len(response.Images) != 1 || response.Images[0] != sharedAttachmentURL || len(response.Tags) != 1 || response.Tags[0] != "Go" {
+		t.Fatalf("response media/tags = %#v / %#v", response.Images, response.Tags)
+	}
+	if len(response.Members) != 1 || response.Members[0].Role != "owner" {
+		t.Fatalf("response members = %#v", response.Members)
 	}
 }

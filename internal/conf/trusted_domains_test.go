@@ -33,3 +33,17 @@ func TestNormalizeTrustedExternalDomainsRejectsURLSyntax(t *testing.T) {
 		}
 	}
 }
+
+func TestTrustedExternalDomainsPreservesEmptyList(t *testing.T) {
+	previous := WebProfileSetting
+	t.Cleanup(func() { WebProfileSetting = previous })
+	WebProfileSetting = &WebProfileConf{}
+
+	SetTrustedExternalDomains(nil)
+	if got := TrustedExternalDomains(); got == nil || len(got) != 0 {
+		t.Fatalf("TrustedExternalDomains() = %#v, want non-nil empty list", got)
+	}
+	if WebProfileSetting.TrustedExternalDomains == nil {
+		t.Fatal("SetTrustedExternalDomains(nil) stored a nil list")
+	}
+}

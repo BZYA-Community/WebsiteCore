@@ -63,9 +63,9 @@ CREATE INDEX idx_project_follow_user ON p_project_follow USING btree (user_id, c
 INSERT INTO p_project (creator_id, post_id, title, intro, url, created_on, modified_on)
 SELECT p.user_id,
 	p.id,
-	COALESCE((SELECT pc.content FROM p_post_content pc WHERE pc.post_id = p.id AND pc.type = 1 AND pc.is_del = 0 ORDER BY pc.sort, pc.id LIMIT 1), '未命名项目'),
+	LEFT(COALESCE((SELECT pc.content FROM p_post_content pc WHERE pc.post_id = p.id AND pc.type = 1 AND pc.is_del = 0 ORDER BY pc.sort, pc.id LIMIT 1), '未命名项目'), 30),
 	COALESCE((SELECT pc.content FROM p_post_content pc WHERE pc.post_id = p.id AND pc.type IN (9, 2) AND pc.is_del = 0 ORDER BY CASE WHEN pc.type = 9 THEN 0 ELSE 1 END, pc.sort, pc.id LIMIT 1), ''),
-	COALESCE((SELECT pc.content FROM p_post_content pc WHERE pc.post_id = p.id AND pc.type = 6 AND pc.is_del = 0 ORDER BY pc.sort, pc.id LIMIT 1), ''),
+	LEFT(COALESCE((SELECT pc.content FROM p_post_content pc WHERE pc.post_id = p.id AND pc.type = 6 AND pc.is_del = 0 ORDER BY pc.sort, pc.id LIMIT 1), ''), 2048),
 	p.created_on,
 	p.modified_on
 FROM p_post p

@@ -417,13 +417,31 @@ func (s *privSrv) CreateProject(req *web.CreateProjectReq) (*web.CreateProjectRe
 	if post.AuditStatus != ms.PostAuditPending {
 		s.PushPostToSearch(post)
 	}
-	onTrendsActionEvent(_trendsActionCreateTweet, req.User.ID)
-	onTweetActionEvent(_tweetActionCreate, req.User.ID, req.User.Username)
-	formatted, err := s.Ds.GetProject(req.User, project.ID)
-	if err != nil {
-		return nil, web.ErrCreateProjectFailed
+	onProjectCreated(req.User)
+	return formatCreatedProject(project, req.User, images, tags), nil
+}
+
+var onProjectCreated = func(user *ms.User) {
+	onTrendsActionEvent(_trendsActionCreateTweet, user.ID)
+	onTweetActionEvent(_tweetActionCreate, user.ID, user.Username)
+}
+
+func formatCreatedProject(project *ms.Project, creatorUser *ms.User, images []*ms.ProjectImage, tags []*ms.ProjectTag) *web.CreateProjectResp {
+	imageURLs := make([]string, 0, len(images))
+	for _, image := range images {
+		imageURLs = append(imageURLs, image.URL)
 	}
-	return (*web.CreateProjectResp)(formatted), nil
+	tagNames := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		tagNames = append(tagNames, tag.Name)
+	}
+	creator := creatorUser.Format()
+	return (*web.CreateProjectResp)(&ms.ProjectFormated{
+		ID: project.ID, CreatorID: project.CreatorID, Creator: creator, PostID: project.PostID,
+		Title: project.Title, Intro: project.Intro, URL: project.URL, Images: imageURLs, Tags: tagNames,
+		Members: []*ms.ProjectMemberFormated{{User: creator, Role: "owner"}}, FollowCount: project.FollowCount,
+		Followed: false, CreatedOn: project.CreatedOn,
+	})
 }
 
 func (s *privSrv) FollowProject(req *web.ProjectFollowReq) (*web.ProjectFollowResp, error) {
