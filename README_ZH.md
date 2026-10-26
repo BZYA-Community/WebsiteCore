@@ -81,6 +81,7 @@ cp config.yaml.sample config.yaml
 - `JWT.Secret`：**必填**，留空启动会直接退出。生成：`openssl rand -hex 24`
 - `Features.Default`：特性开关列表，默认已是 `Postgres`；自动建表迁移需加 `Migration` 特性并用 `migration` tag 编译（或直接用 `make migrate`）
 - `projects.enabled`：控制项目目录、项目发布以及广场中的项目专属展示，默认开启
+- `WebProfile.TrustedExternalDomains`：无需离站提示的 HTTPS 可信域名，也可由运维账号在系统配置页即时修改
 - `WebServer.HttpPort`：监听端口（默认 8008）
 - 数据库 / Redis / Meili 连接信息已与 `docker-compose.dev.yml` 对齐，无需改动
 

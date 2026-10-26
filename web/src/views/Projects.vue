@@ -246,6 +246,7 @@ function startPublishing() {
     window.$message.warning(t('project.noPermission'));
     return;
   }
+  resetDraft();
   showEditor.value = true;
 }
 
@@ -261,6 +262,10 @@ function updateUpload(list: UploadFileInfo[]) {
   fileQueue.value = list;
 }
 const finishUpload: UploadOnFinish = ({ file, event }) => {
+  if (
+    !showEditor.value ||
+    !fileQueue.value.some((current) => current.id === file.id)
+  ) return file;
   try {
     const request = event?.target as XMLHttpRequest | null;
     const data = JSON.parse(request?.response || '{}');
@@ -295,14 +300,14 @@ async function submitProject() {
     return window.$message.warning(t('project.titleRequired'));
   if (!draft.intro.trim())
     return window.$message.warning(t('project.introRequired'));
-  if (uploadedImages.value.length === 0)
-    return window.$message.warning(t('project.imagesRequired'));
-  if (!validateLink()) return;
   const orderedImages = fileQueue.value
     .map((file) => uploadedImages.value.find((image) => image.id === file.id))
     .filter((image): image is { id: string; content: string } =>
       Boolean(image),
     );
+  if (orderedImages.length === 0)
+    return window.$message.warning(t('project.imagesRequired'));
+  if (!validateLink()) return;
   submitting.value = true;
   try {
     await createProject({

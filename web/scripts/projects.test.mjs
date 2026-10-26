@@ -144,6 +144,82 @@ assert.match(
   'stale project requests must not clear the current loading state',
 );
 assert.match(
+  projectsView,
+  /resetDraft\(\);\s*showEditor\.value = true;/,
+  'opening the project editor must start with a clean draft',
+);
+
+const projectEditorSource = parse(projectsView).descriptor.scriptSetup.content
+  .replace(/^import [\s\S]*?;\r?$/gm, '')
+  .replace(/import\.meta\.env\.VITE_HOST/g, "'http://localhost'");
+const projectEditorCode = ts.transpileModule(
+  `${projectEditorSource}\nmodule.exports = { draft, showEditor, fileQueue, uploadedImages, startPublishing, updateUpload, finishUpload, submitProject };`,
+  { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+).outputText;
+const projectCreateCalls = [];
+const projectMessages = [];
+const projectEditorModule = { exports: {} };
+const projectEditorContext = {
+  ...vue,
+  module: projectEditorModule,
+  TOKEN_KEY: 'token',
+  localStorage: { getItem: () => '' },
+  window: {
+    scrollTo() {},
+    $message: {
+      error() {},
+      success() {},
+      warning: (message) => projectMessages.push(message),
+    },
+  },
+  useI18n: () => ({ t: (key) => key }),
+  useStoreMain: () => ({ theme: 'light', triggerAuth() {}, triggerAuthKey() {} }),
+  useStoreUser: () => ({ userLogined: true, userInfo: { id: 1 }, hasPermission: () => true }),
+  useMediaUpload: () => ({ beforeUpload() {} }),
+  mdTheme: () => 'light',
+  getProjects: async () => ({ list: [], pager: { total_rows: 0 } }),
+  createProject: async (data) => projectCreateCalls.push(data),
+  onMounted() {},
+};
+vm.runInNewContext(projectEditorCode, projectEditorContext);
+const projectEditor = projectEditorModule.exports;
+projectEditor.startPublishing();
+Object.assign(projectEditor.draft, {
+  title: 'Old project',
+  intro: 'Old intro',
+  url: 'https://example.com/old',
+  tags: ['old'],
+});
+const oldFile = { id: 'old-image', name: 'old.png', status: 'finished' };
+const oldUploadEvent = {
+  target: { response: JSON.stringify({ code: 0, data: { content: 'https://example.com/old.png' } }) },
+};
+projectEditor.updateUpload([oldFile]);
+projectEditor.finishUpload({ file: oldFile, event: oldUploadEvent });
+assert.equal(projectEditor.uploadedImages.value.length, 1);
+
+projectEditor.showEditor.value = false;
+projectEditor.startPublishing();
+assert.deepEqual(
+  { ...projectEditor.draft, tags: [...projectEditor.draft.tags] },
+  { title: '', intro: '', url: '', tags: [] },
+  'reopening the project editor must discard the cancelled draft',
+);
+assert.equal(projectEditor.fileQueue.value.length, 0);
+assert.equal(projectEditor.uploadedImages.value.length, 0);
+projectEditor.finishUpload({ file: oldFile, event: oldUploadEvent });
+assert.equal(projectEditor.uploadedImages.value.length, 0, 'a cancelled upload must not reappear after reopening');
+
+Object.assign(projectEditor.draft, {
+  title: 'New project',
+  intro: 'New intro',
+  url: 'https://example.com/new',
+});
+await projectEditor.submitProject();
+assert.equal(projectCreateCalls.length, 0, 'hidden images from a cancelled draft must never be submitted');
+assert.equal(projectMessages.at(-1), 'project.imagesRequired');
+
+assert.match(
   projectDetailView,
   /v-else-if="loadFailed"[^>]*status="error"[\s\S]{0,160}@click="loadProject"/,
   'project detail request failures must offer a retry action',

@@ -5,6 +5,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
@@ -19,6 +20,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type looseSrv struct {
@@ -57,7 +59,11 @@ func (s *looseSrv) ProjectDetail(req *web.ProjectDetailReq) (*web.ProjectDetailR
 	}
 	project, err := s.Ds.GetProject(req.User, req.ID)
 	if err != nil {
-		return nil, web.ErrProjectNotExist
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, web.ErrProjectNotExist
+		}
+		logrus.Errorf("Ds.GetProject err: %s", err)
+		return nil, web.ErrGetProjectsFailed
 	}
 	return &web.ProjectDetailResp{Project: project}, nil
 }

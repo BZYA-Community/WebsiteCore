@@ -40,6 +40,7 @@ var _uploadAttachmentTypeMap = map[string]ms.AttachmentType{
 
 const projectPostTag = "项目"
 const projectTitleMaxLength = 30
+const projectURLMaxLength = 2048
 
 type privSrv struct {
 	api.UnimplementedPrivServant
@@ -364,6 +365,9 @@ func (s *privSrv) CreateProject(req *web.CreateProjectReq) (*web.CreateProjectRe
 	parsedURL, err := url.ParseRequestURI(strings.TrimSpace(req.URL))
 	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") || parsedURL.Host == "" {
 		return nil, web.ErrProjectInputInvalid.WithDetails("项目链接必须是有效的 http(s) 地址")
+	}
+	if utf8.RuneCountInString(parsedURL.String()) > projectURLMaxLength {
+		return nil, web.ErrProjectInputInvalid.WithDetails("项目链接不能超过2048字")
 	}
 	projectTags := make([]string, 0, len(req.Tags))
 	seenTags := make(map[string]bool, len(req.Tags))

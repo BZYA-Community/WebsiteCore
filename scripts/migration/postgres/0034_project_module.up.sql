@@ -73,6 +73,18 @@ WHERE p.is_del = 0
 	AND ('项目' = ANY(string_to_array(p.tags, ',')))
 	AND NOT EXISTS (SELECT 1 FROM p_project project WHERE project.post_id = p.id);
 
+-- 旧项目帖的普通标签转为项目专属标签；保留新模型的 32 字限制。
+INSERT INTO p_project_tag (project_id, name, created_on, modified_on)
+SELECT DISTINCT project.id,
+	LEFT(BTRIM(tag.name), 32),
+	project.created_on,
+	project.modified_on
+FROM p_project project
+JOIN p_post post ON post.id = project.post_id
+CROSS JOIN LATERAL unnest(string_to_array(post.tags, ',')) AS tag(name)
+WHERE BTRIM(tag.name) <> ''
+	AND BTRIM(tag.name) <> '项目';
+
 INSERT INTO p_project_image (project_id, url, sort, created_on, modified_on)
 SELECT project.id, pc.content, pc.sort, pc.created_on, pc.modified_on
 FROM p_project project

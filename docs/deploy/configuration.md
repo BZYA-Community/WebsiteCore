@@ -132,6 +132,18 @@ Meili:
 
 `TweetSearch` tunes the async indexing bridge: `MaxUpdateQPS` (10-10000, default 100) and `MinWorker` (5-1000, default 10). The `Meili` values are also editable in the admin UI (search group). When the `Meili` feature is not enabled, search falls back to direct PostgreSQL `ILIKE` fuzzy matching — no external search service required.
 
+### Outbound link safety (`WebProfile.TrustedExternalDomains`)
+
+External HTTP(S) links first open a leave-community warning. HTTPS links whose hostname matches a trusted domain, or one of its subdomains, skip the warning. Configure bare registrable hostnames without a scheme, path, port or user information:
+
+```yaml
+WebProfile:
+  TrustedExternalDomains:
+    - github.com
+```
+
+The operator can update the same list live from the admin settings page. HTTP links always keep the warning even when their hostname is trusted.
+
 ### Object storage (`ObjectStorage`, `LocalOSS`, `AliOSS`)
 
 `ObjectStorage` is shared: `RetainInDays` (temp object expiry) and `TempDir`. Then one backend:

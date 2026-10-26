@@ -2,6 +2,7 @@ package web
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
@@ -9,6 +10,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	model "github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
+	"gorm.io/gorm"
 )
 
 type projectCreateData struct {
@@ -29,6 +31,15 @@ func (*projectCreateData) CreateProject(_ *ms.User, input *core.ProjectCreateInp
 func (d *projectCreateData) GetProject(*ms.User, int64) (*ms.ProjectFormated, error) {
 	d.getProjectCalled = true
 	return nil, errors.New("GetProject must not be called after creation")
+}
+
+type projectDetailData struct {
+	core.DataService
+	err error
+}
+
+func (d *projectDetailData) GetProject(*ms.User, int64) (*ms.ProjectFormated, error) {
+	return nil, d.err
 }
 
 func TestCreateTweetRejectsProjectWhenDisabled(t *testing.T) {
@@ -106,5 +117,45 @@ func TestCreateProjectDoesNotRequireViewPermissionAfterCommit(t *testing.T) {
 	}
 	if len(response.Members) != 1 || response.Members[0].Role != "owner" {
 		t.Fatalf("response members = %#v", response.Members)
+	}
+}
+
+func TestProjectDetailClassifiesStoreErrors(t *testing.T) {
+	previous := conf.ProjectSetting
+	t.Cleanup(func() { conf.ProjectSetting = previous })
+	conf.ProjectSetting = &conf.ProjectsConf{Enabled: true}
+
+	for _, test := range []struct {
+		name string
+		err  error
+		want error
+	}{
+		{name: "not found", err: gorm.ErrRecordNotFound, want: model.ErrProjectNotExist},
+		{name: "store failure", err: errors.New("database unavailable"), want: model.ErrGetProjectsFailed},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			servant := &looseSrv{DaoServant: &base.DaoServant{Ds: &projectDetailData{err: test.err}}}
+			if _, err := servant.ProjectDetail(&model.ProjectDetailReq{ID: 7}); err != test.want {
+				t.Fatalf("ProjectDetail() error = %v, want %v", err, test.want)
+			}
+		})
+	}
+}
+
+func TestCreateProjectRejectsURLBeyondDatabaseLimit(t *testing.T) {
+	previous := conf.ProjectSetting
+	t.Cleanup(func() { conf.ProjectSetting = previous })
+	conf.ProjectSetting = &conf.ProjectsConf{Enabled: true}
+
+	_, err := (&privSrv{}).CreateProject(&model.CreateProjectReq{
+		BaseInfo: model.BaseInfo{User: permissionUser(7, "post.create", "content.upload")},
+		Title:    "Project",
+		Intro:    "Intro",
+		URL:      "https://example.com/" + strings.Repeat("a", projectURLMaxLength),
+		Images:   []string{sharedAttachmentURL},
+	})
+	status, ok := err.(interface{ StatusCode() int })
+	if !ok || status.StatusCode() != model.ErrProjectInputInvalid.StatusCode() {
+		t.Fatalf("CreateProject() error = %v, want project input error", err)
 	}
 }
