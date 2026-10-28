@@ -14,5 +14,6 @@
   "courseDetail": "课程详情",
   "userDetail": "用户详情",
   "following": "关注",
-  "pageNotFound": "404"
+  "pageNotFound": "404",
+  "columns": "专栏"
 }

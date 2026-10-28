@@ -32,6 +32,8 @@ var (
 func RouteWeb(e *gin.Engine) {
 	lazyInitial()
 	ds := base.NewDaoServant()
+	api.RegisterColumnsLooseServant(e, &columnsLooseSrv{DaoServant: ds, oss: _oss})
+	api.RegisterColumnsPrivServant(e, &columnsPrivSrv{DaoServant: ds, oss: _oss})
 	api.RegisterIdentityServant(e, &identitySrv{DaoServant: ds})
 	// aways register servants
 	api.RegisterAdminServant(e, newAdminSrv(ds, _wc, _siteSettings))

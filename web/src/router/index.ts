@@ -6,6 +6,7 @@ import { useStoreMain } from '@/store/main';
 import { useStoreProfile } from '@/store/profile';
 
 const routes = [
+  { path: '/columns', name: 'columns', meta: { titleKey: 'nav.columns' }, component: () => import('@/views/Columns.vue') },
   {
     path: '/',
     name: 'home',

@@ -29,16 +29,16 @@
                         <thumb-down-twotone v-if="hasThumbsDown" class="show" />
                     </n-icon>
                 </div>
-                <span class="show reply-btn" v-if="storeUser.hasPermission('comment.create') && userLogined && !showReply" @click="switchReply(true)">
+                <span class="show reply-btn" v-if="!props.locked && storeUser.hasPermission('comment.create') && userLogined && !showReply" @click="switchReply(true)">
                     {{ t('comment.action.reply') }}
                 </span>
-                <span class="hide reply-btn" v-if="storeUser.hasPermission('comment.create') && userLogined && showReply" @click="switchReply(false)">
+                <span class="hide reply-btn" v-if="!props.locked && storeUser.hasPermission('comment.create') && userLogined && showReply" @click="switchReply(false)">
                     {{ t('common.cancel') }}
                 </span>
             </div>
         </div>
 
-        <div class="reply-input-wrap" v-if="showReply && storeUser.hasPermission('comment.create')">
+        <div class="reply-input-wrap" v-if="!props.locked && showReply && storeUser.hasPermission('comment.create')">
             <n-input-group>
                 <n-input ref="inputInstRef" size="small" :placeholder="
                     props.atUsername
@@ -62,6 +62,7 @@ import {
   thumbsUpTweetComment,
   thumbsDownTweetComment,
 } from '@/api/post';
+import { createColumnComment, columnCommentAction } from '@/api/columns';
 import { InputInst } from 'naive-ui';
 import {
   ThumbUpTwotone,
@@ -78,10 +79,14 @@ const { t } = useI18n();
 const props = withDefaults(
   defineProps<{
     comment: Item.CommentProps;
+    columnId?: number;
+    locked?: boolean;
     atUserid: number;
     atUsername: string;
   }>(),
   {
+    columnId: 0,
+    locked: false,
     atUserid: 0,
     atUsername: '',
   },
@@ -107,10 +112,7 @@ const hasThumbsDown = ref(props.comment.is_thumbs_down == YesNoEnum.YES);
 const thumbsUpCount = ref(props.comment.thumbs_up_count);
 
 const handleThumbsUp = () => {
-  thumbsUpTweetComment({
-    tweet_id: props.comment.post_id,
-    comment_id: props.comment.id,
-  })
+  (props.columnId ? columnCommentAction(props.comment.id, 'up') : thumbsUpTweetComment({ tweet_id: props.comment.post_id, comment_id: props.comment.id }))
     .then((_res) => {
       hasThumbsUp.value = !hasThumbsUp.value;
       if (hasThumbsUp.value) {
@@ -125,10 +127,7 @@ const handleThumbsUp = () => {
     });
 };
 const handleThumbsDown = () => {
-  thumbsDownTweetComment({
-    tweet_id: props.comment.post_id,
-    comment_id: props.comment.id,
-  })
+  (props.columnId ? columnCommentAction(props.comment.id, 'down') : thumbsDownTweetComment({ tweet_id: props.comment.post_id, comment_id: props.comment.id }))
     .then((_res) => {
       hasThumbsDown.value = !hasThumbsDown.value;
       if (hasThumbsDown.value) {
@@ -157,11 +156,7 @@ const switchReply = (status: boolean) => {
 };
 const submitReply = () => {
   submitting.value = true;
-  createCommentReply({
-    comment_id: props.comment.id,
-    at_user_id: props.atUserid,
-    content: replyContent.value,
-  })
+  (props.columnId ? createColumnComment({ column_id: props.columnId, parent_id: props.comment.id, at_user_id: props.atUserid, content: replyContent.value }) : createCommentReply({ comment_id: props.comment.id, at_user_id: props.atUserid, content: replyContent.value }))
     .then((res) => {
       switchReply(false);
       if (res.audit_status === 0) {

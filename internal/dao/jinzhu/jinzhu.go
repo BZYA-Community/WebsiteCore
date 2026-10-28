@@ -21,6 +21,7 @@ import (
 var _onceInitial sync.Once
 
 type dataSrv struct {
+	core.ColumnService
 	core.MessageService
 	core.TopicService
 	core.TweetService
@@ -61,6 +62,7 @@ func NewDataService() (core.DataService, core.VersionInfo) {
 	cms := newCommentMetricServentA(db)
 	cis := cache.NewEventCacheIndexSrv(tms)
 	ds := &dataSrv{
+		ColumnService:          &columnSrv{db: db},
 		TweetMetricServantA:    tms,
 		CommentMetricServantA:  cms,
 		UserMetricServantA:     ums,
