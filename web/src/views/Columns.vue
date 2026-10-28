@@ -3,7 +3,8 @@
     <main-nav :title="t('nav.columns')" :back="!!view" />
     <n-card size="small" class="main-content-wrap columns-page">
       <n-button v-if="view" quaternary @click="back">{{ t('columns.back') }}</n-button>
-      <column-editor v-if="view === 'edit' && user.userLogined" :id="id" :key="screenKey" :kind="kind" :draft-id="draftId" />
+      <column-editor v-if="view === 'edit' && user.userLogined" :id="id" :key="screenKey" :kind="kind" :draft-id="draftId" :source-id="sourceId" />
+      <column-returned v-else-if="view === 'returned' && user.userLogined" :id="id" :key="screenKey" />
       <collection-entries v-else-if="view === 'entries' && user.userLogined" :id="id" :key="screenKey" />
       <column-detail v-else-if="view === 'read'" :id="id" :key="screenKey" />
       <template v-else>
@@ -22,22 +23,24 @@
         </template>
         <form class="list-controls" @submit.prevent="search">
           <n-input-group><n-input v-model:value="keyword" :placeholder="kind === 'article' ? t('columns.search') : t('columns.collectionSearchPlaceholder')" clearable /><n-button attr-type="submit">{{ kind === 'article' ? t('columns.search') : t('columns.searchCollections') }}</n-button></n-input-group>
-          <n-checkbox v-if="kind === 'article'" v-model:checked="official" @update:checked="search">{{ t('columns.officialOnly') }}</n-checkbox>
+          <n-checkbox v-if="kind === 'article' && !returned" v-model:checked="official" @update:checked="search">{{ t('columns.officialOnly') }}</n-checkbox>
+          <n-checkbox v-if="tab === 'mine' && kind === 'article'" :checked="returned" @update:checked="changeReturned">{{ t('columns.returned') }}</n-checkbox>
         </form>
         <n-alert v-if="error" type="error">{{ t('columns.loadFailed') }} <n-button @click="load">{{ t('columns.retry') }}</n-button></n-alert>
         <n-spin :show="loading">
           <n-empty v-if="!loading && !error && !items.length" :description="t('common.noData')" />
           <div v-for="item in items" :key="item.id" class="column-row">
             <n-image v-if="item.kind === 'collection' && item.cover" :src="item.cover" width="100" />
-            <h2><router-link v-if="item.published_on && !item.blocked" :to="{ name: 'columns', query: { view: 'read', id: item.id } }">{{ item.title }}</router-link><span v-else>{{ item.submission?.title || item.title }}</span></h2>
-            <n-space align="center"><span>{{ item.user?.nickname || item.user?.username }}</span><span v-if="item.published_on">{{ formatPrettyTime(item.published_on) }}</span><n-tag v-if="item.official" type="warning" size="small">{{ t('columns.official') }}</n-tag><n-tag v-if="item.blocked" type="error" size="small">{{ t('columns.blocked') }}</n-tag></n-space>
+            <h2><router-link v-if="returned" :to="{ name: 'columns', query: { view: 'returned', id: item.id } }">{{ item.title }}</router-link><router-link v-else-if="item.published_on && !item.blocked" :to="{ name: 'columns', query: { view: 'read', id: item.id } }">{{ item.title }}</router-link><span v-else>{{ item.submission?.title || item.title }}</span></h2>
+            <n-space align="center"><span>{{ item.user?.nickname || item.user?.username }}</span><span v-if="returned">{{ t('columns.deletedAt') }} {{ formatPrettyTime(item.admin_deleted_on || 0) }}</span><span v-else-if="item.published_on">{{ formatPrettyTime(item.published_on) }}</span><n-tag v-if="item.official && !returned" type="warning" size="small">{{ t('columns.official') }}</n-tag><n-tag v-if="item.blocked && !returned" type="error" size="small">{{ t('columns.blocked') }}</n-tag></n-space>
             <p>{{ item.summary || item.submission?.summary }}</p>
-            <n-space v-if="tab === 'mine' || tab === 'manage'">
+            <n-button v-if="returned" size="small" @click="router.push({ name: 'columns', query: { view: 'returned', id: item.id } })">{{ t('columns.viewReturned') }}</n-button>
+            <n-space v-else-if="tab === 'mine' || tab === 'manage'">
               <n-tag v-if="item.submission" size="small">{{ statusText(item.submission.audit_status) }}</n-tag>
               <n-button v-if="canEdit(item)" size="small" @click="edit(item)">{{ t('columns.edit') }}</n-button>
               <n-button v-if="item.kind === 'collection' && canOrganize(item)" size="small" @click="organize(item)">{{ t('columns.organize') }}</n-button>
               <n-button v-if="item.blocked && user.hasPermission('content.manage')" size="small" @click="act(item, 'restore')">{{ t('columns.restore') }}</n-button>
-              <n-popconfirm v-if="!item.curated || user.hasPermission('content.manage')" @positive-click="act(item, 'delete')"><template #trigger><n-button size="small" type="error">{{ t('columns.delete') }}</n-button></template>{{ t('columns.confirmRemoval') }}</n-popconfirm>
+              <column-delete-button v-if="!item.curated || user.hasPermission('content.manage')" :item="item" @deleted="load" />
             </n-space>
           </div>
         </n-spin>
@@ -54,6 +57,8 @@ import { useStoreUser } from '@/store/user';
 import { listColumns, columnAction, type ColumnItem } from '@/api/columns';
 import { formatPrettyTime } from '@/utils/formatTime';
 import ColumnDetail from '@/components/columns/column-detail.vue';
+import ColumnReturned from '@/components/columns/column-returned.vue';
+import ColumnDeleteButton from '@/components/columns/column-delete-button.vue';
 import ColumnEditor from '@/components/columns/column-editor.vue';
 import CollectionEntries from '@/components/columns/collection-entries.vue';
 const { t } = useI18n();
@@ -69,9 +74,11 @@ const kind = computed<'article' | 'collection'>(() =>
     : 'article',
 );
 const draftId = computed(() => String(route.query.draft || 'new'));
+const sourceId = computed(() => Number(route.query.source || 0));
+const returned = computed(() => tab.value === 'mine' && kind.value === 'article' && route.query.returned === '1');
 const screenKey = computed(
   () =>
-    `${user.userInfo.id}:${view.value}:${id.value}:${kind.value}:${draftId.value}`,
+    `${user.userInfo.id}:${view.value}:${id.value}:${kind.value}:${draftId.value}:${sourceId.value}`,
 );
 const kinds = computed(() => [
   { label: t('columns.articles'), value: 'article' },
@@ -90,6 +97,7 @@ interface LocalDraft {
   kind: string;
   draftId: string;
   title: string;
+  sourceId: number;
 }
 const drafts = ref<LocalDraft[]>([]);
 let requestId = 0;
@@ -109,6 +117,7 @@ function loadDrafts() {
             kind: value.kind,
             draftId: value.draftId,
             title: value.draft.title,
+            sourceId: Number(value.sourceId || 0),
           });
       } catch {
         /* Ignore a damaged local entry without affecting other drafts. */
@@ -131,6 +140,7 @@ async function load() {
       official: official.value,
       mine: tab.value === 'mine',
       manage: tab.value === 'manage',
+      returned: returned.value,
       page: page.value,
       page_size: 20,
     });
@@ -161,10 +171,15 @@ function changeKind(value: string) {
     query: { tab: tab.value, kind: value },
   });
 }
+function changeReturned(value: boolean) {
+  keyword.value = '';
+  official.value = false;
+  return router.push({ name: 'columns', query: { tab: 'mine', kind: 'article', returned: value ? '1' : undefined } });
+}
 function back() {
   return router.push({
     name: 'columns',
-    query: { tab: user.userLogined ? 'mine' : 'articles', kind: kind.value },
+    query: { tab: user.userLogined ? 'mine' : 'articles', kind: kind.value, returned: view.value === 'returned' ? '1' : undefined },
   });
 }
 function create() {
@@ -193,6 +208,7 @@ function openDraft(draft: LocalDraft) {
       kind: draft.kind,
       id: draft.id || undefined,
       draft: draft.draftId,
+      source: draft.sourceId || undefined,
     },
   });
 }

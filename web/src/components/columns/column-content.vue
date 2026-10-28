@@ -23,8 +23,9 @@ const props = withDefaults(
     attachments?: ColumnMedia[];
     columnId?: number;
     submissionId?: number;
+    returned?: boolean;
   }>(),
-  { attachments: () => [], columnId: 0, submissionId: 0 },
+  { attachments: () => [], columnId: 0, submissionId: 0, returned: false },
 );
 const { t, locale } = useI18n();
 const main = useStoreMain();
@@ -42,7 +43,7 @@ const files = computed(() =>
 async function download(index: number) {
   const result = await request<unknown, { signed_url: string }>({
     method: 'get',
-    url: '/v1/column/attachment',
+    url: props.returned ? '/v1/column/returned/attachment' : '/v1/column/attachment',
     params: { id: props.columnId, index, submission_id: props.submissionId },
   });
   window.open(result.signed_url, '_blank', 'noopener,noreferrer');

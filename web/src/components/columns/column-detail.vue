@@ -19,7 +19,7 @@
         <n-button v-if="item.kind === 'article' && (canEdit || manager)" size="small" @click="action(item.locked ? 'unlock' : 'lock')">{{ item.locked ? t('columns.unlock') : t('columns.lock') }}</n-button>
         <n-button v-if="item.kind === 'article' && manager" size="small" @click="action(item.official ? 'uninvite' : 'invite')">{{ item.official ? t('columns.uninvite') : t('columns.invite') }}</n-button>
         <n-popconfirm v-if="manager" @positive-click="remove('takedown')"><template #trigger><n-button size="small" type="warning">{{ t('columns.takedown') }}</n-button></template>{{ t('columns.confirmRemoval') }}</n-popconfirm>
-        <n-popconfirm v-if="manager || (owner && !item.curated)" @positive-click="remove('delete')"><template #trigger><n-button size="small" type="error">{{ t('columns.delete') }}</n-button></template>{{ t('columns.confirmRemoval') }}</n-popconfirm>
+        <column-delete-button v-if="manager || (owner && !item.curated)" :item="item" @deleted="afterDelete" />
       </n-space>
       <column-content v-if="item.kind === 'article'" :body="item.body" :attachments="item.attachments" :column-id="item.id" />
       <template v-else>
@@ -52,6 +52,7 @@ import {
 } from '@/api/columns';
 import { formatPrettyTime } from '@/utils/formatTime';
 import ColumnContent from './column-content.vue';
+import ColumnDeleteButton from './column-delete-button.vue';
 const props = defineProps<{ id: number }>();
 const { t } = useI18n();
 const user = useStoreUser(),
@@ -162,6 +163,9 @@ async function remove(value: string) {
   } catch {
     /* Do not navigate away after a failed removal. */
   }
+}
+function afterDelete() {
+  if (active) router.push({ name: 'columns' });
 }
 function edit() {
   router.push({

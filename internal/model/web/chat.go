@@ -43,6 +43,7 @@ type GetChatHistoryReq struct {
 // ChatHistoryItem 聊天消息(系统会话带 type/post_id/comment_id 供前端跳转)
 type ChatHistoryItem struct {
 	ColumnID       int64  `json:"column_id,omitempty"`
+	ColumnReturned bool   `json:"column_returned,omitempty"`
 	ID             int64  `json:"id"`
 	SenderID       int64  `json:"sender_id"`
 	SenderName     string `json:"sender_name,omitempty"`

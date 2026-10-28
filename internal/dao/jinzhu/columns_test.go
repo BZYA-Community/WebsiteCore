@@ -352,4 +352,97 @@ func TestColumnsPublicationCollectionsAndDiscussion(t *testing.T) {
 	_, err = review.DecideReview(operator, longReasonTask.ID, longReasonTask.Revision, "reject", strings.Repeat("理", 255))
 	must(err)
 	must(review.ReconcileReviewTasks(48 * time.Hour))
+	// Administrator deletion returns only the latest submission to its author.
+	beforeDelete, err := s.GetColumn(author, article.ID, true)
+	must(err)
+	file := &dbr.Attachment{Model: &dbr.Model{}, UserID: author.ID, Content: "returned-community-file", Purpose: "community", Verified: true, Type: dbr.AttachmentTypeOther}
+	must(db.Create(file).Error)
+	latest, err := s.SubmitColumn(author, article.ID, beforeDelete.SubmissionID, ms.ColumnArticle, &ms.ColumnSubmission{
+		Title: "Latest returned submission", Body: "latest private returned content", Attachments: []*ms.ColumnContent{{Content: file.Content, Type: ms.ContentTypeAttachment}},
+	})
+	must(err)
+	deletedTask := taskFor(ms.ReviewColumn, latest.SubmissionID)
+	if err := s.DeleteColumn(manager, article.ID, " "); !errors.Is(err, authz.ErrInvalid) {
+		t.Fatalf("administrator deletion accepted an empty reason: %v", err)
+	}
+	if err := s.DeleteColumn(manager, article.ID, strings.Repeat("中", 256)); !errors.Is(err, authz.ErrInvalid) {
+		t.Fatalf("administrator deletion accepted an oversized reason: %v", err)
+	}
+	must(s.DeleteColumn(manager, article.ID, "Please revise the content"))
+	returned, err := s.GetReturnedColumn(author, article.ID)
+	must(err)
+	if returned.Body != "latest private returned content" || returned.Title != "Latest returned submission" || returned.SubmissionID != latest.SubmissionID || len(returned.Attachments) != 1 || returned.AdminDeletedBy != manager.ID || returned.AdminDeleteReason != "Please revise the content" {
+		t.Fatalf("returned content is not the latest submitted version: %+v", returned)
+	}
+	for _, actor := range []*ms.User{nil, other, manager, operator} {
+		if _, err := s.GetReturnedColumn(actor, article.ID); err == nil {
+			t.Fatal("returned content exposed to someone other than its author")
+		}
+	}
+	if _, err := s.GetColumn(author, article.ID, true); !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatalf("normal submission endpoint returned deleted content: %v", err)
+	}
+	if _, err := s.ColumnAttachment(author, article.ID, latest.SubmissionID, 0); err == nil {
+		t.Fatal("normal attachment endpoint accepted a deleted article")
+	}
+	if _, err := review.DecideReview(reviewer, deletedTask.ID, deletedTask.Revision, "approve", ""); !errors.Is(err, core.ErrReviewStale) {
+		t.Fatalf("deleted submission remained actionable: %v", err)
+	}
+	rows, total, err := s.ListColumns(author, core.ColumnQuery{Kind: ms.ColumnArticle, Mine: true, Returned: true, Keyword: "Latest returned", Limit: 20})
+	must(err)
+	if total != 1 || len(rows) != 1 || rows[0].Title != returned.Title {
+		t.Fatal("author return list did not use latest submitted metadata")
+	}
+	_, total, err = s.ListColumns(other, core.ColumnQuery{Kind: ms.ColumnArticle, Mine: true, Returned: true, Limit: 20})
+	must(err)
+	if total != 0 {
+		t.Fatal("another author could list returned content")
+	}
+	if _, _, err := s.ListColumns(nil, core.ColumnQuery{Kind: ms.ColumnArticle, Mine: true, Returned: true, Limit: 20}); err == nil {
+		t.Fatal("guest could list returned content")
+	}
+	var notices int64
+	countNotices := func() {
+		must(db.Model(&ms.Message{}).Where("column_id=? AND receiver_user_id=? AND column_returned", article.ID, author.ID).Count(&notices).Error)
+		if notices != 1 {
+			t.Fatalf("return notifications=%d, want one", notices)
+		}
+	}
+	countNotices()
+	if err := s.DeleteColumn(manager, article.ID, "Repeated"); err == nil {
+		t.Fatal("deleted article could be deleted twice")
+	}
+	countNotices()
+	must(db.Where("group_id=? AND permission=?", publish.ID, authz.ColumnPublish).Delete(&dbr.IdentityGroupPermission{}).Error)
+	_, err = s.GetReturnedColumn(author, article.ID)
+	must(err)
+	if _, err := s.RecreateColumn(author, article.ID, &ms.ColumnSubmission{Title: "Denied", Body: "Text"}); !errors.Is(err, authz.ErrDenied) {
+		t.Fatalf("revoked publisher could recreate returned content: %v", err)
+	}
+	must(db.Create(&dbr.IdentityGroupPermission{GroupID: publish.ID, Permission: authz.ColumnPublish}).Error)
+	must(db.Create(&dbr.UserIdentityGroup{UserID: author.ID, GroupID: exempt.ID}).Error)
+	if _, err := s.RecreateColumn(operator, article.ID, &ms.ColumnSubmission{Title: "Not mine", Body: "Text"}); err == nil {
+		t.Fatal("operator recreated someone else's returned content")
+	}
+	recreated, err := s.RecreateColumn(author, article.ID, &ms.ColumnSubmission{Title: "Recreated article", Body: returned.Body, Attachments: returned.Attachments})
+	must(err)
+	if recreated.ID == article.ID || recreated.PublishedOn != 0 || recreated.Submission.AuditStatus != ms.PostAuditPending || recreated.Official || recreated.Locked || recreated.RecreatedFromID != article.ID {
+		t.Fatalf("recreated content bypassed review or inherited original state: %+v", recreated)
+	}
+	must(s.ColumnAction(author, recreated.ID, "withdraw"))
+	resubmitted := submit(author, recreated.ID, recreated.SubmissionID, ms.ColumnArticle, "Resubmitted recreation", "Revised returned content")
+	if resubmitted.Submission.AuditStatus != ms.PostAuditPending {
+		t.Fatal("withdraw/resubmit bypassed mandatory first-publication review")
+	}
+	decide(taskFor(ms.ReviewColumn, resubmitted.SubmissionID), "approve")
+	_, err = s.GetColumn(nil, recreated.ID, false)
+	must(err)
+	if _, err := s.GetColumn(nil, article.ID, false); err == nil {
+		t.Fatal("recreating restored the original article")
+	}
+	selfDeleted := submit(author, 0, 0, ms.ColumnArticle, "Self deleted", "Text")
+	must(s.ColumnAction(author, selfDeleted.ID, "delete"))
+	if _, err := s.GetReturnedColumn(author, selfDeleted.ID); err == nil {
+		t.Fatal("author deletion unexpectedly created a return record")
+	}
 }

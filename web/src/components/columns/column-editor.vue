@@ -9,6 +9,7 @@
         <n-space><n-button @click="restoreConflict">{{ t('columns.restoreLocal') }}</n-button><n-button @click="discard">{{ t('columns.discardLocal') }}</n-button></n-space>
       </n-alert>
       <n-alert v-if="storageError" type="warning">{{ t('columns.storageFailed') }}</n-alert>
+      <n-alert v-if="sourceId" type="info">{{ t('columns.recreateHint') }}</n-alert>
       <n-form label-placement="top" class="column-form" :disabled="readonly || saving">
         <n-form-item :label="t('columns.titleLabel')" required><n-input v-model:value="draft.title" :maxlength="200" show-count /></n-form-item>
         <n-form-item v-if="kind === 'collection'" :label="t('columns.introduction')"><n-input v-model:value="draft.summary" type="textarea" :maxlength="2000" show-count /></n-form-item>
@@ -46,6 +47,7 @@ import { useStoreMain } from '@/store/main';
 import {
   columnAction,
   getColumn,
+  getReturnedColumn,
   submitColumn,
   type ColumnItem,
   type ColumnDraft,
@@ -58,6 +60,7 @@ const props = defineProps<{
   id: number;
   kind: 'article' | 'collection';
   draftId: string;
+  sourceId?: number;
 }>();
 const { t, locale } = useI18n();
 const user = useStoreUser();
@@ -134,7 +137,8 @@ async function load() {
       await router.replace({ name: 'columns', query: { ...route.query, kind: row.value.kind } });
       return;
     }
-    draft.value = serverDraft(row.value);
+    const source = !props.id && props.sourceId ? (await getReturnedColumn(props.sourceId)).item : row.value;
+    draft.value = serverDraft(source);
     if (!active) return;
     try {
       const local = localStorage.getItem(key.value);
@@ -167,6 +171,7 @@ watch(
           id: props.id,
           kind: props.kind,
           draftId: props.draftId,
+          sourceId: props.sourceId || 0,
           expectedSubmission: row.value?.submission_id || 0,
           draft: draft.value,
         }),
@@ -217,6 +222,7 @@ async function submit() {
       id: props.id,
       kind: props.kind,
       expected_submission: row.value?.submission_id || 0,
+      recreated_from_id: !props.id ? props.sourceId || 0 : 0,
     };
     const result = await submitColumn(payload);
     try {
@@ -265,6 +271,10 @@ function discard() {
     storageError.value = true;
   }
   loading.value = true;
+  if (!props.id && props.sourceId) {
+    void load();
+    return;
+  }
   draft.value = serverDraft(row.value);
   queueMicrotask(() => {
     loading.value = false;

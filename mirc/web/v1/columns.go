@@ -15,13 +15,15 @@ type ColumnsLoose struct {
 }
 
 type ColumnsPriv struct {
-	Schema              `mir:"v1,chain"`
-	ColumnSubmission    func(Get, web.ColumnsReq) web.ColumnResp               `mir:"column/submission"`
-	SubmitColumn        func(Post, web.ColumnSubmitReq) web.ColumnResp         `mir:"column/submit"`
-	ColumnAction        func(Post, web.ColumnActionReq)                        `mir:"column/action"`
-	SetColumnEntries    func(Post, web.ColumnEntriesReq)                       `mir:"column/entries"`
-	CreateColumnComment func(Post, web.ColumnCommentReq) web.ColumnCommentResp `mir:"column/comment"`
-	ColumnCommentAction func(Post, web.ColumnActionReq)                        `mir:"column/comment/action"`
-	ColumnReviews       func(Get, web.ColumnsReq) web.ColumnReviewsResp        `mir:"admin/audit/columns"`
-	DecideColumnReview  func(Post, web.ColumnReviewReq)                        `mir:"admin/audit/column"`
+	Schema                   `mir:"v1,chain"`
+	ColumnSubmission         func(Get, web.ColumnsReq) web.ColumnResp               `mir:"column/submission"`
+	ColumnReturned           func(Get, web.ColumnsReq) web.ColumnResp               `mir:"column/returned"`
+	ColumnReturnedAttachment func(Get, web.ColumnsReq) web.DownloadAttachmentResp   `mir:"column/returned/attachment"`
+	SubmitColumn             func(Post, web.ColumnSubmitReq) web.ColumnResp         `mir:"column/submit"`
+	ColumnAction             func(Post, web.ColumnActionReq)                        `mir:"column/action"`
+	SetColumnEntries         func(Post, web.ColumnEntriesReq)                       `mir:"column/entries"`
+	CreateColumnComment      func(Post, web.ColumnCommentReq) web.ColumnCommentResp `mir:"column/comment"`
+	ColumnCommentAction      func(Post, web.ColumnActionReq)                        `mir:"column/comment/action"`
+	ColumnReviews            func(Get, web.ColumnsReq) web.ColumnReviewsResp        `mir:"admin/audit/columns"`
+	DecideColumnReview       func(Post, web.ColumnReviewReq)                        `mir:"admin/audit/column"`
 }

@@ -25,6 +25,8 @@ type ColumnsPriv interface {
 	SetColumnEntries(*web.ColumnEntriesReq) error
 	ColumnAction(*web.ColumnActionReq) error
 	SubmitColumn(*web.ColumnSubmitReq) (*web.ColumnResp, error)
+	ColumnReturnedAttachment(*web.ColumnsReq) (*web.DownloadAttachmentResp, error)
+	ColumnReturned(*web.ColumnsReq) (*web.ColumnResp, error)
 	ColumnSubmission(*web.ColumnsReq) (*web.ColumnResp, error)
 
 	mustEmbedUnimplementedColumnsPrivServant()
@@ -133,6 +135,34 @@ func RegisterColumnsPrivServant(e *gin.Engine, s ColumnsPriv) {
 		resp, err := s.SubmitColumn(req)
 		s.Render(c, resp, err)
 	})
+	router.Handle("GET", "column/returned/attachment", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.ColumnsReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.ColumnReturnedAttachment(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("GET", "column/returned", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.ColumnsReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.ColumnReturned(req)
+		s.Render(c, resp, err)
+	})
 	router.Handle("GET", "column/submission", func(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
@@ -181,6 +211,14 @@ func (UnimplementedColumnsPrivServant) ColumnAction(req *web.ColumnActionReq) er
 }
 
 func (UnimplementedColumnsPrivServant) SubmitColumn(req *web.ColumnSubmitReq) (*web.ColumnResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedColumnsPrivServant) ColumnReturnedAttachment(req *web.ColumnsReq) (*web.DownloadAttachmentResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedColumnsPrivServant) ColumnReturned(req *web.ColumnsReq) (*web.ColumnResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

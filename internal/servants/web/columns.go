@@ -38,7 +38,7 @@ func (s *columnsLooseSrv) Columns(r *web.ColumnsReq) (*web.ColumnsResp, error) {
 	if kind == "" {
 		kind = ms.ColumnArticle
 	}
-	rows, total, err := s.Ds.ListColumns(r.User, core.ColumnQuery{AuthorID: r.AuthorID, Kind: kind, Keyword: r.Keyword, Mine: r.Mine, Manage: r.Manage, Official: r.Official, Offset: (r.Page - 1) * r.PageSize, Limit: r.PageSize})
+	rows, total, err := s.Ds.ListColumns(r.User, core.ColumnQuery{AuthorID: r.AuthorID, Kind: kind, Keyword: r.Keyword, Mine: r.Mine, Manage: r.Manage, Official: r.Official, Returned: r.Returned, Offset: (r.Page - 1) * r.PageSize, Limit: r.PageSize})
 	return &web.ColumnsResp{Items: rows, Total: total}, reviewError(err)
 }
 func (s *columnsLooseSrv) Column(r *web.ColumnsReq) (*web.ColumnResp, error) {
@@ -48,6 +48,22 @@ func (s *columnsLooseSrv) Column(r *web.ColumnsReq) (*web.ColumnResp, error) {
 func (s *columnsPrivSrv) ColumnSubmission(r *web.ColumnsReq) (*web.ColumnResp, error) {
 	row, err := s.Ds.GetColumn(r.User, r.ID, true)
 	return &web.ColumnResp{Item: row}, reviewError(err)
+}
+
+func (s *columnsPrivSrv) ColumnReturned(r *web.ColumnsReq) (*web.ColumnResp, error) {
+	row, err := s.Ds.GetReturnedColumn(r.User, r.ID)
+	return &web.ColumnResp{Item: row}, reviewError(err)
+}
+
+func (s *columnsPrivSrv) ColumnReturnedAttachment(r *web.ColumnsReq) (*web.DownloadAttachmentResp, error) {
+	row, err := s.Ds.GetReturnedColumn(r.User, r.ID)
+	if err != nil {
+		return nil, reviewError(err)
+	}
+	if r.Index < 0 || r.Index >= len(row.Attachments) || row.Attachments[r.Index].Type != ms.ContentTypeAttachment {
+		return nil, xerror.InvalidParams
+	}
+	return signColumnDownload(s.oss, row.Attachments[r.Index].Content)
 }
 func (s *columnsLooseSrv) ColumnEntries(r *web.ColumnsReq) (*web.ColumnsResp, error) {
 	rows, err := s.Ds.ColumnEntries(r.User, r.ID, r.Editing)
@@ -81,6 +97,9 @@ func (s *columnsPrivSrv) SubmitColumn(r *web.ColumnSubmitReq) (*web.ColumnResp, 
 	if r.User == nil || !r.User.HasPermission(authz.ColumnPublish) {
 		return nil, web.ErrNoPermission
 	}
+	if r.RecreatedFromID != 0 && (r.RecreatedFromID < 0 || r.ID != 0 || r.Kind != ms.ColumnArticle) {
+		return nil, xerror.InvalidParams
+	}
 	if r.ID > 0 {
 		if _, err := s.Ds.GetColumn(r.User, r.ID, true); err != nil {
 			return nil, reviewError(err)
@@ -105,10 +124,19 @@ func (s *columnsPrivSrv) SubmitColumn(r *web.ColumnSubmitReq) (*web.ColumnResp, 
 		}
 		r.Summary = string(summary)
 	}
-	row, err := s.Ds.SubmitColumn(r.User, r.ID, r.ExpectedSubmission, r.Kind, &ms.ColumnSubmission{Title: r.Title, Summary: r.Summary, Body: r.Body, Cover: r.Cover, Attachments: attachments})
+	submission := &ms.ColumnSubmission{Title: r.Title, Summary: r.Summary, Body: r.Body, Cover: r.Cover, Attachments: attachments}
+	var row *ms.Column
+	if r.RecreatedFromID > 0 {
+		row, err = s.Ds.RecreateColumn(r.User, r.RecreatedFromID, submission)
+	} else {
+		row, err = s.Ds.SubmitColumn(r.User, r.ID, r.ExpectedSubmission, r.Kind, submission)
+	}
 	return &web.ColumnResp{Item: row}, reviewError(err)
 }
 func (s *columnsPrivSrv) ColumnAction(r *web.ColumnActionReq) error {
+	if r.Action == "delete" {
+		return reviewError(s.Ds.DeleteColumn(r.User, r.ID, r.Reason))
+	}
 	return reviewError(s.Ds.ColumnAction(r.User, r.ID, r.Action))
 }
 func (s *columnsPrivSrv) SetColumnEntries(r *web.ColumnEntriesReq) error {
@@ -173,11 +201,15 @@ func (s *columnsLooseSrv) ColumnAttachment(r *web.ColumnsReq) (*web.DownloadAtta
 	if err != nil {
 		return nil, reviewError(err)
 	}
-	key := s.oss.ObjectKey(content)
+	return signColumnDownload(s.oss, content)
+}
+
+func signColumnDownload(oss core.ObjectStorageService, content string) (*web.DownloadAttachmentResp, error) {
+	key := oss.ObjectKey(content)
 	if key == "" {
 		return nil, xerror.InvalidParams
 	}
-	signed, err := s.oss.SignURL(key, 600)
+	signed, err := oss.SignURL(key, 600)
 	if err != nil {
 		return nil, xerror.ServerError
 	}

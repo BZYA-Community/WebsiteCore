@@ -105,7 +105,7 @@ export function useChatRooms() {
     if (m.column_id) {
       const comment = m.comment_id ? `&comment_id=${m.comment_id}` : '';
       // Metadata review notices target the author's submission; interactions target the public article.
-      const view = m.type === 99 && !m.sender_id && !m.comment_id ? 'edit' : 'read';
+      const view = m.column_returned ? 'returned' : m.type === 99 && !m.sender_id && !m.comment_id ? 'edit' : 'read';
       lines.push(t('message.chat.viewDetailLink', { url: `${base}#/columns?view=${view}&id=${m.column_id}${comment}` }));
     } else if (m.type >= 1 && m.type <= 3 && m.post_id) {
       lines.push(t('message.chat.viewDetailLink', { url: `${base}#/post?id=${m.post_id}` }));

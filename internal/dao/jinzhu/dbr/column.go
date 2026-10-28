@@ -26,6 +26,10 @@ type Column struct {
 	Locked             bool              `json:"locked"`
 	Blocked            bool              `json:"blocked"`
 	Curated            bool              `json:"curated"`
+	AdminDeletedBy     int64             `json:"admin_deleted_by,omitempty"`
+	AdminDeletedOn     int64             `json:"admin_deleted_on,omitempty"`
+	AdminDeleteReason  string            `json:"admin_delete_reason,omitempty"`
+	RecreatedFromID    int64             `json:"-"`
 	User               *UserFormated     `gorm:"-" json:"user,omitempty"`
 	Submission         *ColumnSubmission `gorm:"-" json:"submission,omitempty"`
 }

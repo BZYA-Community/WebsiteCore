@@ -33,6 +33,9 @@ export interface ColumnItem {
   locked: boolean;
   blocked: boolean;
   curated: boolean;
+  admin_deleted_by?: number;
+  admin_deleted_on?: number;
+  admin_delete_reason?: string;
   submission?: ColumnSubmission;
 }
 export interface ColumnDraft {
@@ -81,6 +84,7 @@ export interface ColumnListQuery {
   keyword?: string;
   mine?: boolean;
   manage?: boolean;
+  returned?: boolean;
   official?: boolean;
   page?: number;
   page_size?: number;
@@ -99,11 +103,13 @@ export const getColumn = (
     params: { id },
   });
 export const submitColumn = (
-  data: ColumnDraft & { id: number; kind: string; expected_submission: number },
+  data: ColumnDraft & { id: number; kind: string; expected_submission: number; recreated_from_id?: number },
 ): Promise<{ item: ColumnItem }> =>
   request({ method: 'post', url: '/v1/column/submit', data });
-export const columnAction = (id: number, action: string): Promise<unknown> =>
-  request({ method: 'post', url: '/v1/column/action', data: { id, action } });
+export const columnAction = (id: number, action: string, reason = ''): Promise<unknown> =>
+  request({ method: 'post', url: '/v1/column/action', data: { id, action, reason } });
+export const getReturnedColumn = (id: number): Promise<{ item: ColumnItem }> =>
+  request({ method: 'get', url: '/v1/column/returned', params: { id } });
 export const columnEntries = (
   id: number,
   editing = false,

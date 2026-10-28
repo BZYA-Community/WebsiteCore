@@ -18,6 +18,7 @@ type ColumnsReq struct {
 	Manage       bool   `form:"manage"`
 	Official     bool   `form:"official"`
 	Editing      bool   `form:"editing"`
+	Returned     bool   `form:"returned"`
 	Style        string `form:"style"`
 	Page         int    `form:"-" binding:"-"`
 	PageSize     int    `form:"-" binding:"-"`
@@ -48,6 +49,7 @@ type ColumnSubmitReq struct {
 	BaseInfo           `json:"-" binding:"-"`
 	ID                 int64              `json:"id"`
 	ExpectedSubmission int64              `json:"expected_submission"`
+	RecreatedFromID    int64              `json:"recreated_from_id"`
 	Kind               string             `json:"kind" binding:"required"`
 	Title              string             `json:"title" binding:"required"`
 	Summary            string             `json:"summary"`
@@ -59,6 +61,7 @@ type ColumnActionReq struct {
 	BaseInfo `json:"-" binding:"-"`
 	ID       int64  `json:"id" binding:"required"`
 	Action   string `json:"action" binding:"required"`
+	Reason   string `json:"reason"`
 }
 type ColumnEntriesReq struct {
 	BaseInfo `json:"-" binding:"-"`

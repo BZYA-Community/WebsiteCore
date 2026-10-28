@@ -184,6 +184,7 @@ func (s *chatSrv) GetChatHistory(req *web.GetChatHistoryReq) (*web.GetChatHistor
 				Type:           int8(m.Type),
 				PostID:         m.PostID,
 				ColumnID:       m.ColumnID,
+				ColumnReturned: m.ColumnReturned,
 				CommentID:      m.CommentID,
 				Timestamp:      m.CreatedOn,
 				Seen:           true,

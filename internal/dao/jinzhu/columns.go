@@ -65,7 +65,12 @@ func (s *columnSrv) ListColumns(actor *ms.User, q core.ColumnQuery) ([]*ms.Colum
 		return nil, 0, authz.ErrInvalid
 	}
 	db := s.db.Model(&ms.Column{}).Where("kind = ? AND is_del = 0", q.Kind)
-	if q.Mine || q.Manage {
+	if q.Returned {
+		if actor == nil || actor.ID <= 0 || !q.Mine || q.Manage || q.Kind != ms.ColumnArticle {
+			return nil, 0, authz.ErrDenied
+		}
+		db = s.db.Unscoped().Model(&ms.Column{}).Where("kind=? AND is_del=1 AND admin_deleted_by>0 AND user_id=?", ms.ColumnArticle, actor.ID)
+	} else if q.Mine || q.Manage {
 		if actor == nil || actor.ID <= 0 || (q.Manage && !actor.HasPermission(authz.ContentManage)) {
 			return nil, 0, authz.ErrDenied
 		}
@@ -86,7 +91,10 @@ func (s *columnSrv) ListColumns(actor *ms.User, q core.ColumnQuery) ([]*ms.Colum
 		db = db.Where("official = ?", true)
 	}
 	if keyword := strings.TrimSpace(q.Keyword); keyword != "" {
-		if !q.Mine && !q.Manage && q.Kind == ms.ColumnArticle {
+		if q.Returned {
+			matches := columnKeyword(s.db.Model(&ms.ColumnSubmission{}).Select("id"), keyword, ms.ColumnArticle)
+			db = db.Where("submission_id IN (?)", matches)
+		} else if !q.Mine && !q.Manage && q.Kind == ms.ColumnArticle {
 			if ids, ok := searchColumnIDs(s.db, keyword); ok {
 				db = db.Where("id IN ?", ids)
 			} else {
@@ -105,6 +113,9 @@ func (s *columnSrv) ListColumns(actor *ms.User, q core.ColumnQuery) ([]*ms.Colum
 	if q.Mine || q.Manage {
 		order = "id DESC"
 	}
+	if q.Returned {
+		order = "admin_deleted_on DESC, id DESC"
+	}
 	if err := db.Order(order).Offset(q.Offset).Limit(q.Limit).Find(&rows).Error; err != nil {
 		return nil, 0, err
 	}
@@ -114,6 +125,9 @@ func (s *columnSrv) ListColumns(actor *ms.User, q core.ColumnQuery) ([]*ms.Colum
 			var submission ms.ColumnSubmission
 			if row.SubmissionID > 0 && s.db.First(&submission, row.SubmissionID).Error == nil {
 				row.Submission = &submission
+				if q.Returned {
+					row.Title, row.Summary = submission.Title, submission.Summary
+				}
 			}
 		}
 		row.Body, row.Attachments = "", nil
@@ -188,6 +202,17 @@ func normalizeColumnSubmission(kind string, r *ms.ColumnSubmission) error {
 }
 
 func (s *columnSrv) SubmitColumn(actor *ms.User, id, expected int64, kind string, input *ms.ColumnSubmission) (*ms.Column, error) {
+	return s.submitColumn(actor, id, expected, 0, kind, input)
+}
+
+func (s *columnSrv) RecreateColumn(actor *ms.User, sourceID int64, input *ms.ColumnSubmission) (*ms.Column, error) {
+	if sourceID <= 0 {
+		return nil, authz.ErrInvalid
+	}
+	return s.submitColumn(actor, 0, 0, sourceID, ms.ColumnArticle, input)
+}
+
+func (s *columnSrv) submitColumn(actor *ms.User, id, expected, sourceID int64, kind string, input *ms.ColumnSubmission) (*ms.Column, error) {
 	if err := normalizeColumnSubmission(kind, input); err != nil {
 		return nil, err
 	}
@@ -199,6 +224,12 @@ func (s *columnSrv) SubmitColumn(actor *ms.User, id, expected int64, kind string
 		}
 		if id == 0 {
 			row = &ms.Column{Model: &ms.Model{}, UserID: fresh.ID, Kind: kind, Curated: kind == ms.ColumnCollection && fresh.HasPermission(authz.ContentManage), Attachments: []*ms.ColumnContent{}}
+			if sourceID > 0 {
+				if _, err := returnedColumn(tx, fresh, sourceID); err != nil {
+					return err
+				}
+				row.RecreatedFromID = sourceID
+			}
 			if err := tx.Create(row).Error; err != nil {
 				return err
 			}
@@ -236,7 +267,7 @@ func (s *columnSrv) SubmitColumn(actor *ms.User, id, expected int64, kind string
 		r.UserID = fresh.ID
 		r.Reason = ""
 		r.AuditStatus = ms.PostAuditApproved
-		if reviewRequired(fresh) {
+		if reviewRequired(fresh) || (row.RecreatedFromID > 0 && row.PublicSubmissionID == 0) {
 			r.AuditStatus = ms.PostAuditPending
 		}
 		if err := tx.Create(&r).Error; err != nil {
@@ -283,6 +314,18 @@ func publishColumnTx(tx *gorm.DB, row *ms.Column, r *ms.ColumnSubmission) error 
 }
 
 func (s *columnSrv) ColumnAction(actor *ms.User, id int64, action string) error {
+	return s.columnAction(actor, id, action, "")
+}
+
+func (s *columnSrv) DeleteColumn(actor *ms.User, id int64, reason string) error {
+	return s.columnAction(actor, id, "delete", reason)
+}
+
+func (s *columnSrv) columnAction(actor *ms.User, id int64, action, reason string) error {
+	reason = strings.TrimSpace(reason)
+	if utf8.RuneCountInString(reason) > 255 {
+		return authz.ErrInvalid
+	}
 	err := columnTransaction(s.db, func(tx *gorm.DB) error {
 		fresh, err := lockColumnActor(tx, actor)
 		if err != nil {
@@ -292,10 +335,10 @@ func (s *columnSrv) ColumnAction(actor *ms.User, id int64, action string) error 
 		if err != nil {
 			return err
 		}
-		if err := columnActionTx(tx, fresh, row, action); err != nil {
+		if err := columnActionTx(tx, fresh, row, action, reason); err != nil {
 			return err
 		}
-		return tx.Create(&ms.AuditLog{Model: &ms.Model{}, ColumnID: id, OperatorID: fresh.ID, Action: "column_" + action}).Error
+		return tx.Create(&ms.AuditLog{Model: &ms.Model{}, ColumnID: id, OperatorID: fresh.ID, Action: "column_" + action, Reason: reason}).Error
 	})
 	if err == nil {
 		syncColumnIndex(s.db, id)
@@ -303,7 +346,7 @@ func (s *columnSrv) ColumnAction(actor *ms.User, id int64, action string) error 
 	return err
 }
 
-func columnActionTx(tx *gorm.DB, fresh *ms.User, row *ms.Column, action string) error {
+func columnActionTx(tx *gorm.DB, fresh *ms.User, row *ms.Column, action, reason string) error {
 	id := row.ID
 	manager := fresh.HasPermission(authz.ContentManage)
 	switch action {
@@ -315,6 +358,11 @@ func columnActionTx(tx *gorm.DB, fresh *ms.User, row *ms.Column, action string) 
 	case "delete":
 		if (row.Curated && !manager) || (row.UserID != fresh.ID && !manager) {
 			return authz.ErrDenied
+		}
+		if row.Kind == ms.ColumnArticle && manager && fresh.ID != row.UserID {
+			if err := returnDeletedColumnTx(tx, fresh, row, reason); err != nil {
+				return err
+			}
 		}
 		if err := withdrawColumnTx(tx, row); err != nil {
 			return err
@@ -464,17 +512,21 @@ func (s *columnSrv) SetColumnEntries(actor *ms.User, id int64, articles []int64)
 }
 
 func columnMessage(tx *gorm.DB, sender, receiver, columnID, commentID int64, brief string) error {
-	if receiver == 0 || receiver == sender {
+	return storeColumnMessage(tx, &ms.Message{Model: &ms.Model{}, SenderUserID: sender, ReceiverUserID: receiver, Type: ms.MsgTypeSystem, ColumnID: columnID, CommentID: commentID, Brief: brief})
+}
+
+func storeColumnMessage(tx *gorm.DB, message *ms.Message) error {
+	if message.ReceiverUserID == 0 || message.ReceiverUserID == message.SenderUserID {
 		return nil
 	}
-	if runes := []rune(brief); len(runes) > 255 {
-		brief = string(runes[:254]) + "…"
+	if runes := []rune(message.Brief); len(runes) > 255 {
+		message.Brief = string(runes[:254]) + "…"
 	}
-	if err := tx.Create(&ms.Message{Model: &ms.Model{}, SenderUserID: sender, ReceiverUserID: receiver, Type: ms.MsgTypeSystem, ColumnID: columnID, CommentID: commentID, Brief: brief}).Error; err != nil {
+	if err := tx.Create(message).Error; err != nil {
 		return err
 	}
 	if recipients, ok := tx.Statement.Context.Value(columnNoticeKey{}).(map[int64]bool); ok {
-		recipients[receiver] = true
+		recipients[message.ReceiverUserID] = true
 	}
 	return nil
 }
