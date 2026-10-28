@@ -329,6 +329,131 @@ func TestColumnsPublicationCollectionsAndDiscussion(t *testing.T) {
 	if err := db.First(&child, reply.ID).Error; !errors.Is(err, gorm.ErrRecordNotFound) {
 		t.Fatal("reply not removed with parent")
 	}
+	t.Run("reply notifications follow public thread visibility", func(t *testing.T) {
+		row := submit(operator, 0, 0, ms.ColumnArticle, "Notification timing", "body")
+		interactions := func(id int64) int64 {
+			t.Helper()
+			var count int64
+			must(db.Model(&ms.Message{}).Where("column_id=? AND comment_id=? AND sender_user_id>0", row.ID, id).Count(&count).Error)
+			return count
+		}
+		for _, rejectParent := range []bool{false, true} {
+			parent, err := s.CreateColumnComment(author, &ms.ColumnComment{ColumnID: row.ID, Content: "pending parent"})
+			must(err)
+			child, err := s.CreateColumnComment(author, &ms.ColumnComment{ColumnID: row.ID, ParentID: parent.ID, AtUserID: other.ID, Mentions: []string{other.Username}, Content: "pending reply"})
+			must(err)
+			childTask := taskFor(ms.ReviewColumnComment, child.ID)
+			decide(childTask, "approve")
+			if got := interactions(child.ID); got != 0 {
+				t.Errorf("approved reply beneath pending parent notified %d recipients", got)
+			}
+			// Exempt replies must also wait for their parent to become public.
+			exemptChild, err := s.CreateColumnComment(operator, &ms.ColumnComment{ColumnID: row.ID, ParentID: parent.ID, AtUserID: other.ID, Content: "exempt reply"})
+			must(err)
+			if got := interactions(exemptChild.ID); got != 0 {
+				t.Errorf("exempt reply beneath pending parent notified %d recipients", got)
+			}
+			pendingChild, err := s.CreateColumnComment(author, &ms.ColumnComment{ColumnID: row.ID, ParentID: parent.ID, AtUserID: other.ID, Content: "still pending reply"})
+			must(err)
+			action := "approve"
+			if rejectParent {
+				action = "reject"
+			}
+			decide(taskFor(ms.ReviewColumnComment, parent.ID), action)
+			want := int64(2) // Article owner and at/mentioned user; exclude self and deduplicate.
+			if rejectParent {
+				want = 0
+			}
+			if got := interactions(child.ID); got != want {
+				t.Errorf("reply notifications after parent %s = %d, want %d", action, got, want)
+			}
+			if got := interactions(exemptChild.ID); got != want {
+				t.Errorf("exempt reply notifications after parent %s = %d, want %d", action, got, want)
+			}
+			if got := interactions(pendingChild.ID); got != 0 {
+				t.Error("pending child notified when parent became public")
+			}
+			if !rejectParent {
+				decide(taskFor(ms.ReviewColumnComment, pendingChild.ID), "approve")
+				if got := interactions(pendingChild.ID); got != 2 {
+					t.Errorf("reply approved after parent notified %d recipients, want 2", got)
+				}
+			}
+			if _, err := review.DecideReview(operator, childTask.ID, childTask.Revision, "approve", ""); !errors.Is(err, core.ErrReviewStale) {
+				t.Fatalf("completed reply reviewed twice: %v", err)
+			}
+			if got := interactions(child.ID); got != want {
+				t.Fatal("stale decision duplicated reply notifications")
+			}
+		}
+	})
+	t.Run("approval enforces comment limit atomically", func(t *testing.T) {
+		row := submit(operator, 0, 0, ms.ColumnArticle, "Comment limit", "body")
+		oldLimit := conf.AppSetting.MaxCommentCount
+		conf.AppSetting.MaxCommentCount = 1
+		defer func() { conf.AppSetting.MaxCommentCount = oldLimit }()
+		first, err := s.CreateColumnComment(author, &ms.ColumnComment{ColumnID: row.ID, Content: "first pending"})
+		must(err)
+		second, err := s.CreateColumnComment(author, &ms.ColumnComment{ColumnID: row.ID, ParentID: first.ID, Content: "second pending reply"})
+		must(err)
+		// Approving an otherwise hidden reply still consumes the approved-comment quota.
+		decide(taskFor(ms.ReviewColumnComment, second.ID), "approve")
+		task := taskFor(ms.ReviewColumnComment, first.ID)
+		if _, err := review.DecideReview(operator, task.ID, task.Revision, "approve", ""); !errors.Is(err, authz.ErrInvalid) {
+			t.Errorf("approval over comment limit accepted: %v", err)
+		}
+		var current ms.ColumnComment
+		must(db.First(&current, first.ID).Error)
+		must(db.First(task, task.ID).Error)
+		if current.AuditStatus != ms.PostAuditPending || task.State != ms.ReviewPending {
+			t.Error("failed approval changed comment or completed review task")
+		}
+		var notices int64
+		must(db.Model(&ms.Message{}).Where("column_id=? AND comment_id=?", row.ID, first.ID).Count(&notices).Error)
+		if notices != 0 {
+			t.Error("failed approval sent notifications")
+		}
+		// Rejection remains available when the limit is full.
+		if current.AuditStatus == ms.PostAuditPending {
+			decide(task, "reject")
+		}
+	})
+	t.Run("concurrent approvals share the comment quota", func(t *testing.T) {
+		row := submit(operator, 0, 0, ms.ColumnArticle, "Concurrent quota", "body")
+		oldLimit := conf.AppSetting.MaxCommentCount
+		conf.AppSetting.MaxCommentCount = 1
+		defer func() { conf.AppSetting.MaxCommentCount = oldLimit }()
+		var tasks []*ms.ReviewTask
+		for range 2 {
+			comment, err := s.CreateColumnComment(author, &ms.ColumnComment{ColumnID: row.ID, Content: "pending"})
+			must(err)
+			tasks = append(tasks, taskFor(ms.ReviewColumnComment, comment.ID))
+		}
+		results := make(chan error, 2)
+		start := make(chan struct{})
+		for _, task := range tasks {
+			go func() {
+				<-start
+				_, err := review.DecideReview(operator, task.ID, task.Revision, "approve", "")
+				results <- err
+			}()
+		}
+		close(start)
+		approved, refused := 0, 0
+		for range 2 {
+			err := <-results
+			if err == nil {
+				approved++
+			} else if errors.Is(err, authz.ErrInvalid) {
+				refused++
+			} else {
+				t.Fatalf("unexpected concurrent decision failure: %v", err)
+			}
+		}
+		if approved != 1 || refused != 1 {
+			t.Fatalf("concurrent approvals=%d refusals=%d", approved, refused)
+		}
+	})
 	// Takedown dominates direct reads, search, collection entries and publication.
 	must(s.ColumnAction(manager, article.ID, "takedown"))
 	if _, err := s.GetColumn(nil, article.ID, false); !errors.Is(err, gorm.ErrRecordNotFound) {

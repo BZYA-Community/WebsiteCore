@@ -6,6 +6,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/application/columnindex"
 	"github.com/BZYA-Community/WebsiteCore/internal/authz"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
@@ -14,7 +15,10 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type columnSrv struct{ db *gorm.DB }
+type columnSrv struct {
+	db    *gorm.DB
+	index *columnindex.Index
+}
 
 func publicColumns(db *gorm.DB) *gorm.DB {
 	return db.Where("published_on > 0 AND blocked = ? AND is_del = 0", false)
@@ -95,7 +99,7 @@ func (s *columnSrv) ListColumns(actor *ms.User, q core.ColumnQuery) ([]*ms.Colum
 			matches := columnKeyword(s.db.Model(&ms.ColumnSubmission{}).Select("id"), keyword, ms.ColumnArticle)
 			db = db.Where("submission_id IN (?)", matches)
 		} else if !q.Mine && !q.Manage && q.Kind == ms.ColumnArticle {
-			if ids, ok := searchColumnIDs(s.db, keyword); ok {
+			if ids, ok := s.index.Search(keyword); ok {
 				db = db.Where("id IN ?", ids)
 			} else {
 				db = columnKeyword(db, keyword, q.Kind)
@@ -289,7 +293,7 @@ func (s *columnSrv) submitColumn(actor *ms.User, id, expected, sourceID int64, k
 		return nil
 	})
 	if err == nil {
-		syncColumnIndex(s.db, row.ID)
+		syncColumnIndex(s.index, row.ID)
 	}
 	return row, err
 }
@@ -341,7 +345,7 @@ func (s *columnSrv) columnAction(actor *ms.User, id int64, action, reason string
 		return tx.Create(&ms.AuditLog{Model: &ms.Model{}, ColumnID: id, OperatorID: fresh.ID, Action: "column_" + action, Reason: reason}).Error
 	})
 	if err == nil {
-		syncColumnIndex(s.db, id)
+		syncColumnIndex(s.index, id)
 	}
 	return err
 }

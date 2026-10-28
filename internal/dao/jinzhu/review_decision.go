@@ -188,7 +188,7 @@ func (s *reviewSrv) DecideReview(actor *ms.User, taskID, revision int64, action,
 		return nil, err
 	}
 	if result.Task.Kind == ms.ReviewColumn {
-		syncColumnIndex(s.db, result.ParentID)
+		syncColumnIndex(s.index, result.ParentID)
 	}
 	return result, nil
 }

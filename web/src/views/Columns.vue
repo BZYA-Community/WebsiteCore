@@ -37,7 +37,7 @@
             <n-button v-if="returned" size="small" @click="router.push({ name: 'columns', query: { view: 'returned', id: item.id } })">{{ t('columns.viewReturned') }}</n-button>
             <n-space v-else-if="tab === 'mine' || tab === 'manage'">
               <n-tag v-if="item.submission" size="small">{{ statusText(item.submission.audit_status) }}</n-tag>
-              <n-button v-if="canEdit(item)" size="small" @click="edit(item)">{{ t('columns.edit') }}</n-button>
+              <n-button v-if="canOpenSubmission(item)" size="small" @click="edit(item)">{{ canEdit(item) ? t('columns.edit') : t('columns.viewSubmission') }}</n-button>
               <n-button v-if="item.kind === 'collection' && canOrganize(item)" size="small" @click="organize(item)">{{ t('columns.organize') }}</n-button>
               <n-button v-if="item.blocked && user.hasPermission('content.manage')" size="small" @click="act(item, 'restore')">{{ t('columns.restore') }}</n-button>
               <column-delete-button v-if="!item.curated || user.hasPermission('content.manage')" :item="item" @deleted="load" />
@@ -215,6 +215,10 @@ function openDraft(draft: LocalDraft) {
 function deleteDraft(key: string) {
   localStorage.removeItem(key);
   loadDrafts();
+}
+function canOpenSubmission(item: ColumnItem) {
+  return item.user_id === user.userInfo.id ||
+    (item.kind === 'collection' && user.hasPermission('content.manage'));
 }
 function canEdit(item: ColumnItem) {
   return (

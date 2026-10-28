@@ -67,12 +67,28 @@ func applyColumnReview(tx *gorm.DB, subject *reviewSubject, status int, reason s
 		return columnMessage(tx, 0, r.UserID, subject.Column.ID, 0, "专栏或合集审核结果："+reviewResultText(status, reason))
 	}
 	c := subject.ColumnComment
+	if status == int(ms.PostAuditApproved) {
+		if err := checkColumnCommentLimitTx(tx, c.ColumnID); err != nil {
+			return err
+		}
+	}
 	if err := tx.Model(c).Updates(map[string]any{"audit_status": status, "reason": reason}).Error; err != nil {
 		return err
 	}
 	if status == int(ms.PostAuditApproved) {
 		if err := notifyColumnCommentTx(tx, subject.Column, c); err != nil {
 			return err
+		}
+		if c.ParentID == 0 {
+			var replies []*ms.ColumnComment
+			if err := tx.Where("column_id=? AND parent_id=? AND audit_status=? AND is_del=0", c.ColumnID, c.ID, ms.PostAuditApproved).Order("id ASC").Find(&replies).Error; err != nil {
+				return err
+			}
+			for _, reply := range replies {
+				if err := notifyColumnCommentTx(tx, subject.Column, reply); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	return columnMessage(tx, 0, c.UserID, c.ColumnID, c.ID, "专栏评论审核结果："+reviewResultText(status, reason))

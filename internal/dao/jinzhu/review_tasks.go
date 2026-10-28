@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 	"time"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/application/columnindex"
 	"github.com/BZYA-Community/WebsiteCore/internal/authz"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
@@ -13,9 +14,14 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type reviewSrv struct{ db *gorm.DB }
+type reviewSrv struct {
+	db    *gorm.DB
+	index *columnindex.Index
+}
 
-func newReviewService(db *gorm.DB) core.ReviewService { return &reviewSrv{db: db} }
+func newReviewService(db *gorm.DB, index *columnindex.Index) core.ReviewService {
+	return &reviewSrv{db: db, index: index}
+}
 
 func validReviewKind(kind string) bool {
 	switch kind {

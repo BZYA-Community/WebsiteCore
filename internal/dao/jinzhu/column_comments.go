@@ -137,12 +137,8 @@ func (s *columnSrv) CreateColumnComment(actor *ms.User, input *ms.ColumnComment)
 		if !columnPublic(row) || row.Kind != ms.ColumnArticle || row.Locked {
 			return authz.ErrDenied
 		}
-		var count int64
-		if err := tx.Model(&ms.ColumnComment{}).Where("column_id=? AND audit_status=? AND is_del=0", row.ID, ms.PostAuditApproved).Count(&count).Error; err != nil {
+		if err := checkColumnCommentLimitTx(tx, row.ID); err != nil {
 			return err
-		}
-		if conf.AppSetting != nil && count >= conf.AppSetting.MaxCommentCount {
-			return authz.ErrInvalid
 		}
 		if c.ParentID > 0 {
 			var parent ms.ColumnComment
@@ -182,6 +178,19 @@ func (s *columnSrv) CreateColumnComment(actor *ms.User, input *ms.ColumnComment)
 	return &c, err
 }
 
+// All callers hold the shared policy lock, serializing creation and approval.
+// Count approved roots and replies, including replies awaiting a public parent.
+func checkColumnCommentLimitTx(tx *gorm.DB, columnID int64) error {
+	var count int64
+	if err := tx.Model(&ms.ColumnComment{}).Where("column_id=? AND audit_status=? AND is_del=0", columnID, ms.PostAuditApproved).Count(&count).Error; err != nil {
+		return err
+	}
+	if conf.AppSetting != nil && count >= conf.AppSetting.MaxCommentCount {
+		return authz.ErrInvalid
+	}
+	return nil
+}
+
 func notifyColumnCommentTx(tx *gorm.DB, row *ms.Column, c *ms.ColumnComment) error {
 	receivers := map[int64]bool{row.UserID: true}
 	if c.AtUserID > 0 {
@@ -191,6 +200,11 @@ func notifyColumnCommentTx(tx *gorm.DB, row *ms.Column, c *ms.ColumnComment) err
 		var parent ms.ColumnComment
 		if err := tx.First(&parent, c.ParentID).Error; err != nil {
 			return err
+		}
+		// An approved reply is still private until its root is approved. Root
+		// approval delivers these deferred notifications in the same transaction.
+		if parent.AuditStatus != ms.PostAuditApproved {
+			return nil
 		}
 		receivers[parent.UserID] = true
 	}
