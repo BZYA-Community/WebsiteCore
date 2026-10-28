@@ -48,6 +48,8 @@
   "rejected": "未通过",
   "withdrawn": "已撤回",
   "search": "搜索文章",
+  "searchCollections": "搜索合集",
+  "collectionSearchPlaceholder": "搜索合集名称或简介",
   "more": "加载更多",
   "back": "返回专栏",
   "localDrafts": "此浏览器中的草稿",

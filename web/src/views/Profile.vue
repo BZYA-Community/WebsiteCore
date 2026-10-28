@@ -78,14 +78,17 @@
                 </div>
             </div>
             <!-- </n-spin> -->
-            <n-tabs class="profile-tabs-wrap" type="line" animated @update:value="changeTab">
+            <n-tabs class="profile-tabs-wrap" type="line" animated :value="pageType" @update:value="changeTab">
                 <n-tab-pane name="post"><template #tab>{{ t('user.profile.tabPost') }}</template></n-tab-pane>
+                <n-tab-pane name="columns"><template #tab>{{ t('nav.columns') }}</template></n-tab-pane>
+                <n-tab-pane name="collections"><template #tab>{{ t('columns.collections') }}</template></n-tab-pane>
                 <n-tab-pane name="comment"><template #tab>{{ t('user.profile.tabComment') }}</template></n-tab-pane>
                 <n-tab-pane name="highlight"><template #tab>{{ t('user.profile.tabHighlight') }}</template></n-tab-pane>
                 <n-tab-pane name="media"><template #tab>{{ t('user.profile.tabMedia') }}</template></n-tab-pane>
                 <n-tab-pane name="star"><template #tab>{{ t('user.profile.tabStar') }}</template></n-tab-pane>
             </n-tabs>
-            <div v-if="loading && list.length === 0" class="skeleton-wrap">
+            <author-columns v-if="columnKind" :author-id="userInfo.id" :kind="columnKind" />
+            <div v-else-if="loading && list.length === 0" class="skeleton-wrap">
                 <post-skeleton :num="pageSize" />
             </div>
             <div v-else>
@@ -103,7 +106,7 @@
             </div>
         </n-list>
 
-        <n-space v-if="totalPage > 0" justify="center">
+        <n-space v-if="!columnKind && totalPage > 0" justify="center">
             <InfiniteLoading class="load-more" :slots="{ complete: t('user.profile.noMorePosts'), error: t('user.profile.loadError') }" @infinite="nextPage()">
                 <template #spinner>
                     <div class="load-more-wrap">
@@ -133,8 +136,10 @@ import { MoreHorizFilled } from '@vicons/material';
 import { useStoreUser } from '@/store/user';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
+import AuthorColumns from '@/components/columns/author-columns.vue';
 
-type PageType = 'post' | 'comment' | 'highlight' | 'media' | 'star';
+type PostPageType = 'post' | 'comment' | 'highlight' | 'media' | 'star';
+type PageType = PostPageType | 'columns' | 'collections';
 
 const { t } = useI18n();
 const storeMain = useStoreMain();
@@ -154,6 +159,7 @@ const highlightList = ref<Item.PostProps[]>([]);
 const mediaList = ref<Item.PostProps[]>([]);
 const starList = ref<Item.PostProps[]>([]);
 const pageType = ref<PageType>('post');
+const columnKind = computed(() => pageType.value === 'columns' ? 'article' : pageType.value === 'collections' ? 'collection' : undefined);
 const postPage = ref(+(route.query.p as string) || 1);
 const commentPage = ref(1);
 const highlightPage = ref(1);
@@ -245,7 +251,8 @@ function updateFolloing(
 }
 
 const loadPage = () => {
-  loadPostsByStyle(pageType.value);
+  const tab = pageType.value;
+  if (tab !== 'columns' && tab !== 'collections') loadPostsByStyle(tab);
 };
 const styleListMap = {
   post: { list: postList, totalPage: postTotalPage },
@@ -294,16 +301,20 @@ function loadPostsByStyle(style: keyof typeof styleListMap) {
 }
 const changeTab = (tab: PageType) => {
   pageType.value = tab;
+  if (tab === 'columns' || tab === 'collections') return;
   list.value = styleListMap[tab].list.value;
   page.value = stylePageMap[tab].value;
   totalPage.value = styleListMap[tab].totalPage.value;
   loadPostsByStyle(tab);
 };
 const updatePage = () => {
-  stylePageMap[pageType.value].value = page.value;
-  loadPostsByStyle(pageType.value);
+  const tab = pageType.value;
+  if (tab === 'columns' || tab === 'collections') return;
+  stylePageMap[tab].value = page.value;
+  loadPostsByStyle(tab);
 };
 const nextPage = () => {
+  if (columnKind.value) return;
   if (page.value < totalPage.value || totalPage.value == 0) {
     noMore.value = false;
     page.value++;

@@ -90,10 +90,10 @@ func (s *columnSrv) ListColumns(actor *ms.User, q core.ColumnQuery) ([]*ms.Colum
 			if ids, ok := searchColumnIDs(s.db, keyword); ok {
 				db = db.Where("id IN ?", ids)
 			} else {
-				db = columnKeyword(db, keyword)
+				db = columnKeyword(db, keyword, q.Kind)
 			}
 		} else {
-			db = columnKeyword(db, keyword)
+			db = columnKeyword(db, keyword, q.Kind)
 		}
 	}
 	var total int64
@@ -121,9 +121,12 @@ func (s *columnSrv) ListColumns(actor *ms.User, q core.ColumnQuery) ([]*ms.Colum
 	return rows, total, nil
 }
 
-func columnKeyword(db *gorm.DB, keyword string) *gorm.DB {
+func columnKeyword(db *gorm.DB, keyword, kind string) *gorm.DB {
 	keyword = strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(keyword)
 	pattern := "%" + keyword + "%"
+	if kind == ms.ColumnCollection {
+		return db.Where("(title ILIKE ? OR summary ILIKE ?)", pattern, pattern)
+	}
 	return db.Where("(title ILIKE ? OR summary ILIKE ? OR body ILIKE ?)", pattern, pattern, pattern)
 }
 

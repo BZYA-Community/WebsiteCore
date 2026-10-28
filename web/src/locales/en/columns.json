@@ -48,6 +48,8 @@
   "rejected": "Rejected",
   "withdrawn": "Withdrawn",
   "search": "Search articles",
+  "searchCollections": "Search collections",
+  "collectionSearchPlaceholder": "Search collection names or introductions",
   "more": "Load more",
   "back": "Back to articles",
   "localDrafts": "Drafts in this browser",

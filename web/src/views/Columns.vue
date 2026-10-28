@@ -21,7 +21,7 @@
           <ul><li v-for="draft in drafts" :key="draft.key"><n-button text @click="openDraft(draft)">{{ draft.title || t('columns.untitled') }}</n-button><n-popconfirm @positive-click="deleteDraft(draft.key)"><template #trigger><n-button size="tiny" quaternary>{{ t('columns.delete') }}</n-button></template>{{ t('columns.confirmDraftDelete') }}</n-popconfirm></li></ul>
         </template>
         <form class="list-controls" @submit.prevent="search">
-          <n-input-group v-if="kind === 'article'"><n-input v-model:value="keyword" :placeholder="t('columns.search')" clearable /><n-button attr-type="submit">{{ t('columns.search') }}</n-button></n-input-group>
+          <n-input-group><n-input v-model:value="keyword" :placeholder="kind === 'article' ? t('columns.search') : t('columns.collectionSearchPlaceholder')" clearable /><n-button attr-type="submit">{{ kind === 'article' ? t('columns.search') : t('columns.searchCollections') }}</n-button></n-input-group>
           <n-checkbox v-if="kind === 'article'" v-model:checked="official" @update:checked="search">{{ t('columns.officialOnly') }}</n-checkbox>
         </form>
         <n-alert v-if="error" type="error">{{ t('columns.loadFailed') }} <n-button @click="load">{{ t('columns.retry') }}</n-button></n-alert>
@@ -154,6 +154,8 @@ function changeTab(value: string) {
   return router.push({ name: 'columns', query: { tab: value } });
 }
 function changeKind(value: string) {
+  keyword.value = '';
+  official.value = false;
   return router.push({
     name: 'columns',
     query: { tab: tab.value, kind: value },

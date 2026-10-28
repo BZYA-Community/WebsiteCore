@@ -204,7 +204,8 @@ func TestColumnsPublicationCollectionsAndDiscussion(t *testing.T) {
 	}
 	must(db.Create(&dbr.IdentityGroupPermission{GroupID: publish.ID, Permission: authz.ColumnPublish}).Error)
 	// A non-owner can curate references only in administrator-created collections.
-	collection := submit(author, 0, 0, ms.ColumnCollection, "Author series", "")
+	collection, err := s.SubmitColumn(author, 0, 0, ms.ColumnCollection, &ms.ColumnSubmission{Title: "Author series", Summary: "Climbing Notes 50%_complete"})
+	must(err)
 	decide(taskFor(ms.ReviewColumn, collection.SubmissionID), "approve")
 	curated := submit(manager, 0, 0, ms.ColumnCollection, "Curated series", "")
 	decide(taskFor(ms.ReviewColumn, curated.SubmissionID), "approve")
@@ -225,6 +226,36 @@ func TestColumnsPublicationCollectionsAndDiscussion(t *testing.T) {
 	must(err)
 	if len(entries) != 2 || entries[0].ID != otherArticle.ID {
 		t.Fatal("collection order lost")
+	}
+	// Public profile queries and collection search must never expose submissions.
+	unpublished := submit(author, 0, 0, ms.ColumnCollection, "Unpublished series", "")
+	must(s.SetColumnEntries(author, unpublished.ID, []int64{article.ID}))
+	_, err = s.SubmitColumn(author, collection.ID, collection.SubmissionID, ms.ColumnCollection, &ms.ColumnSubmission{Title: "Pending collection name", Summary: "Pending introduction"})
+	must(err)
+	for _, test := range []struct {
+		name, kind, keyword string
+		authorID            int64
+		want                int64
+	}{
+		{"public author articles", ms.ColumnArticle, "", author.ID, 1},
+		{"other author articles", ms.ColumnArticle, "", other.ID, 1},
+		{"public author collections", ms.ColumnCollection, "", author.ID, 1},
+		{"collection name", ms.ColumnCollection, "AUTHOR SERIES", author.ID, 1},
+		{"collection introduction", ms.ColumnCollection, "climbing notes", 0, 1},
+		{"literal search characters", ms.ColumnCollection, "%_", 0, 1},
+		{"pending collection name", ms.ColumnCollection, "Pending collection name", author.ID, 0},
+		{"pending collection introduction", ms.ColumnCollection, "Pending introduction", author.ID, 0},
+		{"unpublished collection", ms.ColumnCollection, "Unpublished series", author.ID, 0},
+		{"collected article body excluded", ms.ColumnCollection, "body", 0, 0},
+		{"author filter", ms.ColumnCollection, "climbing notes", other.ID, 0},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			rows, total, err := s.ListColumns(nil, core.ColumnQuery{Kind: test.kind, Keyword: test.keyword, AuthorID: test.authorID, Limit: 20})
+			must(err)
+			if total != test.want || int64(len(rows)) != test.want {
+				t.Fatalf("public listing: total=%d rows=%d want=%d", total, len(rows), test.want)
+			}
+		})
 	}
 	if err := s.SetColumnEntries(author, curated.ID, nil); !errors.Is(err, authz.ErrDenied) {
 		t.Fatalf("author removed administrator membership: %v", err)

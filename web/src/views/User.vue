@@ -82,16 +82,19 @@
             
                 <n-tabs v-if="!userLoading" class="profile-tabs-wrap" type="line" animated :value="pageType" @update:value="changeTab">
                     <n-tab-pane name="post"><template #tab>{{ t('user.userPage.tabPost') }}</template></n-tab-pane>
+                    <n-tab-pane name="columns"><template #tab>{{ t('nav.columns') }}</template></n-tab-pane>
+                    <n-tab-pane name="collections"><template #tab>{{ t('columns.collections') }}</template></n-tab-pane>
                     <n-tab-pane name="comment"><template #tab>{{ t('user.userPage.tabComment') }}</template></n-tab-pane>
                     <n-tab-pane name="highlight"><template #tab>{{ t('user.userPage.tabHighlight') }}</template></n-tab-pane>
                     <n-tab-pane name="media"><template #tab>{{ t('user.userPage.tabMedia') }}</template></n-tab-pane>
                     <n-tab-pane name="star"><template #tab>{{ t('user.userPage.tabStar') }}</template></n-tab-pane>
                 </n-tabs>
             </n-spin>
-            <div v-if="loading && list.length === 0" class="skeleton-wrap">
+            <author-columns v-if="columnKind && !userLoading && user.id > 0" :author-id="user.id" :kind="columnKind" />
+            <div v-else-if="!columnKind && loading && list.length === 0" class="skeleton-wrap">
                 <post-skeleton :num="pageSize" />
             </div>
-            <div v-else>
+            <div v-else-if="!columnKind">
                 <div class="empty-wrap" v-if="list.length === 0">
                     <n-empty size="large" :description="t('common.noData')" />
                 </div>
@@ -106,7 +109,7 @@
             </div>
         </n-list>
 
-        <n-space v-if="totalPage > 0" justify="center">
+        <n-space v-if="!columnKind && totalPage > 0" justify="center">
             <InfiniteLoading class="load-more" :slots="{ complete: t('user.userPage.noMorePosts'), error: t('user.userPage.loadError') }" @infinite="nextPage()">
                 <template #spinner>
                     <div class="load-more-wrap">
@@ -120,7 +123,7 @@
 </template>
 
 <script setup lang="ts">
-import { h, ref, reactive, watch, onMounted, computed } from 'vue';
+import { h, ref, reactive, watch, onMounted, onBeforeUnmount, computed } from 'vue';
 import { NIcon } from 'naive-ui';
 import type { Component, Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -143,8 +146,10 @@ import { useStoreUser } from '@/store/user';
 import { storeToRefs } from 'pinia';
 import { Api } from '@/utils/request';
 import UserAction, { canWhisperUser, useChatJump } from '@/composables/useUserAction';
+import AuthorColumns from '@/components/columns/author-columns.vue';
 
-type PageType = 'post' | 'comment' | 'highlight' | 'media' | 'star';
+type PostPageType = 'post' | 'comment' | 'highlight' | 'media' | 'star';
+type PageType = PostPageType | 'columns' | 'collections';
 
 const { t } = useI18n();
 const dialog = useDialog();
@@ -183,6 +188,7 @@ const starList = ref<Item.PostProps[]>([]);
 const username = ref(route.query.s || '');
 const page = ref(+(route.query.p as string) || 1);
 const pageType = ref<PageType>('post');
+const columnKind = computed(() => pageType.value === 'columns' ? 'article' : pageType.value === 'collections' ? 'collection' : undefined);
 const postPage = ref(+(route.query.p as string) || 1);
 const commentPage = ref(1);
 const highlightPage = ref(1);
@@ -262,7 +268,8 @@ const reset = () => {
 	starTotalPage.value = 0;
 };
 const loadPage = () => {
-	loadPostsByStyle(pageType.value);
+  const tab = pageType.value;
+  if (tab !== 'columns' && tab !== 'collections') loadPostsByStyle(tab);
 };
 const styleListMap = {
 	post: { list: postList, totalPage: postTotalPage },
@@ -311,17 +318,21 @@ const stylePageMap = {
 };
 function changeTab(tab: PageType) {
 	pageType.value = tab;
+	if (tab === 'columns' || tab === 'collections') return;
 	list.value = styleListMap[tab].list.value;
 	page.value = stylePageMap[tab].value;
 	totalPage.value = styleListMap[tab].totalPage.value;
 	loadPostsByStyle(tab);
 };
+let profileRequestId = 0;
 const loadUser = () => {
+  const current = ++profileRequestId;
   userLoading.value = true;
   Api.v1.user.get.profile({
     username: username.value as string,
   })
     .then((res) => {
+      if (current !== profileRequestId) return;
       userLoading.value = false;
       user.id = res.id;
       user.avatar = res.avatar;
@@ -340,13 +351,16 @@ const loadUser = () => {
       loadPage();
     })
     .catch((err) => {
+      if (current !== profileRequestId) return;
       userLoading.value = false;
       console.log(err);
     });
 };
 const updatePage = () => {
-  stylePageMap[pageType.value].value = page.value;
-  loadPostsByStyle(pageType.value);
+  const tab = pageType.value;
+  if (tab === 'columns' || tab === 'collections') return;
+  stylePageMap[tab].value = page.value;
+  loadPostsByStyle(tab);
 };
 const openWhisper = () => {
   goWhisper(user);
@@ -475,6 +489,7 @@ const banUser = () => {
   });
 };
 const nextPage = () => {
+  if (columnKind.value) return;
   if (page.value < totalPage.value || totalPage.value == 0) {
     noMore.value = false;
     page.value++;
@@ -485,6 +500,9 @@ const nextPage = () => {
 };
 onMounted(() => {
   loadUser();
+});
+onBeforeUnmount(() => {
+  profileRequestId++;
 });
 watch(
   () => ({

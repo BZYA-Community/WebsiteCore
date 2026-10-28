@@ -31,7 +31,6 @@ Start here if you are looking for anything beyond the project overview in the [r
 | --- | --- |
 | [features-status.md](features-status.md) | Feature flag maturity matrix |
 | [CHANGELOG.md](CHANGELOG.md) | WebsiteCore change history |
-| [issues/007-columns.md](issues/007-columns.md) | Independent Markdown articles, collections, review, search, and verification |
 | [openapi/](openapi/) | OpenAPI assets served at `/docs/openapi` with the `docs` build tag |
 | [archive/](archive/) | Historical upstream paopao-ce documents, kept for reference only |
 
