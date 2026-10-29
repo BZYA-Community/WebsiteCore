@@ -10,6 +10,7 @@ import (
 
 // AuditLog 内容审核操作日志
 type AuditLog struct {
+	ColumnID int64 `json:"column_id"`
 	*Model
 	PostID     int64  `json:"post_id"`
 	OperatorID int64  `json:"operator_id"`

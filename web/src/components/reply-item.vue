@@ -75,7 +75,7 @@
                         </n-icon>
                         <span class="upvote-count">{{ thumbsUpCount }}</span>
                     </div>
-                    <div v-if="userLogined" class="action-item hover" @click.stop="handleThumbsUp">
+                    <div v-if="userLogined && (!props.columnId || storeUser.hasPermission('community.interact'))" class="action-item hover" @click.stop="handleThumbsUp">
                         <n-icon size="medium">
                             <thumb-up-outlined v-if="!hasThumbsUp" />
                             <thumb-up-twotone v-if="hasThumbsUp" class="show" />
@@ -87,13 +87,13 @@
                             <thumb-down-outlined />
                         </n-icon>
                     </div>
-                    <div v-if="userLogined" class="action-item hover" @click.stop="handleThumbsDown">
+                    <div v-if="userLogined && (!props.columnId || storeUser.hasPermission('community.interact'))" class="action-item hover" @click.stop="handleThumbsDown">
                         <n-icon size="medium">
                             <thumb-down-outlined v-if="!hasThumbsDown" />
                             <thumb-down-twotone v-if="hasThumbsDown" class="show" />
                         </n-icon>
                     </div>
-                    <span v-if="userLogined" class="show opacity-item reply-btn" @click="focusReply"> {{ t('comment.action.reply') }} </span>
+                    <span v-if="userLogined && !props.locked && (!props.columnId || storeUser.hasPermission('comment.create'))" class="show opacity-item reply-btn" @click="focusReply"> {{ t('comment.action.reply') }} </span>
                 </div>
             </div>
         </div>
@@ -102,6 +102,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { columnCommentAction } from '@/api/columns';
 import { Trash } from '@vicons/tabler';
 import { formatPrettyTime } from '@/utils/formatTime';
 import {
@@ -125,9 +126,11 @@ const { t } = useI18n();
 const props = withDefaults(
   defineProps<{
     tweetId: number;
+    columnId?: number;
+    locked?: boolean;
     reply: Item.ReplyProps;
   }>(),
-  {},
+  { columnId: 0, locked: false },
 );
 
 const storeUser = useStoreUser();
@@ -143,11 +146,7 @@ const hasThumbsDown = ref(props.reply.is_thumbs_down == YesNoEnum.YES);
 const thumbsUpCount = ref(props.reply.thumbs_up_count);
 
 const handleThumbsUp = () => {
-  thumbsUpTweetReply({
-    tweet_id: props.tweetId,
-    comment_id: props.reply.comment_id,
-    reply_id: props.reply.id,
-  })
+  (props.columnId ? columnCommentAction(props.reply.id, 'up') : thumbsUpTweetReply({ tweet_id: props.tweetId, comment_id: props.reply.comment_id, reply_id: props.reply.id }))
     .then((_res) => {
       hasThumbsUp.value = !hasThumbsUp.value;
       if (hasThumbsUp.value) {
@@ -162,11 +161,7 @@ const handleThumbsUp = () => {
     });
 };
 const handleThumbsDown = () => {
-  thumbsDownTweetReply({
-    tweet_id: props.tweetId,
-    comment_id: props.reply.comment_id,
-    reply_id: props.reply.id,
-  })
+  (props.columnId ? columnCommentAction(props.reply.id, 'down') : thumbsDownTweetReply({ tweet_id: props.tweetId, comment_id: props.reply.comment_id, reply_id: props.reply.id }))
     .then((_res) => {
       hasThumbsDown.value = !hasThumbsDown.value;
       if (hasThumbsDown.value) {
@@ -184,9 +179,7 @@ const focusReply = () => {
   emit('focusReply', props.reply);
 };
 const execDelAction = () => {
-  deleteCommentReply({
-    id: props.reply.id,
-  })
+  (props.columnId ? columnCommentAction(props.reply.id, 'delete') : deleteCommentReply({ id: props.reply.id }))
     .then((res) => {
       window.$message.success(t('comment.msg.deleteSuccess'));
 

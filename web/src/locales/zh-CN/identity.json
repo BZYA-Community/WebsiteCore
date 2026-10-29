@@ -47,7 +47,8 @@
     "profile_edit": "修改个人资料",
     "community_interact": "点赞、收藏和关注",
     "audit_view_all": "查看全部审核任务",
-    "content_view_private": "查看非公开内容"
+    "content_view_private": "查看非公开内容",
+    "column_publish": "发布专栏与合集"
   },
   "actions": {
     "groupSave": "保存身份组",

@@ -9,18 +9,24 @@
 package jinzhu
 
 import (
+	"net/http"
 	"sync"
+	"time"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/application/columnindex"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/cache"
+	"github.com/BZYA-Community/WebsiteCore/internal/dao/search"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/security"
 	"github.com/Masterminds/semver/v3"
+	"github.com/alimy/tryst/cfg"
 )
 
 var _onceInitial sync.Once
 
 type dataSrv struct {
+	core.ColumnService
 	core.MessageService
 	core.TopicService
 	core.TweetService
@@ -56,11 +62,18 @@ func NewDataService() (core.DataService, core.VersionInfo) {
 	lazyInitial()
 	db := conf.MustGormDB()
 	pvs := security.NewPhoneVerifyService()
+	var columnsIndex *columnindex.Index
+	if cfg.If("Meili") && conf.MeiliSetting != nil {
+		settings := conf.MeiliSetting
+		writer := search.NewColumnWriter(settings.Endpoint(), settings.ApiKey, settings.Index+"_columns", &http.Client{Timeout: 3 * time.Second})
+		columnsIndex = columnindex.New(columnIndexStore{db: db}, writer, &sync.Mutex{})
+	}
 	tms := newTweetMetricServentA(db)
 	ums := newUserMetricServentA(db)
 	cms := newCommentMetricServentA(db)
 	cis := cache.NewEventCacheIndexSrv(tms)
 	ds := &dataSrv{
+		ColumnService:          &columnSrv{db: db, index: columnsIndex},
 		TweetMetricServantA:    tms,
 		CommentMetricServantA:  cms,
 		UserMetricServantA:     ums,
@@ -78,7 +91,7 @@ func NewDataService() (core.DataService, core.VersionInfo) {
 		UserManageService:      newUserManageService(db, ums),
 		IdentityService:        newIdentityService(db),
 		SiteAdminService:       newAuditService(db),
-		ReviewService:          newReviewService(db),
+		ReviewService:          newReviewService(db, columnsIndex),
 		FollowingManageService: newFollowingManageService(db),
 		UserRelationService:    newUserRelationService(db),
 		SecurityService:        newSecurityService(db, pvs),

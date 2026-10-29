@@ -322,6 +322,8 @@ declare namespace Item {
 
   /** 聊天消息(系统会话带 type/post_id/comment_id 供跳转) */
   interface ChatHistoryItem {
+    column_id?: number;
+    column_returned?: boolean;
     id: number;
     sender_id: number;
     sender_name?: string;

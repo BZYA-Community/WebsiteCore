@@ -188,6 +188,9 @@ func (s *identitySrv) SaveIdentityGroup(actor *ms.User, input *ms.IdentityGroup)
 				return err
 			}
 		}
+		if err := cancelRevokedColumnSubmissionsTx(tx); err != nil {
+			return err
+		}
 		return identityLog(tx, fresh.ID, "group.save", group.ID, 0, old, group)
 	})
 	if err != nil {
@@ -317,6 +320,9 @@ func (s *identitySrv) SetUsersIdentityGroups(actor *ms.User, userIDs, groupIDs [
 					return err
 				}
 			}
+			if err := cancelRevokedColumnSubmissionsTx(tx); err != nil {
+				return err
+			}
 			if err := identityLog(tx, fresh.ID, "user.groups", 0, userID, old, next); err != nil {
 				return err
 			}
@@ -381,6 +387,9 @@ func (s *identitySrv) manageUser(actor *ms.User, userID int64, action string, ch
 		if user.IsOperator && (!fresh.IsOperator || action == "user.delete") {
 			return authz.ErrDenied
 		}
-		return change(tx, &user)
+		if err := change(tx, &user); err != nil {
+			return err
+		}
+		return cancelRevokedColumnSubmissionsTx(tx)
 	})
 }

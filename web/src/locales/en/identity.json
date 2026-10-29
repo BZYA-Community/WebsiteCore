@@ -47,7 +47,8 @@
     "profile_edit": "Edit own profile",
     "community_interact": "Like, bookmark and follow",
     "audit_view_all": "View all review tasks",
-    "content_view_private": "View non-public content"
+    "content_view_private": "View non-public content",
+    "column_publish": "Publish articles and collections"
   },
   "actions": {
     "groupSave": "Save identity group",

@@ -15,24 +15,29 @@ import (
 )
 
 type reviewSubject struct {
-	AuthorID int64
-	ParentID int64
-	Pending  bool
-	Status   int
-	Snapshot string
-	OldValue string
-	Post     *ms.Post
-	Comment  *ms.Comment
-	Reply    *ms.CommentReply
-	Question *ms.CourseComment
-	Answer   *ms.CourseCommentReply
-	User     *ms.User
+	Column           *ms.Column
+	ColumnSubmission *ms.ColumnSubmission
+	ColumnComment    *ms.ColumnComment
+	AuthorID         int64
+	ParentID         int64
+	Pending          bool
+	Status           int
+	Snapshot         string
+	OldValue         string
+	Post             *ms.Post
+	Comment          *ms.Comment
+	Reply            *ms.CommentReply
+	Question         *ms.CourseComment
+	Answer           *ms.CourseCommentReply
+	User             *ms.User
 }
 
 func loadReviewSubject(tx *gorm.DB, kind string, id int64) (*reviewSubject, error) {
 	result := &reviewSubject{}
 	row := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND is_del = 0", id)
 	switch kind {
+	case ms.ReviewColumn, ms.ReviewColumnComment:
+		return loadColumnReviewSubject(tx, kind, id)
 	case ms.ReviewPost:
 		post := &ms.Post{}
 		if err := row.First(post).Error; err != nil {
@@ -117,7 +122,7 @@ func (s *reviewSrv) DecideReview(actor *ms.User, taskID, revision int64, action,
 		return nil, authz.ErrInvalid
 	}
 	var result *core.ReviewDecision
-	err := s.db.Transaction(func(tx *gorm.DB) error {
+	err := columnTransaction(s.db, func(tx *gorm.DB) error {
 		fresh, err := lockIdentityPolicy(tx, actor, authz.ContentReview)
 		if err != nil {
 			return err
@@ -129,6 +134,9 @@ func (s *reviewSrv) DecideReview(actor *ms.User, taskID, revision int64, action,
 		now := time.Now().Unix()
 		if task.State != ms.ReviewPending || task.Revision != revision {
 			return core.ErrReviewStale
+		}
+		if (task.Kind == ms.ReviewColumn || task.Kind == ms.ReviewColumnComment) && task.AuthorID == fresh.ID {
+			return authz.ErrDenied
 		}
 		if !fresh.IsOperator && (task.AssigneeID != fresh.ID || task.AuthorID == fresh.ID || task.DeadlineOn <= now) {
 			return authz.ErrDenied
@@ -146,7 +154,11 @@ func (s *reviewSrv) DecideReview(actor *ms.User, taskID, revision int64, action,
 		}
 		result = &core.ReviewDecision{Task: &task, OldStatus: subject.Status, NewStatus: newStatus,
 			ParentID: subject.ParentID, OldValue: subject.OldValue, NewValue: subject.Snapshot}
-		if err := applyReviewDecision(tx, &task, subject, newStatus, now); err != nil {
+		if task.Kind == ms.ReviewColumn || task.Kind == ms.ReviewColumnComment {
+			if err := applyColumnReview(tx, subject, newStatus, reason); err != nil {
+				return err
+			}
+		} else if err := applyReviewDecision(tx, &task, subject, newStatus, now); err != nil {
 			return err
 		}
 		task.State, task.CompletedOn, task.ModifiedOn = ms.ReviewCompleted, now, now
@@ -165,11 +177,18 @@ func (s *reviewSrv) DecideReview(actor *ms.User, taskID, revision int64, action,
 		if task.Kind != ms.ReviewPost {
 			logAction = task.Kind + "_" + action
 		}
-		return tx.Create(&ms.AuditLog{PostID: subject.ParentID, OperatorID: fresh.ID, Action: logAction,
-			OldStatus: uint8(subject.Status), NewStatus: uint8(newStatus), Reason: reason}).Error
+		log := &ms.AuditLog{PostID: subject.ParentID, OperatorID: fresh.ID, Action: logAction,
+			OldStatus: uint8(subject.Status), NewStatus: uint8(newStatus), Reason: reason}
+		if task.Kind == ms.ReviewColumn || task.Kind == ms.ReviewColumnComment {
+			log.PostID, log.ColumnID = 0, subject.ParentID
+		}
+		return tx.Create(log).Error
 	})
 	if err != nil {
 		return nil, err
+	}
+	if result.Task.Kind == ms.ReviewColumn {
+		syncColumnIndex(s.index, result.ParentID)
 	}
 	return result, nil
 }
