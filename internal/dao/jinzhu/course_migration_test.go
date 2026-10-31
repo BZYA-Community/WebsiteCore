@@ -61,7 +61,7 @@ func TestCommunityMigrationsRoundTrip(t *testing.T) {
 	longProjectURL := "https://example.com/" + strings.Repeat("a", 3000)
 	longProjectTag := strings.Repeat("标", 40)
 	for _, path := range paths {
-		if filepath.Base(path) == "0034_project_module.up.sql" {
+		if filepath.Base(path) == "0036_project_module.up.sql" {
 			if err := tx.Exec("INSERT INTO p_post (id,user_id,tags,created_on,modified_on) VALUES (42,7,?,1,2)", "项目, legacy-tag,"+longProjectTag).Error; err != nil {
 				t.Fatal(err)
 			}
@@ -77,8 +77,8 @@ func TestCommunityMigrationsRoundTrip(t *testing.T) {
 	if err := tx.Raw("SELECT title,url FROM p_project WHERE post_id=42").Scan(&project).Error; err != nil {
 		t.Fatal(err)
 	}
-	if project.Title != strings.Repeat("项", 30) || project.URL != longProjectURL[:2048] {
-		t.Fatalf("project migration did not constrain legacy values: title=%q url length=%d", project.Title, len(project.URL))
+	if project.Title != strings.Repeat("项", 30) || project.URL != longProjectURL {
+		t.Fatalf("project migration changed legacy URL or title constraint: title=%q url length=%d", project.Title, len(project.URL))
 	}
 	assertProjectTags := func() {
 		t.Helper()
@@ -95,8 +95,8 @@ func TestCommunityMigrationsRoundTrip(t *testing.T) {
 		}
 	}
 	assertProjectTags()
-	run(directory + "0034_project_module.down.sql")
-	run(directory + "0034_project_module.up.sql")
+	run(directory + "0036_project_module.down.sql")
+	run(directory + "0036_project_module.up.sql")
 	assertProjectTags()
 	if err := tx.Exec("INSERT INTO p_user(username) VALUES ('migration-preserved-user')").Error; err != nil {
 		t.Fatal(err)

@@ -142,7 +142,7 @@ func TestProjectDetailClassifiesStoreErrors(t *testing.T) {
 	}
 }
 
-func TestCreateProjectRejectsURLBeyondDatabaseLimit(t *testing.T) {
+func TestCreateProjectRejectsURLBeyondInputLimit(t *testing.T) {
 	previous := conf.ProjectSetting
 	t.Cleanup(func() { conf.ProjectSetting = previous })
 	conf.ProjectSetting = &conf.ProjectsConf{Enabled: true}

@@ -282,8 +282,25 @@ func (s *projectSrv) CreateProject(actor *ms.User, input *core.ProjectCreateInpu
 func (s *projectSrv) SetProjectFollow(projectID, userID int64, follow bool) (bool, int64, error) {
 	var status bool
 	err := s.db.Transaction(func(tx *gorm.DB) error {
+		// Use the same lock order as post reactions and moderation: identity
+		// policy, actor, post, then project. Keep authorization locks until commit.
+		actor, err := lockIdentityPolicy(tx, authorStub(userID), authz.CommunityInteract)
+		if err != nil {
+			return err
+		}
 		var project dbr.Project
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND is_del = ?", projectID, 0).First(&project).Error; err != nil {
+		if err := tx.Where("id = ? AND is_del = 0", projectID).First(&project).Error; err != nil {
+			return err
+		}
+		postID := project.PostID
+		var post ms.Post
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND is_del = 0", postID).First(&post).Error; err != nil {
+			return err
+		}
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND is_del = 0 AND post_id = ?", projectID, postID).First(&project).Error; err != nil {
+			return err
+		}
+		if err := requirePostAccessTx(tx, actor, &post); err != nil {
 			return err
 		}
 		if follow {

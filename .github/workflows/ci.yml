@@ -106,6 +106,7 @@ jobs:
           yarn test:courses
           yarn test:sidebar
           yarn test:admin
+          yarn test:columns
           yarn test:projects
           yarn test:external-link
 

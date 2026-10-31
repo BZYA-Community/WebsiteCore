@@ -226,3 +226,16 @@ Secret fields (API keys, passwords, `sms_aliyun.access_key_id`, `sms_aliyun.acce
 ## Keeping sample and embedded config in sync
 
 `config.yaml.sample` (repository root) is the canonical template for new deployments; `internal/conf/config.yaml` is the embedded default compiled into the binary. When you add or rename a configuration key, update **both** files in the same PR — CI reviewers check for this, and it is an item on the PR template checklist.
+
+### Projects database upgrade
+
+After the column migrations `0034_columns` and `0035_column_returns`, run
+`0036_project_module` before enabling Projects. The project migration preserves
+historical external URLs in full, including long signed query strings; its URL
+column is TEXT. The 2048-character limit applies only to newly submitted project
+URLs. Existing post content remains intact during backfill and rollback.
+
+For development databases that ran the unpublished `0034_project_module` from
+this PR, back up the database and roll back that project migration with the old
+checkout before applying the main migrations and `0036`. Do not relabel an
+already-applied migration version: version 34 on main belongs to Columns.

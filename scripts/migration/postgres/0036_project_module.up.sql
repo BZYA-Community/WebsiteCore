@@ -5,7 +5,7 @@ CREATE TABLE p_project (
 	post_id BIGINT NOT NULL DEFAULT 0,
 	title VARCHAR(30) NOT NULL DEFAULT '',
 	intro TEXT NOT NULL DEFAULT '',
-	url VARCHAR(2048) NOT NULL DEFAULT '',
+	url TEXT NOT NULL DEFAULT '',
 	follow_count BIGINT NOT NULL DEFAULT 0,
 	created_on BIGINT NOT NULL DEFAULT 0,
 	modified_on BIGINT NOT NULL DEFAULT 0,
@@ -65,7 +65,7 @@ SELECT p.user_id,
 	p.id,
 	LEFT(COALESCE((SELECT pc.content FROM p_post_content pc WHERE pc.post_id = p.id AND pc.type = 1 AND pc.is_del = 0 ORDER BY pc.sort, pc.id LIMIT 1), '未命名项目'), 30),
 	COALESCE((SELECT pc.content FROM p_post_content pc WHERE pc.post_id = p.id AND pc.type IN (9, 2) AND pc.is_del = 0 ORDER BY CASE WHEN pc.type = 9 THEN 0 ELSE 1 END, pc.sort, pc.id LIMIT 1), ''),
-	LEFT(COALESCE((SELECT pc.content FROM p_post_content pc WHERE pc.post_id = p.id AND pc.type = 6 AND pc.is_del = 0 ORDER BY pc.sort, pc.id LIMIT 1), ''), 2048),
+	COALESCE((SELECT pc.content FROM p_post_content pc WHERE pc.post_id = p.id AND pc.type = 6 AND pc.is_del = 0 ORDER BY pc.sort, pc.id LIMIT 1), ''),
 	p.created_on,
 	p.modified_on
 FROM p_post p
