@@ -84,5 +84,8 @@
   "reviewTask": "Task #{id}, submitter #{author}, reviewer #{reviewer}",
   "reviewDone": "Review decision saved",
   "draftConflict": "Another submission replaced this browser draft’s base version. Choose whether to restore or discard your local changes.",
-  "restoreLocal": "Restore local draft"
+  "restoreLocal": "Restore local draft",
+  "editorMode": "Article editor mode",
+  "editBody": "Edit",
+  "previewBody": "Preview"
 }

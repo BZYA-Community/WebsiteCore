@@ -15,8 +15,15 @@
         <n-form-item v-if="kind === 'collection'" :label="t('columns.introduction')"><n-input v-model:value="draft.summary" type="textarea" :maxlength="2000" show-count /></n-form-item>
         <template v-if="kind === 'article'">
           <label class="import-label"><span>{{ t('columns.import') }}</span><input type="file" accept=".md,text/markdown,text/plain" :disabled="readonly || saving" @change="importFile"></label>
-          <md-editor v-model="draft.body" :theme="mdTheme(main.theme)" :language="locale === 'en' ? 'en-US' : 'zh-CN'"
-            :disabled="readonly || saving" :toolbars-exclude="excluded" no-mermaid no-html />
+          <n-space v-if="narrowEditor" class="editor-mode" role="group" :aria-label="t('columns.editorMode')">
+            <n-button :aria-pressed="!mobilePreview" :type="mobilePreview ? 'default' : 'primary'" @click="mobilePreview = false">{{ t('columns.editBody') }}</n-button>
+            <n-button :aria-pressed="mobilePreview" :type="mobilePreview ? 'primary' : 'default'" @click="mobilePreview = true">{{ t('columns.previewBody') }}</n-button>
+          </n-space>
+          <md-editor ref="markdownEditor" v-show="!showMobilePreview" v-model="draft.body" :preview="!narrowEditor"
+            :theme="mdTheme(main.theme)" :language="locale === 'en' ? 'en-US' : 'zh-CN'"
+            :disabled="readonly || saving" :toolbars-exclude="editorExcluded" no-mermaid no-html />
+          <md-preview v-if="showMobilePreview" class="mobile-body-preview" :model-value="draft.body"
+            :theme="mdTheme(main.theme)" :language="locale === 'en' ? 'en-US' : 'zh-CN'" no-mermaid no-html />
           <p :class="{ 'length-error': length > MD_MAX_LENGTH }">{{ length }} / {{ MD_MAX_LENGTH }}</p>
           <column-media v-model="draft.attachments" :disabled="readonly || saving" @busy="uploading = $event" />
         </template>
@@ -39,7 +46,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { MdEditor, type ToolbarNames } from 'md-editor-v3';
+import { MdEditor, MdPreview, type ExposeParam, type ToolbarNames } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
 import { MD_MAX_LENGTH, mdTheme } from '@/utils/markdown';
 import { useStoreUser } from '@/store/user';
@@ -67,6 +74,19 @@ const user = useStoreUser();
 const main = useStoreMain();
 const router = useRouter();
 const route = useRoute();
+const markdownEditor = ref<ExposeParam>();
+const narrowEditor = ref(false);
+const mobilePreview = ref(false);
+const showMobilePreview = computed(() => narrowEditor.value && mobilePreview.value);
+let editorMediaQuery: MediaQueryList | undefined;
+function updateEditorWidth() {
+  narrowEditor.value = editorMediaQuery?.matches ?? false;
+}
+// MdEditor reads its preview prop only at creation; use its public API when
+// the viewport changes without remounting the editor or losing undo history.
+watch([narrowEditor, markdownEditor], ([narrow, editor]) => {
+  editor?.togglePreview(!narrow);
+}, { flush: 'post' });
 const draft = ref<ColumnDraft>({
   title: '',
   summary: '',
@@ -111,6 +131,9 @@ const excluded: ToolbarNames[] = [
   'htmlPreview',
   'fullscreen',
 ];
+const editorExcluded = computed<ToolbarNames[]>(() => narrowEditor.value
+  ? [...excluded, 'preview', 'previewOnly']
+  : excluded);
 const coverMedia = computed<ColumnMedia[]>({
   get: () =>
     draft.value.cover ? [{ content: draft.value.cover, type: 3, sort: 1 }] : [],
@@ -280,9 +303,15 @@ function discard() {
     loading.value = false;
   });
 }
-onMounted(load);
+onMounted(() => {
+  editorMediaQuery = window.matchMedia('(max-width: 760px)');
+  updateEditorWidth();
+  editorMediaQuery.addEventListener('change', updateEditorWidth);
+  void load();
+});
 onBeforeUnmount(() => {
   active = false;
+  editorMediaQuery?.removeEventListener('change', updateEditorWidth);
 });
 </script>
 
@@ -292,4 +321,9 @@ onBeforeUnmount(() => {
 .draft-tip { color: var(--n-text-color, #888); font-size: 12px; }
 .import-label { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0; }
 .length-error { color: #d03050; }
+.editor-mode { margin-bottom: 12px; }
+.mobile-body-preview { min-height: 300px; }
+@media (max-width: 760px) {
+  .column-form :deep(.md-editor-toolbar-wrapper) { overflow-x: auto; }
+}
 </style>

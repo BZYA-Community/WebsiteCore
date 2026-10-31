@@ -220,6 +220,10 @@ func (s *coreSrv) GetStars(req *web.GetStarsReq) (*web.GetStarsResp, error) {
 		logrus.Errorf("Ds.MergePosts err: %s", err)
 		return nil, web.ErrGetStarsFailed
 	}
+	if err = s.PrepareTweets(req.UserId, postsFormated); err != nil {
+		logrus.Errorf("get stars prepare tweets err: %s", err)
+		return nil, web.ErrGetStarsFailed
+	}
 	resp := joint.PageRespFrom(postsFormated, req.Page, req.PageSize, totalRows)
 	return (*web.GetStarsResp)(resp), nil
 }

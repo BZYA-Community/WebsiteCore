@@ -4,6 +4,7 @@
             v-model:show="activeDrawerRef"
             :width=212
             :placement="placementRef"
+            @after-leave="restoreDrawerFocus"
             resizable
         >
             <n-drawer-content>
@@ -16,7 +17,10 @@
             <div class="navbar">
                 <n-button
                     class="drawer-btn"
+                    ref="drawerTrigger"
                     v-if="drawerModelShow && !back"
+                    :aria-label="t('nav.openMenu')"
+                    :aria-expanded="activeDrawerRef"
                     @click="activeDrawer"
                     quaternary
                     circle
@@ -61,10 +65,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { useRouter } from 'vue-router';
 import { useMessage, useOsTheme, DrawerPlacement } from 'naive-ui';
+import type { ButtonInst } from 'naive-ui';
 import {
   LightModeOutlined,
   DarkModeOutlined,
@@ -77,8 +83,29 @@ const storeMain = useStoreMain();
 const { desktopModelShow, drawerModelShow, theme: themeName } = storeToRefs(storeMain);
 
 const router = useRouter();
+const { t } = useI18n();
 const activeDrawerRef = ref(false);
+const drawerTrigger = ref<ButtonInst | null>(null);
 const placementRef = ref<DrawerPlacement>('left');
+
+const removeNavigationHook = router.afterEach((_to, _from, failure) => {
+  if (failure || !activeDrawerRef.value) return;
+  activeDrawerRef.value = false;
+  // Navigation may replace this entire header. Focus the destination header,
+  // rather than the old drawer trigger that Naive UI would otherwise restore.
+  void nextTick(() => {
+    if (drawerModelShow.value) {
+      document.querySelector<HTMLButtonElement>('.nav-title-card .drawer-btn')?.focus();
+    }
+  });
+});
+onBeforeUnmount(removeNavigationHook);
+watch(drawerModelShow, (visible) => {
+  if (!visible) activeDrawerRef.value = false;
+});
+function restoreDrawerFocus() {
+  if (drawerModelShow.value) drawerTrigger.value?.focus();
+}
 
 const props = withDefaults(
   defineProps<{

@@ -24,11 +24,22 @@
                 <template #icon><n-icon><heart v-if="project.followed" /><heart-outline v-else /></n-icon></template>
                 {{ project.followed ? t('project.following') : t('project.follow') }} · {{ project.follow_count }}
               </n-button>
-              <n-button secondary @click="joinProject">
+              <n-button secondary disabled>
                 <template #icon><n-icon><people-outline /></n-icon></template>
-                {{ t('project.join') }}
+                {{ t('project.joinComingSoon') }}
               </n-button>
             </div>
+          </section>
+
+          <section class="detail-links" :aria-label="t('project.projectLinks')">
+            <n-button type="primary" tag="a" :href="project.url" target="_blank" rel="noopener noreferrer">
+              <template #icon><n-icon><open-outline /></n-icon></template>
+              {{ t('project.visitProject') }}
+            </n-button>
+            <n-button v-if="project.post_id" @click="openDiscussion">
+              <template #icon><n-icon><chatbox-outline /></n-icon></template>
+              {{ t('project.viewDiscussion') }}
+            </n-button>
           </section>
 
           <section class="detail-gallery" :class="{ single: project.images.length === 1 }">
@@ -48,16 +59,6 @@
                   <span>{{ member.user.nickname }}</span>
                   <n-tag size="small" :bordered="false">{{ member.role === 'owner' ? t('project.owner') : t('project.member') }}</n-tag>
                 </div>
-              </section>
-              <section class="side-card side-actions">
-                <n-button type="primary" tag="a" :href="project.url" target="_blank" rel="noopener noreferrer">
-                  <template #icon><n-icon><open-outline /></n-icon></template>
-                  {{ t('project.visitProject') }}
-                </n-button>
-                <n-button v-if="project.post_id" @click="openDiscussion">
-                  <template #icon><n-icon><chatbox-outline /></n-icon></template>
-                  {{ t('project.viewDiscussion') }}
-                </n-button>
               </section>
             </aside>
           </div>
@@ -151,7 +152,6 @@ async function toggleFollow() {
   }
 }
 
-function joinProject() { window.$message.info(t('project.joinComingSoon')); }
 function openDiscussion() {
   if (project.value?.post_id) void router.push({ name: 'post', query: { id: project.value.post_id } });
 }
@@ -180,7 +180,7 @@ watch(projectID, () => void loadProject(), { immediate: true });
 .side-card + .side-card { margin-top: 14px; }
 .side-card h2 { margin: 0 0 14px; font-size: 16px; }
 .member-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin-top: 10px; }
-.side-actions { display: flex; flex-direction: column; gap: 10px; }
+.detail-links { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
 @media (max-width: 760px) {
   .project-detail { padding: 18px; }
   .detail-header { flex-direction: column; }
