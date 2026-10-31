@@ -49,7 +49,7 @@ The large test streams the entire 2 GiB payload using a bounded buffer. It is di
 
 ## Deployment gates
 
-Local tests do not exercise a real Aliyun Mail tenant, Juhe account, AliOSS bucket, production CDN/proxy, or public traffic. Before launch, verify provider permissions and delivery, OSS CORS/private ACL/lifecycle rules, proxy streaming limits and trusted proxy addresses, backup restoration, and expected concurrent workload against the deployment configuration. The local upload duration is not a production throughput claim.
+Local tests do not exercise a real Aliyun Mail tenant, Alibaba Cloud SMS account, AliOSS bucket, production CDN/proxy, or public traffic. SMS now uses `SmsAliyun`; old Juhe settings are not reused. Before launch, configure the approved `${code}` template and least-privilege RAM credentials, restart, and verify actual receipt and binding with a deployment-owned number ([SMS guide](deploy/sms.md)). `Code: OK` from the SMS API confirms acceptance, not handset delivery. Also verify OSS CORS/private ACL/lifecycle rules, proxy streaming limits and trusted proxy addresses, backup restoration, and expected concurrent workload against the deployment configuration. The local upload duration is not a production throughput claim.
 
 The disposable API, preview server, PostgreSQL and Redis containers were stopped after verification. Test evidence remains in ignored local verification directories. A final scan of the 168 changed/new repository paths found no credential-pattern matches or broken local documentation links; this bounded check is not a substitute for a full security audit.
 

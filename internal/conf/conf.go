@@ -37,7 +37,7 @@ var (
 	SimpleCacheIndexSetting *simpleCacheIndexConf
 	BigCacheIndexSetting    *bigCacheIndexConf
 	RedisCacheIndexSetting  *redisCacheIndexConf
-	SmsJuheSetting          *smsJuheConf
+	SmsAliyunSetting        *smsAliyunConf
 	TweetSearchSetting      *tweetSearchConf
 	MeiliSetting            *meiliConf
 	ObjectStorage           *objectStorageConf
@@ -78,7 +78,7 @@ func setupSetting(suite []string, noDefault bool) error {
 		"SimpleCacheIndex":  &SimpleCacheIndexSetting,
 		"BigCacheIndex":     &BigCacheIndexSetting,
 		"RedisCacheIndex":   &RedisCacheIndexSetting,
-		"SmsJuhe":           &SmsJuheSetting,
+		"SmsAliyun":         &SmsAliyunSetting,
 		"Pyroscope":         &PyroscopeSetting,
 		"Sentry":            &sentrySetting,
 		"Logger":            &loggerSetting,

@@ -313,6 +313,7 @@ declare namespace Api {
             }
 
             interface AuditLogItem {
+                column_id?: number;
                 id: number;
                 post_id: number;
                 operator_id: number;

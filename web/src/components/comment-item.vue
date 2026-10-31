@@ -54,7 +54,7 @@
                         {{  comment.ip_loc}}
                     </span>
                     <n-popconfirm
-                        v-if="storeUser.hasPermission('content.manage') || (storeUser.hasPermission('post.create') && userInfo.id === postUserId)"
+                        v-if="storeUser.hasPermission('content.manage') || (storeUser.hasPermission(props.columnId ? 'column.publish' : 'post.create') && userInfo.id === postUserId)"
                         :negative-text="t('common.cancel')"
                         :positive-text="t('common.confirm')"
                         @positive-click="execHightlightAction"
@@ -123,6 +123,8 @@
                   <compose-reply
                     ref="replyComposeRef"
                     :comment="comment"
+                    :column-id="props.columnId"
+                    :locked="props.locked"
                     :at-userid="replyAtUserID"
                     :at-username="replyAtUsername"
                     @reload="reload"
@@ -135,6 +137,8 @@
                         :key="reply.id"
                         :reply="reply"
                         :tweet-id="comment.post_id"
+                        :column-id="props.columnId"
+                        :locked="props.locked"
                         @focusReply="focusReply"
                         @reload="reload"
                     />
@@ -152,6 +156,7 @@ import { useRouter } from 'vue-router';
 import { parsePostTag } from '@/utils/content';
 import { Trash, ArrowBarToUp, ArrowBarDown } from '@vicons/tabler';
 import { deleteComment, highlightComment } from '@/api/post';
+import { columnCommentAction } from '@/api/columns';
 import { YesNoEnum } from '@/utils/IEnum';
 import { AuditStatusEnum } from '@/utils/IEnum';
 import { storeToRefs } from 'pinia';
@@ -175,8 +180,10 @@ const props = withDefaults(
   defineProps<{
     comment: Item.CommentProps;
     postUserId: number;
+    columnId?: number;
+    locked?: boolean;
   }>(),
-  {},
+  { columnId: 0, locked: false },
 );
 
 const comment = computed(() => {
@@ -232,9 +239,7 @@ const resetReply = () => {
 };
 
 const execDelAction = () => {
-  deleteComment({
-    id: comment.value.id,
-  })
+  (props.columnId ? columnCommentAction(comment.value.id, 'delete') : deleteComment({ id: comment.value.id }))
     .then((_res) => {
       window.$message.success(t('comment.msg.deleteSuccess'));
       setTimeout(() => {
@@ -245,9 +250,7 @@ const execDelAction = () => {
 };
 
 const execHightlightAction = () => {
-  highlightComment({
-    id: comment.value.id,
-  })
+  (props.columnId ? columnCommentAction(comment.value.id, comment.value.is_essence ? 'unfeature' : 'feature').then(() => ({ highlight_status: comment.value.is_essence ? 0 : 1 })) : highlightComment({ id: comment.value.id }))
     .then((res) => {
       comment.value.is_essence = res.highlight_status;
       window.$message.success(t('comment.msg.operateSuccess'));

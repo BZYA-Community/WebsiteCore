@@ -62,6 +62,17 @@ var routeRules = func() map[string]routeRule {
 	for _, path := range []string{"posts", "comments", "nicknames", "avatars", "logs", "statistics", "history"} {
 		rules["GET /v1/admin/audit/"+path] = routeRule{Any: []string{authz.ContentReview, authz.AuditViewAll}, Login: true}
 	}
+
+	for _, route := range []string{"GET /v1/columns", "GET /v1/column", "GET /v1/column/entries", "GET /v1/column/comments", "GET /v1/column/attachment"} {
+		rules[route] = routeRule{}
+	}
+	for _, route := range []string{"GET /v1/column/submission", "GET /v1/column/returned", "GET /v1/column/returned/attachment", "POST /v1/column/action", "POST /v1/column/entries", "POST /v1/column/comment/action"} {
+		rules[route] = routeRule{Login: true}
+	}
+	add(authz.ColumnPublish, true, "POST /v1/column/submit")
+	add(authz.CommentCreate, true, "POST /v1/column/comment")
+	rules["GET /v1/admin/audit/columns"] = routeRule{Any: []string{authz.ContentReview, authz.AuditViewAll}, Login: true}
+	add(authz.ContentReview, true, "POST /v1/admin/audit/column")
 	return rules
 }()
 

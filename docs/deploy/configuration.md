@@ -17,7 +17,7 @@ Two values must be set before first launch:
 | Key | Generate with | Consequence if missing |
 | --- | --- | --- |
 | `JWT.Secret` | `openssl rand -hex 24` | The process exits at startup. |
-| `AdminSettings.EncryptionKey` | a long random string | Secrets saved through the admin UI (search API keys, storage secrets, SMS key) cannot be encrypted or read back. |
+| `AdminSettings.EncryptionKey` | a long random string | Secrets saved through the admin UI (search API keys, storage secrets, SMS AccessKey ID/Secret) cannot be encrypted or read back. |
 
 `EncryptionKey` is hashed with SHA-256 into a 32-byte AES key; every field marked as secret in the admin UI is stored in the database as AES-GCM ciphertext with an `enc:v1:` prefix. Rotating it makes previously stored secrets unreadable — re-enter them in the admin UI after a rotation.
 
@@ -48,7 +48,7 @@ Feature names are case-insensitive. Every feature recognized by the codebase, gr
 | Search | `Meili` | Meilisearch is the recommended engine; without it, search falls back to PostgreSQL `ILIKE` |
 | Cache index | `BigCacheIndex`, `SimpleCacheIndex`, `RedisCacheIndex` | timeline caching strategy |
 | Object storage | `LocalOSS`, `AliOSS` | enable exactly one (defaults to `LocalOSS`); sub-features `OSS:TempDir`, `OSS:Retention` control upload staging |
-| SMS | `Sms` | enables phone verification via Juhe SMS; see [sms.md](sms.md) |
+| SMS settings | `Sms` | shows the Alibaba Cloud SMS admin settings; phone verification uses `account_verify.mode: phone` and complete `SmsAliyun` settings; see [sms.md](sms.md) |
 | Logging | `LoggerFile`, `LoggerOtlp` | |
 | Observability | `Sentry`, `Pyroscope` | |
 | Migration | `Migration` | auto-migrate schema at startup; requires a binary built with the `migration` tag |
@@ -155,9 +155,11 @@ The operator can update the same list live from the admin settings page. HTTP li
 
 All of these are also manageable from the admin UI (storage group). `LocalOSS.SavePath` defaults to `custom/data/paopao-ce/oss` relative to the working directory — back this directory up. When no storage feature is enabled, `LocalOSS` is used automatically. Full setup guide — including AliOSS bucket/CORS preparation and browser-direct uploads — is in [object-storage.md](object-storage.md).
 
-### SMS (`SmsJuhe`)
+### SMS (`SmsAliyun`)
 
-See [sms.md](sms.md). Keys: `Gateway`, `Key`, `TplID`, `TplVal`.
+Keys: `AccessKeyID`, `AccessKeySecret`, `SignName`, `TemplateCode`. Select `account_verify.mode: phone` and use an approved template with the single `${code}` variable. Enable `Sms` to show the admin settings section; sending with complete YAML configuration does not depend on that feature flag. Any missing SMS field makes phone verification unavailable. There is no automatic fallback to another provider. Old `SmsJuhe` and `sms_juhe.*` values are no longer used; configure all four Alibaba Cloud fields and restart after upgrading. See [sms.md](sms.md) for RAM permissions, setup, and delivery checks.
+
+`account_verify` controls code lifetime (`code_ttl_seconds`, default 300), resend cooldown (`cooldown_seconds`, 60), attempts (`max_attempts`, 5), and sends per account/address over the last 24 hours (`max_daily_sends`, 10). `dev_skip_code` defaults to `false`; only its explicit combination with `App.RunMode: debug` bypasses provider delivery and code matching for local development. Startup rejects it outside debug mode.
 
 ### Caching (`Cache`, `CacheIndex`, `SimpleCacheIndex`, `BigCacheIndex`, `RedisCacheIndex`)
 
@@ -205,11 +207,11 @@ At every startup the server ensures this account exists with the Operator role a
 
 ### Frontend profile (`WebProfile`)
 
-Site-level UI knobs: trends bar, attachments/videos allowed, registration allowed, phone binding allowed, tweet length and ellipsis sizes, default tweet visibility, message polling interval, copyright strings. These are managed in the admin UI (web/profile group); the YAML values only seed the first boot. Note: `AllowUserRegister` and `AllowPhoneBind` are bootstrap-only (read from YAML at startup, not editable at runtime).
+Site-level UI knobs: trends bar, attachments/videos allowed, registration allowed, tweet length and ellipsis sizes, default tweet visibility, message polling interval, copyright strings. These are managed in the admin UI (web/profile group); the YAML values only seed the first boot. `AllowUserRegister` is bootstrap-only. The public phone-binding capability is derived from `account_verify.mode` and channel availability; the legacy `WebProfile.AllowPhoneBind` value does not enable an unconfigured SMS channel.
 
 ## Admin-managed settings (`/#/admin/settings`)
 
-Settings registered in `internal/sitesetting/registry.go` are grouped in the admin UI as: web/profile, app (general, limits), search (bridge, meili), storage (common + each backend), notifications/sms_juhe, and audit.
+Settings registered in `internal/sitesetting/registry.go` are grouped in the admin UI as: web/profile, app (general, limits), search (bridge, meili), storage (common + each backend), notifications/sms_aliyun, and audit. The SMS section is visible only when `Sms` is enabled.
 
 Each setting has an apply mode:
 
@@ -219,7 +221,7 @@ Each setting has an apply mode:
 | `restart_required` | saved to the database, active after the next process restart |
 | `bootstrap_only` | read from YAML at startup only; shown read-only |
 
-Secret fields (API keys, passwords, `sms_juhe.key`) are stored encrypted with `AdminSettings.EncryptionKey`.
+Secret fields (API keys, passwords, `sms_aliyun.access_key_id`, `sms_aliyun.access_key_secret`) are stored encrypted with `AdminSettings.EncryptionKey`. All four `sms_aliyun.*` fields require a restart after saving.
 
 ## Keeping sample and embedded config in sync
 

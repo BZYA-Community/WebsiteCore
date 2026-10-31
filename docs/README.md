@@ -19,7 +19,7 @@ Start here if you are looking for anything beyond the project overview in the [r
 | [deploy/configuration.md](deploy/configuration.md) | Full `config.yaml` reference, feature flags, admin-managed settings |
 | [deploy/database.md](deploy/database.md) | PostgreSQL setup, migrations, backup and restore |
 | [deploy/object-storage.md](deploy/object-storage.md) | Object storage: LocalOSS / AliOSS, CORS, direct uploads, troubleshooting |
-| [deploy/sms.md](deploy/sms.md) | SMS provider (Juhe) and phone-binding configuration |
+| [deploy/sms.md](deploy/sms.md) | Alibaba Cloud SMS credentials, templates, and phone-binding configuration |
 | [deploy/production.md](deploy/production.md) | Recommended production layout: native binary + Dockerized dependencies + Nginx |
 | [deploy/docker-compose.md](deploy/docker-compose.md) | Fully containerized alternative |
 | [deploy/public-launch.md](deploy/public-launch.md) | Checklist before opening a site to the public internet |
@@ -31,6 +31,7 @@ Start here if you are looking for anything beyond the project overview in the [r
 | --- | --- |
 | [features-status.md](features-status.md) | Feature flag maturity matrix |
 | [CHANGELOG.md](CHANGELOG.md) | WebsiteCore change history |
+| [column-returns.md](column-returns.md) | Private author retrieval after administrator article deletion |
 | [openapi/](openapi/) | OpenAPI assets served at `/docs/openapi` with the `docs` build tag |
 | [archive/](archive/) | Historical upstream paopao-ce documents, kept for reference only |
 

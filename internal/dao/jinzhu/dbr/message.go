@@ -26,6 +26,8 @@ type Message struct {
 	Type           MessageT `json:"type"`
 	Brief          string   `json:"brief"`
 	Content        string   `json:"content"`
+	ColumnID       int64    `json:"column_id"`
+	ColumnReturned bool     `json:"column_returned,omitempty"`
 	PostID         int64    `json:"post_id"`
 	CommentID      int64    `json:"comment_id"`
 	ReplyID        int64    `json:"reply_id"`
@@ -41,6 +43,8 @@ type MessageFormated struct {
 	Type           MessageT      `json:"type"`
 	Brief          string        `json:"brief"`
 	Content        string        `json:"content"`
+	ColumnID       int64         `json:"column_id"`
+	ColumnReturned bool          `json:"column_returned,omitempty"`
 	PostID         int64         `json:"post_id"`
 	Post           *PostFormated `json:"post"`
 	CommentID      int64         `json:"comment_id"`
@@ -66,6 +70,8 @@ func (m *Message) Format() *MessageFormated {
 		Brief:          m.Brief,
 		Content:        m.Content,
 		PostID:         m.PostID,
+		ColumnID:       m.ColumnID,
+		ColumnReturned: m.ColumnReturned,
 		Post:           &PostFormated{},
 		CommentID:      m.CommentID,
 		Comment:        &Comment{},

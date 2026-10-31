@@ -17,12 +17,14 @@
                     @update:value="handleCategoryChange"
                 >
                     <n-tab name="post">{{ t('adminAudit.tab.post') }}</n-tab>
+                    <n-tab name="columns">{{ t('columns.review') }}</n-tab>
                     <n-tab name="comment">{{ t('adminAudit.tab.comment') }}</n-tab>
                     <n-tab name="nickname">{{ t('adminAudit.tab.nickname') }}</n-tab>
                     <n-tab name="avatar">{{ t('adminAudit.tab.avatar') }}</n-tab>
                     <n-tab name="logs">{{ t('adminAudit.tab.logs') }}</n-tab>
                 </n-tabs>
 
+                <column-review-queue v-if="category === 'columns'" ref="columnQueue" />
                 <!-- 帖子/评论: 状态子标签 -->
                 <template v-if="category === 'post' || category === 'comment'">
                     <n-tabs
@@ -295,7 +297,7 @@
                 </template>
 
                 <!-- 审核日志 -->
-                <template v-else>
+                <template v-else-if="category === 'logs'">
                     <n-data-table
                         remote
                         size="small"
@@ -372,6 +374,8 @@
 </template>
 
 <script setup lang="ts">
+import ColumnReviewQueue from '@/components/columns/column-review-queue.vue';
+import { useRouter } from 'vue-router';
 import { computed, h, onMounted, reactive, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { NTag } from 'naive-ui';
@@ -393,6 +397,7 @@ type AuditLogItem = Api.Admin.NetReq.AuditLogItem;
 
 const { t } = useI18n();
 const storeMain = useStoreMain();
+const router = useRouter();
 const storeUser = useStoreUser();
 const editorTheme = computed(() => mdTheme(storeMain.theme));
 const canReview = (row: { review_task?: Api.Admin.NetReq.ReviewTask }) => {
@@ -430,7 +435,7 @@ const statisticsColumns = computed(() => [
 const loading = ref(false);
 let listRequestRevision = 0;
 const acting = ref(false);
-const category = ref<'post' | 'comment' | 'nickname' | 'avatar' | 'logs'>('post');
+const category = ref<'post' | 'comment' | 'nickname' | 'avatar' | 'logs' | 'columns'>('post');
 const activeTab = ref('pending');
 const postItems = ref<AuditPostItem[]>([]);
 const commentItems = ref<AuditCommentItem[]>([]);
@@ -532,6 +537,16 @@ const commentTypeText = (type: number) => {
 };
 
 const actionText = (action: string) => {
+    const columnActions: Record<string, string> = {
+        column_approve: t('columns.approve'), column_reject: t('columns.reject'),
+        column_comment_approve: t('columns.reviewComment') + ' · ' + t('columns.approve'),
+        column_comment_reject: t('columns.reviewComment') + ' · ' + t('columns.reject'),
+        column_invite: t('columns.invite'), column_uninvite: t('columns.uninvite'),
+        column_delete: t('columns.delete'), column_takedown: t('columns.takedown'),
+        column_restore: t('columns.restore'), column_lock: t('columns.lock'),
+        column_unlock: t('columns.unlock'), column_withdraw: t('columns.withdraw'),
+    };
+    if (columnActions[action]) return columnActions[action];
     switch (action) {
         case 'approve':
             return t('adminAudit.action.approveAction');
@@ -730,8 +745,12 @@ const loadLogs = async () => {
     }
 };
 
+const columnQueue = ref<InstanceType<typeof ColumnReviewQueue>>();
 const loadActiveTab = () => {
     switch (category.value) {
+        case 'columns':
+            columnQueue.value?.load();
+            break;
         case 'logs':
             loadLogs();
             break;
@@ -954,6 +973,10 @@ const logColumns = computed<DataTableColumns<AuditLogItem>>(() => [
                       { default: () => `#${row.post_id}` }
                   )
                 : '-',
+    },
+    {
+        title: t('nav.columns'), key: 'column_id', width: 90,
+        render: row => row.column_id ? h('a', { href: router.resolve({ name: 'columns', query: { view: 'read', id: row.column_id } }).href, target: '_blank', rel: 'noopener noreferrer' }, `#${row.column_id}`) : '-',
     },
     {
         title: t('adminAudit.table.operator'),

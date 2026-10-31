@@ -12,6 +12,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "i18n:check": "node scripts/i18n-check.mjs",
+    "test:columns": "node scripts/columns-access.test.mjs",
     "test:permissions": "node --experimental-strip-types scripts/permissions.test.mjs",
     "test:media": "node --experimental-strip-types scripts/media-upload.test.mjs",
     "test:compose": "node --experimental-strip-types scripts/compose-easter-egg.test.mjs",
@@ -60,7 +61,7 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.70.1",
     "unplugin-vue-components": "^32.1.0",
-    "vite": "^8.0.0",
+    "vite": "^8.3.3",
     "vue-eslint-parser": "^10.4.1"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"

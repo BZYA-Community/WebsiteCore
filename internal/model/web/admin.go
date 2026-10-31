@@ -282,6 +282,7 @@ func (r *AdminAuditLogsReq) SetPageInfo(page, pageSize int) {
 
 // AdminAuditLogItem 审核日志条目(操作人冗余自用户表)
 type AdminAuditLogItem struct {
+	ColumnID     int64  `json:"column_id"`
 	ID           int64  `json:"id"`
 	PostID       int64  `json:"post_id"`
 	OperatorID   int64  `json:"operator_id"`

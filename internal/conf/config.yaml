@@ -68,11 +68,11 @@ DocsServer: # 开发文档服务
   HttpPort: 8011
   ReadTimeout: 60
   WriteTimeout: 60
-SmsJuhe:
-  Gateway: https://v.juhe.cn/sms/send
-  Key:
-  TplID:
-  TplVal: "#code#=%s&#m#=%d"
+SmsAliyun:
+  AccessKeyID: ""
+  AccessKeySecret: ""
+  SignName: ""
+  TemplateCode: ""
 Alipay: 
   AppID: "paopao-ce-app-id"
   InProduction: True

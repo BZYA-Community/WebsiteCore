@@ -62,6 +62,7 @@ import {
   LogOutOutline,
   VideocamOutline,
   RocketOutline,
+  NewspaperOutline,
 } from '@vicons/ionicons5';
 import { Hash } from '@vicons/tabler';
 import LOGO from '@/assets/img/logo.png';
@@ -119,6 +120,7 @@ watch(
 const menuOptions = computed(() => [
   { label: t('nav.home'), key: 'home', icon: () => h(HomeOutline), href: '/' },
   { label: t('nav.topic'), key: 'topic', icon: () => h(Hash), href: '/topic' },
+  { label: t('nav.columns'), key: 'columns', icon: () => h(NewspaperOutline), href: '/columns' },
   { label: t('nav.courses'), key: 'courses', icon: () => h(VideocamOutline), href: '/courses' },
   { label: t('nav.projects'), key: 'projects', icon: () => h(RocketOutline), href: '/projects' },
   { label: t('nav.profile'), key: 'profile', icon: () => h(LeafOutline), href: '/profile', login: true },

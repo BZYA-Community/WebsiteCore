@@ -15,6 +15,7 @@ var (
 const (
 	PostView           = "post.view"
 	PostCreate         = "post.create"
+	ColumnPublish      = "column.publish"
 	CommentCreate      = "comment.create"
 	ContentUpload      = "content.upload"
 	ContentReview      = "content.review"
@@ -41,7 +42,7 @@ var permissions = []string{
 	ContentManage, ContentViewPrivate, PublishUnreviewed, UserManage,
 	IdentityManage, CourseCatalog, CourseView, CourseManage, CourseManageOwn,
 	CourseUpload, SiteManage, MessageInitiate, MessageReply, ProfileEdit,
-	CommunityInteract, AuditViewAll,
+	CommunityInteract, AuditViewAll, ColumnPublish,
 }
 
 func All() []string { return slices.Clone(permissions) }

@@ -543,6 +543,7 @@ func (s *auditSrv) ListAuditLogs(req *web.AdminAuditLogsReq) (*web.AdminAuditLog
 	items := make([]*web.AdminAuditLogItem, 0, len(logs))
 	for _, l := range logs {
 		items = append(items, &web.AdminAuditLogItem{
+			ColumnID:     l.ColumnID,
 			ID:           l.ID,
 			PostID:       l.PostID,
 			OperatorID:   l.OperatorID,

@@ -6,6 +6,7 @@ package core
 
 // DataService 数据服务集成
 type DataService interface {
+	ColumnService
 	// 消息服务
 	MessageService
 

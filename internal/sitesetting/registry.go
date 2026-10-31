@@ -40,7 +40,7 @@ type bootstrapSnapshot struct {
 	ObjectStorage confObjectStorageSnapshot
 	AliOSS        confAliOSSSnapshot
 	LocalOSS      confLocalOSSSnapshot
-	SmsJuhe       confSmsJuheSnapshot
+	SmsAliyun     confSmsAliyunSnapshot
 	WebProfile    confWebProfileSnapshot
 	Audit         confAuditSnapshot
 }
@@ -85,11 +85,11 @@ type confLocalOSSSnapshot struct {
 	Domain   string
 }
 
-type confSmsJuheSnapshot struct {
-	Gateway string
-	Key     string
-	TplID   string
-	TplVal  string
+type confSmsAliyunSnapshot struct {
+	AccessKeyID     string
+	AccessKeySecret string
+	SignName        string
+	TemplateCode    string
 }
 
 type confAuditSnapshot struct {
@@ -173,8 +173,8 @@ func ensureBootstrapSnapshot() {
 	if conf.LocalOSSSetting != nil {
 		bootstrapConfig.LocalOSS = confLocalOSSSnapshot{SavePath: conf.LocalOSSSetting.SavePath, Secure: conf.LocalOSSSetting.Secure, Bucket: conf.LocalOSSSetting.Bucket, Domain: conf.LocalOSSSetting.Domain}
 	}
-	if conf.SmsJuheSetting != nil {
-		bootstrapConfig.SmsJuhe = confSmsJuheSnapshot{Gateway: conf.SmsJuheSetting.Gateway, Key: conf.SmsJuheSetting.Key, TplID: conf.SmsJuheSetting.TplID, TplVal: conf.SmsJuheSetting.TplVal}
+	if conf.SmsAliyunSetting != nil {
+		bootstrapConfig.SmsAliyun = confSmsAliyunSnapshot{AccessKeyID: conf.SmsAliyunSetting.AccessKeyID, AccessKeySecret: conf.SmsAliyunSetting.AccessKeySecret, SignName: conf.SmsAliyunSetting.SignName, TemplateCode: conf.SmsAliyunSetting.TemplateCode}
 	}
 	if conf.AuditSetting != nil {
 		bootstrapConfig.Audit = confAuditSnapshot{Enabled: conf.AuditSetting.Enabled}
@@ -266,10 +266,10 @@ func Registry() []Definition {
 		stringDefWithActive("alioss.bucket", "storage", "alioss", "AliOSS bucket", "AliOSS bucket name.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("AliOSS") }, func() any { return conf.AliOSSSetting.Bucket }, func() any { return bootstrapConfig.AliOSS.Bucket }, validateTrimmedMax("alioss.bucket", 255), func(v any) { conf.AliOSSSetting.Bucket = v.(string) }),
 		stringDefWithActive("alioss.domain", "storage", "alioss", "AliOSS domain", "AliOSS public domain.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("AliOSS") }, func() any { return conf.AliOSSSetting.Domain }, func() any { return bootstrapConfig.AliOSS.Domain }, validateTrimmedMax("alioss.domain", 255), func(v any) { conf.AliOSSSetting.Domain = v.(string) }),
 
-		stringDefWithActive("sms_juhe.gateway", "notifications", "sms_juhe", "SMS gateway", "Juhe SMS gateway URL.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsJuheSetting.Gateway }, func() any { return bootstrapConfig.SmsJuhe.Gateway }, validateTrimmedMax("sms_juhe.gateway", 255), func(v any) { conf.SmsJuheSetting.Gateway = v.(string) }),
-		stringDefWithActive("sms_juhe.key", "notifications", "sms_juhe", "SMS key", "Juhe SMS key.", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsJuheSetting.Key }, func() any { return bootstrapConfig.SmsJuhe.Key }, validateTrimmedMax("sms_juhe.key", 255), func(v any) { conf.SmsJuheSetting.Key = v.(string) }),
-		stringDefWithActive("sms_juhe.tpl_id", "notifications", "sms_juhe", "SMS template ID", "Juhe SMS template ID.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsJuheSetting.TplID }, func() any { return bootstrapConfig.SmsJuhe.TplID }, validateTrimmedMax("sms_juhe.tpl_id", 255), func(v any) { conf.SmsJuheSetting.TplID = v.(string) }),
-		stringDefWithActive("sms_juhe.tpl_val", "notifications", "sms_juhe", "SMS template value", "Juhe SMS template value format.", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsJuheSetting.TplVal }, func() any { return bootstrapConfig.SmsJuhe.TplVal }, validateTrimmedMax("sms_juhe.tpl_val", 255), func(v any) { conf.SmsJuheSetting.TplVal = v.(string) }),
+		stringDefWithActive("sms_aliyun.access_key_id", "notifications", "sms_aliyun", "AccessKey ID", "阿里云 RAM 用户的 AccessKey ID，仅需短信发送权限；保存后不回显。", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsAliyunSetting.AccessKeyID }, func() any { return bootstrapConfig.SmsAliyun.AccessKeyID }, validateTrimmedMax("sms_aliyun.access_key_id", 255), func(v any) { conf.SmsAliyunSetting.AccessKeyID = v.(string) }),
+		stringDefWithActive("sms_aliyun.access_key_secret", "notifications", "sms_aliyun", "AccessKey Secret", "阿里云 RAM 用户的 AccessKey Secret，按机密加密保存且不回显。", ApplyModeRestartRequired, true, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsAliyunSetting.AccessKeySecret }, func() any { return bootstrapConfig.SmsAliyun.AccessKeySecret }, validateTrimmedMax("sms_aliyun.access_key_secret", 512), func(v any) { conf.SmsAliyunSetting.AccessKeySecret = v.(string) }),
+		stringDefWithActive("sms_aliyun.sign_name", "notifications", "sms_aliyun", "短信签名", "阿里云短信控制台中已审核通过的签名，须与控制台内容一致。", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsAliyunSetting.SignName }, func() any { return bootstrapConfig.SmsAliyun.SignName }, validateTrimmedMax("sms_aliyun.sign_name", 255), func(v any) { conf.SmsAliyunSetting.SignName = v.(string) }),
+		stringDefWithActive("sms_aliyun.template_code", "notifications", "sms_aliyun", "短信模板 CODE", "已审核通过的验证码模板 CODE（SMS_ 开头），模板验证码变量固定为 ${code}。", ApplyModeRestartRequired, false, true, nil, func() bool { return cfg.If("Sms") }, func() any { return conf.SmsAliyunSetting.TemplateCode }, func() any { return bootstrapConfig.SmsAliyun.TemplateCode }, validateTrimmedMax("sms_aliyun.template_code", 255), func(v any) { conf.SmsAliyunSetting.TemplateCode = v.(string) }),
 
 		boolDef("audit.enabled", "audit", "general", "Enable content audit", "New posts from ordinary users enter the pending queue and go public only after approval. Mentors and managers are exempt.", ApplyModeLive, false, true, func() any { return conf.AuditSetting.Enabled }, func() any { return bootstrapConfig.Audit.Enabled }, func(v any) { conf.AuditSetting.Enabled = v.(bool) }),
 	}

@@ -31,7 +31,7 @@
             </div>
 
             <n-upload
-                v-if="showBtn"
+                v-if="showBtn && props.lock !== 1"
                 ref="uploadRef"
                 abstract
                 list-type="image"
@@ -176,6 +176,7 @@ import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { debounce } from 'lodash';
 import { ImageOutline } from '@vicons/ionicons5';
 import { createComment } from '@/api/post';
+import { createColumnComment } from '@/api/columns';
 import { parsePostTag } from '@/utils/content';
 import type { MentionOption, UploadFileInfo, UploadInst } from 'naive-ui';
 import { storeToRefs } from 'pinia';
@@ -191,8 +192,10 @@ const props = withDefaults(
   defineProps<{
     lock: number;
     postId: number;
+    columnId?: number;
   }>(),
   {
+    columnId: 0,
     lock: 0,
     postId: 0,
   },
@@ -332,7 +335,7 @@ const cancelComment = () => {
 
 // 发布动态
 const submitPost = () => {
-  if (submitting.value || fileQueue.value.some((file) => file.status !== 'finished')) return;
+  if (props.lock === 1 || submitting.value || fileQueue.value.some((file) => file.status !== 'finished')) return;
   if (content.value.trim().length === 0) {
     window.$message.warning(t('comment.msg.contentRequired'));
     return;
@@ -359,11 +362,9 @@ const submitPost = () => {
   });
 
   submitting.value = true;
-  createComment({
-    contents,
-    post_id: props.postId,
-    users: Array.from(new Set(users)),
-  })
+  (props.columnId
+    ? createColumnComment({ column_id: props.columnId, contents, users: Array.from(new Set(users)) })
+    : createComment({ contents, post_id: props.postId, users: Array.from(new Set(users)) }))
     .then((res) => {
       if (res.audit_status === 0) {
         window.$message.success(t('comment.msg.commentPendingAudit'));

@@ -14,6 +14,10 @@ flowchart TD
     Compose --> Views[application/content]
     Compose --> Index[application/searchindex]
     Compose --> DAO[dao adapter selection]
+    DAO --> Columns[application/columnindex]
+    Columns --> ColumnStore[Injected public article store]
+    Columns --> ColumnWriter[Injected Meilisearch adapter]
+    Columns --> ColumnLock[Injected instance lock]
     Views --> Store[Injected persistence adapter]
     Index --> Store
     Index --> Writer[Injected search writer]
@@ -29,6 +33,7 @@ flowchart TD
 | `internal/transport/httpx` | Binding, authenticated request context, pagination hydration, and response rendering. `New(sentryEnabled)` selects the existing binding behavior. It does not initialize persistence. | Binding and rendering through `Servant`, with and without Sentry. |
 | `internal/application/content` | Content assembly, viewer enrichment, and the shared post read policy. `New(store)` accepts only the persistence operations this module needs. | `Views` methods with an in-memory adapter, including both post representations, roles, following, guests, and failures. |
 | `internal/application/searchindex` | `Put`, `Sync`, and `Delete` hide text projection and full-sync paging and locking. `New(store, writer, lock)` accepts the three internal seams. | Single and full indexing, paging, repeated runs, errors, and cancellation with in-memory adapters. |
+| `internal/application/columnindex` | `Sync` and `Search` coordinate public article reconciliation, revision validation, and SQL fallback. `New(store, writer, lock)` accepts adapters selected in `jinzhu.NewDataService`. | In-memory tests for disabled/unavailable search, capped/empty/stale hits, rebuilding, writes, deletion, and recovery. |
 | `internal/servants/base` | Composes these capabilities using the existing production adapters, and schedules search work through the existing event manager. | Compilation of existing handlers and the constraint build tag. |
 | `internal/model/joint` | Owns the shared JSON pagination envelope. Request and response types no longer import application composition to describe pagination. | Existing response conversion and HTTP envelope tests. |
 
@@ -52,6 +57,17 @@ manager; single-post events also return write failures. There is no automatic
 retry or rollback of documents already accepted by the writer. Cancellation is
 observed between pages; cancellation cannot interrupt a persistence or writer
 operation whose existing interface has no context parameter.
+
+`columnindex` owns readiness per composed instance. Publishing and review share
+that instance and its injected lock; there is no global index state. Its store
+projects only current public articles from PostgreSQL, and its writer owns HTTP,
+index settings, and task completion. Initial use rebuilds the independent index.
+Failed writes and stale visibility/revisions invalidate readiness so the next
+operation rebuilds it. Disabled or unavailable search, empty results, and results
+at the 1,000-hit ceiling select the existing SQL keyword query. A database read
+failure during synchronization returns an error instead of deleting a document.
+The HTTP client timeout and feature/config selection live at composition; tests
+exercise reconciliation without importing configuration, GORM, or HTTP.
 
 `httpx.Servant.BindJson` deliberately retains the existing generic `ShouldBind`
 behavior, including form binding. Sentry error-detail behavior and successful

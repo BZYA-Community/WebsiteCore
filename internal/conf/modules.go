@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/mail"
 	"net/url"
+	"strings"
 )
 
 type CoursesConf struct{ Enabled bool }
@@ -50,10 +51,18 @@ func VerificationAvailable() bool {
 		return false
 	}
 	if VerificationMode() == "phone" {
-		return SmsJuheSetting != nil && SmsJuheSetting.Key != "" && SmsJuheSetting.TplID != ""
+		return SmsConfigured()
 	}
 	a := AccountVerifySetting.Aliyun
 	return a.ClientID != "" && a.ClientSecret != "" && a.Sender != ""
+}
+
+func SmsConfigured() bool {
+	return SmsAliyunSetting != nil &&
+		strings.TrimSpace(SmsAliyunSetting.AccessKeyID) != "" &&
+		strings.TrimSpace(SmsAliyunSetting.AccessKeySecret) != "" &&
+		strings.TrimSpace(SmsAliyunSetting.SignName) != "" &&
+		strings.TrimSpace(SmsAliyunSetting.TemplateCode) != ""
 }
 
 // ContactVerificationDevBypass reports whether the development-only contact

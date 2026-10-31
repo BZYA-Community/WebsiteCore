@@ -16,5 +16,6 @@
   "courseDetail": "Course Detail",
   "userDetail": "User Detail",
   "following": "Following",
-  "pageNotFound": "404"
+  "pageNotFound": "404",
+  "columns": "Articles"
 }
