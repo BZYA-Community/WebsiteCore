@@ -106,6 +106,7 @@ declare namespace NetReq {
 
   interface SiteProfile {
     courses_enabled: boolean;
+    projects_enabled: boolean;
     account_verify_mode: 'email' | 'phone';
     contact_verification_available: boolean;
     upload_limits?: { attachment_max_bytes: number; course_attachment_max_bytes: number; course_resource_max_bytes: number; video_input_max_bytes: number };
@@ -125,5 +126,6 @@ declare namespace NetReq {
     copyright_left_link?: string;
     copyright_right?: string;
     copyright_right_link?: string;
+    trusted_external_domains?: string[];
   }
 }

@@ -61,6 +61,7 @@ import {
   ConstructOutline,
   LogOutOutline,
   VideocamOutline,
+  RocketOutline,
   NewspaperOutline,
 } from '@vicons/ionicons5';
 import { Hash } from '@vicons/tabler';
@@ -81,7 +82,11 @@ const { profile } = storeToRefs(storeProfile);
 const route = useRoute();
 const router = useRouter();
 const hasUnreadMsg = computed(() => unreadMsgCount.value > 0);
-const selectedPath = computed(() => route.name === 'course' ? 'courses' : route.name || '');
+const selectedPath = computed(() => {
+  if (route.name === 'course') return 'courses';
+  if (route.name === 'project') return 'projects';
+  return route.name || '';
+});
 
 watch(
   () => [userInfo.value.id, storeUser.hasPermission('profile.edit'), profile.value.defaultMsgLoopInterval] as const,
@@ -117,6 +122,7 @@ const menuOptions = computed(() => [
   { label: t('nav.topic'), key: 'topic', icon: () => h(Hash), href: '/topic' },
   { label: t('nav.columns'), key: 'columns', icon: () => h(NewspaperOutline), href: '/columns' },
   { label: t('nav.courses'), key: 'courses', icon: () => h(VideocamOutline), href: '/courses' },
+  { label: t('nav.projects'), key: 'projects', icon: () => h(RocketOutline), href: '/projects' },
   { label: t('nav.profile'), key: 'profile', icon: () => h(LeafOutline), href: '/profile', login: true },
   { label: t('nav.messages'), key: 'messages', icon: () => h(ChatbubblesOutline), href: '/messages', login: true },
   { label: t('nav.collection'), key: 'collection', icon: () => h(BookmarksOutline), href: '/collection', login: true },
@@ -126,6 +132,7 @@ const menuOptions = computed(() => [
   { label: t('nav.adminAudit'), key: 'admin-audit', icon: () => h(ShieldCheckmarkOutline), href: '/admin/audit', login: true },
 ].filter((option) => (!option.login || storeUser.userLogined) &&
   (option.key !== 'courses' || profile.value.coursesEnabled) &&
+  (option.key !== 'projects' || profile.value.projectsEnabled) &&
   (!routePermissions[option.key] || storeUser.hasAnyPermission(routePermissions[option.key]))));
 
 const renderMenuLabel = (option: AnyObject) => {

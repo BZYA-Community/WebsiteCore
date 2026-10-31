@@ -132,6 +132,18 @@ Meili:
 
 `TweetSearch` tunes the async indexing bridge: `MaxUpdateQPS` (10-10000, default 100) and `MinWorker` (5-1000, default 10). The `Meili` values are also editable in the admin UI (search group). When the `Meili` feature is not enabled, search falls back to direct PostgreSQL `ILIKE` fuzzy matching — no external search service required.
 
+### Outbound link safety (`WebProfile.TrustedExternalDomains`)
+
+External HTTP(S) links first open a leave-community warning. HTTPS links whose hostname matches a trusted domain, or one of its subdomains, skip the warning. Configure bare registrable hostnames without a scheme, path, port or user information:
+
+```yaml
+WebProfile:
+  TrustedExternalDomains:
+    - github.com
+```
+
+The operator can update the same list live from the admin settings page. HTTP links always keep the warning even when their hostname is trusted.
+
 ### Object storage (`ObjectStorage`, `LocalOSS`, `AliOSS`)
 
 `ObjectStorage` is shared: `RetainInDays` (temp object expiry) and `TempDir`. Then one backend:
@@ -170,6 +182,19 @@ Audit:
 
 When enabled, posts/comments/replies/nickname changes from regular users enter a moderation queue and become public only after approval; users with the Mentor role or above are exempt. Every decision is written to an audit log. Editable live from the admin UI (audit group). For a youth-oriented community this should stay enabled.
 
+### Optional product modules (`courses`, `projects`)
+
+```yaml
+courses:
+  enabled: true
+projects:
+  enabled: true
+```
+
+`courses.enabled` controls course routes and APIs. `projects.enabled` controls the Projects navigation entry and route, project publishing, and project-specific rendering in the public timeline and post detail pages. Both default to `true` when their section is absent. Disabling Projects also rejects new posts carrying the reserved `项目` tag; existing posts remain ordinary posts and are still accessible through the timeline and their direct links. Project names are limited to 30 Unicode characters. Project tags are stored separately from post tags, and project introductions support Markdown (with raw HTML disabled).
+
+These switches are file-based and require a server restart after changing `config.yaml`.
+
 ### Bootstrap operator account (`Operator`)
 
 ```yaml
@@ -201,3 +226,21 @@ Secret fields (API keys, passwords, `sms_aliyun.access_key_id`, `sms_aliyun.acce
 ## Keeping sample and embedded config in sync
 
 `config.yaml.sample` (repository root) is the canonical template for new deployments; `internal/conf/config.yaml` is the embedded default compiled into the binary. When you add or rename a configuration key, update **both** files in the same PR — CI reviewers check for this, and it is an item on the PR template checklist.
+
+### Projects database upgrade
+
+After the column migrations `0034_columns` and `0035_column_returns`, run
+`0036_project_module` before enabling Projects. The project migration preserves
+historical external URLs in full, including long signed query strings; its URL
+column is TEXT. The 2048-character limit applies only to newly submitted project
+URLs. Existing post content remains intact during backfill and rollback.
+
+A database that already ran the unpublished `0034_project_module` from this PR
+is a separate, unsupported automatic-upgrade path; this does not apply to a
+normal main deployment at version 35. Before running further migrations on such
+a database, take and verify a backup, inspect its migration version/dirty flag
+and actual tables, and inventory any project-only records created since that
+migration. Prepare and review a data-preserving reconciliation for that specific
+state before proceeding. Do not force the version to 35/36, drop the project
+tables, or blindly run the old down migration: version 34 on main belongs to
+Columns, and rollback deletes project-only metadata, members and follows.

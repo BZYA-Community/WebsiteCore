@@ -27,4 +27,10 @@ type Loose struct {
 
 	// TweetDetail 获取动态详情
 	TweetDetail func(Get, web.TweetDetailReq) web.TweetDetailResp `mir:"post"`
+
+	// ProjectList 独立项目列表
+	ProjectList func(Get, web.ProjectListReq) web.ProjectListResp `mir:"projects"`
+
+	// ProjectDetail 独立项目详情
+	ProjectDetail func(Get, web.ProjectDetailReq) web.ProjectDetailResp `mir:"project"`
 }

@@ -65,8 +65,14 @@ Operator:
   Username: kiana                 # 运维账号名
   Password: ""                    # 运维账号密码(6-16位)，账号不存在时创建；已存在且与配置不一致时重置
 
+WebProfile:
+  TrustedExternalDomains:
+    - github.com                  # HTTPS 裸域名；自动包含其子域名。也可由运维账号在系统配置页即时修改
+
 # Optional modules and the single active account-verification channel.
 courses:
+  enabled: true
+projects:
   enabled: true
 account_verify:
   mode: email

@@ -69,6 +69,7 @@ const context = {
     },
   }),
   useStoreUser: () => ({ hasPermission: () => false, userInfo: { id: 1 } }),
+  useStoreProfile: () => ({ profile: { trustedExternalDomains: [] } }),
   getCourse: async ({ id }) => ({
     course: { id, title: 'Course', group_id: 1, teacher_id: 1 },
   }),

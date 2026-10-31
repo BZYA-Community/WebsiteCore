@@ -7,6 +7,7 @@ export const useStoreProfile = defineStore("profile", () => {
 
     const profile = ref({
         coursesEnabled: false,
+        projectsEnabled: false,
         accountVerifyMode: 'email' as 'email' | 'phone',
         contactVerificationAvailable: false,
         uploadLimits: { ...uploadHardLimits },
@@ -25,6 +26,7 @@ export const useStoreProfile = defineStore("profile", () => {
         copyrightLeftLink: '',
         copyrightRight: 'Github',
         copyrightRightLink: 'https://github.com/rocboss/paopao-ce',
+        trustedExternalDomains: ['github.com'] as string[],
     });
 
     function loadDefaultSiteProfile() {
@@ -74,8 +76,14 @@ export const useStoreProfile = defineStore("profile", () => {
 
     function updateCapabilities(data: Partial<NetReq.SiteProfile>) {
         profile.value.coursesEnabled = data.courses_enabled ?? profile.value.coursesEnabled;
+        profile.value.projectsEnabled = data.projects_enabled ?? profile.value.projectsEnabled;
         profile.value.accountVerifyMode = data.account_verify_mode ?? profile.value.accountVerifyMode;
         profile.value.contactVerificationAvailable = data.contact_verification_available ?? profile.value.contactVerificationAvailable;
+        if (Array.isArray(data.trusted_external_domains)) {
+            profile.value.trustedExternalDomains = data.trusted_external_domains.filter(
+                (domain): domain is string => typeof domain === 'string',
+            );
+        }
         if (data.upload_limits) {
             for (const key of Object.keys(uploadHardLimits) as (keyof typeof uploadHardLimits)[]) {
                 const value = data.upload_limits[key];

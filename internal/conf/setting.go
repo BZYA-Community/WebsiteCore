@@ -243,21 +243,22 @@ type OperatorConf struct {
 }
 
 type WebProfileConf struct {
-	EnableTrendsBar         bool   `json:"enable_trends_bar"`
-	AllowTweetAttachment    bool   `json:"allow_tweet_attachment"`
-	AllowTweetVideo         bool   `json:"allow_tweet_video"`
-	AllowUserRegister       bool   `json:"allow_user_register"`
-	AllowPhoneBind          bool   `json:"allow_phone_bind"`
-	DefaultTweetMaxLength   int    `json:"default_tweet_max_length"`
-	TweetWebEllipsisSize    int    `json:"tweet_web_ellipsis_size"`
-	TweetMobileEllipsisSize int    `json:"tweet_mobile_ellipsis_size"`
-	DefaultTweetVisibility  string `json:"default_tweet_visibility"`
-	DefaultMsgLoopInterval  int    `json:"default_msg_loop_interval"`
-	CopyrightTop            string `json:"copyright_top"`
-	CopyrightLeft           string `json:"copyright_left"`
-	CopyrightLeftLink       string `json:"copyright_left_link"`
-	CopyrightRight          string `json:"copyright_right"`
-	CopyrightRightLink      string `json:"copyright_right_link"`
+	EnableTrendsBar         bool     `json:"enable_trends_bar"`
+	AllowTweetAttachment    bool     `json:"allow_tweet_attachment"`
+	AllowTweetVideo         bool     `json:"allow_tweet_video"`
+	AllowUserRegister       bool     `json:"allow_user_register"`
+	AllowPhoneBind          bool     `json:"allow_phone_bind"`
+	DefaultTweetMaxLength   int      `json:"default_tweet_max_length"`
+	TweetWebEllipsisSize    int      `json:"tweet_web_ellipsis_size"`
+	TweetMobileEllipsisSize int      `json:"tweet_mobile_ellipsis_size"`
+	DefaultTweetVisibility  string   `json:"default_tweet_visibility"`
+	DefaultMsgLoopInterval  int      `json:"default_msg_loop_interval"`
+	CopyrightTop            string   `json:"copyright_top"`
+	CopyrightLeft           string   `json:"copyright_left"`
+	CopyrightLeftLink       string   `json:"copyright_left_link"`
+	CopyrightRight          string   `json:"copyright_right"`
+	CopyrightRightLink      string   `json:"copyright_right_link"`
+	TrustedExternalDomains  []string `json:"trusted_external_domains" mapstructure:"TrustedExternalDomains"`
 }
 
 func (s *httpServerConf) GetReadTimeout() time.Duration {
@@ -327,6 +328,11 @@ func (s *databaseConf) TableNames() (res TableNameMap) {
 		TablePostCollection,
 		TablePostContent,
 		TablePostStar,
+		TableProject,
+		TableProjectImage,
+		TableProjectTag,
+		TableProjectMember,
+		TableProjectFollow,
 		TableTag,
 		TableUser,
 		TableUserRelation,

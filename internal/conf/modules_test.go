@@ -2,6 +2,24 @@ package conf
 
 import "testing"
 
+func TestProjectsEnabled(t *testing.T) {
+	previous := ProjectSetting
+	t.Cleanup(func() { ProjectSetting = previous })
+
+	ProjectSetting = nil
+	if !ProjectsEnabled() {
+		t.Fatal("projects should default to enabled when the section is absent")
+	}
+	ProjectSetting = &ProjectsConf{Enabled: false}
+	if ProjectsEnabled() {
+		t.Fatal("projects remained enabled after explicitly disabling them")
+	}
+	ProjectSetting.Enabled = true
+	if !ProjectsEnabled() {
+		t.Fatal("projects did not become enabled")
+	}
+}
+
 func TestAccountVerificationConfiguration(t *testing.T) {
 	c := AccountVerifyConf{Mode: "email", CodeTTLSeconds: 300, CooldownSeconds: 60, MaxAttempts: 5, MaxDailySends: 10, Aliyun: AliyunMailConf{Endpoint: "https://alimail-cn.aliyuncs.com"}}
 	if err := c.Validate(); err != nil {

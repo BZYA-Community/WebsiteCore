@@ -38,6 +38,9 @@ type Priv interface {
 	CollectionTweet(*web.CollectionTweetReq) (*web.CollectionTweetResp, error)
 	StarTweet(*web.StarTweetReq) (*web.StarTweetResp, error)
 	DeleteTweet(*web.DeleteTweetReq) error
+	UnfollowProject(*web.ProjectFollowReq) (*web.ProjectFollowResp, error)
+	FollowProject(*web.ProjectFollowReq) (*web.ProjectFollowResp, error)
+	CreateProject(*web.CreateProjectReq) (*web.CreateProjectResp, error)
 	CreateTweet(*web.CreateTweetReq) (*web.CreateTweetResp, error)
 	DownloadAttachment(*web.DownloadAttachmentReq) (*web.DownloadAttachmentResp, error)
 	UploadAttachment(*web.UploadAttachmentReq) (*web.UploadAttachmentResp, error)
@@ -338,6 +341,49 @@ func RegisterPrivServant(e *gin.Engine, s Priv, m ...PrivChain) {
 		}
 		s.Render(c, nil, s.DeleteTweet(req))
 	})
+	router.Handle("POST", "project/unfollow", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.ProjectFollowReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.UnfollowProject(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("POST", "project/follow", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.ProjectFollowReq)
+		if err := s.Bind(c, req); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.FollowProject(req)
+		s.Render(c, resp, err)
+	})
+	router.Handle("POST", "project", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.CreateProjectReq)
+		var bv _binding_ = req
+		if err := bv.Bind(c); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.CreateProject(req)
+		s.Render(c, resp, err)
+	})
 	router.Handle("POST", "post", append(cc.ChainCreateTweet(), func(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
@@ -475,6 +521,18 @@ func (UnimplementedPrivServant) StarTweet(req *web.StarTweetReq) (*web.StarTweet
 
 func (UnimplementedPrivServant) DeleteTweet(req *web.DeleteTweetReq) error {
 	return mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedPrivServant) UnfollowProject(req *web.ProjectFollowReq) (*web.ProjectFollowResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedPrivServant) FollowProject(req *web.ProjectFollowReq) (*web.ProjectFollowResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedPrivServant) CreateProject(req *web.CreateProjectReq) (*web.CreateProjectResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
 func (UnimplementedPrivServant) CreateTweet(req *web.CreateTweetReq) (*web.CreateTweetResp, error) {

@@ -1,5 +1,5 @@
 <template>
-    <div class="post-item" @click="goPostDetail(post.id)">
+    <div class="post-item" :class="{ 'project-post': isProject }" @click="openPostTarget">
         <n-thing content-indented>
             <template #avatar>
                 <n-avatar round :size="30" :src="post.user.avatar" />
@@ -18,6 +18,9 @@
                         </router-link>
                     </span>
                     <span class="username-wrap"> @{{ post.user.username }} </span>
+                    <n-tag v-if="isProject" class="project-tag" type="success" size="small" round>
+                        {{ t('project.postBadge') }}
+                    </n-tag>
                     <n-tag
                         v-if="post.is_top"
                         class="top-tag"
@@ -92,10 +95,13 @@
                     </n-dropdown>
                 </div>
             </template>
-            <template #description v-if="post.texts.length > 0 || post.markdowns.length > 0">
-                <template v-if="post.texts.length > 0">
+            <template #description v-if="isProject || displayTexts.length > 0 || post.markdowns.length > 0">
+                <div v-if="isProject" class="project-summary">
+                    <h3>{{ projectTitle }}</h3>
+                </div>
+                <template v-else-if="displayTexts.length > 0">
                     <div v-if="isMobile" @click="goPostDetail(post.id)">
-                        <span v-for="content in post.texts"
+                        <span v-for="content in displayTexts"
                             :key="content.id"
                             class="post-text"
                             @click.stop="doClickText($event, post.id)"
@@ -104,7 +110,7 @@
                     </div>
                     <template v-else>
                         <span
-                            v-for="content in post.texts"
+                            v-for="content in displayTexts"
                             :key="content.id"
                             class="post-text hover"
                             @click.stop="doClickText($event, post.id)"
@@ -112,26 +118,28 @@
                         ></span>
                     </template>
                 </template>
-                <div
-                    v-for="md in post.markdowns"
-                    :key="md.id"
-                    class="post-markdown"
-                    @click.stop="handleMdClick($event, post.id)"
-                >
-                    <md-preview
-                        :model-value="mdExcerptText(md.content)"
-                        :theme="editorTheme"
-                        no-mermaid
-                        no-html
-                    />
-                    <span
-                        v-if="mdExcerptMore(md.content)"
-                        class="hash-link read-full-link"
-                        @click.stop="goPostDetail(post.id)"
+                <template v-if="!isProject">
+                    <div
+                        v-for="md in post.markdowns"
+                        :key="md.id"
+                        class="post-markdown"
+                        @click.stop="handleMdClick($event, post.id)"
                     >
-                        {{ t('post.action.readFull') }}
-                    </span>
-                </div>
+                        <md-preview
+                            :model-value="mdExcerptText(md.content)"
+                            :theme="editorTheme"
+                            no-mermaid
+                            no-html
+                        />
+                        <span
+                            v-if="mdExcerptMore(md.content)"
+                            class="hash-link read-full-link"
+                            @click.stop="goPostDetail(post.id)"
+                        >
+                            {{ t('post.action.readFull') }}
+                        </span>
+                    </div>
+                </template>
             </template>
 
             <template #footer>
@@ -144,12 +152,12 @@
                 />
                 <post-image
                     v-if="post.imgs.length > 0"
-                    :imgs="post.imgs" />
+                    :imgs="isProject ? post.imgs.slice(0, 1) : post.imgs" />
                 <post-video
                     v-if="post.videos.length > 0"
                     :videos="post.videos" />
                 <post-link
-                    v-if="post.links.length > 0"
+                    v-if="!isProject && post.links.length > 0"
                     :links="post.links" />
             </template>
             <template #action>
@@ -164,7 +172,7 @@
                         <n-icon size="18" class="opt-item-icon">
                             <chatbox-outline />
                         </n-icon>
-                        {{ post.comment_count }}
+                        {{ isProject ? t('project.discussionCount', { count: post.comment_count }) : post.comment_count }}
                     </div>
                     <div class="opt-item hover" @click.stop="handlePostCollection" :aria-disabled="!storeUser.hasPermission('community.interact')">
                         <n-icon size="18" class="opt-item-icon">
@@ -189,6 +197,7 @@ import type { Component } from 'vue';
 import type { DropdownOption } from 'naive-ui';
 import { formatPrettyDate } from '@/utils/formatTime';
 import { preparePost } from '@/utils/content';
+import { openExternalLink } from '@/utils/external-link';
 import { MdPreview } from 'md-editor-v3';
 import { mdTheme, mdExcerpt, prepareMdRender } from '@/utils/markdown';
 import { postStar, postCollection } from '@/api/post';
@@ -206,7 +215,7 @@ import copy from 'copy-to-clipboard';
 import { useStoreProfile } from '@/store/profile';
 import { storeToRefs } from 'pinia';
 import UserAction, { canWhisperUser } from '@/composables/useUserAction';
-import { usePostContent } from '@/composables/usePostContent';
+import { isProjectPost, usePostContent } from '@/composables/usePostContent';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -306,6 +315,16 @@ const handleTweetAction = async (
 
 // 使用 usePostContent composable
 const post = usePostContent(props.post);
+const isProject = computed(() => isProjectPost(post.value, profile.value.projectsEnabled));
+const projectTitle = computed(() => post.value.titles[0]?.content || t('project.untitled'));
+const projectID = computed(() => {
+  for (const content of post.value.contents || []) {
+    const match = +content.type === 6 && /^project:(\d+)$/.exec(content.content);
+    if (match) return Number(match[1]);
+  }
+  return 0;
+});
+const displayTexts = computed(() => [...post.value.titles, ...post.value.texts].sort((a, b) => a.sort - b.sort));
 const handlePostStar = () => {
   if (!storeUser.hasPermission('community.interact')) return;
   postStar({
@@ -361,6 +380,13 @@ const goPostDetail = (id: number) => {
       id,
     },
   });
+};
+const openPostTarget = () => {
+  if (isProject.value && projectID.value > 0) {
+    void router.push({ name: 'project', query: { id: projectID.value } });
+    return;
+  }
+  goPostDetail(post.value.id);
 };
 const doClickText = (e: MouseEvent, id: number) => {
   const detail = (e.target as any).dataset.detail;
@@ -421,8 +447,9 @@ const handleMdClick = (e: MouseEvent, id: number) => {
     return;
   }
   if (href.startsWith('http://') || href.startsWith('https://')) {
-    e.preventDefault();
-    window.open(href, '_blank', 'noopener,noreferrer');
+    if (openExternalLink(router, href, {
+      trustedDomains: profile.value.trustedExternalDomains,
+    })) e.preventDefault();
     return;
   }
   if (href === '#') {
@@ -447,6 +474,41 @@ const handleMdClick = (e: MouseEvent, id: number) => {
 
     .top-tag {
         transform: scale(0.75);
+    }
+    .project-tag {
+        margin-left: 6px;
+    }
+    .project-summary {
+        margin: 4px 0 2px;
+        padding-left: 12px;
+        border-left: 3px solid #18a058;
+
+        h3 {
+            margin: 0 0 6px;
+            font-size: 19px;
+            line-height: 1.35;
+        }
+        p {
+            margin: 0;
+            color: rgba(51, 54, 57, 0.72);
+            line-height: 1.65;
+            white-space: pre-wrap;
+        }
+        .md-editor.md-editor {
+            --md-bk-color: transparent;
+        }
+        .md-editor-preview-wrapper {
+            padding: 0;
+        }
+        .md-editor-preview {
+            max-height: 8em;
+            overflow: hidden;
+            color: rgba(51, 54, 57, 0.72);
+            font-size: 14px;
+        }
+        .md-editor-preview > :first-child {
+            margin-top: 0;
+        }
     }
     .timestamp-mobile {
         margin-top: 2px;
@@ -511,6 +573,10 @@ const handleMdClick = (e: MouseEvent, id: number) => {
         cursor: pointer;
     }
 
+    &.project-post {
+        box-shadow: inset 3px 0 #18a058;
+    }
+
     .n-thing-avatar {
         margin-top: 0;
     }
@@ -525,6 +591,11 @@ const handleMdClick = (e: MouseEvent, id: number) => {
             background: #18181c;
         }
         background-color: rgba(16, 16, 20, 0.75);
+
+        .project-summary p,
+        .project-summary .md-editor-preview {
+            color: rgba(255, 255, 255, 0.68);
+        }
     }
 }
 </style>

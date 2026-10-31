@@ -318,6 +318,30 @@
             <template v-if="selectedReview">
                 <review-task-meta :task="selectedReview.row.review_task" />
                 <review-content :contents="reviewContents" />
+                <section v-if="selectedProject" class="audit-project">
+                    <n-divider>{{ t('adminAudit.project.fullContent') }}</n-divider>
+                    <h2>{{ selectedProject.title }}</h2>
+                    <n-space v-if="selectedProject.tags.length" size="small">
+                        <n-tag v-for="tag in selectedProject.tags" :key="tag" size="small" round>{{ tag }}</n-tag>
+                    </n-space>
+                    <div class="audit-project-images">
+                        <n-image
+                            v-for="(image, index) in selectedProject.images"
+                            :key="`${image}-${index}`"
+                            :src="image"
+                            :alt="selectedProject.title"
+                            width="240"
+                        />
+                    </div>
+                    <md-preview
+                        :model-value="prepareMdRender(selectedProject.intro)"
+                        :theme="editorTheme"
+                        no-mermaid
+                        no-katex
+                        no-html
+                    />
+                    <a :href="selectedProject.url" target="_blank" rel="noopener noreferrer">{{ selectedProject.url }}</a>
+                </section>
                 <n-space v-if="canReview(selectedReview.row)" justify="end" style="margin-top: 20px">
                     <n-button type="error" secondary :disabled="acting" @click="openReject(selectedReview.kind, selectedReview.row)">{{ t('adminAudit.action.reject') }}</n-button>
                     <n-button type="primary" :loading="acting" @click="approveReview">{{ t('adminAudit.action.approve') }}</n-button>
@@ -357,10 +381,12 @@ import { useI18n } from 'vue-i18n';
 import { NTag } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import { formatTime } from '@/utils/formatTime';
-import { mdPlainText } from '@/utils/markdown';
+import { mdPlainText, mdTheme, prepareMdRender } from '@/utils/markdown';
 import { Api, request } from '@/utils/request';
 import ReviewTaskMeta from '@/components/review-task-meta.vue';
 import ReviewContent from '@/components/review-content.vue';
+import { MdPreview } from 'md-editor-v3';
+import { useStoreMain } from '@/store/main';
 import { useStoreUser } from '@/store/user';
 
 type AuditPostItem = Api.Admin.NetReq.AuditPostItem;
@@ -370,8 +396,10 @@ type AuditAvatarItem = Api.Admin.NetReq.AuditAvatarItem;
 type AuditLogItem = Api.Admin.NetReq.AuditLogItem;
 
 const { t } = useI18n();
+const storeMain = useStoreMain();
 const router = useRouter();
 const storeUser = useStoreUser();
+const editorTheme = computed(() => mdTheme(storeMain.theme));
 const canReview = (row: { review_task?: Api.Admin.NetReq.ReviewTask }) => {
     const task = row.review_task;
     return !!task && task.state === 'pending' && storeUser.hasPermission('content.review') && (task.assignee_id === storeUser.userInfo.id || storeUser.userInfo.is_operator);
@@ -385,6 +413,9 @@ const reviewContents = computed(() => {
     const row = selected.row as AuditCommentItem;
     return row.contents?.length ? row.contents : [{ id: row.id, content: row.content, type: 2, sort: 0 }];
 });
+const selectedProject = computed(() => selectedReview.value?.kind === 'post'
+    ? (selectedReview.value.row as AuditPostItem).project
+    : undefined);
 function openReview(kind: 'post' | 'comment', row: AuditPostItem | AuditCommentItem) { selectedReview.value = { kind, row }; showReview.value = true; }
 async function approveReview() {
     if (!selectedReview.value) return;
@@ -402,6 +433,7 @@ const statisticsColumns = computed(() => [
 ]);
 
 const loading = ref(false);
+let listRequestRevision = 0;
 const acting = ref(false);
 const category = ref<'post' | 'comment' | 'nickname' | 'avatar' | 'logs' | 'columns'>('post');
 const activeTab = ref('pending');
@@ -617,84 +649,99 @@ const openUserInNewTab = (username: string) => {
 };
 
 const loadPosts = async () => {
+    const revision = ++listRequestRevision;
+    const params = {
+        status: tabStatusMap[activeTab.value] ?? 0,
+        page: postPagination.page,
+        page_size: postPagination.pageSize,
+    };
     loading.value = true;
     try {
-        const resp = await Api.v1.admin.get.audit.posts({
-            status: tabStatusMap[activeTab.value] ?? 0,
-            page: postPagination.page,
-            page_size: postPagination.pageSize,
-        });
+        const resp = await Api.v1.admin.get.audit.posts(params);
+        if (revision !== listRequestRevision) return;
         postItems.value = resp.list || [];
         postPagination.itemCount = resp.pager?.total_rows || 0;
     } catch {
         // do nothing
     } finally {
-        loading.value = false;
+        if (revision === listRequestRevision) loading.value = false;
     }
 };
 
 const loadComments = async () => {
+    const revision = ++listRequestRevision;
+    const params = {
+        status: tabStatusMap[activeTab.value] ?? 0,
+        page: commentPagination.page,
+        page_size: commentPagination.pageSize,
+    };
     loading.value = true;
     try {
-        const resp = await Api.v1.admin.get.audit.comments({
-            status: tabStatusMap[activeTab.value] ?? 0,
-            page: commentPagination.page,
-            page_size: commentPagination.pageSize,
-        });
+        const resp = await Api.v1.admin.get.audit.comments(params);
+        if (revision !== listRequestRevision) return;
         commentItems.value = resp.list || [];
         commentPagination.itemCount = resp.pager?.total_rows || 0;
     } catch {
         // do nothing
     } finally {
-        loading.value = false;
+        if (revision === listRequestRevision) loading.value = false;
     }
 };
 
 const loadNicknames = async () => {
+    const revision = ++listRequestRevision;
+    const params = {
+        page: nicknamePagination.page,
+        page_size: nicknamePagination.pageSize,
+    };
     loading.value = true;
     try {
-        const resp = await Api.v1.admin.get.audit.nicknames({
-            page: nicknamePagination.page,
-            page_size: nicknamePagination.pageSize,
-        });
+        const resp = await Api.v1.admin.get.audit.nicknames(params);
+        if (revision !== listRequestRevision) return;
         nicknameItems.value = resp.list || [];
         nicknamePagination.itemCount = resp.pager?.total_rows || 0;
     } catch {
         // do nothing
     } finally {
-        loading.value = false;
+        if (revision === listRequestRevision) loading.value = false;
     }
 };
 
 const loadAvatars = async () => {
+    const revision = ++listRequestRevision;
+    const params = {
+        page: avatarPagination.page,
+        page_size: avatarPagination.pageSize,
+    };
     loading.value = true;
     try {
-        const resp = await Api.v1.admin.get.audit.avatars({
-            page: avatarPagination.page,
-            page_size: avatarPagination.pageSize,
-        });
+        const resp = await Api.v1.admin.get.audit.avatars(params);
+        if (revision !== listRequestRevision) return;
         avatarItems.value = resp.list || [];
         avatarPagination.itemCount = resp.pager?.total_rows || 0;
     } catch {
         // do nothing
     } finally {
-        loading.value = false;
+        if (revision === listRequestRevision) loading.value = false;
     }
 };
 
 const loadLogs = async () => {
+    const revision = ++listRequestRevision;
+    const params = {
+        page: logPagination.page,
+        page_size: logPagination.pageSize,
+    };
     loading.value = true;
     try {
-        const resp = await Api.v1.admin.get.audit.logs({
-            page: logPagination.page,
-            page_size: logPagination.pageSize,
-        });
+        const resp = await Api.v1.admin.get.audit.logs(params);
+        if (revision !== listRequestRevision) return;
         logItems.value = resp.list || [];
         logPagination.itemCount = resp.pager?.total_rows || 0;
     } catch {
         // do nothing
     } finally {
-        loading.value = false;
+        if (revision === listRequestRevision) loading.value = false;
     }
 };
 
@@ -1093,6 +1140,21 @@ onMounted(async () => {
 
 .reject-modal-body {
     padding: 8px 0;
+}
+
+.audit-project {
+    h2 { margin: 0 0 12px; }
+
+    .audit-project-images {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 16px 0;
+    }
+
+    :deep(.md-editor) { --md-bk-color: transparent; }
+    :deep(.md-editor-preview-wrapper) { padding: 12px 0; }
+    a { overflow-wrap: anywhere; }
 }
 
 .post-id-link {

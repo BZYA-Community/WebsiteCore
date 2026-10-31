@@ -18,6 +18,7 @@ type VersionResp struct {
 type SiteProfileResp struct {
 	UploadLimits                 conf.UploadConf `json:"upload_limits"`
 	CoursesEnabled               bool            `json:"courses_enabled"`
+	ProjectsEnabled              bool            `json:"projects_enabled"`
 	AccountVerifyMode            string          `json:"account_verify_mode"`
 	ContactVerificationAvailable bool            `json:"contact_verification_available"`
 	EnableTrendsBar              bool            `json:"enable_trends_bar"`
@@ -35,6 +36,7 @@ type SiteProfileResp struct {
 	CopyrightLeftLink            string          `json:"copyright_left_link"`
 	CopyrightRight               string          `json:"copyright_right"`
 	CopyrightRightLink           string          `json:"copyright_right_link"`
+	TrustedExternalDomains       []string        `json:"trusted_external_domains"`
 }
 
 type SiteSettingsReq struct {

@@ -85,6 +85,9 @@
     "avatarApproved": "Avatar change approved"
   },
   "avatarChangeRequest": "Avatar Change Request",
+  "project": {
+    "fullContent": "Complete project content"
+  },
   "task": {
     "assignee": "Reviewer",
     "deadline": "Due",

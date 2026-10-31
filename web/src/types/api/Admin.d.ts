@@ -158,7 +158,7 @@ declare namespace Api {
 
             interface SettingValueInput {
                 key: string;
-                value: string | number | boolean;
+                value: string | number | boolean | string[];
             }
 
             interface SettingsSaveReq {
@@ -222,6 +222,14 @@ declare namespace Api {
 
             interface AuditPostItem {
                 review_task?: ReviewTask;
+                project?: {
+                    id: number;
+                    title: string;
+                    intro: string;
+                    url: string;
+                    images: string[];
+                    tags: string[];
+                };
                 id: number;
                 user: {
                     id: number;
@@ -331,14 +339,14 @@ declare namespace Api {
                 key: string;
                 group: string;
                 section: string;
-                type: 'bool' | 'int' | 'float' | 'string';
+                type: 'bool' | 'int' | 'float' | 'string' | 'string_list';
                 label: string;
                 description: string;
                 apply_mode: 'live' | 'restart_required' | 'bootstrap_only';
                 secret: boolean;
                 readonly: boolean;
                 active: boolean;
-                bootstrap_value?: string | number | boolean;
+                bootstrap_value?: string | number | boolean | string[];
                 bootstrap_configured?: boolean;
                 options?: SettingOption[];
             }
@@ -349,8 +357,8 @@ declare namespace Api {
 
             interface SettingsValueItem {
                 key: string;
-                value?: string | number | boolean;
-                effective_value?: string | number | boolean;
+                value?: string | number | boolean | string[];
+                effective_value?: string | number | boolean | string[];
                 source: 'bootstrap' | 'override' | string;
                 pending_restart: boolean;
                 configured?: boolean;
@@ -391,6 +399,7 @@ declare namespace Api {
                 copyright_left_link: string;
                 copyright_right: string;
                 copyright_right_link: string;
+                trusted_external_domains: string[];
                 readonly_fields: string[];
             }
         }

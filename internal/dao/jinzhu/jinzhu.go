@@ -39,6 +39,7 @@ type dataSrv struct {
 	core.CourseService
 	core.CourseManageService
 	core.CourseUploadService
+	core.ProjectService
 	core.TrendsManageServantA
 	core.UserManageService
 	core.IdentityService
@@ -87,6 +88,7 @@ func NewDataService() (core.DataService, core.VersionInfo) {
 		CourseService:          newCourseService(db),
 		CourseManageService:    newCourseManageService(db),
 		CourseUploadService:    &courseUploadSrv{db: db},
+		ProjectService:         newProjectService(db),
 		TrendsManageServantA:   newTrendsManageServentA(db),
 		UserManageService:      newUserManageService(db, ums),
 		IdentityService:        newIdentityService(db),

@@ -6,6 +6,7 @@
 import type common from '../locales/zh-CN/common.json';
 import type nav from '../locales/zh-CN/nav.json';
 import type sidebar from '../locales/zh-CN/sidebar.json';
+import type project from '../locales/zh-CN/project.json';
 import type auth from '../locales/zh-CN/auth.json';
 import type post from '../locales/zh-CN/post.json';
 import type comment from '../locales/zh-CN/comment.json';
@@ -19,6 +20,7 @@ import type adminAudit from '../locales/zh-CN/adminAudit.json';
 import type adminUsers from '../locales/zh-CN/adminUsers.json';
 import type adminSettings from '../locales/zh-CN/adminSettings.json';
 import type errors from '../locales/zh-CN/errors.json';
+import type externalLink from '../locales/zh-CN/externalLink.json';
 import type identity from '../locales/zh-CN/identity.json';
 
 declare module 'vue-i18n' {
@@ -26,6 +28,7 @@ declare module 'vue-i18n' {
     common: typeof common;
     nav: typeof nav;
     sidebar: typeof sidebar;
+    project: typeof project;
     auth: typeof auth;
     post: typeof post;
     comment: typeof comment;
@@ -39,6 +42,7 @@ declare module 'vue-i18n' {
     adminUsers: typeof adminUsers;
     adminSettings: typeof adminSettings;
     errors: typeof errors;
+    externalLink: typeof externalLink;
     identity: typeof identity;
   }
 }

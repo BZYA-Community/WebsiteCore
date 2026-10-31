@@ -46,12 +46,22 @@ func (s *auditSrv) ListAuditPosts(req *web.AdminAuditPostsReq) (*web.AdminAuditP
 		logrus.Errorf("Ds.MergePosts err: %s", err)
 		return nil, web.ErrGetPostsFailed
 	}
+	postIDs := make([]int64, 0, len(formated))
+	for _, post := range formated {
+		postIDs = append(postIDs, post.ID)
+	}
+	projects, err := s.Ds.GetAuditProjects(&ms.User{Model: &ms.Model{ID: req.Uid}}, postIDs)
+	if err != nil {
+		logrus.Errorf("Ds.GetAuditProjects err: %s", err)
+		return nil, web.ErrGetProjectsFailed
+	}
 	for _, post := range formated {
 		task, err := s.Ds.ReviewTaskForTarget(&ms.User{Model: &ms.Model{ID: req.Uid}}, ms.ReviewPost, post.ID)
 		if err != nil {
 			return nil, reviewError(err)
 		}
 		post.ReviewTask = task
+		post.Project = projects[post.ID]
 	}
 	return (*web.AdminAuditPostsResp)(joint.PageRespFrom(formated, req.Page, req.PageSize, total)), nil
 }

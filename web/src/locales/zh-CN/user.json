@@ -52,6 +52,9 @@
   },
   "collection": {
     "title": "收藏",
+    "tabPosts": "帖子收藏",
+    "tabProjects": "关注的项目",
+    "projectEmpty": "还没有关注任何项目",
     "noMore": "没有更多收藏了",
     "loadError": "加载出错",
     "loadMore": "加载更多"

@@ -1,3 +1,5 @@
+import type { ExternalLinkNavigator } from '@/utils/external-link';
+
 const postEasterEggVideos = import.meta.env.VITE_ENABLE_POST_EASTER_EGGS === 'true' ? new Map([
   ['Never Gonna Give You Up', 'BV1dyXqBaEE5'],
   ['毕业旅行', 'BV1Kj411g7Lu'],
@@ -32,10 +34,13 @@ const postEasterEggVideos = import.meta.env.VITE_ENABLE_POST_EASTER_EGGS === 'tr
   ['雪霁逢椿', 'BV1ZF411g7EZ'],
 ]) : undefined;
 
-export const redirectPostEasterEgg = (content: string) => {
+export const redirectPostEasterEgg = (
+  content: string,
+  navigate: ExternalLinkNavigator,
+) => {
   const videoId = postEasterEggVideos?.get(content);
   if (videoId) {
-    window.location.assign(`https://www.bilibili.com/video/${videoId}/`);
+    navigate(`https://www.bilibili.com/video/${videoId}/`);
   }
 };
 

@@ -41,6 +41,22 @@ const routes = [
     component: () => import('@/views/Courses.vue'),
   },
   {
+    path: '/projects',
+    name: 'projects',
+    meta: {
+      titleKey: 'nav.projects',
+    },
+    component: () => import('@/views/Projects.vue'),
+  },
+  {
+    path: '/project',
+    name: 'project',
+    meta: {
+      titleKey: 'nav.projectDetail',
+    },
+    component: () => import('@/views/ProjectDetail.vue'),
+  },
+  {
     path: '/course',
     name: 'course',
     meta: {
@@ -129,6 +145,14 @@ const routes = [
     component: () => import('@/views/AdminAudit.vue'),
   },
   {
+    path: '/external-link',
+    name: 'external-link',
+    meta: {
+      titleKey: 'externalLink.pageTitle',
+    },
+    component: () => import('@/views/ExternalLink.vue'),
+  },
+  {
     path: '/404',
     name: '404',
     meta: {
@@ -146,7 +170,7 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes,
   scrollBehavior(to, from, savedPosition) {
-    if (['courses', 'course'].includes(String(to.name)) || ['courses', 'course'].includes(String(from.name))) {
+    if (['courses', 'course', 'projects', 'project'].includes(String(to.name)) || ['courses', 'course', 'projects', 'project'].includes(String(from.name))) {
       return savedPosition || { top: 0 };
     }
   },
@@ -161,6 +185,7 @@ function updateDocumentTitle(titleKey?: unknown) {
 
 export const routePermissions: Record<string, string[]> = {
   home: ['post.view'], post: ['post.view'], topic: ['post.view'], user: ['post.view'],
+  projects: ['post.view'], project: ['post.view'],
   'compose-md': ['post.create'], courses: ['course.catalog'], course: ['course.view'],
   collection: ['community.interact'], following: ['community.interact'],
   messages: ['profile.edit'],
@@ -170,7 +195,7 @@ export const routePermissions: Record<string, string[]> = {
 
 router.beforeEach(async (to) => {
   updateDocumentTitle(to.meta.titleKey);
-  if (to.name === '404') return true;
+  if (['404', 'external-link'].includes(String(to.name))) return true;
   const user = useStoreUser();
   try {
     await Promise.all([user.loadSession(), useStoreProfile().loadSiteProfile()]);
@@ -178,6 +203,7 @@ router.beforeEach(async (to) => {
     return { name: '404' };
   }
   if (['courses', 'course'].includes(String(to.name)) && !useStoreProfile().profile.coursesEnabled) return { name: '404' };
+  if (['projects', 'project'].includes(String(to.name)) && !useStoreProfile().profile.projectsEnabled) return { name: '404' };
   if (to.name === 'course' && !user.hasPermission('course.view') && user.hasPermission('course.catalog')) {
     return { name: 'courses', query: { course: to.query.id } };
   }

@@ -98,6 +98,7 @@ func setupSetting(suite []string, noDefault bool) error {
 		"Audit":             &AuditSetting,
 		"Operator":          &OperatorSetting,
 		"courses":           &CourseSetting,
+		"projects":          &ProjectSetting,
 		"account_verify":    &AccountVerifySetting,
 		"uploads":           &UploadSetting,
 	}
@@ -121,6 +122,11 @@ func setupSetting(suite []string, noDefault bool) error {
 	if err := UploadLimits().Validate(); err != nil {
 		return err
 	}
+	trustedDomains, err := NormalizeTrustedExternalDomains(WebProfileSetting.TrustedExternalDomains)
+	if err != nil {
+		return fmt.Errorf("WebProfile.TrustedExternalDomains: %w", err)
+	}
+	SetTrustedExternalDomains(trustedDomains)
 	if AuditSetting == nil {
 		AuditSetting = &AuditConf{Enabled: true}
 	}

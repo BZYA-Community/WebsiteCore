@@ -80,6 +80,8 @@ Key values:
 
 - `JWT.Secret`: **required** — the process exits if empty. Generate: `openssl rand -hex 24`
 - `Features.Default`: capability flags; defaults to `Postgres`. Add `Migration` (with a `migration`-tagged build) for auto schema migration
+- `projects.enabled`: enables the Projects catalog, project publishing, and project-specific presentation in the public timeline (default `true`)
+- `WebProfile.TrustedExternalDomains`: HTTPS hostnames whose links skip the leave-community warning (also editable live by the operator)
 - `WebServer.HttpPort`: listen port (default 8008)
 - Database / Redis / Meili connection info already matches `docker-compose.dev.yml`
 

@@ -5,6 +5,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
@@ -19,6 +20,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type looseSrv struct {
@@ -37,6 +39,33 @@ type looseSrv struct {
 
 func (s *looseSrv) Chain() gin.HandlersChain {
 	return gin.HandlersChain{chain.JwtLoose(), chain.Authorize()}
+}
+
+func (s *looseSrv) ProjectList(req *web.ProjectListReq) (*web.ProjectListResp, error) {
+	if !conf.ProjectsEnabled() {
+		return nil, web.ErrProjectsDisabled
+	}
+	projects, total, err := s.Ds.ListProjects(req.User, req.Keyword, req.Tag, req.Followed, (req.Page-1)*req.PageSize, req.PageSize)
+	if err != nil {
+		logrus.Errorf("Ds.ListProjects err: %s", err)
+		return nil, web.ErrGetProjectsFailed
+	}
+	return (*web.ProjectListResp)(joint.PageRespFrom(projects, req.Page, req.PageSize, total)), nil
+}
+
+func (s *looseSrv) ProjectDetail(req *web.ProjectDetailReq) (*web.ProjectDetailResp, error) {
+	if !conf.ProjectsEnabled() {
+		return nil, web.ErrProjectsDisabled
+	}
+	project, err := s.Ds.GetProject(req.User, req.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, web.ErrProjectNotExist
+		}
+		logrus.Errorf("Ds.GetProject err: %s", err)
+		return nil, web.ErrGetProjectsFailed
+	}
+	return &web.ProjectDetailResp{Project: project}, nil
 }
 
 func (s *looseSrv) Timeline(req *web.TimelineReq) (*web.TimelineResp, error) {

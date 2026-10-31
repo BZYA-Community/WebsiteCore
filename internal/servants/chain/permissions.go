@@ -22,7 +22,7 @@ var routeRules = func() map[string]routeRule {
 			rules[route] = routeRule{All: []string{permission}, Login: login}
 		}
 	}
-	add(authz.PostView, false, "GET /v1/posts", "GET /v1/user/posts", "GET /v1/user/profile", "GET /v1/tags", "GET /v1/post/comments", "GET /v1/post", "GET /v1/user/follows", "GET /v1/user/followings")
+	add(authz.PostView, false, "GET /v1/posts", "GET /v1/project", "GET /v1/projects", "GET /v1/user/posts", "GET /v1/user/profile", "GET /v1/tags", "GET /v1/post/comments", "GET /v1/post", "GET /v1/user/follows", "GET /v1/user/followings")
 	add(authz.PostView, true, "GET /v1/attachment", "GET /v1/user/collections", "GET /v1/user/stars", "GET /v1/post/star", "GET /v1/post/collection", "GET /v1/suggest/tags", "GET /v1/suggest/users", "GET /v1/trends/index")
 	add(authz.ProfileEdit, true, "GET /v1/user/info", "GET /v1/user/messages", "POST /v1/user/message/read", "POST /v1/user/message/readall", "POST /v1/user/phone", "POST /v1/user/password", "POST /v1/user/nickname", "POST /v1/user/avatar", "GET /v1/user/msgcount/unread", "GET /v1/user/chat/contacts", "GET /v1/user/chat/history")
 	// Session introspection remains available even when all feature grants are revoked.
@@ -30,9 +30,10 @@ var routeRules = func() map[string]routeRule {
 	rules["POST /v1/user/contact/code"] = routeRule{Login: true}
 	rules["POST /v1/user/contact/verify"] = routeRule{Login: true}
 	add(authz.PostCreate, true, "POST /v1/post", "POST /v1/post/visibility")
+	rules["POST /v1/project"] = routeRule{All: []string{authz.PostCreate, authz.ContentUpload}, Login: true}
 	add(authz.CommentCreate, true, "POST /v1/post/comment", "POST /v1/post/comment/reply")
 	add(authz.ContentUpload, true, "POST /v1/attachment")
-	add(authz.CommunityInteract, true, "POST /v1/post/star", "POST /v1/post/collection", "POST /v1/tweet/comment/thumbsup", "POST /v1/tweet/comment/thumbsdown", "POST /v1/tweet/reply/thumbsup", "POST /v1/tweet/reply/thumbsdown", "POST /v1/topic/follow", "POST /v1/topic/unfollow", "POST /v1/user/follow", "POST /v1/user/unfollow")
+	add(authz.CommunityInteract, true, "POST /v1/project/follow", "POST /v1/project/unfollow", "POST /v1/post/star", "POST /v1/post/collection", "POST /v1/tweet/comment/thumbsup", "POST /v1/tweet/comment/thumbsdown", "POST /v1/tweet/reply/thumbsup", "POST /v1/tweet/reply/thumbsdown", "POST /v1/topic/follow", "POST /v1/topic/unfollow", "POST /v1/user/follow", "POST /v1/user/unfollow")
 	add(authz.ContentManage, true, "POST /v1/post/stick", "POST /v1/post/highlight", "POST /v1/topic/stick", "POST /v1/topic/pin")
 	for _, path := range []string{"DELETE /v1/post", "DELETE /v1/post/comment", "DELETE /v1/post/comment/reply", "POST /v1/post/lock", "POST /v1/post/comment/highlight"} {
 		rules[path] = routeRule{Any: []string{authz.CommunityInteract, authz.ContentManage}, Login: true}

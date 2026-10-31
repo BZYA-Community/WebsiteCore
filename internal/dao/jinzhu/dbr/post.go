@@ -54,6 +54,7 @@ type Post struct {
 
 type PostFormated struct {
 	ReviewTask      *ReviewTask            `json:"review_task,omitempty"`
+	Project         *ProjectFormated       `json:"project,omitempty"`
 	ID              int64                  `json:"id"`
 	UserID          int64                  `json:"user_id"`
 	User            *UserFormated          `json:"user"`

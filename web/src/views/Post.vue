@@ -1,6 +1,6 @@
 <template>
     <div>
-        <main-nav :title="t('post.postDetail.title')" :back="true" />
+        <main-nav :title="isProject ? t('project.detailPageTitle') : t('post.postDetail.title')" :back="true" />
 
         <n-list class="main-content-wrap" bordered>
             <n-list-item>
@@ -16,12 +16,16 @@
             <div class="comment-opts-wrap" v-if="post.id > 0">
                 <n-tabs type="bar" justify-content="end" size="small" tab-style="margin-left: -24px;" animated @update:value="commentTab">
                     <template #prefix>
-                        <span class="comment-title-item">{{ t('post.postDetail.commentTitle') }}</span>
+                        <span class="comment-title-item">{{ isProject ? t('project.discussionTitle') : t('post.postDetail.commentTitle') }}</span>
                     </template>
                     <n-tab-pane name="default"><template #tab>{{ t('post.postDetail.sortRecommended') }}</template></n-tab-pane>
                     <n-tab-pane name="hots"><template #tab>{{ t('post.postDetail.sortHot') }}</template></n-tab-pane>
                     <n-tab-pane name="newest"><template #tab>{{ t('post.postDetail.sortNewest') }}</template></n-tab-pane>
                 </n-tabs>
+            </div>
+            <div v-if="post.id > 0 && isProject" class="project-discussion-hint">
+                <strong>{{ t('project.discussionLabel') }}</strong>
+                <span>{{ t('project.discussionHint') }}</span>
             </div>
             <n-list-item v-if="post.id > 0">
                 <compose-comment :lock="post.is_lock" :post-id="post.id" @post-success="reloadComments" />
@@ -62,16 +66,21 @@ import { ref, watch, onMounted, computed, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { getPost, getPostComments } from '@/api/post';
+import { isProjectPost } from '@/composables/usePostContent';
+import { useStoreProfile } from '@/store/profile';
+import { storeToRefs } from 'pinia';
 import InfiniteLoading from 'v3-infinite-loading';
 import 'v3-infinite-loading/lib/style.css';
 
 const route = useRoute();
 const { t } = useI18n();
+const { profile } = storeToRefs(useStoreProfile());
 const post = ref<Item.PostProps>({} as Item.PostProps);
 const loading = ref(false);
 const commentLoading = ref(false);
 const comments = ref<Item.CommentProps[]>([]);
 const postId = computed(() => +(route.query.id as string));
+const isProject = computed(() => post.value.id > 0 && isProjectPost(post.value, profile.value.projectsEnabled));
 const sortStrategy = ref<'default' | 'hots' | 'newest'>('default');
 const defaultCommentsSort = ref<boolean>(true);
 const pageSize = 20;
@@ -368,6 +377,25 @@ watch(postId, () => {
         padding-top: 4px;
         font-size: 16px;
         text-align: center;
+    }
+}
+
+.project-discussion-hint {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 2px 16px 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: #137c45;
+    background: rgba(24, 160, 88, 0.08);
+
+    strong {
+        flex: none;
+    }
+    span {
+        font-size: 13px;
+        opacity: 0.78;
     }
 }
 

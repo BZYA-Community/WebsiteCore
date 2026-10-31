@@ -40,8 +40,13 @@ import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { CloudDownloadOutline } from '@vicons/ionicons5';
 import { Api } from '@/utils/request';
+import { normalizeHttpUrl, openExternalLink } from '@/utils/external-link';
+import { useRouter } from 'vue-router';
+import { useStoreProfile } from '@/store/profile';
 
 const { t } = useI18n();
+const router = useRouter();
+const storeProfile = useStoreProfile();
 
 withDefaults(
   defineProps<{
@@ -65,7 +70,10 @@ const execDownloadAction = () => {
     id: attachmentID.value,
   })
     .then((res) => {
-      window.open(res.signed_url.replace('http://', 'https://'), '_blank');
+      const url = normalizeHttpUrl(res.signed_url.replace('http://', 'https://'));
+      if (url && !openExternalLink(router, url, {
+        trustedDomains: storeProfile.profile.trustedExternalDomains,
+      })) window.location.assign(url);
     })
     .catch((err) => {
       console.log(err);
