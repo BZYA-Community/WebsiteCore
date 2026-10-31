@@ -235,7 +235,12 @@ historical external URLs in full, including long signed query strings; its URL
 column is TEXT. The 2048-character limit applies only to newly submitted project
 URLs. Existing post content remains intact during backfill and rollback.
 
-For development databases that ran the unpublished `0034_project_module` from
-this PR, back up the database and roll back that project migration with the old
-checkout before applying the main migrations and `0036`. Do not relabel an
-already-applied migration version: version 34 on main belongs to Columns.
+A database that already ran the unpublished `0034_project_module` from this PR
+is a separate, unsupported automatic-upgrade path; this does not apply to a
+normal main deployment at version 35. Before running further migrations on such
+a database, take and verify a backup, inspect its migration version/dirty flag
+and actual tables, and inventory any project-only records created since that
+migration. Prepare and review a data-preserving reconciliation for that specific
+state before proceeding. Do not force the version to 35/36, drop the project
+tables, or blindly run the old down migration: version 34 on main belongs to
+Columns, and rollback deletes project-only metadata, members and follows.
