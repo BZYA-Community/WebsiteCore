@@ -25,7 +25,10 @@
   "operatorSeparate": "Operators do not belong to groups. Operator access cannot be granted or removed here.",
   "selfReadonly": "You cannot change your own groups here, to prevent losing administrative access.",
   "selectGroups": "Select identity groups",
-  "accessDenied": "Your current identity does not have permission to perform this action.",
+  "accessDenied": "Your current identity does not have permission to perform this action.",,
+  "guestHint": "Your account is not verified yet, so you have guest access. Verify your email or phone to unlock posting and commenting.",
+  "guestVerifyAction": "Go verify",
+  "guestVerifyUnavailable": "Contact verification is not enabled on this site. Please try again later or contact the site administrator."
   "permission": {
     "post_view": "View public posts",
     "post_create": "Create posts",
