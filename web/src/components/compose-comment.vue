@@ -127,7 +127,7 @@
             </n-upload>
         </div>
 
-        <n-alert v-else-if="userInfo.id > 0" type="info">{{ t('identity.accessDenied') }}</n-alert>
+        <GuestVerifyHint v-else-if="userInfo.id > 0" />
         <div class="compose-wrap" v-else>
             <div class="login-wrap">
                 <span class="login-banner">{{ t('comment.compose.loginBanner') }}</span>
@@ -169,6 +169,7 @@
 
 
 <script setup lang="ts">
+import GuestVerifyHint from '@/components/guest-verify-hint.vue';
 import { useMediaUpload } from '@/composables/useMediaUpload';
 import { computed, ref } from 'vue';
 import { useStoreMain } from '@/store/main';
