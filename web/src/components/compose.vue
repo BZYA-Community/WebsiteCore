@@ -253,7 +253,7 @@
             </div>
         </div>
 
-        <n-alert v-else-if="userInfo.id > 0" type="info">{{ t('identity.accessDenied') }}</n-alert>
+        <guest-verify-hint v-else-if="userInfo.id > 0" />
         <div class="compose-wrap" v-else>
             <div class="login-wrap">
                 <span class="login-banner"> {{ t('compose.loginBanner') }}</span>
@@ -300,6 +300,7 @@ import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { useStoreProfile } from '@/store/profile';
+import GuestVerifyHint from '@/components/guest-verify-hint.vue';
 import { debounce } from 'lodash';
 
 import {
@@ -312,7 +313,6 @@ import {
 } from '@vicons/ionicons5';
 import { createPost } from '@/api/post';
 import { parsePostTag, redirectPostEasterEgg } from '@/utils/content';
-import { openExternalLink } from '@/utils/external-link';
 import type { MentionOption, UploadFileInfo, UploadInst } from 'naive-ui';
 import { VisibilityEnum, PostItemTypeEnum } from '@/utils/IEnum';
 import { storeToRefs } from 'pinia';
@@ -450,11 +450,7 @@ const changeContent = (v: string) => {
   } else {
     content.value = v;
   }
-  redirectPostEasterEgg(v, (url) => {
-    if (!openExternalLink(router, url, {
-      trustedDomains: profile.value.trustedExternalDomains,
-    })) window.location.assign(url);
-  });
+  redirectPostEasterEgg(v);
 };
 const setUploadType = (type: string) => {
   if (processingVideo.value || fileQueue.value.some((file) => file.status === 'uploading' || file.status === 'pending')) return;
