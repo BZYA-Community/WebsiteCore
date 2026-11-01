@@ -84,5 +84,8 @@
   "reviewTask": "审核任务 #{id}，提交者 #{author}，审核员 #{reviewer}",
   "reviewDone": "审核结果已保存",
   "draftConflict": "其他设备已提交新版本。此浏览器中的旧草稿尚未恢复，请选择恢复或丢弃。",
-  "restoreLocal": "恢复本地草稿"
+  "restoreLocal": "恢复本地草稿",
+  "editorMode": "文章编辑模式",
+  "editBody": "编辑",
+  "previewBody": "预览"
 }

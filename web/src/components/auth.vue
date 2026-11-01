@@ -198,15 +198,10 @@ const registerRule = computed(() => ({
       message: t('auth.rule.passwordRequired'),
     },
     {
-      validator: (rule: FormItemRule, value: any) => {
-        return (
-          !!registerForm.password &&
-          registerForm.password.startsWith(value) &&
-          registerForm.password.length >= value.length
-        );
-      },
+      validator: (_rule: FormItemRule, value: string) =>
+        !!registerForm.password && value === registerForm.password,
       message: t('auth.rule.repasswordMismatch'),
-      trigger: 'input',
+      trigger: ['input', 'blur'],
     },
   ],
 }));

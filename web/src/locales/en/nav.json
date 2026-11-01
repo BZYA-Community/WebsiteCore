@@ -17,5 +17,6 @@
   "userDetail": "User Detail",
   "following": "Following",
   "pageNotFound": "404",
-  "columns": "Articles"
+  "columns": "Articles",
+  "openMenu": "Open navigation menu"
 }

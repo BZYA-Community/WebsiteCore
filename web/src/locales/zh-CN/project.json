@@ -49,8 +49,9 @@
   "following": "已关注",
   "followNoPermission": "当前账号没有关注项目的权限",
   "join": "加入",
-  "joinComingSoon": "功能暂未开放",
+  "joinComingSoon": "加入（暂未开放）",
   "members": "项目参与者",
   "owner": "负责人",
-  "member": "参与者"
+  "member": "参与者",
+  "projectLinks": "项目链接"
 }
