@@ -31,7 +31,7 @@
             </div>
 
             <n-upload
-                v-if="showBtn && props.lock !== 1"
+                v-if="showBtn"
                 ref="uploadRef"
                 abstract
                 list-type="image"
@@ -127,7 +127,7 @@
             </n-upload>
         </div>
 
-        <n-alert v-else-if="userInfo.id > 0" type="info">{{ t('identity.accessDenied') }}</n-alert>
+        <guest-verify-hint v-else-if="userInfo.id > 0" />
         <div class="compose-wrap" v-else>
             <div class="login-wrap">
                 <span class="login-banner">{{ t('comment.compose.loginBanner') }}</span>
@@ -169,14 +169,15 @@
 
 
 <script setup lang="ts">
+import GuestVerifyHint from '@/components/guest-verify-hint.vue';
 import { useMediaUpload } from '@/composables/useMediaUpload';
 import { computed, ref } from 'vue';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
+import { useRouter } from 'vue-router';
 import { debounce } from 'lodash';
 import { ImageOutline } from '@vicons/ionicons5';
 import { createComment } from '@/api/post';
-import { createColumnComment } from '@/api/columns';
 import { parsePostTag } from '@/utils/content';
 import type { MentionOption, UploadFileInfo, UploadInst } from 'naive-ui';
 import { storeToRefs } from 'pinia';
@@ -192,10 +193,8 @@ const props = withDefaults(
   defineProps<{
     lock: number;
     postId: number;
-    columnId?: number;
   }>(),
   {
-    columnId: 0,
     lock: 0,
     postId: 0,
   },
@@ -203,6 +202,7 @@ const props = withDefaults(
 
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
+const router = useRouter();
 const { userInfo } = storeToRefs(storeUser);
 
 const optionsRef = ref<MentionOption[]>([]);
@@ -335,7 +335,7 @@ const cancelComment = () => {
 
 // 发布动态
 const submitPost = () => {
-  if (props.lock === 1 || submitting.value || fileQueue.value.some((file) => file.status !== 'finished')) return;
+  if (submitting.value || fileQueue.value.some((file) => file.status !== 'finished')) return;
   if (content.value.trim().length === 0) {
     window.$message.warning(t('comment.msg.contentRequired'));
     return;
@@ -362,9 +362,11 @@ const submitPost = () => {
   });
 
   submitting.value = true;
-  (props.columnId
-    ? createColumnComment({ column_id: props.columnId, contents, users: Array.from(new Set(users)) })
-    : createComment({ contents, post_id: props.postId, users: Array.from(new Set(users)) }))
+  createComment({
+    contents,
+    post_id: props.postId,
+    users: Array.from(new Set(users)),
+  })
     .then((res) => {
       if (res.audit_status === 0) {
         window.$message.success(t('comment.msg.commentPendingAudit'));
