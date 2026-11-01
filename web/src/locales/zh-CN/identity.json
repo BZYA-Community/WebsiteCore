@@ -26,6 +26,9 @@
   "selfReadonly": "为避免丢失管理权限，不能在此修改自己的身份组。",
   "selectGroups": "选择身份组",
   "accessDenied": "当前身份没有执行此操作的权限。",
+  "guestHint": "你的账号尚未完成验证，当前为游客身份。完成邮箱/手机验证后即可获得发帖与评论权限。",
+  "guestVerifyAction": "前往验证",
+  "guestVerifyUnavailable": "本站暂未开启联系验证，请稍后再试或联系站点管理员。",
   "permission": {
     "post_view": "查看公开帖子",
     "post_create": "发帖",
