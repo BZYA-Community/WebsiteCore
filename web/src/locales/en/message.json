@@ -24,8 +24,12 @@
     "mePrefix": "Me: ",
     "systemRoom": "System Notifications",
     "systemUser": "System",
-    "viewDetailLink": "View details: {url}",
-    "viewProfileLink": "View profile: {url}",
+    "viewPost": "View post",
+    "viewPost": "View post",
+    "viewColumn": "View column",
+    "viewProfile": "View profile",
+    "notificationActions": "Notification links",
+    "notificationHistory": "Notifications since:",
     "loadingNickname": "Loading..."
   }
 }
