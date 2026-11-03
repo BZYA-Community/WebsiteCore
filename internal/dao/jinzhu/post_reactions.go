@@ -39,6 +39,12 @@ func setPostReaction(db *gorm.DB, postID, userID int64, model any, counter strin
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND is_del = 0", postID).First(&post).Error; err != nil {
 			return err
 		}
+		// 未过审帖子禁止新增点赞/收藏(含作者本人): 配合点赞/收藏列表的读口径过滤,
+		// 双保险关闭"作者自赞 + 公开点赞列表"绕过审核泄露待审内容的通道;
+		// 取消操作不受限, 以便清理历史数据(安全审计02 中-1)
+		if create && post.AuditStatus != ms.PostAuditApproved {
+			return authz.ErrDenied
+		}
 		if err := requirePostAccessTx(tx, actor, &post); err != nil {
 			return err
 		}

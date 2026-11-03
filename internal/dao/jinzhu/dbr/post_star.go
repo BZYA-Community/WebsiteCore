@@ -68,15 +68,7 @@ func (p *PostStar) List(db *gorm.DB, conditions *ConditionsT, typ cs.RelationTyp
 			db = db.Where(tn+k, v)
 		}
 	}
-	db = db.Joins("Post")
-	switch typ {
-	case cs.RelationAdmin:
-		// admin have all permition to visit all type tweets
-	case cs.RelationSelf:
-		db = db.Where("visibility <> ? OR (visibility = ? AND ? = ?)", PostVisitPrivate, PostVisitPrivate, clause.Column{Table: "Post", Name: "user_id"}, p.UserID)
-	default:
-		db = db.Where("visibility=?", PostVisitPublic)
-	}
+	db = scopeReactionPostVisibility(db.Joins("Post"), p.UserID, typ)
 	db = db.Order(clause.OrderByColumn{Column: clause.Column{Table: "Post", Name: "id"}, Desc: true})
 	err = db.Find(&res).Error
 	return
@@ -95,15 +87,31 @@ func (p *PostStar) Count(db *gorm.DB, typ cs.RelationTyp, conditions *Conditions
 			db = db.Where(tn+k, v)
 		}
 	}
-	db = db.Joins("Post")
+	db = scopeReactionPostVisibility(db.Joins("Post"), p.UserID, typ)
+	err = db.Model(p).Count(&res).Error
+	return
+}
+
+// scopeReactionPostVisibility 按访问关系收敛点赞/收藏列表的帖子读口径(安全审计02 中-1/低-2),
+// 与 application/content/views.go 的 CanViewTweet 保持一致:
+//   - 管理侧: 不过滤(保持原有全量语义);
+//   - 本人: 公开帖 + 自己的任意可见性帖 + 仍关注作者的关注可见帖, 且他人的未过审帖一律不可见
+//     (修复取关后关注可见帖仍残留在自己点赞/收藏列表的问题);
+//   - 游客/他人: 仅已过审的公开帖(修复"作者自赞 + 公开点赞列表"绕过审核泄露待审帖的问题)。
+func scopeReactionPostVisibility(db *gorm.DB, viewerID int64, typ cs.RelationTyp) *gorm.DB {
+	postUserID := clause.Column{Table: "Post", Name: "user_id"}
+	postAuditStatus := clause.Column{Table: "Post", Name: "audit_status"}
 	switch typ {
 	case cs.RelationAdmin:
 		// admin have all permition to visit all type tweets
 	case cs.RelationSelf:
-		db = db.Where("visibility <> ? OR (visibility = ? AND ? = ?)", PostVisitPrivate, PostVisitPrivate, clause.Column{Table: "Post", Name: "user_id"}, p.UserID)
+		followIDs := db.Session(&gorm.Session{NewDB: true}).Unscoped().Model(&Following{}).
+			Select("follow_id").Where("user_id = ?", viewerID)
+		db = db.Where("? = ? OR ? = ?", postAuditStatus, PostAuditApproved, postUserID, viewerID).
+			Where("visibility = ? OR ? = ? OR (visibility = ? AND ? IN (?))",
+				PostVisitPublic, postUserID, viewerID, PostVisitFollowing, postUserID, followIDs)
 	default:
-		db = db.Where("visibility=?", PostVisitPublic)
+		db = db.Where("visibility = ? AND ? = ?", PostVisitPublic, postAuditStatus, PostAuditApproved)
 	}
-	err = db.Model(p).Count(&res).Error
-	return
+	return db
 }
