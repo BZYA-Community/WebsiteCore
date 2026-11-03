@@ -106,6 +106,7 @@ jobs:
           yarn test:auth
           yarn test:courses
           yarn test:sidebar
+          yarn test:chat
           yarn test:admin
           yarn test:columns
           yarn test:projects

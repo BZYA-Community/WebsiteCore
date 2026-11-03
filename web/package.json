@@ -17,6 +17,7 @@
     "test:media": "node --experimental-strip-types scripts/media-upload.test.mjs",
     "test:compose": "node --experimental-strip-types scripts/compose-easter-egg.test.mjs",
     "test:sidebar": "node scripts/sidebar-polling.test.mjs",
+    "test:chat": "node --experimental-strip-types scripts/chat-notifications.test.mjs",
     "test:admin": "node scripts/admin-users.test.mjs",
     "test:projects": "node scripts/projects.test.mjs",
     "test:external-link": "node --experimental-strip-types scripts/external-link.test.mjs",

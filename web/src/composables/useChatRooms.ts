@@ -5,6 +5,10 @@ import { useStoreProfile } from '@/store/profile';
 import { formatRelativeTime } from '@/utils/formatTime';
 import i18n from '@/locales';
 import moment from 'moment';
+import {
+  toSystemNotification,
+  type SystemNotification,
+} from '@/utils/systemNotification';
 
 /**
  * 私信会话数据流管理(B站式: 左会话列表 + 右聊天窗)
@@ -44,6 +48,7 @@ export interface VACMessage {
   system?: boolean;
   disableActions?: boolean;
   disableReactions?: boolean;
+  notification?: SystemNotification;
 }
 
 const SYSTEM_ROOM_ID = '0';
@@ -96,30 +101,12 @@ export function useChatRooms() {
       : undefined,
   });
 
-  /** 系统会话消息 → 组件气泡内容(通知文本 + 跳转链接) */
-  const composeSystemContent = (m: Item.ChatHistoryItem): string => {
-    const base = `${location.origin}${location.pathname}`;
-    const lines: string[] = [];
-    if (m.brief) lines.push(m.brief);
-    if (m.content) lines.push(m.content);
-    if (m.column_id) {
-      const comment = m.comment_id ? `&comment_id=${m.comment_id}` : '';
-      // Metadata review notices target the author's submission; interactions target the public article.
-      const view = m.column_returned ? 'returned' : m.type === 99 && !m.sender_id && !m.comment_id ? 'edit' : 'read';
-      lines.push(t('message.chat.viewDetailLink', { url: `${base}#/columns?view=${view}&id=${m.column_id}${comment}` }));
-    } else if (m.type >= 1 && m.type <= 3 && m.post_id) {
-      lines.push(t('message.chat.viewDetailLink', { url: `${base}#/post?id=${m.post_id}` }));
-    } else if (m.type === 99 && m.sender_id > 0 && m.sender_username) {
-      lines.push(t('message.chat.viewProfileLink', { url: `${base}#/u?s=${encodeURIComponent(m.sender_username)}` }));
-    }
-    return lines.join('\n');
-  };
-
   const toMessage = (m: Item.ChatHistoryItem, isSystem: boolean): VACMessage => ({
     _id: String(m.id),
-    senderId: String(m.sender_id),
+    senderId: isSystem ? SYSTEM_ROOM_ID : String(m.sender_id),
     username: isSystem ? m.sender_name || t('message.chat.systemUser') : undefined,
-    content: isSystem ? composeSystemContent(m) : m.content,
+    content: m.content,
+    notification: isSystem ? toSystemNotification(m) : undefined,
     date: dayLabel(m.timestamp),
     timestamp: timeLabel(m.timestamp),
     seen: m.seen,
