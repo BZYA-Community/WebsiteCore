@@ -10,6 +10,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
+	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )

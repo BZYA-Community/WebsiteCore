@@ -31,6 +31,7 @@ var routeRules = func() map[string]routeRule {
 	rules["POST /v1/user/contact/verify"] = routeRule{Login: true}
 	add(authz.PostCreate, true, "POST /v1/post", "POST /v1/post/visibility")
 	rules["POST /v1/project"] = routeRule{All: []string{authz.PostCreate, authz.ContentUpload}, Login: true}
+	rules["POST /v1/project/update"] = routeRule{All: []string{authz.PostCreate, authz.ContentUpload}, Login: true}
 	add(authz.CommentCreate, true, "POST /v1/post/comment", "POST /v1/post/comment/reply")
 	add(authz.ContentUpload, true, "POST /v1/attachment")
 	add(authz.CommunityInteract, true, "POST /v1/project/follow", "POST /v1/project/unfollow", "POST /v1/post/star", "POST /v1/post/collection", "POST /v1/tweet/comment/thumbsup", "POST /v1/tweet/comment/thumbsdown", "POST /v1/tweet/reply/thumbsup", "POST /v1/tweet/reply/thumbsdown", "POST /v1/topic/follow", "POST /v1/topic/unfollow", "POST /v1/user/follow", "POST /v1/user/unfollow")
