@@ -9,6 +9,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/web"
@@ -41,6 +42,23 @@ func encryptPasswordAndSalt(password string) (string, string) {
 
 // persistMediaContents 获取媒体内容并持久化
 // Shared URLs may be referenced by other content. Failure does not authorize deletion.
+func isExternalURL(content string) (external bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			// Config not loaded (test env) — treat as local
+			external = false
+		}
+	}()
+	if !strings.HasPrefix(content, "http://") && !strings.HasPrefix(content, "https://") {
+		return false
+	}
+	ossDomain := conf.GetOssDomain()
+	if ossDomain == "" {
+		return true
+	}
+	return !strings.Contains(content, ossDomain)
+}
+
 func persistMediaContents(oss core.ObjectStorageService, contents []*web.PostContentItem) error {
 	for _, item := range contents {
 		switch item.Type {
@@ -49,8 +67,8 @@ func persistMediaContents(oss core.ObjectStorageService, contents []*web.PostCon
 			ms.ContentTypeAudio,
 			ms.ContentTypeAttachment,
 			ms.ContentTypeChargeAttachment:
-			// 外部链接跳过持久化（#151）
-			if strings.HasPrefix(item.Content, "http://") || strings.HasPrefix(item.Content, "https://") {
+			// 外部链接跳过持久化，但本站域名除外（#151）
+			if isExternalURL(item.Content) {
 				continue
 			}
 			if err := oss.PersistObject(oss.ObjectKey(item.Content)); err != nil {
