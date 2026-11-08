@@ -21,6 +21,8 @@ type Priv struct {
 
 	// CreateProject 创建独立项目及其广场发布帖
 	CreateProject func(Post, web.CreateProjectReq) web.CreateProjectResp `mir:"project"`
+	// UpdateProject 更新项目信息
+	UpdateProject func(Post, web.UpdateProjectReq) web.UpdateProjectResp `mir:"project/update"`
 
 	// FollowProject 关注项目
 	FollowProject func(Post, web.ProjectFollowReq) web.ProjectFollowResp `mir:"project/follow"`

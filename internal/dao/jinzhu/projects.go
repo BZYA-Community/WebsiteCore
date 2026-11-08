@@ -279,6 +279,53 @@ func (s *projectSrv) CreateProject(actor *ms.User, input *core.ProjectCreateInpu
 	return input.Project, input.Post, err
 }
 
+func (s *projectSrv) UpdateProject(actor *ms.User, input *core.ProjectUpdateInput) (*ms.Project, error) {
+	if actor == nil || input == nil || input.Project == nil {
+		return nil, authz.ErrInvalid
+	}
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		// Fetch the existing project
+		var project dbr.Project
+		if err := tx.Where("id = ?", input.Project.ID).First(&project).Error; err != nil {
+			return web.ErrProjectNotExist
+		}
+		// Only the creator can edit
+		if project.CreatorID != actor.ID {
+			return web.ErrNoPermission
+		}
+		// Update fields
+		project.Title = input.Project.Title
+		project.Intro = input.Project.Intro
+		project.URL = input.Project.URL
+		if err := tx.Save(&project).Error; err != nil {
+			return err
+		}
+		// Replace images: delete old, insert new
+		if err := tx.Where("project_id = ?", project.ID).Delete(&dbr.ProjectImage{}).Error; err != nil {
+			return err
+		}
+		for _, image := range input.Images {
+			image.ProjectID = project.ID
+			if err := tx.Create(image).Error; err != nil {
+				return err
+			}
+		}
+		// Replace tags: delete old, insert new
+		if err := tx.Where("project_id = ?", project.ID).Delete(&dbr.ProjectTag{}).Error; err != nil {
+			return err
+		}
+		for _, tag := range input.Tags {
+			tag.ProjectID = project.ID
+			if err := tx.Create(tag).Error; err != nil {
+				return err
+			}
+		}
+		input.Project = &project
+		return nil
+	})
+	return input.Project, err
+}
+
 func (s *projectSrv) SetProjectFollow(projectID, userID int64, follow bool) (bool, int64, error) {
 	var status bool
 	err := s.db.Transaction(func(tx *gorm.DB) error {

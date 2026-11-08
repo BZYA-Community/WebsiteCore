@@ -82,8 +82,19 @@
           />
         </n-form-item>
         <n-form-item :label="t('project.tagsLabel')">
-          <n-dynamic-tags v-model:value="draft.tags" :max="8" />
-          <small class="field-help">{{ t('project.tagsHelp') }}</small>
+          <div class="tags-field">
+            <n-select
+              v-model:value="draft.tags"
+              multiple
+              tag
+              filterable
+              :options="presetTagOptions"
+              :max-tag-count="8"
+              :placeholder="t('project.tagsPlaceholder')"
+              class="tags-select"
+            />
+            <small class="field-help">{{ t('project.tagsHelp') }}</small>
+          </div>
         </n-form-item>
         <n-form-item :label="t('project.imagesLabel')" required>
           <div class="upload-field">
@@ -104,6 +115,24 @@
             >
               {{ t('project.uploadImage') }}
             </n-upload>
+            <div class="url-input-row">
+              <n-input
+                v-model:value="imageUrlInput"
+                type="url"
+                :placeholder="t('project.imageUrlPlaceholder')"
+                class="url-input"
+                @keydown.enter.prevent="addImageUrl"
+              />
+              <n-button size="small" :disabled="!imageUrlInput.trim()" @click="addImageUrl">
+                {{ t('project.addImageUrl') }}
+              </n-button>
+            </div>
+            <div v-if="urlImages.length" class="url-preview-row">
+              <div v-for="(img, i) in urlImages" :key="i" class="url-preview-item">
+                <img :src="img" class="url-preview-img" :alt="'url-image-' + i" />
+                <button class="url-remove" @click="removeImageUrl(i)">×</button>
+              </div>
+            </div>
             <small>{{ t('project.imagesHelp') }}</small>
           </div>
         </n-form-item>
@@ -170,6 +199,30 @@ const uploadRef = ref<UploadInst>();
 const fileQueue = ref<UploadFileInfo[]>([]);
 const uploadedImages = ref<{ id: string; content: string }[]>([]);
 const draft = reactive({ title: '', intro: '', url: '', tags: [] as string[] });
+const imageUrlInput = ref('');
+const urlImages = ref<string[]>([]);
+
+const PRESET_TAGS = [
+  'AI/ML', 'Web', 'Mobile', 'Hardware', 'Data',
+  'In Progress', 'Completed', 'Recruiting',
+  'Beginner', 'Intermediate', 'Advanced',
+];
+const presetTagOptions = PRESET_TAGS.map((tag) => ({ label: tag, value: tag }));
+
+function addImageUrl() {
+  const url = imageUrlInput.value.trim();
+  if (!url) return;
+  if (urlImages.value.length + fileQueue.value.length >= 6) {
+    window.$message.warning(t('project.imagesMax'));
+    return;
+  }
+  urlImages.value.push(url);
+  imageUrlInput.value = '';
+}
+
+function removeImageUrl(index: number) {
+  urlImages.value.splice(index, 1);
+}
 const linkError = ref('');
 const uploadType = ref('public/image');
 const { beforeUpload } = useMediaUpload(uploadType);
@@ -291,6 +344,8 @@ function resetDraft() {
   linkError.value = '';
   uploadedImages.value = [];
   fileQueue.value = [];
+  urlImages.value = [];
+  imageUrlInput.value = '';
   uploadRef.value?.clear();
 }
 
@@ -304,8 +359,10 @@ async function submitProject() {
     .map((file) => uploadedImages.value.find((image) => image.id === file.id))
     .filter((image): image is { id: string; content: string } =>
       Boolean(image),
-    );
-  if (orderedImages.length === 0)
+    )
+    .map((image) => image.content);
+  const allImages = [...orderedImages, ...urlImages.value];
+  if (allImages.length === 0)
     return window.$message.warning(t('project.imagesRequired'));
   if (!validateLink()) return;
   submitting.value = true;
@@ -314,7 +371,7 @@ async function submitProject() {
       title: draft.title.trim(),
       intro: draft.intro.trim(),
       url: safeExternalURL(draft.url),
-      images: orderedImages.map((image) => image.content),
+      images: allImages,
       tags: draft.tags.map((tag) => tag.trim()).filter(Boolean),
     });
     window.$message.success(t('project.publishSuccess'));
@@ -350,6 +407,15 @@ onMounted(loadProjects);
 .field-help { display: block; margin-left: 10px; opacity: .6; }
 .upload-field { width: 100%; }
 .upload-field small { display: block; margin-top: 8px; opacity: .6; }
+.url-input-row { display: flex; gap: 8px; margin-top: 10px; }
+.url-input { flex: 1; }
+.url-preview-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.url-preview-item { position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; }
+.url-preview-img { width: 100%; height: 100%; object-fit: cover; }
+.url-remove { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; border: none; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; font-size: 14px; line-height: 1; cursor: pointer; }
+.tags-field { width: 100%; }
+.tags-field .tags-select { width: 100%; }
+.tags-field .field-help { margin-left: 0; margin-top: 6px; }
 .editor-actions { display: flex; justify-content: flex-end; gap: 10px; }
 @media (max-width: 720px) {
   .project-hero { align-items: flex-start; flex-direction: column; padding: 26px 20px; }
