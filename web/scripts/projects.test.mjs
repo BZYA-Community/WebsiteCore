@@ -226,11 +226,13 @@ assert.match(
 );
 
 const projectDetailSource = parse(projectDetailView).descriptor.scriptSetup.content
-  .replace(/^import [\s\S]*?;\r?$/gm, '');
+  .replace(/^import [\s\S]*?;\r?$/gm, '')
+  .replace(/import\.meta\.env\.VITE_HOST/g, "'http://localhost'")
+  .replace(/^export\s+(const|function|default)/gm, '$1');
 const projectDetailCode = ts.transpileModule(
   `${projectDetailSource}\nmodule.exports = { project, loading, following, loadFailed, notFound, loadProject, toggleFollow };`,
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
-).outputText;
+).outputText.replace(/import\.meta\.env\.VITE_HOST/g, "'http://localhost'");
 const deferred = () => {
   let resolve;
   let reject;
