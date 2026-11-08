@@ -17,6 +17,15 @@ type attachmentCheckServant struct {
 }
 
 func (s *attachmentCheckServant) CheckAttachment(uri string) error {
+	// 允许外部 http(s) 图片链接（#151）
+	if strings.HasPrefix(uri, "http://") || strings.HasPrefix(uri, "https://") {
+		for _, seg := range strings.Split(uri, "/") {
+			if seg == ".." {
+				return fmt.Errorf("附件路径非法")
+			}
+		}
+		return nil
+	}
 	if strings.Index(uri, s.domain) != 0 {
 		return fmt.Errorf("附件非本站资源")
 	}

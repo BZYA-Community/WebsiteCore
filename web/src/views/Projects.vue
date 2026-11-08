@@ -130,7 +130,11 @@
             <div v-if="urlImages.length" class="url-preview-row">
               <div v-for="(img, i) in urlImages" :key="i" class="url-preview-item">
                 <img :src="img" class="url-preview-img" :alt="'url-image-' + i" />
-                <button class="url-remove" @click="removeImageUrl(i)">×</button>
+                <div class="url-preview-overlay">
+                  <button class="url-remove" @click="removeImageUrl(i)">
+                    <n-icon><close-outline /></n-icon>
+                  </button>
+                </div>
               </div>
             </div>
             <small>{{ t('project.imagesHelp') }}</small>
@@ -160,6 +164,7 @@ import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { mdTheme } from '@/utils/markdown';
 import {
   AddOutline,
+  CloseOutline,
   LinkOutline,
   RefreshOutline,
 } from '@vicons/ionicons5';
@@ -410,9 +415,12 @@ onMounted(loadProjects);
 .url-input-row { display: flex; gap: 8px; margin-top: 10px; }
 .url-input { flex: 1; }
 .url-preview-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-.url-preview-item { position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; }
-.url-preview-img { width: 100%; height: 100%; object-fit: cover; }
-.url-remove { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; border: none; border-radius: 50%; background: rgba(0,0,0,.6); color: #fff; font-size: 14px; line-height: 1; cursor: pointer; }
+.url-preview-item { position: relative; width: 96px; height: 96px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(128,128,128,.25); }
+.url-preview-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.url-preview-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.45); opacity: 0; transition: opacity .15s; display: flex; align-items: center; justify-content: center; }
+.url-preview-item:hover .url-preview-overlay { opacity: 1; }
+.url-remove { width: 28px; height: 28px; border: none; border-radius: 50%; background: rgba(255,255,255,.9); color: #333; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.url-remove:hover { background: #fff; }
 .tags-field { width: 100%; }
 .tags-field .tags-select { width: 100%; }
 .tags-field .field-help { margin-left: 0; margin-top: 6px; }
