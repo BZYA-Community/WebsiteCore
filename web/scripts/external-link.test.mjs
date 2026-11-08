@@ -108,6 +108,13 @@ for (const value of [
 const router = read('src/router/index.ts');
 assert.match(router, /path:\s*['"]\/external-link['"]/);
 assert.match(router, /name:\s*['"]external-link['"]/);
+for (const routeName of ['external-link', '404']) {
+  assert.match(
+    router,
+    new RegExp(`name:\\s*['"]${routeName}['"][\\s\\S]{0,160}hideSidebar:\\s*true`),
+    `${routeName} must use the sidebar-free layout`,
+  );
+}
 assert.match(
   router,
   /external-link[\s\S]{0,300}return true/,
@@ -115,6 +122,11 @@ assert.match(
 );
 
 const app = read('src/App.vue');
+assert.match(app, /desktopModelShow\s*&&\s*!route\.meta\.hideSidebar/);
+assert.match(app, /rightbar v-if="route\.name !== 'course' && !route\.meta\.hideSidebar"/);
+assert.match(app, /sidebarless:\s*route\.meta\.hideSidebar/);
+const mainNav = read('src/components/main-nav.vue');
+assert.match(mainNav, /drawerModelShow\s*&&\s*!route\.meta\.hideSidebar/);
 assert.match(app, /['"]click['"][\s\S]{0,120}addEventListener\(event,\s*protectEventAnchor,\s*true\)/);
 assert.match(app, /removeEventListener\(event,\s*protectEventAnchor,\s*true\)/);
 assert.match(
