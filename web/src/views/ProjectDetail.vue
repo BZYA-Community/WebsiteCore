@@ -150,7 +150,6 @@
 <script setup lang="ts">
 import { followProject, getProject, unfollowProject, updateProject } from '@/api/project';
 import type { ProjectItem } from '@/api/project';
-import { useMediaUpload } from '@/composables/useMediaUpload';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { mdTheme, prepareMdRender } from '@/utils/markdown';
@@ -256,18 +255,11 @@ const fileQueue = ref<UploadFileInfo[]>([]);
 const uploadedImages = ref<{ id: string; content: string }[]>([]);
 const imageUrlInput = ref('');
 const urlImages = ref<string[]>([]);
-const uploadType = ref('public/image');
-const { beforeUpload } = useMediaUpload(uploadType);
 const uploadGateway = `${import.meta.env.VITE_HOST}/v1/attachment`;
 const uploadToken = computed(() =>
   storeUser.userInfo.id
     ? `Bearer ${localStorage.getItem(TOKEN_KEY) || ''}`
     : '',
-);
-const uploading = computed(() =>
-  fileQueue.value.some(
-    (file) => file.status === 'pending' || file.status === 'uploading',
-  ),
 );
 
 const PRESET_TAGS = [
