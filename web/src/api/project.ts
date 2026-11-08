@@ -55,6 +55,9 @@ export const getProject = (id: number): Promise<{ project: ProjectItem }> =>
 export const createProject = (data: CreateProjectInput): Promise<ProjectItem> =>
   request({ method: 'post', url: '/v1/project', data });
 
+export const updateProject = (data: CreateProjectInput & { id: number }): Promise<ProjectItem> =>
+  request({ method: 'post', url: '/v1/project/update', data });
+
 export const followProject = (id: number): Promise<{ status: boolean; follow_count: number }> =>
   request({ method: 'post', url: '/v1/project/follow', data: { id } });
 

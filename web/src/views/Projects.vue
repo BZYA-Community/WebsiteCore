@@ -100,6 +100,7 @@
           <div class="upload-field">
             <n-upload
               ref="uploadRef"
+              v-model:file-list="fileQueue"
               list-type="image-card"
               accept="image/webp,image/png,image/jpeg,image/gif"
               :action="uploadGateway"
@@ -126,16 +127,6 @@
               <n-button size="small" :disabled="!imageUrlInput.trim()" @click="addImageUrl">
                 {{ t('project.addImageUrl') }}
               </n-button>
-            </div>
-            <div v-if="urlImages.length" class="url-preview-row">
-              <div v-for="(img, i) in urlImages" :key="i" class="url-preview-item">
-                <img :src="img" class="url-preview-img" :alt="'url-image-' + i" />
-                <div class="url-preview-overlay">
-                  <button class="url-remove" @click="removeImageUrl(i)">
-                    <n-icon><close-outline /></n-icon>
-                  </button>
-                </div>
-              </div>
             </div>
             <small>{{ t('project.imagesHelp') }}</small>
           </div>
@@ -164,7 +155,6 @@ import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { mdTheme } from '@/utils/markdown';
 import {
   AddOutline,
-  CloseOutline,
   LinkOutline,
   RefreshOutline,
 } from '@vicons/ionicons5';
@@ -217,17 +207,22 @@ const presetTagOptions = PRESET_TAGS.map((tag) => ({ label: tag, value: tag }));
 function addImageUrl() {
   const url = imageUrlInput.value.trim();
   if (!url) return;
-  if (urlImages.value.length + fileQueue.value.length >= 6) {
+  if (fileQueue.value.length >= 6) {
     window.$message.warning(t('project.imagesMax'));
     return;
   }
+  const id = `url-${Date.now()}`;
+  fileQueue.value.push({
+    id,
+    name: url.split('/').pop() || 'image',
+    status: 'finished',
+    url,
+  } as UploadFileInfo);
+  uploadedImages.value.push({ id, content: url });
   urlImages.value.push(url);
   imageUrlInput.value = '';
 }
 
-function removeImageUrl(index: number) {
-  urlImages.value.splice(index, 1);
-}
 const linkError = ref('');
 const uploadType = ref('public/image');
 const { beforeUpload } = useMediaUpload(uploadType);
@@ -414,13 +409,6 @@ onMounted(loadProjects);
 .upload-field small { display: block; margin-top: 8px; opacity: .6; }
 .url-input-row { display: flex; gap: 8px; margin-top: 10px; }
 .url-input { flex: 1; }
-.url-preview-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-.url-preview-item { position: relative; width: 96px; height: 96px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(128,128,128,.25); }
-.url-preview-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.url-preview-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.45); opacity: 0; transition: opacity .15s; display: flex; align-items: center; justify-content: center; }
-.url-preview-item:hover .url-preview-overlay { opacity: 1; }
-.url-remove { width: 28px; height: 28px; border: none; border-radius: 50%; background: rgba(255,255,255,.9); color: #333; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-.url-remove:hover { background: #fff; }
 .tags-field { width: 100%; }
 .tags-field .tags-select { width: 100%; }
 .tags-field .field-help { margin-left: 0; margin-top: 6px; }

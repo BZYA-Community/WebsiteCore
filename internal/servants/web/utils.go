@@ -49,6 +49,10 @@ func persistMediaContents(oss core.ObjectStorageService, contents []*web.PostCon
 			ms.ContentTypeAudio,
 			ms.ContentTypeAttachment,
 			ms.ContentTypeChargeAttachment:
+			// 外部链接跳过持久化（#151）
+			if strings.HasPrefix(item.Content, "http://") || strings.HasPrefix(item.Content, "https://") {
+				continue
+			}
 			if err := oss.PersistObject(oss.ObjectKey(item.Content)); err != nil {
 				logrus.Errorf("service.persistMediaContents failed: %s", err)
 				return err
