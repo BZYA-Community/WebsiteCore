@@ -279,6 +279,120 @@ func (s *projectSrv) CreateProject(actor *ms.User, input *core.ProjectCreateInpu
 	return input.Project, input.Post, err
 }
 
+func (s *projectSrv) UpdateProject(actor *ms.User, input *core.ProjectUpdateInput) (*ms.ProjectFormated, error) {
+	if actor == nil || input == nil || input.Project == nil || input.Project.Model == nil || input.Project.ID <= 0 || len(input.Images) < 1 || len(input.Images) > 6 {
+		return nil, authz.ErrInvalid
+	}
+	var result *ms.ProjectFormated
+	var updatedPost *ms.Post
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		// Match follow/moderation lock order: identity, actor, post, project.
+		// A stale request cannot retain a revoked grant while waiting to edit.
+		user, err := lockIdentityPolicy(tx, actor, authz.PostCreate)
+		if err != nil {
+			return err
+		}
+		if !user.HasPermission(authz.ContentUpload) {
+			return authz.ErrDenied
+		}
+		var project dbr.Project
+		if err := tx.Where("id = ?", input.Project.ID).First(&project).Error; err != nil {
+			return err
+		}
+		postID := project.PostID
+		var post ms.Post
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ?", postID).First(&post).Error; err != nil {
+			return err
+		}
+		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("id = ? AND post_id = ?", input.Project.ID, postID).First(&project).Error; err != nil {
+			return err
+		}
+		if project.CreatorID != user.ID {
+			return authz.ErrDenied
+		}
+		if input.PersistMedia != nil {
+			if err := input.PersistMedia(); err != nil {
+				return err
+			}
+		}
+		if err := tx.Model(&project).Updates(map[string]any{
+			"title": input.Project.Title, "intro": input.Project.Intro, "url": input.Project.URL,
+		}).Error; err != nil {
+			return err
+		}
+		if err := tx.Where("project_id = ?", project.ID).Delete(&dbr.ProjectImage{}).Error; err != nil {
+			return err
+		}
+		for _, image := range input.Images {
+			if image == nil {
+				return authz.ErrInvalid
+			}
+			image.ProjectID = project.ID
+			if err := tx.Create(image).Error; err != nil {
+				return err
+			}
+		}
+		if err := tx.Where("project_id = ?", project.ID).Delete(&dbr.ProjectTag{}).Error; err != nil {
+			return err
+		}
+		for _, tag := range input.Tags {
+			if tag == nil {
+				return authz.ErrInvalid
+			}
+			tag.ProjectID = project.ID
+			if err := tx.Create(tag).Error; err != nil {
+				return err
+			}
+		}
+		// Keep the linked discussion preview and its publication gate in the same
+		// transaction as the independent project document.
+		if err := tx.Where("post_id = ? AND type IN ?", post.ID, []ms.PostContentT{ms.ContentTypeTitle, ms.ContentTypeImage}).Delete(&ms.PostContent{}).Error; err != nil {
+			return err
+		}
+		preview := []*ms.PostContent{
+			{PostID: post.ID, UserID: post.UserID, Content: project.Title, Type: ms.ContentTypeTitle, Sort: 100},
+			{PostID: post.ID, UserID: post.UserID, Content: input.Images[0].URL, Type: ms.ContentTypeImage, Sort: 101},
+		}
+		for _, item := range preview {
+			if _, err := item.Create(tx); err != nil {
+				return err
+			}
+		}
+		if reviewRequired(user) && post.Visibility != ms.PostVisitPrivate {
+			if post.AuditStatus == ms.PostAuditApproved {
+				if err := deleteTags(tx, reviewTags(post.Tags)); err != nil {
+					return err
+				}
+			}
+			post.AuditStatus = ms.PostAuditPending
+			if err := tx.Model(&post).Update("audit_status", post.AuditStatus).Error; err != nil {
+				return err
+			}
+		}
+		// Post reviews have no content snapshot. Cancel first so even an
+		// intro/tag-only edit of an already-pending project gets a new revision.
+		if err := cancelTargetReviewsTx(tx, ms.ReviewPost, []int64{post.ID}); err != nil {
+			return err
+		}
+		if err := enqueueReviewTx(tx, ms.ReviewPost, post.ID, conf.ReviewDeadline()); err != nil {
+			return err
+		}
+		updatedPost = &post
+		// Use stored members/follows, without adding a post.view requirement to editing.
+		items, err := (&projectSrv{db: tx}).formatProjects([]*dbr.Project{&project}, user.ID)
+		if err != nil {
+			return err
+		}
+		result = items[0]
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	input.Post = updatedPost
+	return result, nil
+}
+
 func (s *projectSrv) SetProjectFollow(projectID, userID int64, follow bool) (bool, int64, error) {
 	var status bool
 	err := s.db.Transaction(func(tx *gorm.DB) error {

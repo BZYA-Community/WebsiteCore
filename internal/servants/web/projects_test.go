@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/BZYA-Community/WebsiteCore/internal/authz"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
@@ -157,5 +158,100 @@ func TestCreateProjectRejectsURLBeyondInputLimit(t *testing.T) {
 	status, ok := err.(interface{ StatusCode() int })
 	if !ok || status.StatusCode() != model.ErrProjectInputInvalid.StatusCode() {
 		t.Fatalf("CreateProject() error = %v, want project input error", err)
+	}
+}
+
+type projectUpdateData struct {
+	core.DataService
+	input    *core.ProjectUpdateInput
+	err      error
+	response *ms.ProjectFormated
+}
+
+func (*projectUpdateData) CheckAttachment(string) error { return nil }
+
+func (d *projectUpdateData) UpdateProject(_ *ms.User, input *core.ProjectUpdateInput) (*ms.ProjectFormated, error) {
+	d.input = input
+	if d.err != nil {
+		return nil, d.err
+	}
+	if err := input.PersistMedia(); err != nil {
+		return nil, err
+	}
+	input.Post = &ms.Post{Model: &ms.Model{ID: d.response.PostID}}
+	return d.response, nil
+}
+
+func TestUpdateProjectUsesCommittedStateAndPreservesErrors(t *testing.T) {
+	oldProjects, oldEvent := conf.ProjectSetting, onProjectUpdated
+	t.Cleanup(func() { conf.ProjectSetting, onProjectUpdated = oldProjects, oldEvent })
+	conf.ProjectSetting = &conf.ProjectsConf{Enabled: true}
+	creator := permissionUser(7, "post.create", "content.upload")
+	events := 0
+	onProjectUpdated = func(*privSrv, *ms.Post) { events++ }
+	for _, test := range []struct {
+		name string
+		err  error
+		want error
+	}{
+		{"success", nil, nil},
+		{"not owner", authz.ErrDenied, model.ErrNoPermission},
+		{"not found", gorm.ErrRecordNotFound, model.ErrProjectNotExist},
+		{"database unavailable", errors.New("offline"), model.ErrUpdateProjectFailed},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			data := &projectUpdateData{err: test.err, response: &ms.ProjectFormated{
+				ID: 11, PostID: 12, CreatorID: creator.ID, Followed: true, FollowCount: 5,
+				Members: []*ms.ProjectMemberFormated{{Role: "owner"}, {Role: "member"}},
+			}}
+			storage := &sharedAttachmentStorage{}
+			before := events
+			response, err := (&privSrv{DaoServant: &base.DaoServant{Ds: data}, oss: storage}).UpdateProject(&model.UpdateProjectReq{
+				BaseInfo: model.BaseInfo{User: creator}, ID: 11, Title: " Project ", Intro: " Intro ", URL: "https://example.com",
+				Images: []string{sharedAttachmentURL, "https://images.example.test/project.png"}, Tags: []string{" Go ", "Go", ""},
+			})
+			if err != test.want {
+				t.Fatalf("UpdateProject() error = %v, want %v", err, test.want)
+			}
+			if test.err != nil {
+				if response != nil || len(storage.persisted) != 0 || events != before {
+					t.Fatalf("failed update had side effects: storage=%v events=%d", storage.persisted, events-before)
+				}
+				return
+			}
+			if response != (*model.UpdateProjectResp)(data.response) || !response.Followed || len(response.Members) != 2 || events-before != 1 {
+				t.Fatalf("lost committed state: %+v", response)
+			}
+			if len(storage.persisted) != 1 || data.input.Project.Title != "Project" || data.input.Project.Intro != "Intro" || len(data.input.Tags) != 1 || data.input.Tags[0].Name != "Go" {
+				t.Fatalf("input not normalized/persisted: %+v / %v", data.input, storage.persisted)
+			}
+		})
+	}
+}
+
+func TestUpdateProjectRejectsMissingPermissions(t *testing.T) {
+	oldProjects := conf.ProjectSetting
+	t.Cleanup(func() { conf.ProjectSetting = oldProjects })
+	conf.ProjectSetting = &conf.ProjectsConf{Enabled: true}
+	for _, user := range []*ms.User{nil, permissionUser(7, "post.create"), permissionUser(7, "content.upload")} {
+		_, err := (&privSrv{}).UpdateProject(&model.UpdateProjectReq{ID: 11, BaseInfo: model.BaseInfo{User: user}})
+		if err != model.ErrNoPermission {
+			t.Fatalf("permissions=%+v error=%v", user, err)
+		}
+	}
+}
+
+func TestCreateProjectSupportsExternalImageWithoutStorage(t *testing.T) {
+	oldProjects, oldEvent := conf.ProjectSetting, onProjectCreated
+	t.Cleanup(func() { conf.ProjectSetting, onProjectCreated = oldProjects, oldEvent })
+	conf.ProjectSetting = &conf.ProjectsConf{Enabled: true}
+	onProjectCreated = func(*ms.User) {}
+	storage := &sharedAttachmentStorage{}
+	response, err := (&privSrv{DaoServant: &base.DaoServant{Ds: &projectCreateData{}}, oss: storage}).CreateProject(&model.CreateProjectReq{
+		BaseInfo: model.BaseInfo{User: permissionUser(7, "post.create", "content.upload")},
+		Title:    "Project", Intro: "Intro", URL: "https://example.com", Images: []string{"https://images.example.test/project.png"},
+	})
+	if err != nil || len(storage.persisted) != 0 || len(response.Images) != 1 || response.Images[0] != "https://images.example.test/project.png" {
+		t.Fatalf("CreateProject() response=%+v error=%v storage=%v", response, err, storage.persisted)
 	}
 }

@@ -113,5 +113,5 @@ function openProject() {
 .project-intro :deep(.md-editor-preview-wrapper) { padding: 0; }
 .project-intro :deep(.md-editor-preview) { font-size: 14px; }
 .project-intro :deep(.md-editor-preview > :first-child) { margin-top: 0; }
-.project-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; }
+.project-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; }
 </style>

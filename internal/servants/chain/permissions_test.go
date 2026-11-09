@@ -35,6 +35,10 @@ func TestRouteAuthorization(t *testing.T) {
 		{name: "operator", method: "GET", path: "/v1/admin/user/list", user: &ms.User{Model: &ms.Model{ID: 1}, Status: ms.UserStatusNormal, IsOperator: true}, want: true},
 		{name: "banned operator", method: "GET", path: "/v1/admin/user/list", user: &ms.User{Model: &ms.Model{ID: 1}, Status: ms.UserStatusClosed, IsOperator: true}},
 		{name: "unknown route denies operator", method: "POST", path: "/v1/forgotten", user: &ms.User{Model: &ms.Model{ID: 1}, Status: ms.UserStatusNormal, IsOperator: true}},
+		{name: "guest cannot edit projects", method: "POST", path: "/v1/project/update", guest: []string{authz.PostCreate, authz.ContentUpload}},
+		{name: "project edit needs upload grant", method: "POST", path: "/v1/project/update", user: &ms.User{Model: &ms.Model{ID: 1}, Status: ms.UserStatusNormal, Permissions: []string{authz.PostCreate}}},
+		{name: "project edit needs create grant", method: "POST", path: "/v1/project/update", user: &ms.User{Model: &ms.Model{ID: 1}, Status: ms.UserStatusNormal, Permissions: []string{authz.ContentUpload}}},
+		{name: "project edit grants", method: "POST", path: "/v1/project/update", user: &ms.User{Model: &ms.Model{ID: 1}, Status: ms.UserStatusNormal, Permissions: []string{authz.PostCreate, authz.ContentUpload}}, want: true},
 		{name: "course comment needs view", method: "POST", path: "/v1/course/comment", user: &ms.User{Model: &ms.Model{ID: 1}, Status: ms.UserStatusNormal, Permissions: []string{authz.CommentCreate}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
