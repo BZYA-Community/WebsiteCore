@@ -282,7 +282,7 @@ async def fill_create(page, modal):
     # Exercise the actual Naive UI tag picker, not component internals.
     tag_input = modal.locator(".tags-select input")
     for tag in TAGS:
-        await modal.locator(".tags-select").click()
+        await modal.locator(".tags-select .n-base-selection").click(position={"x": 5, "y": 5})
         await tag_input.fill(tag)
         await page.locator(".n-base-select-option__content").filter(has_text=re.compile("^" + re.escape(tag) + "$")).click()
     await modal.get_by_placeholder("Give your project a clear name", exact=True).click()
