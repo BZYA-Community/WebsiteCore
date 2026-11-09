@@ -63,7 +63,7 @@
       />
     </main>
 
-    <n-modal v-model:show="showEditor" preset="card" :title="t('project.editorTitle')" class="project-editor" :mask-closable="!submitting">
+    <n-modal v-model:show="showEditor" preset="card" :title="t('project.editorTitle')" class="project-editor" :mask-closable="!submitting" :closable="!submitting" :close-on-esc="!submitting">
       <n-form label-placement="top" @submit.prevent="submitProject">
         <n-form-item :label="t('project.titleLabel')" required>
           <n-input v-model:value="draft.title" :maxlength="PROJECT_TITLE_MAX_LENGTH" show-count :placeholder="t('project.titlePlaceholder')" />
@@ -84,7 +84,9 @@
         <n-form-item :label="t('project.tagsLabel')">
           <div class="tags-field">
             <n-select
-              v-model:value="draft.tags"
+              :value="draft.tags"
+              :disabled="submitting"
+              @update:value="updateTags"
               multiple
               tag
               filterable
@@ -119,12 +121,13 @@
             <div class="url-input-row">
               <n-input
                 v-model:value="imageUrlInput"
+                :disabled="submitting"
                 type="url"
                 :placeholder="t('project.imageUrlPlaceholder')"
                 class="url-input"
                 @keydown.enter.prevent="addImageUrl"
               />
-              <n-button size="small" :disabled="!imageUrlInput.trim()" @click="addImageUrl">
+              <n-button size="small" :disabled="submitting || !imageUrlInput.trim()" @click="addImageUrl">
                 {{ t('project.addImageUrl') }}
               </n-button>
             </div>
@@ -162,7 +165,7 @@ import type { UploadFileInfo, UploadInst, UploadOnFinish } from 'naive-ui';
 import { MdEditor } from 'md-editor-v3';
 import type { ToolbarNames } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const PROJECT_TITLE_MAX_LENGTH = 30;
@@ -195,7 +198,8 @@ const fileQueue = ref<UploadFileInfo[]>([]);
 const uploadedImages = ref<{ id: string; content: string }[]>([]);
 const draft = reactive({ title: '', intro: '', url: '', tags: [] as string[] });
 const imageUrlInput = ref('');
-const urlImages = ref<string[]>([]);
+let nextImageID = 0;
+let editorRevision = 0;
 
 const PRESET_TAGS = [
   'AI/ML', 'Web', 'Mobile', 'Hardware', 'Data',
@@ -205,13 +209,14 @@ const PRESET_TAGS = [
 const presetTagOptions = PRESET_TAGS.map((tag) => ({ label: tag, value: tag }));
 
 function addImageUrl() {
-  const url = imageUrlInput.value.trim();
-  if (!url) return;
+  if (!showEditor.value || submitting.value || !imageUrlInput.value.trim()) return;
+  const url = safeExternalURL(imageUrlInput.value);
+  if (!url) return window.$message.warning(t('project.imageUrlInvalid'));
   if (fileQueue.value.length >= 6) {
     window.$message.warning(t('project.imagesMax'));
     return;
   }
-  const id = `url-${Date.now()}`;
+  const id = `url-${++nextImageID}`;
   fileQueue.value.push({
     id,
     name: url.split('/').pop() || 'image',
@@ -219,7 +224,6 @@ function addImageUrl() {
     url,
   } as UploadFileInfo);
   uploadedImages.value.push({ id, content: url });
-  urlImages.value.push(url);
   imageUrlInput.value = '';
 }
 
@@ -287,6 +291,7 @@ function filterByTag(tag: string) {
 }
 
 function startPublishing() {
+  if (showEditor.value || submitting.value) return;
   if (!storeUser.userLogined) {
     storeMain.triggerAuth(true);
     storeMain.triggerAuthKey('signin');
@@ -301,6 +306,11 @@ function startPublishing() {
   }
   resetDraft();
   showEditor.value = true;
+}
+
+function updateTags(tags: string[]) {
+  if (tags.length > 8) return window.$message.warning(t('project.tagsMax'));
+  draft.tags = tags;
 }
 
 function validateLink() {
@@ -323,9 +333,11 @@ const finishUpload: UploadOnFinish = ({ file, event }) => {
     const request = event?.target as XMLHttpRequest | null;
     const data = JSON.parse(request?.response || '{}');
     if (data.code !== 0 || !data.data?.content) throw new Error();
+    uploadedImages.value = uploadedImages.value.filter((image) => image.id !== file.id);
     uploadedImages.value.push({ id: file.id, content: data.data.content });
     return file;
   } catch {
+    file.status = 'error';
     window.$message.error(t('compose.uploadFailed'));
     return file;
   }
@@ -334,8 +346,8 @@ function failUpload() {
   window.$message.error(t('compose.uploadFailed'));
 }
 function removeUpload({ file }: { file: UploadFileInfo }) {
-  const index = uploadedImages.value.findIndex((item) => item.id === file.id);
-  if (index >= 0) uploadedImages.value.splice(index, 1);
+  if (submitting.value) return false;
+  uploadedImages.value = uploadedImages.value.filter((item) => item.id !== file.id);
   return true;
 }
 
@@ -344,15 +356,16 @@ function resetDraft() {
   linkError.value = '';
   uploadedImages.value = [];
   fileQueue.value = [];
-  urlImages.value = [];
   imageUrlInput.value = '';
   uploadRef.value?.clear();
 }
 
 async function submitProject() {
-  if (submitting.value || uploading.value) return;
+  if (submitting.value || uploading.value || !showEditor.value) return;
   if (!draft.title.trim())
     return window.$message.warning(t('project.titleRequired'));
+  const tags = [...new Set(draft.tags.map((tag) => tag.trim()).filter(Boolean))];
+  if (tags.length > 8) return window.$message.warning(t('project.tagsMax'));
   if (!draft.intro.trim())
     return window.$message.warning(t('project.introRequired'));
   const orderedImages = fileQueue.value
@@ -361,29 +374,45 @@ async function submitProject() {
       Boolean(image),
     )
     .map((image) => image.content);
-  const allImages = [...orderedImages, ...urlImages.value];
-  if (allImages.length === 0)
+  if (orderedImages.length === 0)
     return window.$message.warning(t('project.imagesRequired'));
   if (!validateLink()) return;
+  const revision = editorRevision;
   submitting.value = true;
   try {
     await createProject({
       title: draft.title.trim(),
       intro: draft.intro.trim(),
       url: safeExternalURL(draft.url),
-      images: allImages,
-      tags: draft.tags.map((tag) => tag.trim()).filter(Boolean),
+      images: orderedImages,
+      tags,
     });
+    if (revision !== editorRevision) return;
     window.$message.success(t('project.publishSuccess'));
     showEditor.value = false;
     resetDraft();
     page.value = 1;
     await loadProjects();
+  } catch {
+    // The request interceptor reports the error; keep the draft open for retry.
   } finally {
-    submitting.value = false;
+    if (revision === editorRevision) submitting.value = false;
   }
 }
 
+watch(showEditor, (show) => {
+  if (!show) {
+    ++editorRevision;
+    submitting.value = false;
+    resetDraft();
+  }
+}, { flush: 'sync' });
+onBeforeUnmount(() => {
+  ++projectRequestRevision;
+  ++editorRevision;
+  showEditor.value = false;
+  resetDraft();
+});
 onMounted(loadProjects);
 </script>
 
@@ -402,13 +431,13 @@ onMounted(loadProjects);
 .project-skeleton { overflow: hidden; border-radius: 14px; }
 .project-empty { padding: 70px 0; }
 .project-pagination { justify-content: center; margin-top: 28px; }
-.project-editor { width: min(680px, calc(100vw - 28px)); }
+.project-editor { width: min(680px, calc(100vw - 28px)); max-height: calc(100vh - 28px); overflow: auto; }
 .project-markdown-editor { height: 320px; }
 .field-help { display: block; margin-left: 10px; opacity: .6; }
 .upload-field { width: 100%; }
 .upload-field small { display: block; margin-top: 8px; opacity: .6; }
 .url-input-row { display: flex; gap: 8px; margin-top: 10px; }
-.url-input { flex: 1; }
+.url-input { flex: 1; min-width: 0; }
 .tags-field { width: 100%; }
 .tags-field .tags-select { width: 100%; }
 .tags-field .field-help { margin-left: 0; margin-top: 6px; }

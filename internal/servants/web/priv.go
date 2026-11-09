@@ -5,6 +5,7 @@
 package web
 
 import (
+	"errors"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -14,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	api "github.com/BZYA-Community/WebsiteCore/auto/api/v1"
+	"github.com/BZYA-Community/WebsiteCore/internal/authz"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
@@ -30,6 +32,7 @@ import (
 	"github.com/gofrs/uuid/v5"
 	"github.com/sirupsen/logrus"
 	_ "golang.org/x/image/webp"
+	"gorm.io/gorm"
 )
 
 var _uploadAttachmentTypeMap = map[string]ms.AttachmentType{
@@ -386,17 +389,9 @@ func (s *privSrv) CreateProject(req *web.CreateProjectReq) (*web.CreateProjectRe
 	if len(projectTags) > 8 {
 		return nil, web.ErrProjectInputInvalid.WithDetails("项目标签不能超过8个")
 	}
-	images := make([]*ms.ProjectImage, 0, len(req.Images))
-	for index, imageURL := range req.Images {
-		item := &web.PostContentItem{Content: imageURL, Type: ms.ContentTypeImage, Sort: int64(index)}
-		if err := item.Check(s.Ds); err != nil {
-			return nil, web.ErrProjectInputInvalid.WithDetails("项目概述图不合法")
-		}
-		images = append(images, &ms.ProjectImage{URL: imageURL, Sort: int64(index)})
-	}
-	mediaContents := make([]*web.PostContentItem, 0, len(req.Images))
-	for index, imageURL := range req.Images {
-		mediaContents = append(mediaContents, &web.PostContentItem{Content: imageURL, Type: ms.ContentTypeImage, Sort: int64(index)})
+	images, mediaContents, err := projectImages(s.Ds, s.oss, req.Images)
+	if err != nil {
+		return nil, err
 	}
 	if err := persistMediaContents(s.oss, mediaContents); err != nil {
 		return nil, web.ErrCreateProjectFailed
@@ -438,6 +433,9 @@ func (s *privSrv) UpdateProject(req *web.UpdateProjectReq) (*web.UpdateProjectRe
 	if req.User == nil || !req.User.HasPermission("post.create") || !req.User.HasPermission("content.upload") {
 		return nil, web.ErrNoPermission
 	}
+	if req.ID <= 0 {
+		return nil, web.ErrProjectInputInvalid
+	}
 	title, intro := strings.TrimSpace(req.Title), strings.TrimSpace(req.Intro)
 	if utf8.RuneCountInString(title) > projectTitleMaxLength {
 		return nil, web.ErrProjectTitleTooLong
@@ -468,52 +466,44 @@ func (s *privSrv) UpdateProject(req *web.UpdateProjectReq) (*web.UpdateProjectRe
 	if len(projectTags) > 8 {
 		return nil, web.ErrProjectInputInvalid.WithDetails("项目标签不能超过8个")
 	}
-	images := make([]*ms.ProjectImage, 0, len(req.Images))
-	for index, imageURL := range req.Images {
-		item := &web.PostContentItem{Content: imageURL, Type: ms.ContentTypeImage, Sort: int64(index)}
-		if err := item.Check(s.Ds); err != nil {
-			return nil, web.ErrProjectInputInvalid.WithDetails("项目概述图不合法")
-		}
-		images = append(images, &ms.ProjectImage{URL: imageURL, Sort: int64(index)})
-	}
-	mediaContents := make([]*web.PostContentItem, 0, len(req.Images))
-	for index, imageURL := range req.Images {
-		mediaContents = append(mediaContents, &web.PostContentItem{Content: imageURL, Type: ms.ContentTypeImage, Sort: int64(index)})
-	}
-	if err := persistMediaContents(s.oss, mediaContents); err != nil {
-		return nil, web.ErrCreateProjectFailed
+	images, mediaContents, err := projectImages(s.Ds, s.oss, req.Images)
+	if err != nil {
+		return nil, err
 	}
 	tags := make([]*ms.ProjectTag, 0, len(projectTags))
 	for _, tag := range projectTags {
 		tags = append(tags, &ms.ProjectTag{Name: tag})
 	}
-	project, err := s.Ds.UpdateProject(req.User, &core.ProjectUpdateInput{
+	input := &core.ProjectUpdateInput{
 		Project: &ms.Project{Model: &dbr.Model{ID: req.ID}, Title: title, Intro: intro, URL: parsedURL.String()},
 		Images:  images, Tags: tags,
-	})
-	if err != nil {
-		logrus.Errorf("Ds.UpdateProject err: %s", err)
-		return nil, web.ErrCreateProjectFailed
+		PersistMedia: func() error { return persistMediaContents(s.oss, mediaContents) },
 	}
-	return formatUpdatedProject(project, req.User, images, tags), nil
+	project, err := s.Ds.UpdateProject(req.User, input)
+	if err != nil {
+		if errors.Is(err, authz.ErrDenied) {
+			return nil, web.ErrNoPermission
+		}
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, web.ErrProjectNotExist
+		}
+		logrus.Errorf("Ds.UpdateProject err: %s", err)
+		return nil, web.ErrUpdateProjectFailed
+	}
+	onProjectUpdated(s, input.Post)
+	return (*web.UpdateProjectResp)(project), nil
 }
 
-func formatUpdatedProject(project *ms.Project, creatorUser *ms.User, images []*ms.ProjectImage, tags []*ms.ProjectTag) *web.UpdateProjectResp {
-	imageURLs := make([]string, 0, len(images))
-	for _, image := range images {
-		imageURLs = append(imageURLs, image.URL)
+// Match the existing visibility/review cache and search synchronization path.
+var onProjectUpdated = func(s *privSrv, post *ms.Post) {
+	cache.OnExpireIndexTweetEvent(post.UserID)
+	if post.Visibility == ms.PostVisitPrivate || post.AuditStatus != ms.PostAuditApproved {
+		if err := s.DeleteSearchPost(post); err != nil {
+			logrus.WithError(err).Error("remove edited project post from search")
+		}
+	} else {
+		s.PushPostToSearch(post)
 	}
-	tagNames := make([]string, 0, len(tags))
-	for _, tag := range tags {
-		tagNames = append(tagNames, tag.Name)
-	}
-	creator := creatorUser.Format()
-	return (*web.UpdateProjectResp)(&ms.ProjectFormated{
-		ID: project.ID, CreatorID: project.CreatorID, Creator: creator, PostID: project.PostID,
-		Title: project.Title, Intro: project.Intro, URL: project.URL, Images: imageURLs, Tags: tagNames,
-		Members: []*ms.ProjectMemberFormated{{User: creator, Role: "owner"}}, FollowCount: project.FollowCount,
-		Followed: false, CreatedOn: project.CreatedOn,
-	})
 }
 
 func formatCreatedProject(project *ms.Project, creatorUser *ms.User, images []*ms.ProjectImage, tags []*ms.ProjectTag) *web.CreateProjectResp {

@@ -41,6 +41,17 @@ func (s *auditSrv) ListAuditPosts(req *web.AdminAuditPostsReq) (*web.AdminAuditP
 		logrus.Errorf("Ds.ListAuditPosts err: %s", err)
 		return nil, web.ErrGetPostsFailed
 	}
+	// Capture revisions before reading mutable content. If an edit races the
+	// following reads, the decision carries an old revision and is rejected,
+	// rather than pairing an old project body with its new approvable task.
+	tasks := make(map[int64]*ms.ReviewTask, len(posts))
+	for _, post := range posts {
+		task, err := s.Ds.ReviewTaskForTarget(&ms.User{Model: &ms.Model{ID: req.Uid}}, ms.ReviewPost, post.ID)
+		if err != nil {
+			return nil, reviewError(err)
+		}
+		tasks[post.ID] = task
+	}
 	formated, err := s.Ds.MergePosts(posts)
 	if err != nil {
 		logrus.Errorf("Ds.MergePosts err: %s", err)
@@ -56,11 +67,7 @@ func (s *auditSrv) ListAuditPosts(req *web.AdminAuditPostsReq) (*web.AdminAuditP
 		return nil, web.ErrGetProjectsFailed
 	}
 	for _, post := range formated {
-		task, err := s.Ds.ReviewTaskForTarget(&ms.User{Model: &ms.Model{ID: req.Uid}}, ms.ReviewPost, post.ID)
-		if err != nil {
-			return nil, reviewError(err)
-		}
-		post.ReviewTask = task
+		post.ReviewTask = tasks[post.ID]
 		post.Project = projects[post.ID]
 	}
 	return (*web.AdminAuditPostsResp)(joint.PageRespFrom(formated, req.Page, req.PageSize, total)), nil

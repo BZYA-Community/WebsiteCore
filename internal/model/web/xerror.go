@@ -58,6 +58,7 @@ var (
 	ErrCreateProjectFailed     = xerror.NewError(30023, "创建项目失败")
 	ErrProjectInputInvalid     = xerror.NewError(30024, "项目内容不合法")
 	ErrProjectFollowFailed     = xerror.NewError(30025, "项目关注操作失败")
+	ErrUpdateProjectFailed     = xerror.NewError(30026, "更新项目失败")
 
 	// 课程模块 700xx
 	ErrGetCourseGroupsFailed        = xerror.NewError(70001, "获取课程分组失败")

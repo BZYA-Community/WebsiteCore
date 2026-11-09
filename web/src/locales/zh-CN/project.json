@@ -44,15 +44,10 @@
   "saveChanges": "保存修改",
   "saveSuccess": "项目已更新",
   "linkInvalid": "请输入有效的 http(s) 链接",
-  "titleRequired": "请输入项目标题",
-  "introRequired": "请输入项目简介",
-  "titlePlaceholder": "请输入项目标题",
-  "introPlaceholder": "请输入项目简介",
-  "linkLabel": "项目链接",
-  "linkInvalid": "请输入有效的 http(s) 链接",
-  "publish": "发布项目",
   "titleRequired": "请输入项目名称",
   "introRequired": "请输入项目简介",
+  "linkLabel": "项目链接",
+  "publish": "发布项目",
   "imagesRequired": "请至少上传一张项目图片",
   "noPermission": "当前账号没有发布项目或上传图片的权限",
   "publishSuccess": "项目发布成功",
@@ -66,5 +61,7 @@
   "members": "项目参与者",
   "owner": "负责人",
   "member": "参与者",
-  "projectLinks": "项目链接"
+  "projectLinks": "项目链接",
+  "tagsMax": "最多添加 8 个项目标签",
+  "imageUrlInvalid": "请输入有效的 http(s) 图片链接"
 }

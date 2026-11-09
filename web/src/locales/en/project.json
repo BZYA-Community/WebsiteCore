@@ -43,16 +43,11 @@
   "editTitle": "Edit Project",
   "saveChanges": "Save Changes",
   "saveSuccess": "Project updated",
-  "linkInvalid": "Please enter a valid http(s) URL",
-  "titleRequired": "Please enter a project title",
-  "introRequired": "Please enter a project intro",
-  "titlePlaceholder": "Enter project title",
-  "introPlaceholder": "Enter project intro",
-  "linkLabel": "Project link",
   "linkInvalid": "Enter a valid http(s) URL",
-  "publish": "Publish project",
   "titleRequired": "Enter a project name",
   "introRequired": "Enter a project introduction",
+  "linkLabel": "Project link",
+  "publish": "Publish project",
   "imagesRequired": "Upload at least one project image",
   "noPermission": "This account cannot publish projects or upload images",
   "publishSuccess": "Project published",
@@ -66,5 +61,7 @@
   "members": "Contributors",
   "owner": "Owner",
   "member": "Member",
-  "projectLinks": "Project links"
+  "projectLinks": "Project links",
+  "tagsMax": "Add no more than 8 project tags",
+  "imageUrlInvalid": "Enter a valid http(s) image URL"
 }

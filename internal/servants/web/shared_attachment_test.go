@@ -27,6 +27,9 @@ type sharedAttachmentStorage struct {
 	putKey             string
 }
 
+func (s *sharedAttachmentStorage) ObjectURL(key string) string {
+	return "https://storage.example.test/" + key
+}
 func (s *sharedAttachmentStorage) ObjectKey(value string) string {
 	return strings.TrimPrefix(value, "https://storage.example.test/")
 }

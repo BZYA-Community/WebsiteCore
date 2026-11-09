@@ -76,6 +76,7 @@
     "E30023": "Failed to create project",
     "E30024": "Invalid project content",
     "E30025": "Failed to update project follow status",
+    "E30026": "Failed to update project",
     "E40001": "Failed to get comment list",
     "E40002": "Failed to publish comment",
     "E40003": "Failed to get comment details",

@@ -6,6 +6,7 @@ package security
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
@@ -17,22 +18,22 @@ type attachmentCheckServant struct {
 }
 
 func (s *attachmentCheckServant) CheckAttachment(uri string) error {
-	// 允许外部 http(s) 图片链接（#151）
-	if strings.HasPrefix(uri, "http://") || strings.HasPrefix(uri, "https://") {
-		for _, seg := range strings.Split(uri, "/") {
-			if seg == ".." {
-				return fmt.Errorf("附件路径非法")
-			}
-		}
-		return nil
-	}
-	if strings.Index(uri, s.domain) != 0 {
+	// Keep ordinary attachments on our configured storage origin and path.
+	// The project image endpoint handles external image references separately.
+	base, err := url.ParseRequestURI(s.domain)
+	if err != nil || base.Host == "" || s.domain == "" || !strings.HasSuffix(s.domain, "/") || !strings.HasPrefix(uri, s.domain) {
 		return fmt.Errorf("附件非本站资源")
 	}
-	// 路径越狱防护(#25): 仅查域名前缀拦不住 https://<domain>/../../custom/config.yaml,
-	// 去掉前缀后的残余路径不允许含 ".." 段, 越狱键在 storage jailPath 再兜底拦截
-	for _, seg := range strings.Split(strings.TrimPrefix(uri, s.domain), "/") {
-		if seg == ".." {
+	parsed, err := url.ParseRequestURI(uri)
+	if err != nil || parsed.Scheme != base.Scheme || parsed.Host != base.Host || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || strings.ContainsAny(uri, "\\?#") {
+		return fmt.Errorf("附件路径非法")
+	}
+	// URL.Path is decoded, so encoded traversal and separators are checked too.
+	if strings.Contains(parsed.Path, "\\") {
+		return fmt.Errorf("附件路径非法")
+	}
+	for _, segment := range strings.Split(parsed.Path, "/") {
+		if segment == ".." {
 			return fmt.Errorf("附件路径非法")
 		}
 	}

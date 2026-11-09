@@ -80,6 +80,11 @@ const projectCardCss = compileStyle({
 }).code;
 assert.match(
   projectCardCss,
+  /\.project-actions[^}]*flex-wrap:\s*wrap/,
+  'shared card action buttons must wrap instead of clipping inside narrow grid columns',
+);
+assert.match(
+  projectCardCss,
   /\.dark \.project-card\s*\{/,
   'shared project cards must receive a dark background in every host view',
 );
@@ -95,7 +100,7 @@ assert.match(
 );
 assert.match(
   projectsView,
-  /tags:\s*draft\.tags/,
+  /const tags = [^\n]*draft\.tags/,
   'project publishing must submit project-specific tags',
 );
 assert.match(
@@ -180,6 +185,7 @@ const projectEditorContext = {
   getProjects: async () => ({ list: [], pager: { total_rows: 0 } }),
   createProject: async (data) => projectCreateCalls.push(data),
   onMounted() {},
+  onBeforeUnmount() {},
 };
 vm.runInNewContext(projectEditorCode, projectEditorContext);
 const projectEditor = projectEditorModule.exports;
@@ -258,6 +264,7 @@ const projectFixture = (id, followed = false, followCount = id) => ({
 const projectDetailModule = { exports: {} };
 const projectDetailContext = {
   ...vue,
+  onBeforeUnmount() {},
   module: projectDetailModule,
   window: { $message: { warning() {}, info() {} } },
   useI18n: () => ({ t: (key) => key }),
@@ -267,6 +274,7 @@ const projectDetailContext = {
   useStoreUser: () => ({ userLogined: true, hasPermission: () => true }),
   mdTheme: () => 'light',
   prepareMdRender: (value) => value,
+  useMediaUpload: () => ({ beforeUpload() {} }),
   getProject: (id) => {
     const call = deferred();
     detailCalls.push({ id, ...call });

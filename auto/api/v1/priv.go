@@ -40,8 +40,8 @@ type Priv interface {
 	DeleteTweet(*web.DeleteTweetReq) error
 	UnfollowProject(*web.ProjectFollowReq) (*web.ProjectFollowResp, error)
 	FollowProject(*web.ProjectFollowReq) (*web.ProjectFollowResp, error)
-	CreateProject(*web.CreateProjectReq) (*web.CreateProjectResp, error)
 	UpdateProject(*web.UpdateProjectReq) (*web.UpdateProjectResp, error)
+	CreateProject(*web.CreateProjectReq) (*web.CreateProjectResp, error)
 	CreateTweet(*web.CreateTweetReq) (*web.CreateTweetResp, error)
 	DownloadAttachment(*web.DownloadAttachmentReq) (*web.DownloadAttachmentResp, error)
 	UploadAttachment(*web.UploadAttachmentReq) (*web.UploadAttachmentResp, error)
@@ -547,11 +547,11 @@ func (UnimplementedPrivServant) FollowProject(req *web.ProjectFollowReq) (*web.P
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
-func (UnimplementedPrivServant) CreateProject(req *web.CreateProjectReq) (*web.CreateProjectResp, error) {
+func (UnimplementedPrivServant) UpdateProject(req *web.UpdateProjectReq) (*web.UpdateProjectResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 
-func (UnimplementedPrivServant) UpdateProject(req *web.UpdateProjectReq) (*web.UpdateProjectResp, error) {
+func (UnimplementedPrivServant) CreateProject(req *web.CreateProjectReq) (*web.CreateProjectResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

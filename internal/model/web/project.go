@@ -47,7 +47,7 @@ func (r *CreateProjectReq) Bind(c *gin.Context) error {
 
 type UpdateProjectReq struct {
 	BaseInfo `json:"-" binding:"-"`
-	ID       int64    `json:"id" binding:"required"`
+	ID       int64    `json:"id" binding:"required,gt=0"`
 	Title    string   `json:"title" binding:"required"`
 	Intro    string   `json:"intro" binding:"required"`
 	URL      string   `json:"url" binding:"required"`

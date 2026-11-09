@@ -114,3 +114,25 @@ jobs:
 
       - name: Syntax check (build)
         run: npm run build
+
+      - name: Setup Python for browser BVT
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install browser BVT dependencies
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Projects production browser BVT (fixture API)
+        run: python scripts/project-browser.test.py
+
+      - name: Upload browser BVT failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: projects-browser-bvt
+          path: web/browser-test-artifacts/projects/
+          if-no-files-found: ignore
+          retention-days: 7
