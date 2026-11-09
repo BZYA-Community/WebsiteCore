@@ -63,7 +63,7 @@
       />
     </main>
 
-    <n-modal v-model:show="showEditor" preset="card" :title="t('project.editorTitle')" class="project-editor" :mask-closable="!submitting" :closable="!submitting" :close-on-esc="!submitting">
+    <n-modal v-model:show="showEditor" preset="card" :title="t('project.editorTitle')" class="project-editor" style="width: min(680px, calc(100vw - 28px)); max-height: calc(100vh - 28px); overflow: auto;" :mask-closable="!submitting" :closable="!submitting" :close-on-esc="!submitting">
       <n-form label-placement="top" @submit.prevent="submitProject">
         <n-form-item :label="t('project.titleLabel')" required>
           <n-input v-model:value="draft.title" :maxlength="PROJECT_TITLE_MAX_LENGTH" show-count :placeholder="t('project.titlePlaceholder')" />

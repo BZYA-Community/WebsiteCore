@@ -8,7 +8,6 @@ All automation runs on GitHub Actions. Workflow files live in `.github/workflows
 | --- | --- | --- |
 | `ci.yml` | push to `main`/`beta`/`dev`, all pull requests | Backend build/test/lint, frontend lint/locales/tests/build, then AI review for same-repository PRs |
 | `codeql.yml` | push/PR to `main`, weekly schedule | Security analysis (4 languages) |
-| `weekly-report.yml` | Friday 12:00 UTC (20:00 Beijing), manual | Community weekly report to DingTalk |
 
 Pushes changing only `README.md` and `docs/**` do not trigger `ci.yml`. Pull requests, including documentation-only PRs, run the checks. Fork PRs skip the review job because it requires repository secrets and write permissions.
 
@@ -56,12 +55,6 @@ Handling rules: all 🔴 findings must be resolved; 🟡 findings need a reply; 
 - Runs on push/PR to `main` and every Monday 19:30 UTC.
 - Matrix: `actions`, `go` (autobuild), `javascript-typescript`, `python`.
 - Results appear under the repository **Security → Code scanning** tab.
-
-## weekly-report.yml — community weekly report
-
-- Schedule: Friday 12:00 UTC = 20:00 Beijing time; also dispatchable manually from the Actions tab.
-- Runs `scripts/weekly-report.sh`: collects PRs merged in the past 7 days, classifies them by conventional-commit prefix (`feat:` / `fix:` / other), builds a contributor leaderboard, and posts a Markdown message to DingTalk.
-- Required repository secrets: `DINGTALK_WEBHOOK`; optional `DINGTALK_SECRET` (HMAC-SHA256 signing for the DingTalk bot).
 
 ## Dependabot
 

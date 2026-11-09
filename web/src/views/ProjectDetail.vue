@@ -70,7 +70,7 @@
       </n-spin>
     </main>
 
-    <n-modal v-model:show="showEditor" preset="card" :title="t('project.editTitle')" class="project-editor-modal" :mask-closable="!submitting" :closable="!submitting" :close-on-esc="!submitting">
+    <n-modal v-model:show="showEditor" preset="card" :title="t('project.editTitle')" class="project-editor-modal" style="width: min(680px, calc(100vw - 28px)); max-height: calc(100vh - 28px); overflow: auto;" :mask-closable="!submitting" :closable="!submitting" :close-on-esc="!submitting">
       <n-form label-placement="top" @submit.prevent="submitEdit">
         <n-form-item :label="t('project.titleLabel')" required>
           <n-input v-model:value="editDraft.title" :maxlength="30" show-count :placeholder="t('project.titlePlaceholder')" />
