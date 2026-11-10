@@ -152,7 +152,7 @@ func TestContactVerificationTransactions(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err := s.VerifyContactCode(ctx, w.ID, "email", "wrong@example.test", codes["wrong@example.test"]); !errors.Is(err, core.ErrContactCode) {
+	if err := s.VerifyContactCode(ctx, w.ID, "email", "wrong@example.test", codes["wrong@example.test"]); !errors.Is(err, core.ErrContactMaxAttempts) {
 		t.Fatalf("exhausted code accepted: %v", err)
 	}
 	expired := newUser()
@@ -242,8 +242,38 @@ func TestContactVerificationTransactions(t *testing.T) {
 	if phone.ttl != 5*time.Minute || len(phone.code) != 6 {
 		t.Fatal("phone provider did not receive the verification code and TTL")
 	}
+	wrongPhoneCode := "000000"
+	if phone.code == wrongPhoneCode {
+		wrongPhoneCode = "111111"
+	}
+	if err := s.VerifyContactCode(ctx, phoneUser.ID, "phone", "13800000000", wrongPhoneCode); !errors.Is(err, core.ErrContactCode) {
+		t.Fatalf("wrong phone code: %v", err)
+	}
+	var phoneRecord dbr.ContactVerification
+	if err := db.Where("user_id = ?", phoneUser.ID).First(&phoneRecord).Error; err != nil || phoneRecord.Attempts != 1 {
+		t.Fatalf("wrong phone attempt not persisted: %+v, %v", phoneRecord, err)
+	}
 	if err := s.VerifyContactCode(ctx, phoneUser.ID, "phone", "13800000000", phone.code); err != nil {
 		t.Fatal(err)
+	}
+	if err := s.VerifyContactCode(ctx, phoneUser.ID, "phone", "13800000000", phone.code); !errors.Is(err, core.ErrContactCode) {
+		t.Fatalf("phone code replay accepted: %v", err)
+	}
+	limitedPhone := newUser()
+	if err := s.SendContactCode(ctx, limitedPhone.ID, "phone", "13900000000", "127.0.0.2"); err != nil {
+		t.Fatal(err)
+	}
+	wrongPhoneCode = "000000"
+	if phone.code == wrongPhoneCode {
+		wrongPhoneCode = "111111"
+	}
+	for range conf.AccountVerifySetting.MaxAttempts {
+		if err := s.VerifyContactCode(ctx, limitedPhone.ID, "phone", "13900000000", wrongPhoneCode); !errors.Is(err, core.ErrContactCode) {
+			t.Fatalf("wrong phone attempt: %v", err)
+		}
+	}
+	if err := s.VerifyContactCode(ctx, limitedPhone.ID, "phone", "13900000000", phone.code); !errors.Is(err, core.ErrContactMaxAttempts) {
+		t.Fatalf("phone attempt limit not distinguished: %v", err)
 	}
 	var verifiedPhone dbr.User
 	if err := db.First(&verifiedPhone, phoneUser.ID).Error; err != nil || !verifiedPhone.ContactVerified() {

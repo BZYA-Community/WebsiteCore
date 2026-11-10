@@ -19,6 +19,8 @@ func contactError(err error) error {
 		return xerror.NewError(23001, "This verification channel is unavailable")
 	case errors.Is(err, core.ErrContactRateLimited):
 		return xerror.NewError(23002, "Too many verification requests; try again later")
+	case errors.Is(err, core.ErrContactMaxAttempts):
+		return xerror.NewError(23005, "Verification code attempt limit reached; request a new code")
 	case errors.Is(err, core.ErrContactCode):
 		return xerror.NewError(23003, "Invalid or expired verification code")
 	case errors.Is(err, core.ErrContactInUse):
