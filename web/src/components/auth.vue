@@ -106,6 +106,9 @@
                         </n-button>
                     </n-tab-pane>
                     <n-tab-pane name="signup"><template #tab>{{ t('auth.tab.signup') }}</template>
+                        <n-alert :type="profile.contactVerificationAvailable ? 'info' : 'warning'" style="margin-bottom: 16px">
+                            {{ t(profile.contactVerificationAvailable ? 'auth.msg.verificationNext' : 'identity.guestVerifyUnavailable') }}
+                        </n-alert>
                         <n-form
                             ref="registerRef"
                             :model="registerForm"
@@ -156,6 +159,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import { useStoreMain } from '@/store/main';
 import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { userInfo } from '@/api/auth';
@@ -165,6 +169,7 @@ import { Api } from '@/utils/request';
 import { useStoreProfile } from '@/store/profile';
 
 const { t } = useI18n();
+const router = useRouter();
 const storeMain = useStoreMain();
 const storeUser = useStoreUser();
 const storeProfile = useStoreProfile();
@@ -275,6 +280,9 @@ const handleRegister = (e: Event) => {
           registerForm.username = '';
           registerForm.password = '';
           registerForm.repassword = '';
+          if (!res.contact_verified && profile.value.contactVerificationAvailable) {
+            void router.push({ name: 'setting' });
+          }
         })
         .catch((err) => {
           loading.value = false;
