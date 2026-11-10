@@ -19,7 +19,7 @@
     "test:sidebar": "node scripts/sidebar-polling.test.mjs",
     "test:chat": "node --experimental-strip-types scripts/chat-notifications.test.mjs",
     "test:admin": "node scripts/admin-users.test.mjs",
-    "test:projects": "node scripts/projects.test.mjs && node scripts/project-editor.test.mjs",
+    "test:projects": "node scripts/projects.test.mjs && node scripts/project-editor.test.mjs && node scripts/project-card.test.mjs",
     "test:external-link": "node --experimental-strip-types scripts/external-link.test.mjs",
     "test:courses": "node scripts/course-editor.test.mjs && node scripts/course-watch.test.mjs && node scripts/course-catalog.test.mjs",
     "test:auth": "node scripts/auth-confirmation.test.mjs"

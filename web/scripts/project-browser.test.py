@@ -424,6 +424,27 @@ async def permissions_flow(bvt, page, _fixtures):
     await expect(page.get_by_role("button", name="Edit", exact=True)).to_have_count(0)
 
 
+async def cover_flow(bvt, page, fixtures):
+    for count in (0, 1, 2, 4, 6):
+        images = [f"{IMAGE_ORIGIN}/cover-{i}.png" for i in range(count)]
+        fixtures.projects[1]["images"] = images
+        await page.goto(f"{fixtures.base}/#/projects")
+        await page.reload()
+        card = page.locator(".project-card").first
+        await expect(card).to_be_visible()
+        cover = card.locator(".project-gallery img")
+        await expect(cover).to_have_count(1 if images else 0)
+        if images:
+            await expect(cover).to_have_attribute("src", images[0])
+            await expect(cover).to_have_attribute("alt", TITLE)
+        await expect(card.locator(".more-images")).to_have_count(0)
+        await bvt.widths(page, f"cover-{count}", [".project-card", ".project-gallery"])
+    # All six images remain available on the detail page.
+    await page.goto(f"{fixtures.base}/#/project?id=1")
+    await expect(page.locator(".project-detail")).to_be_visible()
+    await expect(page.locator(".detail-gallery img")).to_have_count(6)
+
+
 async def main():
     if not (WEB / "dist" / "index.html").is_file():
         raise SystemExit("Build web/dist first with npm run build.")
@@ -439,6 +460,7 @@ async def main():
             browser = await playwright.chromium.launch(headless=True)
             try:
                 bvt = BVT(browser, base)
+                await bvt.run_case("project-cover", lambda page, fixtures: cover_flow(bvt, page, fixtures))
                 await bvt.run_case("projects-create", lambda page, fixtures: create_flow(bvt, page, fixtures))
                 await bvt.run_case("project-detail-edit", lambda page, fixtures: edit_flow(bvt, page, fixtures))
                 subjects = [
