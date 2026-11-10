@@ -14,6 +14,9 @@ const code = ts.transpileModule(`${script}\nmodule.exports = { registerForm, reg
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
 }).outputText;
 const submitted = [];
+const navigations = [];
+const profile = vue.ref({ contactVerificationAvailable: true });
+let contactVerified = false;
 const store = {
   triggerAuth() {}, updateUserinfo() {},
 };
@@ -21,13 +24,14 @@ const module = { exports: {} };
 vm.runInNewContext(code, {
   ...vue, module, useI18n: () => ({ t: (key) => key }),
   useStoreMain: () => store, useStoreUser: () => store,
-  useStoreProfile: () => ({ profile: {} }), storeToRefs: (value) => value,
+  useStoreProfile: () => ({ profile }),
+  useRouter: () => ({ push: (route) => { navigations.push(route.name); return Promise.resolve(); } }), storeToRefs: (value) => value,
   Api: { v1: { auth: { post: {
     register: (value) => { submitted.push({ ...value }); return Promise.resolve({}); },
     login: () => Promise.resolve({ token: 'synthetic-token' }),
   } } } },
   TOKEN_KEY: 'test', localStorage: { setItem() {} },
-  userInfo: () => Promise.resolve({ id: 1 }), window: { $message: { success() {} } },
+  userInfo: () => Promise.resolve({ id: 1, contact_verified: contactVerified }), window: { $message: { success() {} } },
 });
 const { registerForm, registerRule, registerRef, handleRegister } = module.exports;
 // Naive UI submits all rules through async-validator, independently of input triggers.
@@ -55,4 +59,15 @@ await new Promise(setImmediate);
 assert.equal(submitted.length, 1);
 assert.equal(submitted[0].password, 'UpdatedTest42');
 assert.equal(registerForm.repassword, '', 'successful registration still clears the form');
-console.log('Registration confirmation and submit validation passed.');
+assert.deepEqual(navigations, ['setting'], 'unverified registration must lead to verification settings');
+for (const available of [false, true]) {
+  profile.value.contactVerificationAvailable = available;
+  contactVerified = available;
+  Object.assign(registerForm, { username: 'normaluser', password: 'LocalTest42', repassword: 'LocalTest42' });
+  handleRegister(event);
+  await new Promise(setImmediate);
+  assert.equal(navigations.length, 1, 'unavailable service or already verified account must not redirect');
+}
+assert.match(source, /auth.msg.verificationNext/);
+assert.match(source, /identity.guestVerifyUnavailable/);
+console.log('Registration validation and verification onboarding passed.');
