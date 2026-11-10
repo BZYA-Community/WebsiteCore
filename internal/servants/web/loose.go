@@ -220,7 +220,7 @@ func (s *looseSrv) GetUserTweets(req *web.GetUserTweetsReq) (res *web.GetUserTwe
 		res, err = s.getUserPostTweets(req, user, false)
 	}
 	// 缓存处理
-	if err == nil {
+	if err == nil && req.Style != web.UserPostsStyleStar {
 		base.OnCacheRespEvent(s.ac, key, res.Data, s.userTweetsExpire)
 	}
 	return
@@ -230,6 +230,9 @@ func (s *looseSrv) userTweetsFromCache(req *web.GetUserTweetsReq, user *cs.VistU
 	switch req.Style {
 	case web.UserPostsStylePost, web.UserPostsStyleHighlight, web.UserPostsStyleMedia:
 		key = fmt.Sprintf("%s%d:%s:%s:%d:%d", s.prefixUserTweets, user.UserId, req.Style, user.RelTyp, req.Page, req.PageSize)
+	case web.UserPostsStyleStar:
+		// Visibility changes immediately on unfollow/moderation/permission updates.
+		return nil, "", false
 	default:
 		meName := "_"
 		if user.RelTyp != cs.RelationGuest {
@@ -248,7 +251,7 @@ func (s *looseSrv) userTweetsFromCache(req *web.GetUserTweetsReq, user *cs.VistU
 }
 
 func (s *looseSrv) getUserStarTweets(req *web.GetUserTweetsReq, user *cs.VistUser) (*web.GetUserTweetsResp, error) {
-	stars, totalRows, err := s.Ds.ListUserStarTweets(user, req.PageSize, (req.Page-1)*req.PageSize)
+	stars, totalRows, err := s.Ds.ListUserStarTweets(user, req.User, req.PageSize, (req.Page-1)*req.PageSize)
 	if err != nil {
 		logrus.Errorf("getUserStarTweets err[1]: %s", err)
 		return nil, web.ErrGetStarsFailed

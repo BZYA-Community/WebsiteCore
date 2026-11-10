@@ -32,7 +32,7 @@ func (p *PostCollection) Get(db *gorm.DB) (*PostCollection, error) {
 		db = db.Where(tn+"user_id = ?", p.UserID)
 	}
 
-	db = db.Joins("Post").Where("visibility <> ? OR (visibility = ? AND ? = ?)", PostVisitPrivate, PostVisitPrivate, clause.Column{Table: "Post", Name: "user_id"}, p.UserID).Order(clause.OrderByColumn{Column: clause.Column{Table: "Post", Name: "id"}, Desc: true})
+	db = db.Where(tn+"is_del = ?", 0)
 	err := db.First(&star).Error
 	if err != nil {
 		return &star, err
@@ -74,7 +74,8 @@ func (p *PostCollection) List(db *gorm.DB, conditions *ConditionsT, offset, limi
 		}
 	}
 
-	db = db.Joins("Post").Where(`visibility <> ? OR (visibility = ? AND ? = ?)`, PostVisitPrivate, PostVisitPrivate, clause.Column{Table: "Post", Name: "user_id"}, p.UserID).Order(clause.OrderByColumn{Column: clause.Column{Table: "Post", Name: "id"}, Desc: true})
+	// 收藏列表仅本人可见, 读口径按 RelationSelf 与 CanViewTweet 对齐(安全审计02 中-1/低-2)
+	db = scopeReactionPostVisibility(db.Joins("Post"), p.UserID).Order(clause.OrderByColumn{Column: clause.Column{Table: "Post", Name: "id"}, Desc: true})
 	if err = db.Where(tn+"is_del = ?", 0).Find(&collections).Error; err != nil {
 		return nil, err
 	}
@@ -98,7 +99,8 @@ func (p *PostCollection) Count(db *gorm.DB, conditions *ConditionsT) (int64, err
 		}
 	}
 
-	db = db.Joins("Post").Where(`visibility <> ? OR (visibility = ? AND ? = ?)`, PostVisitPrivate, PostVisitPrivate, clause.Column{Table: "Post", Name: "user_id"}, p.UserID)
+	// 与 List 同口径(安全审计02 中-1/低-2)
+	db = scopeReactionPostVisibility(db.Joins("Post"), p.UserID)
 	if err := db.Model(p).Count(&count).Error; err != nil {
 		return 0, err
 	}
