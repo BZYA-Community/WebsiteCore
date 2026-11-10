@@ -20,6 +20,10 @@
               </div>
             </div>
             <div class="project-actions">
+              <n-button v-if="canEdit" :disabled="following" secondary @click="openEditor">
+                <template #icon><n-icon><create-outline /></n-icon></template>
+                {{ t('project.edit') }}
+              </n-button>
               <n-button :type="project.followed ? 'default' : 'primary'" :loading="following" @click="toggleFollow">
                 <template #icon><n-icon><heart v-if="project.followed" /><heart-outline v-else /></n-icon></template>
                 {{ project.followed ? t('project.following') : t('project.follow') }} · {{ project.follow_count }}
@@ -65,18 +69,101 @@
         </template>
       </n-spin>
     </main>
+
+    <n-modal v-model:show="showEditor" preset="card" :title="t('project.editTitle')" class="project-editor-modal" style="width: min(680px, calc(100vw - 28px)); max-height: calc(100vh - 28px); overflow: auto;" :mask-closable="!submitting" :closable="!submitting" :close-on-esc="!submitting">
+      <n-form label-placement="top" @submit.prevent="submitEdit">
+        <n-form-item :label="t('project.titleLabel')" required>
+          <n-input v-model:value="editDraft.title" :maxlength="30" show-count :placeholder="t('project.titlePlaceholder')" />
+        </n-form-item>
+        <n-form-item :label="t('project.introLabel')" required>
+          <md-editor
+            v-model="editDraft.intro"
+            class="project-markdown-editor"
+            :theme="editorTheme"
+            :max-length="800"
+            :placeholder="t('project.introPlaceholder')"
+            :toolbars-exclude="editToolbarsExclude"
+            no-mermaid
+            no-katex
+            no-html
+          />
+        </n-form-item>
+        <n-form-item :label="t('project.tagsLabel')">
+          <n-select
+            :value="editDraft.tags"
+            :disabled="submitting"
+            @update:value="updateTags"
+            multiple
+            tag
+            filterable
+            :options="presetTagOptions"
+            :max-tag-count="8"
+            :placeholder="t('project.tagsPlaceholder')"
+            class="tags-select"
+          />
+        </n-form-item>
+        <n-form-item :label="t('project.imagesLabel')" required>
+          <div class="upload-field">
+            <n-upload
+              ref="uploadRef"
+              v-model:file-list="fileQueue"
+              list-type="image-card"
+              accept="image/webp,image/png,image/jpeg,image/gif"
+              :action="uploadGateway"
+              :headers="{ Authorization: uploadToken }"
+              :data="{ type: 'public/image' }"
+              :max="6"
+              :disabled="submitting"
+              @before-upload="beforeUpload"
+              @finish="finishUpload"
+              @error="failUpload"
+              @remove="removeUpload"
+            >
+              {{ t('project.uploadImage') }}
+            </n-upload>
+            <div class="url-input-row">
+              <n-input
+                v-model:value="imageUrlInput"
+                :disabled="submitting"
+                type="url"
+                :placeholder="t('project.imageUrlPlaceholder')"
+                class="url-input"
+                @keydown.enter.prevent="addImageUrl"
+              />
+              <n-button size="small" :disabled="submitting || !imageUrlInput.trim()" @click="addImageUrl">
+                {{ t('project.addImageUrl') }}
+              </n-button>
+            </div>
+            <small>{{ t('project.imagesHelp') }}</small>
+          </div>
+        </n-form-item>
+        <n-form-item :label="t('project.linkLabel')" required :validation-status="linkError ? 'error' : undefined" :feedback="linkError">
+          <n-input v-model:value="editDraft.url" type="url" placeholder="https://" @blur="validateLink">
+            <template #prefix><n-icon><open-outline /></n-icon></template>
+          </n-input>
+        </n-form-item>
+        <div class="editor-actions">
+          <n-button :disabled="submitting" @click="showEditor = false">{{ t('common.cancel') }}</n-button>
+          <n-button attr-type="submit" type="primary" :loading="submitting" :disabled="uploading">{{ t('project.saveChanges') }}</n-button>
+        </div>
+      </n-form>
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { followProject, getProject, unfollowProject } from '@/api/project';
+import { followProject, getProject, unfollowProject, updateProject } from '@/api/project';
 import type { ProjectItem } from '@/api/project';
+import { useMediaUpload } from '@/composables/useMediaUpload';
 import { useStoreMain } from '@/store/main';
-import { useStoreUser } from '@/store/user';
+import { TOKEN_KEY, useStoreUser } from '@/store/user';
 import { mdTheme, prepareMdRender } from '@/utils/markdown';
-import { ChatboxOutline, Heart, HeartOutline, OpenOutline, PeopleOutline } from '@vicons/ionicons5';
-import { MdPreview } from 'md-editor-v3';
-import { computed, ref, watch } from 'vue';
+import { ChatboxOutline, CreateOutline, Heart, HeartOutline, OpenOutline, PeopleOutline } from '@vicons/ionicons5';
+import { MdEditor, MdPreview } from 'md-editor-v3';
+import type { ToolbarNames } from 'md-editor-v3';
+import 'md-editor-v3/lib/style.css';
+import type { UploadFileInfo, UploadInst, UploadOnFinish } from 'naive-ui';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -102,6 +189,7 @@ function hasErrorCode(error: unknown, code: number) {
 
 async function loadProject() {
   const revision = ++loadRequestRevision;
+  showEditor.value = false;
   const id = projectID.value;
   ++followRequestRevision;
   project.value = undefined;
@@ -128,7 +216,7 @@ async function loadProject() {
 }
 
 async function toggleFollow() {
-  if (!project.value || following.value) return;
+  if (!project.value || following.value || showEditor.value) return;
   if (!storeUser.userLogined) {
     storeMain.triggerAuth(true);
     storeMain.triggerAuthKey('signin');
@@ -156,6 +244,192 @@ function openDiscussion() {
   if (project.value?.post_id) void router.push({ name: 'post', query: { id: project.value.post_id } });
 }
 
+// --- Edit ---
+const isOwner = computed(() =>
+  project.value && storeUser.userLogined && storeUser.userInfo.id
+    ? project.value.creator_id === storeUser.userInfo.id
+    : false,
+);
+const canEdit = computed(() => isOwner.value && storeUser.hasPermission('post.create') && storeUser.hasPermission('content.upload'));
+const showEditor = ref(false);
+const submitting = ref(false);
+const linkError = ref('');
+const editDraft = reactive({ title: '', intro: '', url: '', tags: [] as string[] });
+
+// Upload state for edit dialog
+const uploadRef = ref<UploadInst>();
+const fileQueue = ref<UploadFileInfo[]>([]);
+const uploadedImages = ref<{ id: string; content: string }[]>([]);
+const imageUrlInput = ref('');
+let nextImageID = 0;
+let editorRevision = 0;
+const uploadType = ref('public/image');
+const { beforeUpload } = useMediaUpload(uploadType);
+const uploading = computed(() => fileQueue.value.some((file) => file.status === 'pending' || file.status === 'uploading'));
+const uploadGateway = `${import.meta.env.VITE_HOST}/v1/attachment`;
+const uploadToken = computed(() =>
+  storeUser.userInfo.id
+    ? `Bearer ${localStorage.getItem(TOKEN_KEY) || ''}`
+    : '',
+);
+
+const PRESET_TAGS = [
+  'AI/ML', 'Web', 'Mobile', 'Hardware', 'Data',
+  'In Progress', 'Completed', 'Recruiting',
+  'Beginner', 'Intermediate', 'Advanced',
+];
+const presetTagOptions = PRESET_TAGS.map((tag) => ({ label: tag, value: tag }));
+
+const editToolbarsExclude: ToolbarNames[] = [
+  'mermaid', 'katex', 'image', 'github', 'htmlPreview', 'fullscreen',
+];
+
+function openEditor() {
+  if (!project.value || !canEdit.value || showEditor.value || submitting.value || following.value) return;
+  ++editorRevision;
+  editDraft.title = project.value.title;
+  editDraft.intro = project.value.intro;
+  editDraft.url = project.value.url;
+  editDraft.tags = [...project.value.tags];
+  // Pre-fill images into upload state
+  fileQueue.value = project.value.images.map((url, i) => ({
+    id: `existing-${i}`,
+    name: url.split('/').pop() || 'image',
+    status: 'finished',
+    url,
+  } as UploadFileInfo));
+  uploadedImages.value = project.value.images.map((url, i) => ({
+    id: `existing-${i}`,
+    content: url,
+  }));
+  imageUrlInput.value = '';
+  linkError.value = '';
+  showEditor.value = true;
+}
+
+function addImageUrl() {
+  if (!showEditor.value || submitting.value || !imageUrlInput.value.trim()) return;
+  const url = safeExternalURL(imageUrlInput.value);
+  if (!url) return window.$message.warning(t('project.imageUrlInvalid'));
+  if (fileQueue.value.length >= 6) {
+    window.$message.warning(t('project.imagesMax'));
+    return;
+  }
+  const id = `url-${++nextImageID}`;
+  fileQueue.value.push({
+    id,
+    name: url.split('/').pop() || 'image',
+    status: 'finished',
+    url,
+  } as UploadFileInfo);
+  uploadedImages.value.push({ id, content: url });
+  imageUrlInput.value = '';
+}
+
+const finishUpload: UploadOnFinish = ({ file, event }) => {
+  if (
+    !showEditor.value ||
+    !fileQueue.value.some((current) => current.id === file.id)
+  ) return file;
+  try {
+    const request = event?.target as XMLHttpRequest | null;
+    const data = JSON.parse(request?.response || '{}');
+    if (data.code !== 0 || !data.data?.content) throw new Error();
+    uploadedImages.value = uploadedImages.value.filter((image) => image.id !== file.id);
+    uploadedImages.value.push({ id: file.id, content: data.data.content });
+    return file;
+  } catch {
+    file.status = 'error';
+    window.$message.error(t('compose.uploadFailed'));
+    return file;
+  }
+};
+
+function failUpload() {
+  window.$message.error(t('compose.uploadFailed'));
+}
+
+function removeUpload({ file }: { file: UploadFileInfo }) {
+  if (submitting.value) return false;
+  uploadedImages.value = uploadedImages.value.filter((item) => item.id !== file.id);
+  return true;
+}
+
+function updateTags(tags: string[]) {
+  if (tags.length > 8) return window.$message.warning(t('project.tagsMax'));
+  editDraft.tags = tags;
+}
+
+function safeExternalURL(value: string) {
+  try {
+    const parsed = new URL(value.trim());
+    return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
+  } catch {
+    return '';
+  }
+}
+
+function validateLink() {
+  linkError.value = safeExternalURL(editDraft.url) ? '' : t('project.linkInvalid');
+  return !linkError.value;
+}
+
+function resetEditor() {
+  ++editorRevision;
+  submitting.value = false;
+  Object.assign(editDraft, { title: '', intro: '', url: '', tags: [] });
+  fileQueue.value = [];
+  uploadedImages.value = [];
+  imageUrlInput.value = '';
+  linkError.value = '';
+  uploadRef.value?.clear();
+}
+
+async function submitEdit() {
+  if (submitting.value || uploading.value || !project.value || !showEditor.value || !canEdit.value) return;
+  if (!editDraft.title.trim()) return window.$message.warning(t('project.titleRequired'));
+  const tags = [...new Set(editDraft.tags.map((tag) => tag.trim()).filter(Boolean))];
+  if (tags.length > 8) return window.$message.warning(t('project.tagsMax'));
+  if (!editDraft.intro.trim()) return window.$message.warning(t('project.introRequired'));
+  const orderedImages = fileQueue.value
+    .map((file) => uploadedImages.value.find((image) => image.id === file.id))
+    .filter((image): image is { id: string; content: string } => Boolean(image))
+    .map((image) => image.content);
+  if (orderedImages.length === 0) return window.$message.warning(t('project.imagesRequired'));
+  if (!validateLink()) return;
+  const revision = editorRevision;
+  const id = project.value.id;
+  submitting.value = true;
+  try {
+    const result = await updateProject({
+      id,
+      title: editDraft.title.trim(),
+      intro: editDraft.intro.trim(),
+      url: safeExternalURL(editDraft.url),
+      images: orderedImages,
+      tags,
+    });
+    if (revision !== editorRevision || projectID.value !== id || project.value?.id !== id) return;
+    project.value = result;
+    showEditor.value = false;
+    window.$message.success(t('project.saveSuccess'));
+  } catch {
+    // The request interceptor reports the error; keep the draft open for retry.
+  } finally {
+    if (revision === editorRevision) submitting.value = false;
+  }
+}
+
+watch(showEditor, (show) => {
+  if (!show) resetEditor();
+}, { flush: 'sync' });
+onBeforeUnmount(() => {
+  ++loadRequestRevision;
+  ++followRequestRevision;
+  showEditor.value = false;
+  resetEditor();
+});
+
 watch(projectID, () => void loadProject(), { immediate: true });
 </script>
 
@@ -164,7 +438,8 @@ watch(projectID, () => void loadProject(), { immediate: true });
 .detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 24px; }
 .creator { display: flex; align-items: center; gap: 9px; font-size: 14px; }
 .creator a { color: inherit; text-decoration: none; opacity: .72; }
-.detail-heading h1 { margin: 12px 0; font-size: clamp(28px, 5vw, 44px); line-height: 1.15; }
+.detail-heading { min-width: 0; }
+.detail-heading h1 { overflow-wrap: anywhere; margin: 12px 0; font-size: clamp(28px, 5vw, 44px); line-height: 1.15; }
 .detail-tags, .project-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .detail-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; max-height: 620px; overflow: auto; border-radius: 14px; background: rgba(128, 128, 128, .1); }
 .detail-gallery.single { display: block; }
@@ -179,7 +454,15 @@ watch(projectID, () => void loadProject(), { immediate: true });
 .side-card { padding: 16px; }
 .side-card + .side-card { margin-top: 14px; }
 .side-card h2 { margin: 0 0 14px; font-size: 16px; }
-.member-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin-top: 10px; }
+.member-row > span { min-width: 0; overflow-wrap: anywhere; }
+.member-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; margin-top: 10px; }
+.project-editor-modal { width: min(680px, calc(100vw - 28px)); max-height: calc(100vh - 28px); overflow: auto; }
+.project-markdown-editor { height: 320px; }
+.tags-select, .upload-field { width: 100%; }
+.upload-field small { display: block; margin-top: 8px; opacity: .6; }
+.url-input-row { display: flex; gap: 8px; margin-top: 10px; }
+.url-input { flex: 1; min-width: 0; }
+.editor-actions { display: flex; justify-content: flex-end; gap: 10px; }
 .detail-links { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
 @media (max-width: 760px) {
   .project-detail { padding: 18px; }

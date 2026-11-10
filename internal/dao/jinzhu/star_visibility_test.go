@@ -104,13 +104,13 @@ func TestStarCollectionVisibilityScope(t *testing.T) {
 	must(db.Create(&dbr.PostStar{Model: &dbr.Model{}, PostID: pendingPost.ID, UserID: author.ID}).Error)
 
 	// 中-1 读口径: 游客看作者的点赞列表, 不得看到待审帖
-	res, total, err := tweets.ListUserStarTweets(&cs.VistUser{UserId: author.ID, RelTyp: cs.RelationGuest}, 10, 0)
+	res, total, err := tweets.ListUserStarTweets(&cs.VistUser{UserId: author.ID, RelTyp: cs.RelationGuest}, nil, 10, 0)
 	must(err)
 	if total != 0 || len(res) != 0 {
 		t.Fatalf("guest saw pending post in author star list: total=%d len=%d", total, len(res))
 	}
 	// 本人视角仍可见(作者本就有权读自己的待审帖)
-	res, total, err = tweets.ListUserStarTweets(&cs.VistUser{UserId: author.ID, RelTyp: cs.RelationSelf}, 10, 0)
+	res, total, err = tweets.ListUserStarTweets(&cs.VistUser{UserId: author.ID, RelTyp: cs.RelationSelf}, &ms.User{Model: &ms.Model{ID: author.ID}, Status: ms.UserStatusNormal, Permissions: []string{authz.PostView}}, 10, 0)
 	must(err)
 	if total != 1 || len(res) != 1 || res[0].PostID != pendingPost.ID {
 		t.Fatalf("self star list lost own pending post: total=%d len=%d", total, len(res))

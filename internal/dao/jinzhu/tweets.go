@@ -463,20 +463,49 @@ func (s *tweetSrv) GetUserPostStars(userID int64, limit int, offset int) ([]*ms.
 	}
 	return star.List(s.db, &dbr.ConditionsT{
 		"ORDER": s.db.NamingStrategy.TableName("PostStar") + ".id DESC",
-	}, cs.RelationSelf, limit, offset)
+	}, s.starListViewer(userID), limit, offset)
 }
 
-func (s *tweetSrv) ListUserStarTweets(user *cs.VistUser, limit int, offset int) (res []*ms.PostStar, total int64, err error) {
+// GetUserPostStarsWithCount reuses one resolved viewer for both queries. This
+// keeps List and Count on the same authorization identity and avoids loading
+// the current user's admin/role fields twice for a single GetStars request.
+func (s *tweetSrv) GetUserPostStarsWithCount(userID int64, limit int, offset int) (res []*ms.PostStar, total int64, err error) {
 	star := &dbr.PostStar{
-		UserID: user.UserId,
+		UserID: userID,
 	}
-	if total, err = star.Count(s.db, user.RelTyp, &dbr.ConditionsT{}); err != nil {
+	viewer := s.starListViewer(userID)
+	if total, err = star.Count(s.db, viewer, &dbr.ConditionsT{}); err != nil {
 		return
 	}
 	res, err = star.List(s.db, &dbr.ConditionsT{
 		"ORDER": s.db.NamingStrategy.TableName("PostStar") + ".id DESC",
-	}, user.RelTyp, limit, offset)
+	}, viewer, limit, offset)
 	return
+}
+
+func (s *tweetSrv) ListUserStarTweets(user *cs.VistUser, viewer *ms.User, limit int, offset int) (res []*ms.PostStar, total int64, err error) {
+	star := &dbr.PostStar{
+		UserID: user.UserId,
+	}
+	if total, err = star.Count(s.db, viewer, &dbr.ConditionsT{}); err != nil {
+		return
+	}
+	res, err = star.List(s.db, &dbr.ConditionsT{
+		"ORDER": s.db.NamingStrategy.TableName("PostStar") + ".id DESC",
+	}, viewer, limit, offset)
+	return
+}
+
+// starListViewer reloads current permissions and fails closed on lookup errors.
+func (s *tweetSrv) starListViewer(userID int64) *dbr.User {
+	viewer := &dbr.User{Model: &dbr.Model{ID: userID}}
+	var me dbr.User
+	if userID > 0 && s.db.Where("id = ?", userID).First(&me).Error == nil {
+		if dbr.LoadUserIdentities(s.db, &me) == nil {
+			return &me
+		}
+	}
+	return viewer
 }
 
 func (s *tweetSrv) getUserTweets(db *gorm.DB, user *cs.VistUser, limit int, offset int) (res []*ms.Post, total int64, err error) {
@@ -520,7 +549,7 @@ func (s *tweetSrv) GetUserPostStarCount(userID int64) (int64, error) {
 	star := &dbr.PostStar{
 		UserID: userID,
 	}
-	return star.Count(s.db, cs.RelationSelf, &dbr.ConditionsT{})
+	return star.Count(s.db, s.starListViewer(userID), &dbr.ConditionsT{})
 }
 
 func (s *tweetSrv) GetUserPostCollection(postID, userID int64) (*ms.PostCollection, error) {

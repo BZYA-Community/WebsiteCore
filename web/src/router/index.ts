@@ -149,6 +149,7 @@ const routes = [
     name: 'external-link',
     meta: {
       titleKey: 'externalLink.pageTitle',
+      hideSidebar: true,
     },
     component: () => import('@/views/ExternalLink.vue'),
   },
@@ -157,6 +158,7 @@ const routes = [
     name: '404',
     meta: {
       titleKey: 'nav.pageNotFound',
+      hideSidebar: true,
     },
     component: () => import('@/views/404.vue'),
   },

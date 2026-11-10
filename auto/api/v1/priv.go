@@ -40,6 +40,7 @@ type Priv interface {
 	DeleteTweet(*web.DeleteTweetReq) error
 	UnfollowProject(*web.ProjectFollowReq) (*web.ProjectFollowResp, error)
 	FollowProject(*web.ProjectFollowReq) (*web.ProjectFollowResp, error)
+	UpdateProject(*web.UpdateProjectReq) (*web.UpdateProjectResp, error)
 	CreateProject(*web.CreateProjectReq) (*web.CreateProjectResp, error)
 	CreateTweet(*web.CreateTweetReq) (*web.CreateTweetResp, error)
 	DownloadAttachment(*web.DownloadAttachmentReq) (*web.DownloadAttachmentResp, error)
@@ -369,6 +370,21 @@ func RegisterPrivServant(e *gin.Engine, s Priv, m ...PrivChain) {
 		resp, err := s.FollowProject(req)
 		s.Render(c, resp, err)
 	})
+	router.Handle("POST", "project/update", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.UpdateProjectReq)
+		var bv _binding_ = req
+		if err := bv.Bind(c); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.UpdateProject(req)
+		s.Render(c, resp, err)
+	})
 	router.Handle("POST", "project", func(c *gin.Context) {
 		select {
 		case <-c.Request.Context().Done():
@@ -528,6 +544,10 @@ func (UnimplementedPrivServant) UnfollowProject(req *web.ProjectFollowReq) (*web
 }
 
 func (UnimplementedPrivServant) FollowProject(req *web.ProjectFollowReq) (*web.ProjectFollowResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedPrivServant) UpdateProject(req *web.UpdateProjectReq) (*web.UpdateProjectResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

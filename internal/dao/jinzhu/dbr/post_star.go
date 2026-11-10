@@ -7,7 +7,6 @@ package dbr
 import (
 	"time"
 
-	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -33,7 +32,7 @@ func (p *PostStar) Get(db *gorm.DB) (*PostStar, error) {
 		db = db.Where(tn+"user_id = ?", p.UserID)
 	}
 
-	db = db.Joins("Post").Where("visibility <> ? OR (visibility = ? AND ? = ?)", PostVisitPrivate, PostVisitPrivate, clause.Column{Table: "Post", Name: "user_id"}, p.UserID).Order(clause.OrderByColumn{Column: clause.Column{Table: "Post", Name: "id"}, Desc: true})
+	db = db.Where(tn+"is_del = ?", 0)
 	if err := db.First(&star).Error; err != nil {
 		return nil, err
 	}
@@ -53,7 +52,38 @@ func (p *PostStar) Delete(db *gorm.DB) error {
 	}).Error
 }
 
-func (p *PostStar) List(db *gorm.DB, conditions *ConditionsT, typ cs.RelationTyp, limit int, offset int) (res []*PostStar, err error) {
+// canViewPostCond mirrors the current permission-based CanViewTweet policy.
+// Viewer identity is independent of the owner of the starred-post list.
+func canViewPostCond(db *gorm.DB, viewer *User) (string, []any) {
+	col := func(name string) clause.Column { return clause.Column{Table: "Post", Name: name} }
+	if viewer == nil || viewer.Model == nil || viewer.ID <= 0 {
+		return "? = ? AND ? = ?", []any{col("audit_status"), PostAuditApproved, col("visibility"), PostVisitPublic}
+	}
+	if !viewer.HasPermission("post.view") {
+		return "1 = 0", nil
+	}
+	following := db.Session(&gorm.Session{NewDB: true}).Unscoped().Model(&Following{}).Select("1").Where("user_id = ? AND follow_id = ?", viewer.ID, col("user_id"))
+	approved := "(? = ? AND (? = ? OR ? OR (? = ? AND EXISTS (?))))"
+	args := []any{col("user_id"), viewer.ID, col("audit_status"), PostAuditApproved, col("visibility"), PostVisitPublic, viewer.HasPermission("content.view_private"), col("visibility"), PostVisitFollowing, following}
+	sql := "(? = ? OR " + approved
+	if viewer.HasPermission("audit.view_all") {
+		sql += " OR ? <> ?"
+		args = append(args, col("audit_status"), PostAuditApproved)
+	} else if viewer.HasPermission("content.review") {
+		assigned := db.Session(&gorm.Session{NewDB: true}).Model(&ReviewTask{}).Select("1").Where("kind = ? AND target_id = ? AND assignee_id = ?", ReviewPost, col("id"), viewer.ID)
+		sql += " OR (? <> ? AND EXISTS (?))"
+		args = append(args, col("audit_status"), PostAuditApproved, assigned)
+	}
+	return sql + ")", args
+}
+
+func scopeReactionPostVisibility(db *gorm.DB, viewerID int64) *gorm.DB {
+	viewer := &User{Model: &Model{ID: viewerID}, Status: UserStatusNormal, Permissions: []string{"post.view"}}
+	condition, args := canViewPostCond(db, viewer)
+	return db.Where(clause.Eq{Column: clause.Column{Table: "Post", Name: "is_del"}, Value: 0}).Where(condition, args...)
+}
+
+func (p *PostStar) List(db *gorm.DB, conditions *ConditionsT, viewer *User, limit, offset int) (res []*PostStar, err error) {
 	tn := db.NamingStrategy.TableName("PostStar") + "."
 	if offset >= 0 && limit > 0 {
 		db = db.Offset(offset).Limit(limit)
@@ -68,13 +98,16 @@ func (p *PostStar) List(db *gorm.DB, conditions *ConditionsT, typ cs.RelationTyp
 			db = db.Where(tn+k, v)
 		}
 	}
-	db = scopeReactionPostVisibility(db.Joins("Post"), p.UserID, typ)
+	db = db.Joins("Post").Where(clause.Eq{Column: clause.Column{Table: "Post", Name: "is_del"}, Value: 0})
+	if cond, args := canViewPostCond(db, viewer); cond != "" {
+		db = db.Where(cond, args...)
+	}
 	db = db.Order(clause.OrderByColumn{Column: clause.Column{Table: "Post", Name: "id"}, Desc: true})
 	err = db.Find(&res).Error
 	return
 }
 
-func (p *PostStar) Count(db *gorm.DB, typ cs.RelationTyp, conditions *ConditionsT) (res int64, err error) {
+func (p *PostStar) Count(db *gorm.DB, viewer *User, conditions *ConditionsT) (res int64, err error) {
 	tn := db.NamingStrategy.TableName("PostStar") + "."
 	if p.PostID > 0 {
 		db = db.Where(tn+"post_id = ?", p.PostID)
@@ -87,31 +120,10 @@ func (p *PostStar) Count(db *gorm.DB, typ cs.RelationTyp, conditions *Conditions
 			db = db.Where(tn+k, v)
 		}
 	}
-	db = scopeReactionPostVisibility(db.Joins("Post"), p.UserID, typ)
+	db = db.Joins("Post").Where(clause.Eq{Column: clause.Column{Table: "Post", Name: "is_del"}, Value: 0})
+	if cond, args := canViewPostCond(db, viewer); cond != "" {
+		db = db.Where(cond, args...)
+	}
 	err = db.Model(p).Count(&res).Error
 	return
-}
-
-// scopeReactionPostVisibility 按访问关系收敛点赞/收藏列表的帖子读口径(安全审计02 中-1/低-2),
-// 与 application/content/views.go 的 CanViewTweet 保持一致:
-//   - 管理侧: 不过滤(保持原有全量语义);
-//   - 本人: 公开帖 + 自己的任意可见性帖 + 仍关注作者的关注可见帖, 且他人的未过审帖一律不可见
-//     (修复取关后关注可见帖仍残留在自己点赞/收藏列表的问题);
-//   - 游客/他人: 仅已过审的公开帖(修复"作者自赞 + 公开点赞列表"绕过审核泄露待审帖的问题)。
-func scopeReactionPostVisibility(db *gorm.DB, viewerID int64, typ cs.RelationTyp) *gorm.DB {
-	postUserID := clause.Column{Table: "Post", Name: "user_id"}
-	postAuditStatus := clause.Column{Table: "Post", Name: "audit_status"}
-	switch typ {
-	case cs.RelationAdmin:
-		// admin have all permition to visit all type tweets
-	case cs.RelationSelf:
-		followIDs := db.Session(&gorm.Session{NewDB: true}).Unscoped().Model(&Following{}).
-			Select("follow_id").Where("user_id = ?", viewerID)
-		db = db.Where("? = ? OR ? = ?", postAuditStatus, PostAuditApproved, postUserID, viewerID).
-			Where("visibility = ? OR ? = ? OR (visibility = ? AND ? IN (?))",
-				PostVisitPublic, postUserID, viewerID, PostVisitFollowing, postUserID, followIDs)
-	default:
-		db = db.Where("visibility = ? AND ? = ?", PostVisitPublic, postAuditStatus, PostAuditApproved)
-	}
-	return db
 }

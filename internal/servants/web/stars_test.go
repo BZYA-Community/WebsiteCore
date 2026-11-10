@@ -24,6 +24,10 @@ func (d *starsViewData) GetUserPostStars(viewer int64, limit, offset int) ([]*ms
 	d.viewer, d.limit, d.offset = viewer, limit, offset
 	return []*ms.PostStar{{Post: d.post}}, nil
 }
+func (d *starsViewData) GetUserPostStarsWithCount(viewer int64, limit, offset int) ([]*ms.PostStar, int64, error) {
+	stars, err := d.GetUserPostStars(viewer, limit, offset)
+	return stars, 3, err
+}
 func (*starsViewData) GetUserPostStarCount(int64) (int64, error) { return 3, nil }
 func (*starsViewData) MergePosts(posts []*ms.Post) ([]*ms.PostFormated, error) {
 	return []*ms.PostFormated{posts[0].Format()}, nil

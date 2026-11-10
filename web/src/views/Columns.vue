@@ -2,7 +2,6 @@
   <div>
     <main-nav :title="t('nav.columns')" :back="!!view" />
     <n-card size="small" class="main-content-wrap columns-page">
-      <n-button v-if="view" quaternary @click="back">{{ t('columns.back') }}</n-button>
       <column-editor v-if="view === 'edit' && user.userLogined" :id="id" :key="screenKey" :kind="kind" :draft-id="draftId" :source-id="sourceId" />
       <column-returned v-else-if="view === 'returned' && user.userLogined" :id="id" :key="screenKey" />
       <collection-entries v-else-if="view === 'entries' && user.userLogined" :id="id" :key="screenKey" />
@@ -22,8 +21,8 @@
           <ul><li v-for="draft in drafts" :key="draft.key"><n-button text @click="openDraft(draft)">{{ draft.title || t('columns.untitled') }}</n-button><n-popconfirm @positive-click="deleteDraft(draft.key)"><template #trigger><n-button size="tiny" quaternary>{{ t('columns.delete') }}</n-button></template>{{ t('columns.confirmDraftDelete') }}</n-popconfirm></li></ul>
         </template>
         <form class="list-controls" @submit.prevent="search">
-          <n-input-group><n-input v-model:value="keyword" :placeholder="kind === 'article' ? t('columns.search') : t('columns.collectionSearchPlaceholder')" clearable /><n-button attr-type="submit">{{ kind === 'article' ? t('columns.search') : t('columns.searchCollections') }}</n-button></n-input-group>
-          <n-checkbox v-if="kind === 'article' && !returned" v-model:checked="official" @update:checked="search">{{ t('columns.officialOnly') }}</n-checkbox>
+          <n-input-group style="margin-bottom: 12px;"><n-input v-model:value="keyword" :placeholder="kind === 'article' ? t('columns.search') : t('columns.collectionSearchPlaceholder')" clearable /><n-button attr-type="submit">{{ kind === 'article' ? t('columns.search') : t('columns.searchCollections') }}</n-button></n-input-group>
+          <n-checkbox v-if="kind === 'article'" :disabled="returned" v-model:checked="official" @update:checked="search">{{ t('columns.officialOnly') }}</n-checkbox>
           <n-checkbox v-if="tab === 'mine' && kind === 'article'" :checked="returned" @update:checked="changeReturned">{{ t('columns.returned') }}</n-checkbox>
         </form>
         <n-alert v-if="error" type="error">{{ t('columns.loadFailed') }} <n-button @click="load">{{ t('columns.retry') }}</n-button></n-alert>
