@@ -1,15 +1,13 @@
 <template>
   <article class="project-card">
-    <div class="project-gallery" :class="{ single: project.images.length === 1 }">
+    <div class="project-gallery">
       <n-image
-        v-for="(image, index) in project.images.slice(0, 4)"
-        :key="image + index"
-        :src="image"
+        v-if="project.images.length"
+        :src="project.images[0]"
         object-fit="cover"
         :alt="project.title"
         lazy
       />
-      <span v-if="project.images.length > 4" class="more-images">+{{ project.images.length - 4 }}</span>
     </div>
     <div class="project-body">
       <div class="project-author">
@@ -99,11 +97,9 @@ function openProject() {
 }
 :global(.dark .project-card) { background: rgba(16, 16, 20, .78); }
 .project-card:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(0, 0, 0, .08); }
-.project-gallery { position: relative; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 110px 110px; gap: 2px; background: rgba(128, 128, 128, .12); }
-.project-gallery.single { display: block; height: 222px; }
+.project-gallery { height: 222px; background: rgba(128, 128, 128, .12); }
 .project-gallery :deep(.n-image), .project-gallery :deep(img) { width: 100%; height: 100%; display: block; }
 .project-gallery :deep(img) { object-fit: cover; }
-.more-images { position: absolute; right: 10px; bottom: 10px; padding: 4px 9px; border-radius: 14px; color: #fff; background: rgba(0, 0, 0, .65); font-weight: 600; }
 .project-body { padding: 18px; }
 .project-author { display: flex; align-items: center; gap: 8px; font-size: 12px; opacity: .7; }
 .project-body h3 { margin: 14px 0 8px; font-size: 20px; line-height: 1.35; overflow-wrap: anywhere; }
