@@ -10,9 +10,9 @@ require (
 	github.com/alimy/tryst v1.2.0
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
 	github.com/allegro/bigcache/v3 v3.1.0
+	github.com/anthonynsimon/bild v0.14.0
 	github.com/bytedance/sonic v1.14.0
 	github.com/cockroachdb/errors v1.11.3
-	github.com/disintegration/imaging v1.6.2
 	github.com/fatih/color v1.18.0
 	github.com/getsentry/sentry-go v0.36.1
 	github.com/getsentry/sentry-go/gin v0.33.0
@@ -50,9 +50,9 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.45.0
 	go.uber.org/automaxprocs v1.6.0
 	golang.org/x/crypto v0.56.0
+	golang.org/x/image v0.45.0
 	golang.org/x/net v0.58.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	gopkg.in/resty.v1 v1.12.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.0
 	gorm.io/plugin/dbresolver v1.6.0
@@ -134,7 +134,6 @@ require (
 	go.uber.org/multierr v1.9.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/arch v0.18.0 // indirect
-	golang.org/x/image v0.45.0 // indirect
 	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

@@ -6,9 +6,6 @@ package web
 
 import (
 	"errors"
-	"image"
-	_ "image/gif"
-	_ "image/jpeg"
 	"io"
 	"net/url"
 	"strings"
@@ -31,7 +28,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gofrs/uuid/v5"
 	"github.com/sirupsen/logrus"
-	_ "golang.org/x/image/webp"
 	"gorm.io/gorm"
 )
 
@@ -195,12 +191,11 @@ func (s *privSrv) UploadAttachment(req *web.UploadAttachmentReq) (*web.UploadAtt
 		Type:     _uploadAttachmentTypeMap[req.UploadType],
 	}
 	if attachment.Type == ms.AttachmentTypeImage {
-		if _, err := req.File.Seek(0, io.SeekStart); err != nil {
+		config, err := attachmentImageConfig(req.File)
+		if err != nil {
 			return nil, web.ErrFileUploadFailed
 		}
-		if config, _, err := image.DecodeConfig(req.File); err == nil {
-			attachment.ImgWidth, attachment.ImgHeight = config.Width, config.Height
-		}
+		attachment.ImgWidth, attachment.ImgHeight = config.Width, config.Height
 	}
 	attachment.ID, err = s.Ds.CreateAttachment(attachment)
 	if err != nil {
