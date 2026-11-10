@@ -4,12 +4,12 @@
             <n-dialog-provider>
                 <div
                     class="app-container"
-                    :class="{ dark: iTheme?.name === 'dark', mobile: !desktopModelShow, 'course-shell': isCourseRoute }"
+                    :class="{ dark: iTheme?.name === 'dark', mobile: !desktopModelShow, 'course-shell': isCourseRoute, sidebarless: route.meta.hideSidebar }"
                     :style="isCourseRoute ? courseThemeVars : undefined"
                 >
                     <div has-sider class="main-wrap" position="static" >
                         <!-- 侧边栏 -->
-                        <div v-if="desktopModelShow">
+                        <div v-if="desktopModelShow && !route.meta.hideSidebar">
                             <sidebar />
                         </div>
 
@@ -32,7 +32,7 @@
                         </div>
 
                         <!-- 右侧 -->
-                        <rightbar v-if="route.name !== 'course'" />
+                        <rightbar v-if="route.name !== 'course' && !route.meta.hideSidebar" />
                     </div>
                     <!-- 登录/注册公共组件 -->
                     <auth />
@@ -164,5 +164,8 @@ const naiveDateLocale = computed(() => (locale.value === 'en' ? dateEnUS : dateZ
 <style lang="less">
 .course-shell {
     a:focus-visible, button:focus-visible { outline: 2px solid var(--course-accent); outline-offset: 3px; }
+}
+.sidebarless {
+    --content-main: min(1000px, 100%);
 }
 </style>

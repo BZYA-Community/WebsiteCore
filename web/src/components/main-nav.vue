@@ -1,5 +1,5 @@
 <template>
-    <div v-if="drawerModelShow">
+    <div v-if="drawerModelShow && !route.meta.hideSidebar">
         <n-drawer
             v-model:show="activeDrawerRef"
             :width=212
@@ -18,7 +18,7 @@
                 <n-button
                     class="drawer-btn"
                     ref="drawerTrigger"
-                    v-if="drawerModelShow && !back"
+                    v-if="drawerModelShow && !route.meta.hideSidebar && !back"
                     :aria-label="t('nav.openMenu')"
                     :aria-expanded="activeDrawerRef"
                     @click="activeDrawer"
@@ -68,7 +68,7 @@
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStoreMain } from '@/store/main';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useMessage, useOsTheme, DrawerPlacement } from 'naive-ui';
 import type { ButtonInst } from 'naive-ui';
 import {
@@ -83,6 +83,7 @@ const storeMain = useStoreMain();
 const { desktopModelShow, drawerModelShow, theme: themeName } = storeToRefs(storeMain);
 
 const router = useRouter();
+const route = useRoute();
 const { t } = useI18n();
 const activeDrawerRef = ref(false);
 const drawerTrigger = ref<ButtonInst | null>(null);
