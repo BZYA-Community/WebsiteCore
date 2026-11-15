@@ -58,7 +58,15 @@ Handling rules: all 🔴 findings must be resolved; 🟡 findings need a reply; 
 
 ## Dependabot
 
-Configured in `.github/dependabot.yml`: Go modules only, weekly, targeting the `dev` branch, commit prefix `mod:`. Dependabot PRs go through the same CI + AI review + human merge flow as any other PR. Frontend dependencies are currently updated manually.
+Configured in `.github/dependabot.yml`. Three ecosystems are covered, all weekly (Monday, `Asia/Shanghai`) and all targeting the default branch `main`:
+
+| Ecosystem | Directory | Commit prefix | Grouping |
+| --- | --- | --- | --- |
+| `gomod` | `/` | `mod` | minor + patch in one PR, majors separate |
+| `npm` | `/web` | `web` | minor + patch in one PR, majors separate |
+| `github-actions` | `/` | `ci` | everything in one PR |
+
+Frontend updates run against the committed `web/yarn.lock`, with `versioning-strategy: increase-if-necessary`. Security updates are never grouped — each one opens its own PR, so it can be reviewed and merged on its own. Dependabot PRs go through the same CI + AI review + human merge flow as any other PR.
 
 ## Release and deployment flow
 

@@ -1,17 +1,85 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+# Dependabot version updates.
+# Full option reference:
+# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Notes for maintainers:
+#   - `target-branch` is intentionally omitted everywhere: updates target the
+#     default branch (`main`). The previous `dev` value pointed at a branch that
+#     does not exist in this repository.
+#   - `groups` only affect version updates. Security updates are always opened as
+#     their own PR so they can be reviewed and merged on their own.
 
 version: 2
 updates:
+  # ---------- Go modules ----------
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: "weekly"
-    target-branch: "dev"
+      day: "monday"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 10
     reviewers:
-      - "rocboss"
-      - "alimy"
+      - "QQSHI13"
+      - "Alumin-Hydro"
+    labels:
+      - "dependencies"
+      - "go"
     commit-message:
-      prefix: "mod:"
+      prefix: "mod"
+    groups:
+      # minor/patch bundled into one PR; majors open separately for individual review
+      go-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ---------- Frontend (yarn, manifest in /web) ----------
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "QQSHI13"
+      - "Alumin-Hydro"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "web"
+    # web/yarn.lock is committed (pinned via packageManager: yarn@1.22.22), so only
+    # bump the package.json range when the lockfile resolution actually needs it.
+    versioning-strategy: "increase-if-necessary"
+    groups:
+      web-minor-patch:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  # ---------- GitHub Actions ----------
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Shanghai"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "QQSHI13"
+      - "Alumin-Hydro"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "ci"
+    groups:
+      # Everything in one PR: majors are deliberately not split out here, so that
+      # pinned-SHA bumps and their action version bumps land together.
+      github-actions:
+        patterns:
+          - "*"
