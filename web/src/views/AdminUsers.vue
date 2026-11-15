@@ -2,6 +2,11 @@
   <div>
     <main-nav :title="t('adminUsers.pageTitle')" />
     <n-card v-if="storeUser.hasPermission('user.manage')" :title="t('adminUsers.pageTitle')" size="small" class="setting-card">
+      <template v-if="userInfo.is_operator" #header-extra>
+        <n-button secondary :loading="exportingPhones" @click="exportPhones">
+          {{ t('adminUsers.exportPhones') }}
+        </n-button>
+      </template>
       <div class="toolbar">
         <n-input v-model:value="keyword" :placeholder="t('adminUsers.searchPlaceholder')" clearable class="keyword-input" @keyup.enter="searchUsers" />
         <n-date-picker v-model:value="registeredRange" type="daterange" clearable class="registered-range" :start-placeholder="t('adminUsers.registeredFrom')" :end-placeholder="t('adminUsers.registeredTo')" :aria-label="t('adminUsers.registeredRange')" />
@@ -68,7 +73,7 @@ import { NButton, NSpace, NTag, useDialog } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import { formatTime } from '@/utils/formatTime';
 import { useStoreUser } from '@/store/user';
-import { Api } from '@/utils/request';
+import { Api, request } from '@/utils/request';
 import { getIdentityGroups, setUserIdentity, setUsersIdentity, type IdentityGroup } from '@/api/identity';
 import IdentityGroups from '@/components/identity-groups.vue';
 import { isAssignableIdentityGroup as assignable } from '@/utils/permissions';
@@ -81,6 +86,7 @@ const dialog = useDialog();
 const keyword = ref('');
 const registeredRange = ref<[number, number] | null>(null);
 const loading = ref(false);
+const exportingPhones = ref(false);
 const users = ref<UserItem[]>([]);
 const groups = ref<IdentityGroup[]>([]);
 const detail = ref<UserItem>();
@@ -120,6 +126,39 @@ async function loadUsers() {
     pagination.itemCount = response.pager?.total_rows || 0;
   } catch { /* Request interceptor reports the failure. */ }
   finally { if (revision === listRevision) loading.value = false; }
+}
+async function exportPhones() {
+  if (!userInfo.value.is_operator || exportingPhones.value) return;
+  exportingPhones.value = true;
+  try {
+    const { blob, filename } = await request<never, { blob: Blob; filename: string }>({
+      method: 'get',
+      url: '/v1/admin/user/phones/export',
+      responseType: 'arraybuffer',
+      transformResponse: [(data: ArrayBuffer, headers) => {
+        const mime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        if (String(headers.get('content-type')).split(';', 1)[0] === mime) {
+          const attachment = String(headers.get('content-disposition'));
+          const filename = attachment.match(/filename="?(registered-user-phones-\d{8}-\d{6}\.xlsx)"?(?:;|$)/i)?.[1] || 'registered-user-phones.xlsx';
+          return { data: { blob: new Blob([data], { type: mime }), filename } };
+        }
+        // Keep JSON errors in the standard request error flow.
+        try {
+          const error = JSON.parse(new TextDecoder().decode(data));
+          if (+error?.code) return error;
+        } catch { /* The server did not return a JSON error. */ }
+        return { code: -1 };
+      }],
+    });
+    if (!userInfo.value.is_operator) return;
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch { /* Request interceptor reports the failure. */ }
+  finally { exportingPhones.value = false; }
 }
 async function refreshGroups() {
   if (!storeUser.hasPermission('identity.manage')) return;

@@ -39,6 +39,7 @@ type Admin interface {
 	SaveIdentityGroup(*web.SaveIdentityGroupReq) (*web.IdentityGroupsResp, error)
 	ListIdentityGroups() (*web.IdentityGroupsResp, error)
 	AdminUserDetail(*web.AdminUserDetailReq) (*web.AdminUserDetailResp, error)
+	AdminUserPhoneExport(*web.AdminUserPhoneExportReq) (*web.AdminUserPhoneExportResp, error)
 	AdminUserList(*web.AdminUserListReq) (*web.AdminUserListResp, error)
 	SaveSettings(*web.AdminSettingsSaveReq) (*web.AdminSettingsSaveResp, error)
 	GetSettingsValues() (*web.AdminSettingsValuesResp, error)
@@ -160,6 +161,26 @@ func RegisterAdminServant(e *gin.Engine, s Admin) {
 		}
 		resp, err := s.AdminUserDetail(req)
 		s.Render(c, resp, err)
+	})
+	router.Handle("GET", "admin/user/phones/export", func(c *gin.Context) {
+		select {
+		case <-c.Request.Context().Done():
+			return
+		default:
+		}
+		req := new(web.AdminUserPhoneExportReq)
+		var bv _binding_ = req
+		if err := bv.Bind(c); err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		resp, err := s.AdminUserPhoneExport(req)
+		if err != nil {
+			s.Render(c, nil, err)
+			return
+		}
+		var rv _render_ = resp
+		rv.Render(c)
 	})
 	router.Handle("GET", "admin/user/list", func(c *gin.Context) {
 		select {
@@ -299,6 +320,10 @@ func (UnimplementedAdminServant) ListIdentityGroups() (*web.IdentityGroupsResp, 
 }
 
 func (UnimplementedAdminServant) AdminUserDetail(req *web.AdminUserDetailReq) (*web.AdminUserDetailResp, error) {
+	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
+}
+
+func (UnimplementedAdminServant) AdminUserPhoneExport(req *web.AdminUserPhoneExportReq) (*web.AdminUserPhoneExportResp, error) {
 	return nil, mir.Errorln(http.StatusNotImplemented, http.StatusText(http.StatusNotImplemented))
 }
 

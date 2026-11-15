@@ -5,6 +5,7 @@
 package jinzhu
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -52,6 +53,12 @@ func (s *auditSrv) GetUsersByAdminQuery(keyword string, registeredFrom, register
 	}
 	err = db.Order("id ASC").Find(&res).Error
 	return
+}
+
+func (s *auditSrv) ListRegisteredUserPhones(ctx context.Context) ([]string, error) {
+	var phones []string
+	err := s.db.WithContext(ctx).Model(&dbr.User{}).Where("phone <> ?", "").Order("id ASC").Pluck("phone", &phones).Error
+	return phones, err
 }
 
 // SoftDeleteUser 用户管理: 软删除用户(标记is_del=1, 数据保留可恢复)
