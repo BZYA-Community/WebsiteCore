@@ -11,6 +11,7 @@
     "time": "时间"
   },
   "searchPlaceholder": "搜索 ID / 用户名 / 昵称 / 手机号",
+  "exportPhones": "导出全部手机号",
   "registeredRange": "注册时间范围",
   "registeredFrom": "注册开始日期",
   "registeredTo": "注册结束日期",

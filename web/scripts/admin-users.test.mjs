@@ -7,7 +7,7 @@ import ts from 'typescript';
 const source = fs.readFileSync(new URL('../src/views/AdminUsers.vue', import.meta.url), 'utf8')
   .match(/<script setup lang="ts">([\s\S]*?)<\/script>/)[1]
   .replace(/^import [\s\S]*?;\r?$/gm, '');
-const code = ts.transpileModule(source + '\nmodule.exports = { registeredRange, keyword, users, loading, loadUsers, pagination, changePageSize, checkedRowKeys, checkedUsers, columns, openBatchMembership, batchOpen, batchUsers, batchGroups, saveBatchMembership };',
+const code = ts.transpileModule(source + '\nmodule.exports = { registeredRange, keyword, users, loading, loadUsers, exportPhones, pagination, changePageSize, checkedRowKeys, checkedUsers, columns, openBatchMembership, batchOpen, batchUsers, batchGroups, saveBatchMembership };',
   { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 const userInfo = vue.ref({ id: 1, is_operator: false });
 const rows = [
@@ -16,16 +16,32 @@ const rows = [
   { id: 5, username: 'elevated', identity_groups: [{ key: 'publisher', permissions: ['content.publish_unreviewed'] }] },
 ];
 const queries = [], writes = [], messages = [];
+const exportRequests = [], downloadLinks = [];
+const xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+let exportMime = xlsxMime;
+let exportDisposition = 'attachment; filename=registered-user-phones-20261115-102030.xlsx';
+let exportData = Uint8Array.of(0x50, 0x4b);
 let failBatch = false, deferList = false;
 const pendingLists = [];
 const context = {
   ...vue, Date, console, module: { exports: {} },
+  Blob, TextDecoder,
+  URL: { createObjectURL: (blob) => { assert.equal(blob.type, xlsxMime); return 'blob:test'; }, revokeObjectURL() {} },
+  document: { createElement: () => ({ click() { downloadLinks.push(this); } }) },
+  setTimeout: (callback) => callback(),
   window: { $message: { success: (message) => messages.push(message) } },
   useI18n: () => ({ t: (key) => key }), useDialog: () => ({}),
   useStoreUser: () => ({ userInfo, hasPermission: (permission) => permission !== 'content.publish_unreviewed' }),
   storeToRefs: (store) => store,
   assignable: (group) => group.key !== 'guest' && group.key !== 'member',
   getIdentityGroups: async () => ({ groups: [] }),
+  request: async (config) => {
+    exportRequests.push(config);
+    const headers = { 'content-type': exportMime, 'content-disposition': exportDisposition };
+    const payload = config.transformResponse[0](exportData.buffer, { get: (name) => headers[name] });
+    if (payload.code) throw payload;
+    return payload.data;
+  },
   setUsersIdentity: async (ids, groups) => {
     writes.push({ ids: [...ids], groups: [...groups] });
     if (failBatch) throw new Error('Permission denied');
@@ -58,6 +74,21 @@ try {
   assert.equal(queries.at(-1).registered_from, Math.floor(from / 1000));
   assert.equal(queries.at(-1).registered_to, Math.floor(new Date(2026, 9, 7, 23, 59, 59).getTime() / 1000), 'include the entire final local calendar day');
   assert.equal(queries.at(-1).keyword, 'first');
+  await page.exportPhones();
+  assert.equal(exportRequests.length, 0, 'user.manage does not grant phone export');
+  userInfo.value.is_operator = true;
+  await page.exportPhones();
+  assert.equal(exportRequests[0].url, '/v1/admin/user/phones/export');
+  assert.equal(exportRequests[0].params, undefined, 'export is independent of list filters');
+  assert.equal(downloadLinks[0].download, 'registered-user-phones-20261115-102030.xlsx');
+  exportDisposition = undefined;
+  await page.exportPhones();
+  assert.equal(downloadLinks[1].download, 'registered-user-phones.xlsx');
+  exportMime = 'application/json';
+  exportData = new TextEncoder().encode('{"code":20022,"msg":"Permission denied"}');
+  await page.exportPhones();
+  assert.equal(downloadLinks.length, 2, 'a JSON error cannot become a download');
+  userInfo.value.is_operator = false;
   const selection = page.columns.value[0];
   assert.equal(selection.type, 'selection');
   assert.equal(selection.disabled(rows[0]), true, 'own identity is protected');
@@ -90,7 +121,7 @@ try {
   pendingLists[0]({ list: rows, pager: { total_rows: 5 } });
   await older;
   assert.equal(page.users.value.length, 1, 'an older filter response cannot overwrite the current result');
-  console.log('Admin users checks passed: inclusive date range, keywords, selection protections, bulk retry, pagination and stale responses.');
+  console.log('Admin users checks passed: inclusive date range, keywords, operator phone export, selection protections, bulk retry, pagination and stale responses.');
 } finally {
   app.unmount();
 }
