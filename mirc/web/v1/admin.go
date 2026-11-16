@@ -21,6 +21,8 @@ type Admin struct {
 
 	// AdminUserList 管理·用户列表搜索
 	AdminUserList func(Get, web.AdminUserListReq) web.AdminUserListResp `mir:"admin/user/list"`
+	// AdminUserPhoneExport 运维·导出注册用户手机号
+	AdminUserPhoneExport func(Get, web.AdminUserPhoneExportReq) web.AdminUserPhoneExportResp `mir:"admin/user/phones/export"`
 	// AdminUserDetail 管理·用户详情(完整手机号 管理级可见)
 	AdminUserDetail         func(Get, web.AdminUserDetailReq) web.AdminUserDetailResp   `mir:"admin/user/detail"`
 	ListIdentityGroups      func(Get) web.IdentityGroupsResp                            `mir:"admin/identity/groups"`

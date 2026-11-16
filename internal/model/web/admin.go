@@ -5,6 +5,10 @@
 package web
 
 import (
+	"context"
+	"mime"
+	"net/http"
+
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/model/joint"
 	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
@@ -69,6 +73,28 @@ type AdminUserItem struct {
 }
 
 type AdminUserListResp joint.PageResp
+
+type AdminUserPhoneExportReq struct {
+	BaseInfo `form:"-" binding:"-"`
+	Context  context.Context `form:"-" binding:"-"`
+}
+
+func (r *AdminUserPhoneExportReq) Bind(c *gin.Context) error {
+	r.Context = c.Request.Context()
+	return bindAny(c, r)
+}
+
+type AdminUserPhoneExportResp struct {
+	Filename string
+	Workbook []byte
+}
+
+func (r *AdminUserPhoneExportResp) Render(c *gin.Context) {
+	c.Header("Cache-Control", "no-store")
+	c.Header("Access-Control-Expose-Headers", "Content-Disposition")
+	c.Header("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": r.Filename}))
+	c.Data(http.StatusOK, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", r.Workbook)
+}
 
 // AdminUserDetailReq 用户管理·用户详情
 type AdminUserDetailReq struct {

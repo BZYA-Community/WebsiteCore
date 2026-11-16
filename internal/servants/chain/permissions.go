@@ -9,9 +9,10 @@ import (
 )
 
 type routeRule struct {
-	All   []string
-	Any   []string
-	Login bool
+	All          []string
+	Any          []string
+	Login        bool
+	OperatorOnly bool
 }
 
 // Every protected route is explicit; a new route without a policy fails closed.
@@ -55,6 +56,7 @@ var routeRules = func() map[string]routeRule {
 		rules[path] = routeRule{All: []string{authz.CourseUpload}, Any: []string{authz.CourseManage, authz.CourseManageOwn}, Login: true}
 	}
 	add(authz.UserManage, true, "POST /v1/admin/user/status", "GET /v1/admin/user/list", "GET /v1/admin/user/detail", "POST /v1/admin/user/delete")
+	rules["GET /v1/admin/user/phones/export"] = routeRule{All: []string{authz.UserManage}, Login: true, OperatorOnly: true}
 	add(authz.SiteManage, true, "GET /v1/admin/site/status", "GET /v1/admin/site/profile", "POST /v1/admin/site/profile", "GET /v1/admin/settings/schema", "GET /v1/admin/settings/values", "POST /v1/admin/settings/save", "GET /v1/sync/index")
 	add(authz.IdentityManage, true, "POST /v1/admin/identity/groups", "DELETE /v1/admin/identity/groups", "GET /v1/admin/identity/permissions", "GET /v1/admin/identity/logs", "POST /v1/admin/user/identity")
 	rules["GET /v1/admin/identity/groups"] = routeRule{Any: []string{authz.UserManage, authz.IdentityManage}, Login: true}
@@ -79,6 +81,9 @@ var routeRules = func() map[string]routeRule {
 
 func allowedByRule(user *ms.User, loggedIn bool, rule routeRule) bool {
 	if rule.Login && !loggedIn {
+		return false
+	}
+	if rule.OperatorOnly && (user == nil || !user.IsOperator) {
 		return false
 	}
 	for _, permission := range rule.All {

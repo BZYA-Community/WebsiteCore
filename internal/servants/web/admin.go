@@ -18,6 +18,7 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/base"
 	"github.com/BZYA-Community/WebsiteCore/internal/servants/chain"
 	"github.com/BZYA-Community/WebsiteCore/internal/sitesetting"
+	"github.com/BZYA-Community/WebsiteCore/pkg/xerror"
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -129,6 +130,25 @@ func (s *adminSrv) AdminUserList(req *web.AdminUserListReq) (*web.AdminUserListR
 		})
 	}
 	return (*web.AdminUserListResp)(joint.PageRespFrom(items, req.Page, req.PageSize, total)), nil
+}
+
+func (s *adminSrv) AdminUserPhoneExport(req *web.AdminUserPhoneExportReq) (*web.AdminUserPhoneExportResp, error) {
+	phones, err := s.Ds.ListRegisteredUserPhones(req.Context)
+	if err != nil {
+		logrus.WithError(err).Error("list registered user phones for export")
+		return nil, xerror.ServerError
+	}
+	exportedAt := time.Now().In(time.FixedZone("UTC+8", 8*60*60))
+	workbook, err := registeredUserPhoneWorkbook(phones, exportedAt)
+	if err != nil {
+		logrus.WithError(err).Error("generate registered user phone workbook")
+		return nil, xerror.ServerError
+	}
+	logrus.WithFields(logrus.Fields{"operator_id": req.User.ID, "count": len(phones)}).Info("export registered user phones")
+	return &web.AdminUserPhoneExportResp{
+		Filename: "registered-user-phones-" + exportedAt.Format("20060102-150405") + ".xlsx",
+		Workbook: workbook,
+	}, nil
 }
 
 // AdminUserDetail 用户管理·用户详情(完整手机号)
