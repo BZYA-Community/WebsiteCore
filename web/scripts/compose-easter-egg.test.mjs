@@ -110,12 +110,15 @@ for (const flag of [undefined, 'false', 'true']) {
   });
   const code = [result].flat().flatMap((item) => item.output)
     .filter((item) => item.type === 'chunk').map((item) => item.code).join('\n');
+  const compiled = await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
   const enabled = flag === 'true';
   for (const [trigger, url] of cases) {
     const videoId = url.split('/').at(-2);
     assert.equal(code.includes(trigger), enabled, `compiled trigger ${trigger}, flag=${String(flag)}`);
     assert.equal(code.includes(videoId), enabled, `compiled video ${videoId}, flag=${String(flag)}`);
+    const compiledRedirects = [];
+    compiled.redirectPostEasterEgg(trigger, (target) => compiledRedirects.push(target));
+    assert.deepEqual(compiledRedirects, enabled ? [url] : [], `compiled redirect ${trigger}, flag=${String(flag)}`);
   }
-  assert.equal(code.includes('https://www.bilibili.com/video/'), enabled, `compiled redirect, flag=${String(flag)}`);
 }
 console.log(`Compose easter egg checks passed: ${cases.length} mappings in both editors, env defaults and opt-in, near misses, input limits, Markdown drafts and compiled removal.`);
