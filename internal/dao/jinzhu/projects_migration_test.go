@@ -1,59 +1,19 @@
 package jinzhu
 
 import (
-	"context"
-	"crypto/rand"
-	"database/sql"
-	"encoding/hex"
-	"os"
 	"strings"
 	"testing"
-
-	"github.com/golang-migrate/migrate/v4"
-	migrationpostgres "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 func TestProjectMigrationUpgradesMain35WithoutLosingURLs(t *testing.T) {
-	dsn := os.Getenv("TEST_POSTGRES_DSN")
-	if dsn == "" {
-		t.Skip("TEST_POSTGRES_DSN not set; PostgreSQL project upgrade integration test")
-	}
-	db, err := sql.Open("postgres", dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer db.Close()
-	ctx := context.Background()
-	conn, err := db.Conn(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer conn.Close()
-	var token [6]byte
-	if _, err := rand.Read(token[:]); err != nil {
-		t.Fatal(err)
-	}
-	schema := "ut_project_upgrade_" + hex.EncodeToString(token[:])
+	runner, conn, _ := newPostgresMigrationTest(t)
+	ctx := t.Context()
 	exec := func(query string, args ...any) {
 		t.Helper()
 		if _, err := conn.ExecContext(ctx, query, args...); err != nil {
 			t.Fatal(err)
 		}
 	}
-	exec("CREATE SCHEMA " + schema)
-	defer db.ExecContext(ctx, "DROP SCHEMA "+schema+" CASCADE")
-	exec("SET search_path TO " + schema)
-	driver, err := migrationpostgres.WithConnection(ctx, conn, &migrationpostgres.Config{SchemaName: schema})
-	if err != nil {
-		t.Fatal(err)
-	}
-	runner, err := migrate.NewWithDatabaseInstance("file://../../../scripts/migration/postgres", "postgres", driver)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer runner.Close()
-	// Use the real migration engine, so duplicate versions and skipped upgrades fail.
 	if err := runner.Migrate(35); err != nil {
 		t.Fatal(err)
 	}
