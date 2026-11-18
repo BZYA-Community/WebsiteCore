@@ -60,7 +60,7 @@ func TestProjectMigrationUpgradesMain35WithoutLosingURLs(t *testing.T) {
 	longURL := "https://example.com/download?payload=" + strings.Repeat("a", 3000) + "&signature=must-survive-at-the-end"
 	exec("INSERT INTO p_post(id,user_id,tags) VALUES (42,7,'项目')")
 	exec("INSERT INTO p_post_content(post_id,user_id,type,content) VALUES (42,7,6,$1)", longURL)
-	if err := runner.Up(); err != nil {
+	if err := runner.Migrate(36); err != nil {
 		t.Fatal(err)
 	}
 	assertUpgrade := func() {
@@ -91,7 +91,7 @@ func TestProjectMigrationUpgradesMain35WithoutLosingURLs(t *testing.T) {
 	if err != nil || dirty || version != 35 {
 		t.Fatalf("rollback version=%d dirty=%v err=%v", version, dirty, err)
 	}
-	if err := runner.Up(); err != nil {
+	if err := runner.Migrate(36); err != nil {
 		t.Fatal(err)
 	}
 	assertUpgrade()
