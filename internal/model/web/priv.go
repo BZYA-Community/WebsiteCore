@@ -54,7 +54,7 @@ type PostContentItem struct {
 
 type CreateTweetReq struct {
 	BaseInfo   `json:"-" binding:"-"`
-	Contents   []*PostContentItem `json:"contents" binding:"required"`
+	Contents   []*PostContentItem `json:"contents" binding:"required,dive,required,structonly"`
 	Tags       []string           `json:"tags" binding:"required"`
 	Users      []string           `json:"users" binding:"required"`
 	Visibility TweetVisibleType   `json:"visibility"`
@@ -126,7 +126,7 @@ type VisibleTweetResp struct {
 type CreateCommentReq struct {
 	SimpleInfo `json:"-" binding:"-"`
 	PostID     int64              `json:"post_id" binding:"required"`
-	Contents   []*PostContentItem `json:"contents" binding:"required"`
+	Contents   []*PostContentItem `json:"contents" binding:"required,dive,required,structonly"`
 	Users      []string           `json:"users" binding:"required"`
 	ClientIP   string             `json:"-" binding:"-"`
 }
