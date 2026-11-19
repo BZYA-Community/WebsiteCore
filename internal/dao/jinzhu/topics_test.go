@@ -16,35 +16,9 @@ import (
 )
 
 func TestUpsertTagsConcurrent(t *testing.T) {
-	dsn := os.Getenv("TEST_POSTGRES_DSN")
-	if dsn == "" {
-		t.Skip("TEST_POSTGRES_DSN not set; PostgreSQL tag concurrency integration test")
-	}
-	buf := make([]byte, 6)
-	if _, err := rand.Read(buf); err != nil {
-		t.Fatal(err)
-	}
-	prefix := "ut_tag_" + hex.EncodeToString(buf) + "_"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		NamingStrategy: schema.NamingStrategy{TablePrefix: prefix, SingularTable: true},
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	sqlDB, err := db.DB()
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = sqlDB.Close() })
-	if err := db.AutoMigrate(&dbr.Tag{}); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() {
-		if err := db.Migrator().DropTable(&dbr.Tag{}); err != nil {
-			t.Error(err)
-		}
-	})
-	if err := db.Exec("CREATE UNIQUE INDEX " + prefix + "tag_name ON " + prefix + "tag (tag)").Error; err != nil {
+	db := newTopicTestDB(t, &dbr.Tag{})
+	tagTable := db.NamingStrategy.TableName("Tag")
+	if err := db.Exec("CREATE UNIQUE INDEX " + tagTable + "_name ON " + tagTable + " (tag)").Error; err != nil {
 		t.Fatal(err)
 	}
 
@@ -52,15 +26,21 @@ func TestUpsertTagsConcurrent(t *testing.T) {
 	for _, tc := range []struct {
 		name         string
 		initialCount int64
+		deleted      bool
 	}{
 		{name: "new"},
 		{name: "existing", initialCount: 5},
+		{name: "soft-deleted", initialCount: 5, deleted: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(t.Context(), 15*time.Second)
 			defer cancel()
 			db := db.WithContext(ctx)
 			seed := &dbr.Tag{Model: &dbr.Model{}, UserID: originalUserID, Tag: tc.name, QuoteNum: tc.initialCount}
+			if tc.deleted {
+				seed.IsDel = 1
+				seed.DeletedOn = time.Now().Unix()
+			}
 			if tc.initialCount > 0 {
 				if err := db.Create(seed).Error; err != nil {
 					t.Fatal(err)
@@ -125,7 +105,7 @@ func TestUpsertTagsConcurrent(t *testing.T) {
 			}
 
 			var stored dbr.Tag
-			if err := db.Where("tag = ?", tc.name).First(&stored).Error; err != nil {
+			if err := db.Unscoped().Where("tag = ?", tc.name).First(&stored).Error; err != nil {
 				t.Fatal(err)
 			}
 			wantCount := tc.initialCount + 2
@@ -134,6 +114,9 @@ func TestUpsertTagsConcurrent(t *testing.T) {
 			}
 			if stored.UserID != originalUserID || (tc.initialCount > 0 && stored.ID != seed.ID) {
 				t.Errorf("tag identity changed: ID %d, owner %d", stored.ID, stored.UserID)
+			}
+			if stored.IsDel != seed.IsDel || stored.DeletedOn != seed.DeletedOn {
+				t.Errorf("stored is_del = %d, deleted_on = %d, want %d and %d", stored.IsDel, stored.DeletedOn, seed.IsDel, seed.DeletedOn)
 			}
 			for i, tags := range []cs.TagInfoList{firstTags, outcome.tags} {
 				want := cs.TagInfo{ID: stored.ID, UserID: originalUserID, Tag: tc.name, QuoteNum: tc.initialCount + int64(i) + 1}
@@ -171,30 +154,7 @@ func TestCountPublicTagRefsCountsEachPostOnce(t *testing.T) {
 }
 
 func TestListPublicPostTagFieldsExcludesHiddenPosts(t *testing.T) {
-	dsn := os.Getenv("TEST_POSTGRES_DSN")
-	if dsn == "" {
-		t.Skip("TEST_POSTGRES_DSN not set, skip topic persistence test")
-	}
-
-	buf := make([]byte, 4)
-	if _, err := rand.Read(buf); err != nil {
-		t.Fatalf("rand.Read() error = %v", err)
-	}
-	tablePrefix := "ut_topic_" + hex.EncodeToString(buf) + "_"
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		NamingStrategy: schema.NamingStrategy{TablePrefix: tablePrefix, SingularTable: true},
-	})
-	if err != nil {
-		t.Fatalf("gorm.Open() error = %v", err)
-	}
-	if err := db.AutoMigrate(&dbr.Post{}); err != nil {
-		t.Fatalf("AutoMigrate() error = %v", err)
-	}
-	t.Cleanup(func() {
-		if err := db.Migrator().DropTable(&dbr.Post{}); err != nil {
-			t.Logf("DropTable() error = %v", err)
-		}
-	})
+	db := newTopicTestDB(t, &dbr.Post{})
 
 	posts := []*dbr.Post{
 		{Model: &dbr.Model{}, Tags: "approved", AuditStatus: dbr.PostAuditApproved, Visibility: dbr.PostVisitPublic},
@@ -219,4 +179,37 @@ func TestListPublicPostTagFieldsExcludesHiddenPosts(t *testing.T) {
 	if len(got) != 1 || got[0] != "approved" {
 		t.Fatalf("public tag fields = %#v, want [approved]", got)
 	}
+}
+
+func newTopicTestDB(t *testing.T, model any) *gorm.DB {
+	t.Helper()
+	dsn := os.Getenv("TEST_POSTGRES_DSN")
+	if dsn == "" {
+		t.Skip("TEST_POSTGRES_DSN not set; PostgreSQL topic integration test")
+	}
+	buf := make([]byte, 6)
+	if _, err := rand.Read(buf); err != nil {
+		t.Fatalf("generate topic test table prefix: %v", err)
+	}
+	prefix := "ut_topic_" + hex.EncodeToString(buf) + "_"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		NamingStrategy: schema.NamingStrategy{TablePrefix: prefix, SingularTable: true},
+	})
+	if err != nil {
+		t.Fatalf("open PostgreSQL test database: %v", err)
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = sqlDB.Close() })
+	t.Cleanup(func() {
+		if err := db.Migrator().DropTable(model); err != nil {
+			t.Errorf("drop topic test table: %v", err)
+		}
+	})
+	if err := db.AutoMigrate(model); err != nil {
+		t.Fatalf("migrate topic test table: %v", err)
+	}
+	return db
 }
