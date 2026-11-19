@@ -45,24 +45,33 @@ func TestTweetListTotalsExcludeSoftDeletedPosts(t *testing.T) {
 	})
 	must(db.AutoMigrate(&dbr.Post{}, &dbr.PostMetric{}))
 
-	posts := []*dbr.Post{
-		{Model: &dbr.Model{}, Visibility: dbr.PostVisitPublic, AuditStatus: dbr.PostAuditApproved},
-		{Model: &dbr.Model{}, Visibility: dbr.PostVisitPublic, AuditStatus: dbr.PostAuditApproved},
-		{Model: &dbr.Model{}, Visibility: dbr.PostVisitPublic, AuditStatus: dbr.PostAuditApproved},
-		{Model: &dbr.Model{}, Visibility: dbr.PostVisitFriend, AuditStatus: dbr.PostAuditApproved},
-		{Model: &dbr.Model{}, Visibility: dbr.PostVisitPublic, AuditStatus: dbr.PostAuditPending},
-		{Model: &dbr.Model{}, Visibility: dbr.PostVisitPrivate, AuditStatus: dbr.PostAuditApproved},
+	newPost := func(visibility dbr.PostVisibleT, auditStatus dbr.PostAuditT) *dbr.Post {
+		return &dbr.Post{Model: &dbr.Model{}, Visibility: visibility, AuditStatus: auditStatus}
 	}
-	must(db.Create(posts).Error)
+	postWithActiveMetric := newPost(dbr.PostVisitPublic, dbr.PostAuditApproved)
+	postWithDeletedMetric := newPost(dbr.PostVisitPublic, dbr.PostAuditApproved)
+	deletedPost := newPost(dbr.PostVisitPublic, dbr.PostAuditApproved)
+	friendPost := newPost(dbr.PostVisitFriend, dbr.PostAuditApproved)
+	pendingPost := newPost(dbr.PostVisitPublic, dbr.PostAuditPending)
+	privatePost := newPost(dbr.PostVisitPrivate, dbr.PostAuditApproved)
+	must(db.Create([]*dbr.Post{
+		postWithActiveMetric, postWithDeletedMetric, deletedPost, friendPost, pendingPost, privatePost,
+	}).Error)
 
-	metrics := make([]*dbr.PostMetric, 0, len(posts))
-	for _, post := range posts {
-		metrics = append(metrics, &dbr.PostMetric{Model: &dbr.Model{}, PostId: post.ID})
+	metricFor := func(post *dbr.Post) *dbr.PostMetric {
+		return &dbr.PostMetric{Model: &dbr.Model{}, PostId: post.ID}
 	}
-	must(db.Create(metrics).Error)
-	// Delete the post and metric on different rows to exercise both filters.
-	must(posts[2].Delete(db))
-	must(metrics[1].Delete(db))
+	deletedMetric := metricFor(postWithDeletedMetric)
+	must(db.Create([]*dbr.PostMetric{
+		metricFor(postWithActiveMetric),
+		deletedMetric,
+		metricFor(deletedPost),
+		metricFor(friendPost),
+		metricFor(pendingPost),
+		metricFor(privatePost),
+	}).Error)
+	must(deletedPost.Delete(db))
+	must(deletedMetric.Delete(db))
 
 	service := newTweetService(db)
 	tests := []struct {
@@ -70,9 +79,9 @@ func TestTweetListTotalsExcludeSoftDeletedPosts(t *testing.T) {
 		list    func(limit, offset int) ([]*dbr.Post, int64, error)
 		wantIDs []int64
 	}{
-		{"newest", service.ListIndexNewestTweets, []int64{posts[0].ID, posts[1].ID}},
-		{"hot", service.ListIndexHotsTweets, []int64{posts[0].ID}},
-		{"search sync", service.ListSyncSearchTweets, []int64{posts[0].ID, posts[1].ID, posts[3].ID}},
+		{"newest", service.ListIndexNewestTweets, []int64{postWithActiveMetric.ID, postWithDeletedMetric.ID}},
+		{"hot", service.ListIndexHotsTweets, []int64{postWithActiveMetric.ID}},
+		{"search sync", service.ListSyncSearchTweets, []int64{postWithActiveMetric.ID, postWithDeletedMetric.ID, friendPost.ID}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
