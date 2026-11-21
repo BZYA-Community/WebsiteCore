@@ -19,7 +19,7 @@ type Following struct {
 
 func (f *Following) GetFollowing(db *gorm.DB, userId, followId int64) (*Following, error) {
 	var following Following
-	err := db.Omit("User").Unscoped().Where("user_id = ? AND follow_id = ?", userId, followId).First(&following).Error
+	err := db.Omit("User").Where("user_id = ? AND follow_id = ?", userId, followId).First(&following).Error
 	if err != nil {
 		logrus.Debugf("Following.GetFollowing get following error:%s", err)
 		return nil, err
