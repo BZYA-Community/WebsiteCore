@@ -81,7 +81,7 @@ type CoursePlayResp struct {
 type CreateCourseCommentReq struct {
 	SimpleInfo `json:"-" binding:"-"`
 	CourseID   int64              `json:"course_id" binding:"required"`
-	Contents   []*PostContentItem `json:"contents" binding:"required"`
+	Contents   []*PostContentItem `json:"contents" binding:"required,dive,required,structonly"`
 	Users      []string           `json:"users" binding:"required"`
 	ClientIP   string             `json:"-" binding:"-"`
 }
