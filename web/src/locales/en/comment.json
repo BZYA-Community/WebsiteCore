@@ -30,7 +30,7 @@
     "placeholder": "Write a reply..."
   },
   "compose": {
-    "placeholderLocked": "Bubble is locked, replies are disabled",
+    "placeholderLocked": "Post is locked, replies are disabled",
     "placeholder": "Share your thoughts...",
     "loginBanner": "Log in to discover more"
   },

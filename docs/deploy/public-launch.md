@@ -1,6 +1,6 @@
 # Public Launch Checklist
 
-Everything that must be true before a WebsiteCore instance accepts traffic from the public internet. Work top to bottom; the sections marked **blocking** will cause real damage or real legal trouble if skipped.
+Everything that must be true before a Starisle instance accepts traffic from the public internet. Work top to bottom; the sections marked **blocking** will cause real damage or real legal trouble if skipped.
 
 ## Network exposure (blocking)
 
