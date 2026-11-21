@@ -16,7 +16,7 @@ import (
 
 // RegisterWebStatick register web static assets route
 func RegisterWebStatick(e *gin.Engine) {
-	routeWebStatic(e, "/", "/index.html", "/favicon.ico", "/icon.svg","/icons", "/sw.js", "/manifest.json", "/assets/*filepath")
+	routeWebStatic(e, "/", "/index.html", "/favicon.ico", "/logo.png", "/icon.svg", "/icons", "/sw.js", "/manifest.json", "/assets/*filepath")
 }
 
 func routeWebStatic(e *gin.Engine, paths ...string) {
