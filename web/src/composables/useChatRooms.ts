@@ -123,7 +123,7 @@ export function useChatRooms() {
         {
           roomId: SYSTEM_ROOM_ID,
           roomName: systemRoomLabel,
-          avatar: res.system.avatar || '/logo.png',
+          avatar: res.system.avatar || '/icon.svg',
           users: [{ _id: SYSTEM_ROOM_ID, username: systemRoomLabel }],
           unreadCount: res.system.unread > 0 ? res.system.unread : undefined,
           index: res.system.last_time || Number.MAX_SAFE_INTEGER / 1000,

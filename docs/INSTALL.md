@@ -1,6 +1,6 @@
 # Installation Guide
 
-This guide covers the recommended ways to run WebsiteCore in development, evaluation, and self-hosted deployments. For a project overview, see [README.md](../README.md); for the full operations library, see [deploy/README.md](deploy/README.md).
+This guide covers the recommended ways to run Starisle in development, evaluation, and self-hosted deployments. For a project overview, see [README.md](../README.md); for the full operations library, see [deploy/README.md](deploy/README.md).
 
 ## Choose an Installation Path
 
@@ -144,14 +144,14 @@ make run TAGS='embed'
 
 ## Configuration Basics
 
-At startup, WebsiteCore reads either:
+At startup, Starisle reads either:
 
 1. `./custom/config.yaml`
 2. `./config.yaml`
 
 The first file found is used.
 
-Important: the external file is no longer expected to carry every runtime knob. WebsiteCore loads embedded defaults first, then overlays your local config file. A complete reference for every section and feature flag is in [deploy/configuration.md](deploy/configuration.md).
+Important: the external file is no longer expected to carry every runtime knob. Starisle loads embedded defaults first, then overlays your local config file. A complete reference for every section and feature flag is in [deploy/configuration.md](deploy/configuration.md).
 
 Recommended split:
 

@@ -30,7 +30,7 @@
     "placeholder": "请输入回复内容.."
   },
   "compose": {
-    "placeholderLocked": "泡泡已被锁定，回复功能已关闭",
+    "placeholderLocked": "动态已被锁定，回复功能已关闭",
     "placeholder": "快来评论两句吧...",
     "loginBanner": "登录后，精彩更多"
   },

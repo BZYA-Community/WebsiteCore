@@ -1,6 +1,6 @@
-# WebsiteCore Web Frontend
+# Starisle Web Frontend
 
-The Vue 3 single-page application served by the WebsiteCore backend. In production it is compiled into `dist/` and embedded into the Go binary by default (see `embed.go`; the `slim embed` tag combination omits it). The `Frontend:EmbedWeb` feature controls serving the SPA.
+The Vue 3 single-page application served by the Starisle backend. In production it is compiled into `dist/` and embedded into the Go binary by default (see `embed.go`; the `slim embed` tag combination omits it). The `Frontend:EmbedWeb` feature controls serving the SPA.
 
 ## Stack
 

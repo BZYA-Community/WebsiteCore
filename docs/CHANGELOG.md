@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to WebsiteCore are documented in this file, following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This fork has not cut a release yet; changes accumulate under `Unreleased`.
+All notable changes to Starisle are documented in this file, following [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). This fork has not cut a release yet; changes accumulate under `Unreleased`.
 
 History of the upstream paopao-ce project (0.2.0 through 0.6.0+dev) is archived at [archive/upstream/CHANGELOG.md](archive/upstream/CHANGELOG.md) and is not continued here.
 

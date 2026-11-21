@@ -1,12 +1,24 @@
 {
-  "short_name": "泡泡",
-  "name": "泡泡",
-  "description": "一个清新文艺的微社区",
+  "short_name": "Starisle",
+  "name": "星屿 · Starisle",
+  "description": "Starisle · AI Youth Galaxy",
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
+      "src": "/icons/web-app-manifest-192x192.png",
+      "sizes": "192x192",
       "type": "image/png",
-      "sizes": "600x600"
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "start_url": "/",

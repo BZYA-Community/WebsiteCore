@@ -1,6 +1,6 @@
 # Configuration Reference
 
-WebsiteCore is configured through three layers, applied in this order (later layers win):
+Starisle is configured through three layers, applied in this order (later layers win):
 
 ```text
 1. Embedded defaults    internal/conf/config.yaml, compiled into the binary

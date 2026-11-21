@@ -1,6 +1,6 @@
 # Community framework development baseline
 
-This document records the accepted direction for the modular WebsiteCore refactor. New repository artifacts use English; the product keeps Chinese and English translations.
+This document records the accepted direction for the modular Starisle refactor. New repository artifacts use English; the product keeps Chinese and English translations.
 
 The five phases are implemented and committed for an integrated pull request, with per-feature scopes below. See [verification results and remaining deployment gates](community-verification.md) and the [deployment and browser BVT record](deploy/2026-10-07-bvt.md).
 

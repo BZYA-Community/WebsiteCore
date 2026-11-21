@@ -1,12 +1,12 @@
 # Archive
 
-This directory holds historical documents that are kept for reference only. They do not describe the current state of WebsiteCore and are not maintained.
+This directory holds historical documents that are kept for reference only. They do not describe the current state of Starisle and are not maintained.
 
 ## Contents
 
 | Path | Origin | Notes |
 | --- | --- | --- |
-| `upstream/CHANGELOG.md` | paopao-ce upstream | Release history of the upstream project (0.2.0 through 0.6.0+dev). WebsiteCore's own changelog lives at [../../CHANGELOG.md](../CHANGELOG.md). |
+| `upstream/CHANGELOG.md` | paopao-ce upstream | Release history of the upstream project (0.2.0 through 0.6.0+dev). Starisle's own changelog lives at [../../CHANGELOG.md](../CHANGELOG.md). |
 | `upstream/proposal/` | paopao-ce upstream | 16 design proposals written between 2022-11 and 2023-06 by the original paopao-ce authors. Several of them cover features that have since been removed from this fork (Lightship, Sqlite3, Alipay). A few architecture proposals (project structure, go-mir, Followship) remain useful background reading. |
 | `upstream/deploy-core/` | paopao-ce upstream | Legacy configuration reference. Superseded by [../deploy/configuration.md](../deploy/configuration.md). |
 
