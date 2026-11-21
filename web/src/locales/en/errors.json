@@ -137,6 +137,7 @@
     "E90101": "Failed to like comment",
     "E90102": "Failed to dislike comment",
     "E90103": "Failed to like comment reply",
-    "E90104": "Failed to dislike comment reply"
+    "E90104": "Failed to dislike comment reply",
+    "E23005": "Verification code attempt limit reached. Request a new code."
   }
 }
