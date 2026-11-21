@@ -378,7 +378,7 @@ func (s *tweetSrv) ListUserTweets(userId int64, style uint8, justEssence bool, l
 
 func (s *tweetSrv) ListIndexNewestTweets(limit, offset int) (res []*ms.Post, total int64, err error) {
 	// 公共广场仅展示已过审的公开帖
-	db := s.db.Table(_post_).Where("visibility >= ? AND audit_status = ?", cs.TweetVisitPublic, dbr.PostAuditApproved)
+	db := s.db.Model(&dbr.Post{}).Where("visibility >= ? AND audit_status = ?", cs.TweetVisitPublic, dbr.PostAuditApproved)
 	if err = db.Count(&total).Error; err != nil {
 		return
 	}
@@ -392,7 +392,9 @@ func (s *tweetSrv) ListIndexNewestTweets(limit, offset int) (res []*ms.Post, tot
 }
 
 func (s *tweetSrv) ListIndexHotsTweets(limit, offset int) (res []*ms.Post, total int64, err error) {
-	db := s.db.Table(_post_).Joins(fmt.Sprintf("LEFT JOIN %s metric ON %s.id=metric.post_id", _post_metric_, _post_)).Where(fmt.Sprintf("visibility >= ? AND audit_status = ? AND %s.is_del=0 AND metric.is_del=0", _post_), cs.TweetVisitPublic, dbr.PostAuditApproved)
+	db := s.db.Model(&dbr.Post{}).
+		Joins(fmt.Sprintf("LEFT JOIN %s metric ON %s.id=metric.post_id", _post_metric_, _post_)).
+		Where("visibility >= ? AND audit_status = ? AND metric.is_del = 0", cs.TweetVisitPublic, dbr.PostAuditApproved)
 	if err = db.Count(&total).Error; err != nil {
 		return
 	}
@@ -407,7 +409,7 @@ func (s *tweetSrv) ListIndexHotsTweets(limit, offset int) (res []*ms.Post, total
 
 func (s *tweetSrv) ListSyncSearchTweets(limit, offset int) (res []*ms.Post, total int64, err error) {
 	// 搜索引擎仅同步已过审的帖子
-	db := s.db.Table(_post_).Where("visibility >= ? AND audit_status = ?", cs.TweetVisitFriend, dbr.PostAuditApproved)
+	db := s.db.Model(&dbr.Post{}).Where("visibility >= ? AND audit_status = ?", cs.TweetVisitFriend, dbr.PostAuditApproved)
 	if err = db.Count(&total).Error; err != nil {
 		return
 	}
