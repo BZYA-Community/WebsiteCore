@@ -9,7 +9,6 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
-	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -204,17 +203,8 @@ func applyReviewDecision(tx *gorm.DB, task *ms.ReviewTask, subject *reviewSubjec
 			changes["visibility"] = ms.PostVisitPrivate
 		}
 		if approved && subject.Post.Visibility != ms.PostVisitPrivate {
-			seen := map[string]bool{}
-			for _, tag := range strings.Split(subject.Post.Tags, ",") {
-				tag = strings.TrimSpace(tag)
-				if tag == "" || seen[tag] {
-					continue
-				}
-				seen[tag] = true
-				entry := &dbr.Tag{Model: &dbr.Model{}, UserID: subject.AuthorID, Tag: tag, QuoteNum: 1}
-				if err := tx.Clauses(clause.OnConflict{Columns: []clause.Column{{Name: "tag"}}, DoUpdates: clause.Assignments(map[string]any{
-					"quote_num": gorm.Expr("? + 1", clause.Column{Table: clause.CurrentTable, Name: "quote_num"}), "modified_on": now,
-				})}).Create(entry).Error; err != nil {
+			for _, tag := range reviewTags(subject.Post.Tags) {
+				if _, err := upsertTag(tx, subject.AuthorID, tag, now); err != nil {
 					return err
 				}
 			}
