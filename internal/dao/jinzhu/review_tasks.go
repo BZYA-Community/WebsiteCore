@@ -2,7 +2,6 @@ package jinzhu
 
 import (
 	"errors"
-	"math/rand/v2"
 	"time"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/application/columnindex"
@@ -35,23 +34,6 @@ func validReviewKind(kind string) bool {
 func reviewPolicyLock(tx *gorm.DB) error {
 	var group dbr.IdentityGroup
 	return tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("key = ?", "guest").First(&group).Error
-}
-
-func eligibleReviewers(tx *gorm.DB) ([]*ms.User, error) {
-	var users []*ms.User
-	if err := tx.Where("is_del = 0 AND status = ?", ms.UserStatusNormal).Find(&users).Error; err != nil {
-		return nil, err
-	}
-	if err := dbr.LoadUserIdentities(tx, users...); err != nil {
-		return nil, err
-	}
-	result := make([]*ms.User, 0, len(users))
-	for _, user := range users {
-		if user.HasPermission(authz.ContentReview) {
-			result = append(result, user)
-		}
-	}
-	return result, nil
 }
 
 func reviewEvent(tx *gorm.DB, task *ms.ReviewTask, event string, actorID, fromID, toID int64, reason string, now int64) error {
@@ -106,24 +88,19 @@ func enqueueReviewTx(tx *gorm.DB, kind string, targetID int64, deadline time.Dur
 	if err := reviewEvent(tx, &task, "submitted", subject.AuthorID, 0, 0, "", now); err != nil {
 		return err
 	}
-	reviewers, err := eligibleReviewers(tx)
-	if err != nil {
-		return err
-	}
-	return assignReviewTask(tx, &task, reviewers, deadline, now)
+	return assignReviewTask(tx, &task, deadline, now)
 }
 
-func assignReviewTask(tx *gorm.DB, task *ms.ReviewTask, reviewers []*ms.User, deadline time.Duration, now int64) error {
-	ids := make([]int64, 0, len(reviewers))
-	for _, user := range reviewers {
-		if user.ID != task.AuthorID && user.ID != task.PreviousAssigneeID {
-			ids = append(ids, user.ID)
-		}
+func assignReviewTask(tx *gorm.DB, task *ms.ReviewTask, deadline time.Duration, now int64) error {
+	var ids []int64
+	if err := dbr.EligibleReviewers(tx).Where("id <> ? AND id <> ?", task.AuthorID, task.PreviousAssigneeID).
+		Order("random()").Limit(1).Pluck("id", &ids).Error; err != nil {
+		return err
 	}
 	if len(ids) == 0 {
 		return nil
 	}
-	task.AssigneeID = ids[rand.IntN(len(ids))]
+	task.AssigneeID = ids[0]
 	task.AssignedOn, task.DeadlineOn, task.ModifiedOn = now, now+int64(deadline/time.Second), now
 	if err := tx.Save(task).Error; err != nil {
 		return err
@@ -166,17 +143,20 @@ func (s *reviewSrv) ReconcileReviewTasks(deadline time.Duration) error {
 		if err := reviewPolicyLock(tx); err != nil {
 			return err
 		}
-		reviewers, err := eligibleReviewers(tx)
-		if err != nil {
-			return err
-		}
-		eligible := make(map[int64]bool, len(reviewers))
-		for _, user := range reviewers {
-			eligible[user.ID] = true
-		}
 		var tasks []*ms.ReviewTask
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).Where("state = ?", ms.ReviewPending).Order("id").Find(&tasks).Error; err != nil {
 			return err
+		}
+		if len(tasks) == 0 {
+			return nil
+		}
+		var reviewerIDs []int64
+		if err := dbr.EligibleReviewers(tx).Pluck("id", &reviewerIDs).Error; err != nil {
+			return err
+		}
+		eligible := make(map[int64]bool, len(reviewerIDs))
+		for _, id := range reviewerIDs {
+			eligible[id] = true
 		}
 		now := time.Now().Unix()
 		for _, task := range tasks {
@@ -222,7 +202,10 @@ func (s *reviewSrv) ReconcileReviewTasks(deadline time.Duration) error {
 					return err
 				}
 			}
-			if err := assignReviewTask(tx, task, reviewers, deadline, now); err != nil {
+			if len(eligible) == 0 {
+				continue
+			}
+			if err := assignReviewTask(tx, task, deadline, now); err != nil {
 				return err
 			}
 		}
