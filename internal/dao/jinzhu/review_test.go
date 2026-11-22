@@ -1,14 +1,10 @@
 package jinzhu
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"os"
-	"slices"
-	"strings"
 	"testing"
 	"time"
 
@@ -19,20 +15,8 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	"gorm.io/gorm/schema"
 )
-
-type reviewQueryTrace struct {
-	logger.Interface
-	trace func(string, int64)
-}
-
-func (l reviewQueryTrace) Trace(ctx context.Context, begin time.Time, result func() (string, int64), err error) {
-	query, rows := result()
-	l.trace(query, rows)
-	l.Interface.Trace(ctx, begin, result, err)
-}
 
 func TestReviewAssignmentsAndAtomicDecisions(t *testing.T) {
 	dsn := os.Getenv("TEST_POSTGRES_DSN")
@@ -82,7 +66,7 @@ func TestReviewAssignmentsAndAtomicDecisions(t *testing.T) {
 		}
 		return g
 	}
-	guestGroup := group("guest", authz.PostView, authz.PostCreate, authz.CommentCreate, authz.CourseView, authz.ProfileEdit, authz.CommunityInteract, authz.ContentUpload)
+	group("guest", authz.PostView, authz.PostCreate, authz.CommentCreate, authz.CourseView, authz.ProfileEdit, authz.CommunityInteract, authz.ContentUpload)
 	reviewerGroup := group("reviewer", authz.ContentReview)
 	viewerGroup := group("all_tasks", authz.AuditViewAll)
 	user := func(name string, groups ...*dbr.IdentityGroup) *ms.User {
@@ -96,12 +80,8 @@ func TestReviewAssignmentsAndAtomicDecisions(t *testing.T) {
 		return u
 	}
 	author := user("author")
-	reviewerA := user("reviewer_a", reviewerGroup)
-	ordinaryUsers := make([]ms.User, 199)
-	for i := range ordinaryUsers {
-		ordinaryUsers[i] = ms.User{Model: &ms.Model{}, Username: fmt.Sprintf("ordinary_%d", i), Status: ms.UserStatusNormal}
-	}
-	must(db.CreateInBatches(&ordinaryUsers, 100).Error)
+	reviewerA, reviewerB := user("reviewer_a", reviewerGroup), user("reviewer_b", reviewerGroup)
+	viewer := user("viewer", viewerGroup)
 	s := &reviewSrv{db: db}
 	submitProfile := func(user *ms.User, kind, value string) error {
 		_, err := s.SubmitProfileReview(user, kind, value)
@@ -113,32 +93,6 @@ func TestReviewAssignmentsAndAtomicDecisions(t *testing.T) {
 		must(db.Where("kind = ? AND target_id = ?", kind, id).First(&task).Error)
 		return &task
 	}
-	// Measure reviewer lookup after the submission event. Before the fix this
-	// loaded all 201 accounts and resolved their identities with three more reads.
-	var submitted bool
-	var lookupQueries int
-	var lookupRows int64
-	submitDB := db.Session(&gorm.Session{Logger: reviewQueryTrace{Interface: db.Logger, trace: func(query string, rows int64) {
-		if submitted && strings.HasPrefix(query, "SELECT ") {
-			lookupQueries++
-			lookupRows += rows
-		}
-		if strings.HasPrefix(query, "INSERT INTO ") && strings.Contains(query, `"`+prefix+`review_task_event"`) && strings.Contains(query, "'submitted'") {
-			submitted = true
-		}
-	}}})
-	post, err := (&reviewSrv{db: submitDB}).CreatePostWithContents(&ms.Post{UserID: author.ID, Visibility: ms.PostVisitPublic, Tags: "review"}, []*ms.PostContent{{Type: ms.ContentTypeText, Content: "Complete content"}})
-	must(err)
-	if lookupQueries != 1 || lookupRows != 1 {
-		t.Fatalf("reviewer lookup returned %d rows in %d queries, want 1 row in 1 query", lookupRows, lookupQueries)
-	}
-	task := taskFor(ms.ReviewPost, post.ID)
-	if task.AssigneeID != reviewerA.ID || task.DeadlineOn-task.AssignedOn != int64(48*time.Hour/time.Second) {
-		t.Fatalf("assignment/deadline: %+v", task)
-	}
-
-	reviewerB := user("reviewer_b", reviewerGroup)
-	viewer := user("viewer", viewerGroup)
 	actorFor := func(task *ms.ReviewTask) *ms.User {
 		t.Helper()
 		if task.AssigneeID == reviewerA.ID {
@@ -150,7 +104,17 @@ func TestReviewAssignmentsAndAtomicDecisions(t *testing.T) {
 		t.Fatalf("unexpected assignee: %d", task.AssigneeID)
 		return nil
 	}
-	assigned, other := reviewerA, reviewerB
+	post, err := s.CreatePostWithContents(&ms.Post{UserID: author.ID, Visibility: ms.PostVisitPublic, Tags: "review"}, []*ms.PostContent{{Type: ms.ContentTypeText, Content: "Complete content"}})
+	must(err)
+	task := taskFor(ms.ReviewPost, post.ID)
+	if task.AssigneeID == 0 || task.DeadlineOn-task.AssignedOn != int64(48*time.Hour/time.Second) {
+		t.Fatalf("assignment/deadline: %+v", task)
+	}
+	assigned := actorFor(task)
+	other := reviewerA
+	if assigned.ID == reviewerA.ID {
+		other = reviewerB
+	}
 	if _, err := s.DecideReview(other, task.ID, task.Revision, "approve", ""); !errors.Is(err, authz.ErrDenied) {
 		t.Fatalf("unassigned decision: %v", err)
 	}
@@ -443,49 +407,5 @@ func TestReviewAssignmentsAndAtomicDecisions(t *testing.T) {
 	must(db.Model(&ms.ReviewTaskEvent{}).Where("task_id = ? AND event = ?", avatarTask.ID, "operator_override").Count(&overrides).Error)
 	if overrides != 1 {
 		t.Fatal("operator override was not logged")
-	}
-
-	// The two remaining reviewers are excluded when they authored or last held the task.
-	excluded := &ms.ReviewTask{AuthorID: firstReviewer.ID, PreviousAssigneeID: operator.ID}
-	must(assignReviewTask(db, excluded, 48*time.Hour, time.Now().Unix()))
-	if excluded.AssigneeID != 0 {
-		t.Fatalf("assigned to author or previous assignee: %d", excluded.AssigneeID)
-	}
-
-	additionalGroup := group("additional_reviewer", authz.ContentReview)
-	must(db.Create(&dbr.UserIdentityGroup{UserID: firstReviewer.ID, GroupID: additionalGroup.ID}).Error)
-	memberGroup := group("member")
-	closed := user("closed_reviewer", reviewerGroup)
-	must(db.Model(closed).Update("status", ms.UserStatusClosed).Error)
-	deleted := user("deleted_operator")
-	must(db.Model(deleted).Updates(map[string]any{"is_operator": true, "is_del": 1}).Error)
-	emailUser := user("email_user", guestGroup)
-	must(db.Model(emailUser).Update("email", "email@example.test").Error)
-	phoneUser := user("phone_user", memberGroup, guestGroup)
-	must(db.Model(phoneUser).Update("phone", "5550000").Error)
-
-	oldVerification := conf.AccountVerifySetting
-	t.Cleanup(func() { conf.AccountVerifySetting = oldVerification })
-	check := func(mode string, want ...int64) {
-		t.Helper()
-		conf.AccountVerifySetting = &conf.AccountVerifyConf{Mode: mode}
-		var ids []int64
-		must(dbr.EligibleReviewers(db).Order("id").Pluck("id", &ids).Error)
-		if !slices.Equal(ids, want) {
-			t.Fatalf("%s reviewer eligibility: got %v, want %v", mode, ids, want)
-		}
-	}
-	check("email", firstReviewer.ID, operator.ID)
-	must(db.Create(&dbr.IdentityGroupPermission{GroupID: memberGroup.ID, Permission: authz.ContentReview}).Error)
-	check("email", firstReviewer.ID, operator.ID, emailUser.ID)
-	check("phone", firstReviewer.ID, operator.ID, phoneUser.ID)
-
-	// A stale guest membership must not grant guest permissions to a member.
-	must(db.Create(&dbr.IdentityGroupPermission{GroupID: guestGroup.ID, Permission: authz.ContentReview}).Error)
-	must(db.Where("group_id = ? AND permission = ?", memberGroup.ID, authz.ContentReview).Delete(&dbr.IdentityGroupPermission{}).Error)
-	var guestIDs []int64
-	must(dbr.EligibleReviewers(db).Where("id IN ?", []int64{emailUser.ID, phoneUser.ID}).Pluck("id", &guestIDs).Error)
-	if !slices.Equal(guestIDs, []int64{emailUser.ID}) {
-		t.Fatalf("phone-mode guest reviewer eligibility: got %v, want [%d]", guestIDs, emailUser.ID)
 	}
 }

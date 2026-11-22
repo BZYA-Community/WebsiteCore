@@ -86,9 +86,11 @@ func EligibleReviewers(db *gorm.DB) *gorm.DB {
 		Joins("JOIN LATERAL (?) AS eligible ON true", activeUsers().Where("id = assigned.user_id").Limit(1))
 	guestGrant := reviewGrants(groups.Where("key = ?", "guest"))
 	memberGrant := reviewGrants(groups.Where("key = ?", "member"))
-	contact := "COALESCE(email, '')"
+	// Both contact columns are NOT NULL. Use the direct predicate so PostgreSQL
+	// can use the partial index for active accounts with a verified contact.
+	contact := "email"
 	if conf.VerificationMode() == "phone" {
-		contact = "COALESCE(phone, '')"
+		contact = "phone"
 	}
 
 	// Automatic groups can grant review without a membership row. UNION keeps

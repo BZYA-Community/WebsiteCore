@@ -2,6 +2,7 @@ package jinzhu
 
 import (
 	"errors"
+	"math/rand/v2"
 	"time"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/application/columnindex"
@@ -41,10 +42,16 @@ func reviewEvent(tx *gorm.DB, task *ms.ReviewTask, event string, actorID, fromID
 		ActorID: actorID, FromAssigneeID: fromID, ToAssigneeID: toID, Reason: reason, CreatedOn: now}).Error
 }
 
+type reviewAssigneePicker func(*gorm.DB, *ms.ReviewTask) (int64, error)
+
 // enqueueReviewTx must be called after the whole content has been written in
 // the same transaction. The caller locks reviewPolicyLock before content rows.
 // A failed assignment/log write then rolls back the complete submission.
 func enqueueReviewTx(tx *gorm.DB, kind string, targetID int64, deadline time.Duration) error {
+	return enqueueReviewWithPickerTx(tx, kind, targetID, deadline, pickReviewAssignee)
+}
+
+func enqueueReviewWithPickerTx(tx *gorm.DB, kind string, targetID int64, deadline time.Duration, pick reviewAssigneePicker) error {
 	if !validReviewKind(kind) || targetID <= 0 || deadline <= 0 {
 		return authz.ErrInvalid
 	}
@@ -88,19 +95,27 @@ func enqueueReviewTx(tx *gorm.DB, kind string, targetID int64, deadline time.Dur
 	if err := reviewEvent(tx, &task, "submitted", subject.AuthorID, 0, 0, "", now); err != nil {
 		return err
 	}
-	return assignReviewTask(tx, &task, deadline, now)
+	return assignReviewTask(tx, &task, deadline, now, pick)
 }
 
-func assignReviewTask(tx *gorm.DB, task *ms.ReviewTask, deadline time.Duration, now int64) error {
+func pickReviewAssignee(tx *gorm.DB, task *ms.ReviewTask) (int64, error) {
 	var ids []int64
 	if err := dbr.EligibleReviewers(tx).Where("id <> ? AND id <> ?", task.AuthorID, task.PreviousAssigneeID).
 		Order("random()").Limit(1).Pluck("id", &ids).Error; err != nil {
-		return err
+		return 0, err
 	}
 	if len(ids) == 0 {
-		return nil
+		return 0, nil
 	}
-	task.AssigneeID = ids[0]
+	return ids[0], nil
+}
+
+func assignReviewTask(tx *gorm.DB, task *ms.ReviewTask, deadline time.Duration, now int64, pick reviewAssigneePicker) error {
+	assignee, err := pick(tx, task)
+	if err != nil || assignee == 0 {
+		return err
+	}
+	task.AssigneeID = assignee
 	task.AssignedOn, task.DeadlineOn, task.ModifiedOn = now, now+int64(deadline/time.Second), now
 	if err := tx.Save(task).Error; err != nil {
 		return err
@@ -158,6 +173,21 @@ func (s *reviewSrv) ReconcileReviewTasks(deadline time.Duration) error {
 		for _, id := range reviewerIDs {
 			eligible[id] = true
 		}
+		pickFromPool := func(_ *gorm.DB, task *ms.ReviewTask) (int64, error) {
+			var assignee int64
+			var count int
+			for _, id := range reviewerIDs {
+				if id == task.AuthorID || id == task.PreviousAssigneeID {
+					continue
+				}
+				// Reservoir sampling gives each eligible reviewer the same chance.
+				count++
+				if rand.IntN(count) == 0 {
+					assignee = id
+				}
+			}
+			return assignee, nil
+		}
 		now := time.Now().Unix()
 		for _, task := range tasks {
 			subject, err := loadReviewSubject(tx, task.Kind, task.TargetID)
@@ -177,7 +207,7 @@ func (s *reviewSrv) ReconcileReviewTasks(deadline time.Duration) error {
 			}
 			if subject.Snapshot != task.Snapshot {
 				// A replacement must get a new revision through the submission transaction.
-				if err := enqueueReviewTx(tx, task.Kind, task.TargetID, deadline); err != nil {
+				if err := enqueueReviewWithPickerTx(tx, task.Kind, task.TargetID, deadline, pickFromPool); err != nil {
 					return err
 				}
 				continue
@@ -202,10 +232,7 @@ func (s *reviewSrv) ReconcileReviewTasks(deadline time.Duration) error {
 					return err
 				}
 			}
-			if len(eligible) == 0 {
-				continue
-			}
-			if err := assignReviewTask(tx, task, deadline, now); err != nil {
+			if err := assignReviewTask(tx, task, deadline, now, pickFromPool); err != nil {
 				return err
 			}
 		}
