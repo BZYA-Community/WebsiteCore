@@ -28,11 +28,11 @@
   },
   "dialog": {
     "tipTitle": "提示",
-    "deleteContent": "确定删除该泡泡动态吗？",
-    "lockContent": "确定{action}该泡泡动态吗？",
-    "stickContent": "确定{action}该泡泡动态吗？",
-    "highlightContent": "确定将该泡泡动态{action}吗？",
-    "visibilityContent": "确定将该泡泡动态可见度修改为{visibility}吗？"
+    "deleteContent": "确定删除该动态吗？",
+    "lockContent": "确定{action}该动态吗？",
+    "stickContent": "确定{action}该动态吗？",
+    "highlightContent": "确定将该动态{action}吗？",
+    "visibilityContent": "确定将该动态可见度修改为{visibility}吗？"
   },
   "audit": {},
   "publishAt": "发布于",
@@ -64,10 +64,10 @@
     "filterHot": "热门推荐",
     "filterFollowing": "正在关注",
     "latest": "最新动态",
-    "noMoreBubbles": "没有更多泡泡了",
+    "noMoreBubbles": "没有更多动态了",
     "loadError": "加载出错",
     "loadMore": "加载更多",
-    "squareTitle": "泡泡广场",
+    "squareTitle": "星屿广场",
     "searchPrefix": "搜索: "
   },
   "topic": {
@@ -79,7 +79,7 @@
     "saveSuccess": "保存成功"
   },
   "postDetail": {
-    "title": "泡泡详情",
+    "title": "动态详情",
     "commentTitle": "评论",
     "sortRecommended": "推荐",
     "sortHot": "热门",

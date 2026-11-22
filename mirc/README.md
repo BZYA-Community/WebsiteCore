@@ -1,4 +1,4 @@
-# mirc — RESTful API Definitions for WebsiteCore
+# mirc — RESTful API Definitions for Starisle
 
 This directory is the single source of truth for all RESTful API routes. Files here are [go-mir](https://github.com/alimy/mir) interface definitions; the actual routing code is generated into `../auto/` and must never be hand-edited.
 

@@ -64,10 +64,10 @@
     "filterHot": "Trending",
     "filterFollowing": "Following",
     "latest": "Latest",
-    "noMoreBubbles": "No more bubbles",
+    "noMoreBubbles": "No more posts",
     "loadError": "Loading error",
     "loadMore": "Load more",
-    "squareTitle": "Bubble Square",
+    "squareTitle": "Starisle Square",
     "searchPrefix": "Search: "
   },
   "topic": {

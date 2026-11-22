@@ -8,8 +8,8 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core"
 	"github.com/BZYA-Community/WebsiteCore/internal/core/ms"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
-	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type followingManageSrv struct {
@@ -27,17 +27,12 @@ func newFollowingManageService(db *gorm.DB) core.FollowingManageService {
 }
 
 func (s *followingManageSrv) FollowUser(userId int64, followId int64) error {
-	if _, err := s.f.GetFollowing(s.db, userId, followId); err != nil {
-		following := &dbr.Following{
-			UserId:   userId,
-			FollowId: followId,
-		}
-		if _, err = following.Create(s.db); err != nil {
-			logrus.Errorf("contactManageSrv.fetchOrNewContact create new contact err:%s", err)
-			return err
-		}
+	following := &dbr.Following{
+		UserId:   userId,
+		FollowId: followId,
 	}
-	return nil
+	_, err := following.Create(s.db.Clauses(clause.OnConflict{DoNothing: true}))
+	return err
 }
 
 func (s *followingManageSrv) UnfollowUser(userId int64, followId int64) error {

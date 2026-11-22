@@ -1,6 +1,6 @@
 # Deployment Guides
 
-This directory covers everything needed to run WebsiteCore, from a laptop development stack to a public production server.
+This directory covers everything needed to run Starisle, from a laptop development stack to a public production server.
 
 ## Pick a path
 
@@ -17,11 +17,11 @@ This directory covers everything needed to run WebsiteCore, from a laptop develo
 
 ## Architecture at a glance
 
-A WebsiteCore installation is a single Go binary plus three infrastructure services:
+A Starisle installation is a single Go binary plus three infrastructure services:
 
 ```text
                      +----------------------------+
-   browser --------> | WebsiteCore binary         |
+   browser --------> | Starisle binary         |
                      | (Gin API + embedded Vue SPA)|
                      +----+--------+--------+-----+
                           |        |        |

@@ -1,6 +1,6 @@
 # Feature Status
 
-WebsiteCore assembles its capabilities from feature flags declared in `config.yaml` under `Features` (see [deploy/configuration.md](deploy/configuration.md)). This page is the authoritative matrix of what each flag does and how well it is supported in this fork.
+Starisle assembles its capabilities from feature flags declared in `config.yaml` under `Features` (see [deploy/configuration.md](deploy/configuration.md)). This page is the authoritative matrix of what each flag does and how well it is supported in this fork.
 
 Status legend:
 

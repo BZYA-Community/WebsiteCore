@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>WebsiteCore</h1>
+  <h1>Starisle</h1>
   <p>
     A self-hosted micro-community platform deeply customized from <a href="https://github.com/rocboss/paopao-ce">paopao-ce</a><br>
     Go + Vue 3 full stack · identity-group permissions · content moderation · Bilibili-style in-site messaging

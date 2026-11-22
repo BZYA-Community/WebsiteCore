@@ -30,7 +30,7 @@ Start here if you are looking for anything beyond the project overview in the [r
 | Document | Topic |
 | --- | --- |
 | [features-status.md](features-status.md) | Feature flag maturity matrix |
-| [CHANGELOG.md](CHANGELOG.md) | WebsiteCore change history |
+| [CHANGELOG.md](CHANGELOG.md) | Starisle change history |
 | [column-returns.md](column-returns.md) | Private author retrieval after administrator article deletion |
 | [openapi/](openapi/) | OpenAPI assets served at `/docs/openapi` with the `docs` build tag |
 | [archive/](archive/) | Historical upstream paopao-ce documents, kept for reference only |

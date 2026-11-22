@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>WebsiteCore</h1>
+  <h1>Starisle · 星屿</h1>
   <p>
     基于 <a href="https://github.com/rocboss/paopao-ce">paopao-ce</a> 深度定制的微社区系统<br>
     Go + Vue3 全栈 · 身份组权限 · 内容审核 · B站式站内私信

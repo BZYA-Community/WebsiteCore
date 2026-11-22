@@ -1,6 +1,6 @@
 # Production Deployment (Recommended)
 
-Recommended layout: **the WebsiteCore binary runs natively under systemd; PostgreSQL, Redis, and Meilisearch run in Docker containers** on the same host. Nginx terminates TLS and reverse-proxies to the application.
+Recommended layout: **the Starisle binary runs natively under systemd; PostgreSQL, Redis, and Meilisearch run in Docker containers** on the same host. Nginx terminates TLS and reverse-proxies to the application.
 
 This guide assumes a Linux server (Debian/Ubuntu or similar) with Docker installed, and a domain name pointing at it. Work through [public-launch.md](public-launch.md) before opening the site to real users.
 
@@ -171,7 +171,7 @@ Create `/etc/systemd/system/websitecore.service` (adapted from `scripts/systemd/
 
 ```ini
 [Unit]
-Description=WebsiteCore community server
+Description=Starisle community server
 After=network-online.target docker.service
 Wants=network-online.target
 
