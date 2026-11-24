@@ -25,6 +25,12 @@ type ProfileSubmission struct {
 	Previous string
 }
 
+// ReviewTarget identifies a review subject. IDs can overlap across kinds.
+type ReviewTarget struct {
+	Kind string
+	ID   int64
+}
+
 type ReviewService interface {
 	CreatePostWithContents(post *ms.Post, contents []*ms.PostContent) (*ms.Post, error)
 	CreateCommentWithContents(comment *ms.Comment, contents []*ms.CommentContent) (*ms.Comment, error)
@@ -34,6 +40,8 @@ type ReviewService interface {
 	ReconcileReviewTasks(deadline time.Duration) error
 	ListReviewTasks(actor *ms.User, kind, state string, offset, limit int) ([]*ms.ReviewTask, int64, error)
 	ReviewTaskForTarget(actor *ms.User, kind string, targetID int64) (*ms.ReviewTask, error)
+	// ReviewTasksForTargets returns a task for each target or an error if any are outside the actor's scope or missing.
+	ReviewTasksForTargets(actor *ms.User, targets []ReviewTarget) (map[ReviewTarget]*ms.ReviewTask, error)
 	DecideReview(actor *ms.User, taskID, revision int64, action, reason string) (*ReviewDecision, error)
 	ListReviewTaskEvents(actor *ms.User, taskID int64) ([]*ms.ReviewTaskEvent, error)
 	ReviewerTimeoutStatistics(actor *ms.User) ([]*ms.ReviewerStatistics, error)

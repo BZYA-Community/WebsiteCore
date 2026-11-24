@@ -131,6 +131,17 @@ func TestReviewAssignmentsAndAtomicDecisions(t *testing.T) {
 	if total != 1 {
 		t.Fatal("view-all cannot see pending task")
 	}
+	target := core.ReviewTarget{Kind: ms.ReviewPost, ID: post.ID}
+	for _, actor := range []*ms.User{assigned, viewer} {
+		tasks, err := s.ReviewTasksForTargets(actor, []core.ReviewTarget{target})
+		must(err)
+		if got := tasks[target]; got == nil || got.ID != task.ID || got.Revision != task.Revision {
+			t.Fatalf("wrong task for post %d: %+v", post.ID, got)
+		}
+	}
+	if _, err := s.ReviewTasksForTargets(other, []core.ReviewTarget{target}); !errors.Is(err, gorm.ErrRecordNotFound) {
+		t.Fatalf("batch lookup for unassigned reviewer: %v", err)
+	}
 	if _, err := s.DecideReview(assigned, task.ID, task.Revision, "approve", ""); err != nil {
 		t.Fatal(err)
 	}

@@ -288,6 +288,34 @@ func (s *reviewSrv) ReviewTaskForTarget(actor *ms.User, kind string, targetID in
 	return &task, err
 }
 
+func (s *reviewSrv) ReviewTasksForTargets(actor *ms.User, targets []core.ReviewTarget) (map[core.ReviewTarget]*ms.ReviewTask, error) {
+	if len(targets) == 0 {
+		return nil, nil
+	}
+	actor, err := freshReviewActor(s.db, actor)
+	if err != nil {
+		return nil, err
+	}
+	pairs := make([][]any, 0, len(targets))
+	for _, target := range targets {
+		pairs = append(pairs, []any{target.Kind, target.ID})
+	}
+	var tasks []*ms.ReviewTask
+	if err := reviewTaskScope(s.db, actor).Where("(kind, target_id) IN ?", pairs).Find(&tasks).Error; err != nil {
+		return nil, err
+	}
+	byTarget := make(map[core.ReviewTarget]*ms.ReviewTask, len(tasks))
+	for _, task := range tasks {
+		byTarget[core.ReviewTarget{Kind: task.Kind, ID: task.TargetID}] = task
+	}
+	for _, target := range targets {
+		if byTarget[target] == nil {
+			return nil, gorm.ErrRecordNotFound
+		}
+	}
+	return byTarget, nil
+}
+
 func (s *reviewSrv) ListReviewTaskEvents(actor *ms.User, taskID int64) ([]*ms.ReviewTaskEvent, error) {
 	actor, err := freshReviewActor(s.db, actor)
 	if err != nil {
