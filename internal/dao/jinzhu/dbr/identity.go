@@ -68,6 +68,42 @@ func (u *User) GroupList() []IdentityGroup {
 	return slices.Clone(u.Groups)
 }
 
+// EligibleReviewers selects one row per user who can review under the current policy.
+func EligibleReviewers(db *gorm.DB) *gorm.DB {
+	activeUsers := func() *gorm.DB {
+		return db.Model(&User{}).Select("id").Where("is_del = 0 AND status = ?", UserStatusNormal)
+	}
+	reviewGrants := func(groups *gorm.DB) *gorm.DB {
+		return db.Model(&IdentityGroupPermission{}).Select("group_id").
+			Where("permission = ? AND group_id IN (?)", authz.ContentReview, groups)
+	}
+	groups := db.Model(&IdentityGroup{}).Select("id").Session(&gorm.Session{})
+	assigned := db.Model(&UserIdentityGroup{}).Distinct("user_id").
+		Where("group_id IN (?)", reviewGrants(groups.Where("key NOT IN ?", []string{"guest", "member"})))
+	// LIMIT keeps account lookups correlated with matching memberships, so
+	// PostgreSQL can use the user primary key as the account table grows.
+	assignedReviewers := db.Table("(?) AS assigned", assigned).Select("eligible.id").
+		Joins("JOIN LATERAL (?) AS eligible ON true", activeUsers().Where("id = assigned.user_id").Limit(1))
+	guestGrant := reviewGrants(groups.Where("key = ?", "guest"))
+	memberGrant := reviewGrants(groups.Where("key = ?", "member"))
+	// Both contact columns are NOT NULL. Use the direct predicate so PostgreSQL
+	// can use the partial index for active accounts with a verified contact.
+	contact := "email"
+	if conf.VerificationMode() == "phone" {
+		contact = "phone"
+	}
+
+	// Automatic groups can grant review without a membership row. UNION keeps
+	// overlapping grants from giving any user extra weight in random selection.
+	candidates := db.Raw("? UNION ? UNION ? UNION ?",
+		activeUsers().Where("is_operator"),
+		assignedReviewers,
+		activeUsers().Where("EXISTS (?) AND "+contact+" = ''", guestGrant),
+		activeUsers().Where("EXISTS (?) AND "+contact+" <> ''", memberGrant),
+	)
+	return db.Table("(?) AS reviewers", candidates)
+}
+
 // LoadUserIdentities resolves current policy in bulk, without trusting old roles.
 // The caller must use fresh account fields for authorization, never cached flags.
 func LoadUserIdentities(db *gorm.DB, users ...*User) error {
