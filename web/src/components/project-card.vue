@@ -28,7 +28,7 @@
         </n-tag>
       </div>
       <div class="project-intro" @click="handleMarkdownClick">
-        <md-preview :model-value="prepareMdRender(project.intro)" :theme="editorTheme" no-mermaid no-katex no-html />
+        <md-preview :model-value="prepareMdRender(project.intro)" :theme="editorTheme" no-mermaid no-html />
       </div>
       <div class="project-actions">
         <n-button text @click="openProject">{{ t('project.viewDetails') }}</n-button>

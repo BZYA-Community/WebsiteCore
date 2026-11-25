@@ -53,7 +53,7 @@
           <div class="detail-columns">
             <article class="project-readme">
               <span class="section-kicker">{{ t('project.detailKicker') }}</span>
-              <md-preview :model-value="prepareMdRender(project.intro)" :theme="editorTheme" no-mermaid no-katex no-html />
+              <md-preview :model-value="prepareMdRender(project.intro)" :theme="editorTheme" no-mermaid no-html />
             </article>
             <aside>
               <section class="side-card">
@@ -84,7 +84,6 @@
             :placeholder="t('project.introPlaceholder')"
             :toolbars-exclude="editToolbarsExclude"
             no-mermaid
-            no-katex
             no-html
           />
         </n-form-item>

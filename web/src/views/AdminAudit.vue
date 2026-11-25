@@ -337,7 +337,6 @@
                         :model-value="prepareMdRender(selectedProject.intro)"
                         :theme="editorTheme"
                         no-mermaid
-                        no-katex
                         no-html
                     />
                     <a :href="selectedProject.url" target="_blank" rel="noopener noreferrer">{{ selectedProject.url }}</a>
