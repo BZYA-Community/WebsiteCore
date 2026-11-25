@@ -36,7 +36,8 @@ func (s *auditSrv) Chain() gin.HandlersChain {
 // ListAuditPosts 审核队列
 func (s *auditSrv) ListAuditPosts(req *web.AdminAuditPostsReq) (*web.AdminAuditPostsResp, error) {
 	limit, offset := req.PageSize, (req.Page-1)*req.PageSize
-	posts, total, err := s.Ds.ListAuditPosts(&ms.User{Model: &ms.Model{ID: req.Uid}}, req.Status, offset, limit)
+	actor := &ms.User{Model: &ms.Model{ID: req.Uid}}
+	posts, total, err := s.Ds.ListAuditPosts(actor, req.Status, offset, limit)
 	if err != nil {
 		logrus.Errorf("Ds.ListAuditPosts err: %s", err)
 		return nil, web.ErrGetPostsFailed
@@ -44,13 +45,13 @@ func (s *auditSrv) ListAuditPosts(req *web.AdminAuditPostsReq) (*web.AdminAuditP
 	// Capture revisions before reading mutable content. If an edit races the
 	// following reads, the decision carries an old revision and is rejected,
 	// rather than pairing an old project body with its new approvable task.
-	tasks := make(map[int64]*ms.ReviewTask, len(posts))
-	for _, post := range posts {
-		task, err := s.Ds.ReviewTaskForTarget(&ms.User{Model: &ms.Model{ID: req.Uid}}, ms.ReviewPost, post.ID)
-		if err != nil {
-			return nil, reviewError(err)
-		}
-		tasks[post.ID] = task
+	targets := make([]core.ReviewTarget, len(posts))
+	for i, post := range posts {
+		targets[i] = core.ReviewTarget{Kind: ms.ReviewPost, ID: post.ID}
+	}
+	tasks, err := s.Ds.ReviewTasksForTargets(actor, targets)
+	if err != nil {
+		return nil, reviewError(err)
 	}
 	formated, err := s.Ds.MergePosts(posts)
 	if err != nil {
@@ -61,13 +62,13 @@ func (s *auditSrv) ListAuditPosts(req *web.AdminAuditPostsReq) (*web.AdminAuditP
 	for _, post := range formated {
 		postIDs = append(postIDs, post.ID)
 	}
-	projects, err := s.Ds.GetAuditProjects(&ms.User{Model: &ms.Model{ID: req.Uid}}, postIDs)
+	projects, err := s.Ds.GetAuditProjects(actor, postIDs)
 	if err != nil {
 		logrus.Errorf("Ds.GetAuditProjects err: %s", err)
 		return nil, web.ErrGetProjectsFailed
 	}
 	for _, post := range formated {
-		post.ReviewTask = tasks[post.ID]
+		post.ReviewTask = tasks[core.ReviewTarget{Kind: ms.ReviewPost, ID: post.ID}]
 		post.Project = projects[post.ID]
 	}
 	return (*web.AdminAuditPostsResp)(joint.PageRespFrom(formated, req.Page, req.PageSize, total)), nil
@@ -164,7 +165,8 @@ var commentMentionRegex = regexp.MustCompile(`@([a-zA-Z0-9][a-zA-Z0-9_\-]{0,29})
 // ListAuditComments 评论审核队列(评论与回复合并)
 func (s *auditSrv) ListAuditComments(req *web.AdminAuditCommentsReq) (*web.AdminAuditCommentsResp, error) {
 	limit, offset := req.PageSize, (req.Page-1)*req.PageSize
-	rows, total, err := s.Ds.ListAuditComments(&ms.User{Model: &ms.Model{ID: req.Uid}}, req.Status, offset, limit)
+	actor := &ms.User{Model: &ms.Model{ID: req.Uid}}
+	rows, total, err := s.Ds.ListAuditComments(actor, req.Status, offset, limit)
 	if err != nil {
 		logrus.Errorf("Ds.ListAuditComments err: %s", err)
 		return nil, web.ErrGetPostsFailed
@@ -172,13 +174,20 @@ func (s *auditSrv) ListAuditComments(req *web.AdminAuditCommentsReq) (*web.Admin
 	userIds := make([]int64, 0, len(rows))
 	commentIds := make([]int64, 0, len(rows))
 	courseCommentIds := make([]int64, 0, len(rows))
-	for _, row := range rows {
+	kinds := [...]string{ms.ReviewComment, ms.ReviewReply, ms.ReviewCourseQuestion, ms.ReviewCourseAnswer}
+	targets := make([]core.ReviewTarget, len(rows))
+	for i, row := range rows {
+		targets[i] = core.ReviewTarget{Kind: kinds[row.CommentType], ID: row.ID}
 		userIds = append(userIds, row.UserID)
 		if row.CommentType == 0 {
 			commentIds = append(commentIds, row.ID)
 		} else if row.CommentType == 2 {
 			courseCommentIds = append(courseCommentIds, row.ID)
 		}
+	}
+	tasks, err := s.Ds.ReviewTasksForTargets(actor, targets)
+	if err != nil {
+		return nil, reviewError(err)
 	}
 	users, _ := s.Ds.GetUsersByIDs(userIds)
 	userMap := make(map[int64]*ms.User, len(users))
@@ -225,8 +234,9 @@ func (s *auditSrv) ListAuditComments(req *web.AdminAuditCommentsReq) (*web.Admin
 		}
 	}
 	items := make([]*web.AdminAuditCommentItem, 0, len(rows))
-	for _, row := range rows {
+	for i, row := range rows {
 		item := &web.AdminAuditCommentItem{
+			ReviewTask:  tasks[targets[i]],
 			ID:          row.ID,
 			CommentType: int(row.CommentType),
 			PostID:      row.PostID,
@@ -252,11 +262,6 @@ func (s *auditSrv) ListAuditComments(req *web.AdminAuditCommentsReq) (*web.Admin
 		}
 		if u, exist := userMap[row.UserID]; exist {
 			item.User = &web.AdminAuditUserBrief{ID: u.ID, Nickname: u.Nickname, Username: u.Username}
-		}
-		kinds := []string{ms.ReviewComment, ms.ReviewReply, ms.ReviewCourseQuestion, ms.ReviewCourseAnswer}
-		item.ReviewTask, err = s.Ds.ReviewTaskForTarget(&ms.User{Model: &ms.Model{ID: req.Uid}}, kinds[row.CommentType], row.ID)
-		if err != nil {
-			return nil, reviewError(err)
 		}
 		items = append(items, item)
 	}
@@ -455,18 +460,25 @@ func commentBrief(ds core.DataService, comment *ms.Comment) string {
 // ListAuditNicknames 昵称审核队列
 func (s *auditSrv) ListAuditNicknames(req *web.AdminAuditNicknamesReq) (*web.AdminAuditNicknamesResp, error) {
 	limit, offset := req.PageSize, (req.Page-1)*req.PageSize
-	users, total, err := s.Ds.ListAuditNicknames(&ms.User{Model: &ms.Model{ID: req.Uid}}, offset, limit)
+	actor := &ms.User{Model: &ms.Model{ID: req.Uid}}
+	users, total, err := s.Ds.ListAuditNicknames(actor, offset, limit)
 	if err != nil {
 		logrus.Errorf("Ds.ListAuditNicknames err: %s", err)
 		return nil, web.ErrGetPostsFailed
 	}
+	targets := make([]core.ReviewTarget, len(users))
+	for i, user := range users {
+		targets[i] = core.ReviewTarget{Kind: ms.ReviewNickname, ID: user.ID}
+	}
+	tasks, err := s.Ds.ReviewTasksForTargets(actor, targets)
+	if err != nil {
+		return nil, reviewError(err)
+	}
 	items := make([]*web.AdminAuditNicknameItem, 0, len(users))
-	for _, u := range users {
-		task, err := s.Ds.ReviewTaskForTarget(&ms.User{Model: &ms.Model{ID: req.Uid}}, ms.ReviewNickname, u.ID)
-		if err != nil {
-			return nil, reviewError(err)
-		}
-		items = append(items, &web.AdminAuditNicknameItem{ReviewTask: task,
+	for i, u := range users {
+		task := tasks[targets[i]]
+		items = append(items, &web.AdminAuditNicknameItem{
+			ReviewTask:      task,
 			UserID:          u.ID,
 			Username:        u.Username,
 			Nickname:        u.Nickname,
@@ -498,18 +510,25 @@ func (s *auditSrv) AuditNicknameAction(req *web.AdminAuditNicknameReq) error {
 
 func (s *auditSrv) ListAuditAvatars(req *web.AdminAuditAvatarsReq) (*web.AdminAuditAvatarsResp, error) {
 	limit, offset := req.PageSize, (req.Page-1)*req.PageSize
-	users, total, err := s.Ds.ListAuditAvatars(&ms.User{Model: &ms.Model{ID: req.Uid}}, offset, limit)
+	actor := &ms.User{Model: &ms.Model{ID: req.Uid}}
+	users, total, err := s.Ds.ListAuditAvatars(actor, offset, limit)
 	if err != nil {
 		logrus.Errorf("Ds.ListAuditAvatars err: %s", err)
 		return nil, web.ErrGetPostsFailed
 	}
+	targets := make([]core.ReviewTarget, len(users))
+	for i, user := range users {
+		targets[i] = core.ReviewTarget{Kind: ms.ReviewAvatar, ID: user.ID}
+	}
+	tasks, err := s.Ds.ReviewTasksForTargets(actor, targets)
+	if err != nil {
+		return nil, reviewError(err)
+	}
 	items := make([]*web.AdminAuditAvatarItem, 0, len(users))
-	for _, u := range users {
-		task, err := s.Ds.ReviewTaskForTarget(&ms.User{Model: &ms.Model{ID: req.Uid}}, ms.ReviewAvatar, u.ID)
-		if err != nil {
-			return nil, reviewError(err)
-		}
-		items = append(items, &web.AdminAuditAvatarItem{ReviewTask: task,
+	for i, u := range users {
+		task := tasks[targets[i]]
+		items = append(items, &web.AdminAuditAvatarItem{
+			ReviewTask:    task,
 			UserID:        u.ID,
 			Username:      u.Username,
 			Avatar:        u.Avatar,
@@ -567,17 +586,24 @@ func (s *auditSrv) ListAuditLogs(req *web.AdminAuditLogsReq) (*web.AdminAuditLog
 
 // usernamesOf 批量获取用户名(宽松处理失败 缺失的用户名显示空)
 func usernamesOf(ds core.DataService, ids []int64) map[int64]string {
-	res := make(map[int64]string, len(ids))
+	seen := make(map[int64]bool, len(ids))
+	uniqueIDs := make([]int64, 0, len(ids))
 	for _, id := range ids {
-		if id <= 0 {
-			continue
+		if id > 0 && !seen[id] {
+			uniqueIDs = append(uniqueIDs, id)
+			seen[id] = true
 		}
-		if _, exist := res[id]; exist {
-			continue
-		}
-		if user, err := ds.GetUserByID(id); err == nil && user != nil {
-			res[id] = user.Username
-		}
+	}
+	res := make(map[int64]string, len(uniqueIDs))
+	if len(uniqueIDs) == 0 {
+		return res
+	}
+	users, err := ds.GetUsersByIDs(uniqueIDs)
+	if err != nil {
+		return res
+	}
+	for _, user := range users {
+		res[user.ID] = user.Username
 	}
 	return res
 }
