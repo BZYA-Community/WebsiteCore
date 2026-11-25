@@ -10,25 +10,16 @@ import (
 	"github.com/BZYA-Community/WebsiteCore/internal/core/cs"
 	"github.com/BZYA-Community/WebsiteCore/internal/dao/jinzhu/dbr"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
-func createTags(db *gorm.DB, userId int64, tags []string) (res cs.TagInfoList, err error) {
+func createTags(db *gorm.DB, userID int64, tags []string) (cs.TagInfoList, error) {
+	var res cs.TagInfoList
+	now := time.Now().Unix()
 	for _, name := range tags {
-		tag := &dbr.Tag{Tag: name}
-		if tag, err = tag.Get(db); err == nil {
-			// 更新
-			tag.QuoteNum++
-			if err = tag.Update(db); err != nil {
-				return
-			}
-		} else {
-			if tag, err = (&dbr.Tag{
-				UserID:   userId,
-				QuoteNum: 1,
-				Tag:      name,
-			}).Create(db); err != nil {
-				return
-			}
+		tag, err := upsertTag(db, userID, name, now)
+		if err != nil {
+			return res, err
 		}
 		res = append(res, &cs.TagInfo{
 			ID:       tag.ID,
@@ -37,7 +28,19 @@ func createTags(db *gorm.DB, userId int64, tags []string) (res cs.TagInfoList, e
 			QuoteNum: tag.QuoteNum,
 		})
 	}
-	return
+	return res, nil
+}
+
+func upsertTag(db *gorm.DB, userID int64, name string, now int64) (*dbr.Tag, error) {
+	tag := &dbr.Tag{Model: &dbr.Model{}, UserID: userID, Tag: name, QuoteNum: 1}
+	err := db.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "tag"}},
+		DoUpdates: clause.Assignments(map[string]any{
+			"quote_num":   gorm.Expr("? + 1", clause.Column{Table: clause.CurrentTable, Name: "quote_num"}),
+			"modified_on": now,
+		}),
+	}, clause.Returning{}).Create(tag).Error
+	return tag, err
 }
 
 func decrTagsByIds(db *gorm.DB, ids []int64) (err error) {
