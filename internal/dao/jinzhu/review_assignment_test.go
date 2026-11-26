@@ -37,12 +37,12 @@ func execReviewTestSQL(t *testing.T, conn *sql.Conn, query string, args ...any) 
 	requireReviewTest(t, err)
 }
 
-type reviewQueryTrace struct {
+type queryTrace struct {
 	logger.Interface
 	trace func(string, int64)
 }
 
-func (l reviewQueryTrace) Trace(ctx context.Context, begin time.Time, result func() (string, int64), err error) {
+func (l queryTrace) Trace(ctx context.Context, begin time.Time, result func() (string, int64), err error) {
 	query, rows := result()
 	l.trace(query, rows)
 	l.Interface.Trace(ctx, begin, result, err)
@@ -64,7 +64,7 @@ func TestReviewSubmissionLooksUpOneReviewer(t *testing.T) {
 	var submitted bool
 	var lookupQueries int
 	var lookupRows int64
-	trace := reviewQueryTrace{Interface: db.Logger, trace: func(query string, rows int64) {
+	trace := queryTrace{Interface: db.Logger, trace: func(query string, rows int64) {
 		if submitted && strings.HasPrefix(query, "SELECT ") {
 			lookupQueries++
 			lookupRows += rows
@@ -111,7 +111,7 @@ func TestReviewSweepReusesReviewerPool(t *testing.T) {
 	var selfAuthoredTask ms.ReviewTask
 	requireReviewTest(t, db.Where("author_id = ?", 1).First(&selfAuthoredTask).Error)
 	var lookupQueries int
-	trace := reviewQueryTrace{Interface: db.Logger, trace: func(query string, _ int64) {
+	trace := queryTrace{Interface: db.Logger, trace: func(query string, _ int64) {
 		if strings.HasPrefix(query, "SELECT ") && strings.Contains(query, `"p_identity_group_permission"`) {
 			lookupQueries++
 		}
