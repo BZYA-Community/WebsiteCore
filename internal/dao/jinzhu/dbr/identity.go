@@ -9,6 +9,13 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	guestIdentityGroupKey  = "guest"
+	memberIdentityGroupKey = "member"
+)
+
+var automaticIdentityGroupKeys = []string{guestIdentityGroupKey, memberIdentityGroupKey}
+
 // IdentityGroup is a policy definition. Guest/member membership is automatic.
 type IdentityGroup struct {
 	ID          int64    `gorm:"primaryKey" json:"id"`
@@ -79,13 +86,13 @@ func EligibleReviewers(db *gorm.DB) *gorm.DB {
 	}
 	groups := db.Model(&IdentityGroup{}).Select("id").Session(&gorm.Session{})
 	assigned := db.Model(&UserIdentityGroup{}).Distinct("user_id").
-		Where("group_id IN (?)", reviewGrants(groups.Where("key NOT IN ?", []string{"guest", "member"})))
+		Where("group_id IN (?)", reviewGrants(groups.Where("key NOT IN ?", automaticIdentityGroupKeys)))
 	// LIMIT keeps account lookups correlated with matching memberships, so
 	// PostgreSQL can use the user primary key as the account table grows.
 	assignedReviewers := db.Table("(?) AS assigned", assigned).Select("eligible.id").
 		Joins("JOIN LATERAL (?) AS eligible ON true", activeUsers().Where("id = assigned.user_id").Limit(1))
-	guestGrant := reviewGrants(groups.Where("key = ?", "guest"))
-	memberGrant := reviewGrants(groups.Where("key = ?", "member"))
+	guestGrant := reviewGrants(groups.Where("key = ?", guestIdentityGroupKey))
+	memberGrant := reviewGrants(groups.Where("key = ?", memberIdentityGroupKey))
 	// Both contact columns are NOT NULL. Use the direct predicate so PostgreSQL
 	// can use the partial index for active accounts with a verified contact.
 	contact := "email"
@@ -119,7 +126,7 @@ func findApplicableIdentityGroups(db *gorm.DB, baseKeys []string, userIDs []int6
 		assigned := db.Table("(?) AS policy_group", db.Model(&IdentityGroup{})).
 			Select("policy_group.*, memberships.assigned_user_ids").
 			Joins("JOIN (?) AS memberships ON memberships.group_id = policy_group.id", memberships).
-			Where("policy_group.key NOT IN ?", []string{"guest", "member"})
+			Where("policy_group.key NOT IN ?", automaticIdentityGroupKeys)
 		groups = db.Raw("? UNION ALL ?", groups, assigned)
 	}
 
@@ -152,9 +159,9 @@ func LoadUserIdentities(db *gorm.DB, users ...*User) error {
 	byBaseKey := make(map[string][]*User, 2)
 	byUserID := make(map[int64][]*User, len(subjects))
 	for u := range subjects {
-		baseKey := "guest"
+		baseKey := guestIdentityGroupKey
 		if u.ContactVerified() {
-			baseKey = "member"
+			baseKey = memberIdentityGroupKey
 		}
 		byBaseKey[baseKey] = append(byBaseKey[baseKey], u)
 		if u.Model != nil {
