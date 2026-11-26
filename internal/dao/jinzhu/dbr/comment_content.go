@@ -26,7 +26,7 @@ func (c *CommentContent) List(db *gorm.DB, conditions *ConditionsT, offset, limi
 		db = db.Offset(offset).Limit(limit)
 	}
 	if c.CommentID > 0 {
-		db = db.Where("id = ?", c.CommentID)
+		db = db.Where("comment_id = ?", c.CommentID)
 	}
 
 	for k, v := range *conditions {

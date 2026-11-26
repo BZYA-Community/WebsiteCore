@@ -88,7 +88,7 @@ func (p *PostContent) List(db *gorm.DB, conditions *ConditionsT, offset, limit i
 		db = db.Offset(offset).Limit(limit)
 	}
 	if p.PostID > 0 {
-		db = db.Where("id = ?", p.PostID)
+		db = db.Where("post_id = ?", p.PostID)
 	}
 
 	for k, v := range *conditions {
