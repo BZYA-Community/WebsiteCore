@@ -938,12 +938,12 @@ func (s *privSrv) StickTweet(req *web.StickTweetReq) (*web.StickTweetResp, error
 	if !req.User.HasPermission("content.manage") {
 		return nil, web.ErrNoPermission
 	}
-	newStatus := 1 - post.IsTop
-	if err = s.Ds.StickPost(post); err != nil {
+	status, err := s.Ds.StickPost(post)
+	if err != nil {
 		return nil, web.ErrStickPostFailed
 	}
 	return &web.StickTweetResp{
-		StickStatus: newStatus,
+		StickStatus: status,
 	}, nil
 }
 
@@ -970,12 +970,12 @@ func (s *privSrv) LockTweet(req *web.LockTweetReq) (*web.LockTweetResp, error) {
 	if post.UserID != req.User.ID && !req.User.HasPermission("content.manage") {
 		return nil, web.ErrNoPermission
 	}
-	newStatus := 1 - post.IsLock
-	if err := s.Ds.LockPost(post); err != nil {
+	status, err := s.Ds.LockPost(post)
+	if err != nil {
 		return nil, web.ErrLockPostFailed
 	}
 	return &web.LockTweetResp{
-		LockStatus: newStatus,
+		LockStatus: status,
 	}, nil
 }
 
