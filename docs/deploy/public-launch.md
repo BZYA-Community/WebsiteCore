@@ -52,7 +52,7 @@ Everything that must be true before a Starisle instance accepts traffic from the
 - [ ] Logs are being written and rotated (`LoggerFile` under `custom/`, plus journald for the service itself). Consider `LoggerOtlp`/Sentry for centralized error tracking — do not expose their endpoints publicly.
 - [ ] Monitoring in place (uptime check on the homepage; Prometheus scrape of the internal `Metrics` port if enabled).
 - [ ] Upgrade and rollback procedures agreed, using tested release tags as described in [production.md](production.md).
-- [ ] Subscribe to dependency updates: Dependabot runs weekly against the `dev` branch; security fixes flow through the normal PR + review process ([../ci-cd.md](../ci-cd.md)).
+- [ ] Subscribe to dependency updates: Dependabot runs weekly against `main` for Go modules, `/web` npm packages and GitHub Actions; security fixes flow through the normal PR + review process ([../ci-cd.md](../ci-cd.md)).
 - [ ] Vulnerability reporting channel published: GitHub private security report, per [../../SECURITY.md](../../SECURITY.md).
 
 ## Launch-day smoke test
