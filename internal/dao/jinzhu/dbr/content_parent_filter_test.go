@@ -72,14 +72,19 @@ func TestContentListsFilterByParentID(t *testing.T) {
 		}
 	}
 
+	requireSingleListRow := func(t *testing.T, count int, err error) {
+		t.Helper()
+		if err != nil {
+			t.Fatalf("List() error: %v", err)
+		}
+		if count != 1 {
+			t.Fatalf("List() returned %d rows, want 1", count)
+		}
+	}
+
 	t.Run("PostContent", func(t *testing.T) {
 		rows, err := (&PostContent{PostID: parentID}).List(db, &ConditionsT{}, 0, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(rows) != 1 {
-			t.Fatalf("List() returned %d rows, want 1", len(rows))
-		}
+		requireSingleListRow(t, len(rows), err)
 		if rows[0].ID != matchingRowID {
 			t.Errorf("List() returned row %d, want %d", rows[0].ID, matchingRowID)
 		}
@@ -87,12 +92,7 @@ func TestContentListsFilterByParentID(t *testing.T) {
 
 	t.Run("CommentContent", func(t *testing.T) {
 		rows, err := (&CommentContent{CommentID: parentID}).List(db, &ConditionsT{}, 0, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(rows) != 1 {
-			t.Fatalf("List() returned %d rows, want 1", len(rows))
-		}
+		requireSingleListRow(t, len(rows), err)
 		if rows[0].ID != matchingRowID {
 			t.Errorf("List() returned row %d, want %d", rows[0].ID, matchingRowID)
 		}
@@ -100,12 +100,7 @@ func TestContentListsFilterByParentID(t *testing.T) {
 
 	t.Run("CommentReply", func(t *testing.T) {
 		rows, err := (&CommentReply{CommentID: parentID}).List(db, &ConditionsT{}, 0, 0)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(rows) != 1 {
-			t.Fatalf("List() returned %d rows, want 1", len(rows))
-		}
+		requireSingleListRow(t, len(rows), err)
 		if rows[0].ID != matchingRowID {
 			t.Errorf("List() returned row %d, want %d", rows[0].ID, matchingRowID)
 		}
