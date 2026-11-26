@@ -12,7 +12,7 @@ CGO_ENABLED := 1
 endif
 
 RELEASE_ROOT = release
-RELEASE_FILES = LICENSE README.md CHANGELOG.md config.yaml.sample scripts docs
+RELEASE_FILES = LICENSE README.md config.yaml.sample scripts docs
 RELEASE_LINUX_AMD64 = $(RELEASE_ROOT)/linux-amd64/$(PROJECT)
 RELEASE_DARWIN_AMD64 = $(RELEASE_ROOT)/darwin-amd64/$(PROJECT)
 RELEASE_DARWIN_ARM64 = $(RELEASE_ROOT)/darwin-arm64/$(PROJECT)
