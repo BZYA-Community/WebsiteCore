@@ -56,10 +56,6 @@ Schema changes must go through migrations — never edit the production database
 3. Verify locally with a build that carries the tag: `make migrate`, or start the server with `TAGS='migration'` and the `Migration` feature.
 4. Back up before applying anywhere that holds real data.
 
-### Legacy bootstrap SQL
-
-`scripts/paopao-postgres.sql` is a full-schema snapshot inherited from upstream. It is kept for reference; prefer `make migrate` for any new installation.
-
 ## Connection settings
 
 ```yaml
