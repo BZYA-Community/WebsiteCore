@@ -1,13 +1,20 @@
 package dbr
 
 import (
+	"maps"
 	"slices"
-	"sort"
 
 	"github.com/BZYA-Community/WebsiteCore/internal/authz"
 	"github.com/BZYA-Community/WebsiteCore/internal/conf"
 	"gorm.io/gorm"
 )
+
+const (
+	guestIdentityGroupKey  = "guest"
+	memberIdentityGroupKey = "member"
+)
+
+var automaticIdentityGroupKeys = []string{guestIdentityGroupKey, memberIdentityGroupKey}
 
 // IdentityGroup is a policy definition. Guest/member membership is automatic.
 type IdentityGroup struct {
@@ -79,13 +86,13 @@ func EligibleReviewers(db *gorm.DB) *gorm.DB {
 	}
 	groups := db.Model(&IdentityGroup{}).Select("id").Session(&gorm.Session{})
 	assigned := db.Model(&UserIdentityGroup{}).Distinct("user_id").
-		Where("group_id IN (?)", reviewGrants(groups.Where("key NOT IN ?", []string{"guest", "member"})))
+		Where("group_id IN (?)", reviewGrants(groups.Where("key NOT IN ?", automaticIdentityGroupKeys)))
 	// LIMIT keeps account lookups correlated with matching memberships, so
 	// PostgreSQL can use the user primary key as the account table grows.
 	assignedReviewers := db.Table("(?) AS assigned", assigned).Select("eligible.id").
 		Joins("JOIN LATERAL (?) AS eligible ON true", activeUsers().Where("id = assigned.user_id").Limit(1))
-	guestGrant := reviewGrants(groups.Where("key = ?", "guest"))
-	memberGrant := reviewGrants(groups.Where("key = ?", "member"))
+	guestGrant := reviewGrants(groups.Where("key = ?", guestIdentityGroupKey))
+	memberGrant := reviewGrants(groups.Where("key = ?", memberIdentityGroupKey))
 	// Both contact columns are NOT NULL. Use the direct predicate so PostgreSQL
 	// can use the partial index for active accounts with a verified contact.
 	contact := "email"
@@ -104,74 +111,92 @@ func EligibleReviewers(db *gorm.DB) *gorm.DB {
 	return db.Table("(?) AS reviewers", candidates)
 }
 
+type applicableIdentityGroup struct {
+	IdentityGroup
+	AssignedUserIDs []int64  `gorm:"serializer:json"`
+	Grants          []string `gorm:"serializer:json"`
+}
+
+func findApplicableIdentityGroups(db *gorm.DB, baseKeys []string, userIDs []int64) ([]applicableIdentityGroup, error) {
+	groups := db.Model(&IdentityGroup{}).Select("*, NULL::json AS assigned_user_ids").Where("key IN ?", baseKeys)
+	if len(userIDs) > 0 {
+		memberships := db.Model(&UserIdentityGroup{}).
+			Select("group_id, json_agg(user_id) AS assigned_user_ids").
+			Where("user_id IN ?", userIDs).Group("group_id")
+		assigned := db.Table("(?) AS policy_group", db.Model(&IdentityGroup{})).
+			Select("policy_group.*, memberships.assigned_user_ids").
+			Joins("JOIN (?) AS memberships ON memberships.group_id = policy_group.id", memberships).
+			Where("policy_group.key NOT IN ?", automaticIdentityGroupKeys)
+		groups = db.Raw("? UNION ALL ?", groups, assigned)
+	}
+
+	// Aggregate only matching grants and keep one row per applicable group,
+	// even when a group has no grants or is shared by several users in the batch.
+	grants := db.Model(&IdentityGroupPermission{}).Select("json_agg(permission)").Where("group_id = applicable.id")
+	var result []applicableIdentityGroup
+	err := db.Table("(?) AS applicable", groups).
+		Select("applicable.*, (?) AS grants", grants).Order("applicable.id ASC").Find(&result).Error
+	return result, err
+}
+
 // LoadUserIdentities resolves current policy in bulk, without trusting old roles.
 // The caller must use fresh account fields for authorization, never cached flags.
 func LoadUserIdentities(db *gorm.DB, users ...*User) error {
-	ids := make([]int64, 0, len(users))
+	subjects := make(map[*User]struct{}, len(users))
 	for _, u := range users {
 		if u == nil {
 			continue
 		}
 		u.Groups, u.Permissions = []IdentityGroup{}, []string{}
-		if u.Model != nil && !u.IsOperator {
-			ids = append(ids, u.ID)
+		if !u.IsOperator {
+			subjects[u] = struct{}{}
 		}
 	}
-	groups := []IdentityGroup{}
-	if err := db.Order("id ASC").Find(&groups).Error; err != nil {
-		return err
+	if len(subjects) == 0 {
+		return nil
 	}
-	permissions := []IdentityGroupPermission{}
-	if err := db.Find(&permissions).Error; err != nil {
-		return err
-	}
-	byGroup := make(map[int64][]string, len(groups))
-	for _, p := range permissions {
-		if authz.Valid(p.Permission) {
-			byGroup[p.GroupID] = append(byGroup[p.GroupID], p.Permission)
-		}
-	}
-	memberships := []UserIdentityGroup{}
-	if len(ids) > 0 {
-		if err := db.Where("user_id IN ?", ids).Find(&memberships).Error; err != nil {
-			return err
-		}
-	}
-	byUser := make(map[int64]map[int64]bool, len(ids))
-	for _, m := range memberships {
-		if byUser[m.UserID] == nil {
-			byUser[m.UserID] = make(map[int64]bool)
-		}
-		byUser[m.UserID][m.GroupID] = true
-	}
-	for _, u := range users {
-		if u == nil || u.IsOperator {
-			continue
-		}
-		baseKey := "guest"
+
+	byBaseKey := make(map[string][]*User, 2)
+	byUserID := make(map[int64][]*User, len(subjects))
+	for u := range subjects {
+		baseKey := guestIdentityGroupKey
 		if u.ContactVerified() {
-			baseKey = "member"
+			baseKey = memberIdentityGroupKey
 		}
-		seen := make(map[string]bool)
-		for _, group := range groups {
-			assigned := u.Model != nil && byUser[u.ID][group.ID]
-			if group.Key != baseKey && (!assigned || group.Key == "guest" || group.Key == "member") {
-				continue
-			}
-			group.Permissions = slices.Clone(byGroup[group.ID])
-			if group.Permissions == nil {
-				group.Permissions = []string{}
-			}
-			sort.Strings(group.Permissions)
-			u.Groups = append(u.Groups, group)
-			for _, permission := range group.Permissions {
-				seen[permission] = true
+		byBaseKey[baseKey] = append(byBaseKey[baseKey], u)
+		if u.Model != nil {
+			byUserID[u.ID] = append(byUserID[u.ID], u)
+		}
+	}
+
+	groups, err := findApplicableIdentityGroups(db, slices.Collect(maps.Keys(byBaseKey)), slices.Collect(maps.Keys(byUserID)))
+	if err != nil {
+		return err
+	}
+	for _, policy := range groups {
+		group := policy.IdentityGroup
+		group.Permissions = make([]string, 0, len(policy.Grants))
+		for _, permission := range policy.Grants {
+			if authz.Valid(permission) {
+				group.Permissions = append(group.Permissions, permission)
 			}
 		}
-		for permission := range seen {
-			u.Permissions = append(u.Permissions, permission)
+		slices.Sort(group.Permissions)
+
+		recipients := byBaseKey[group.Key]
+		for _, userID := range policy.AssignedUserIDs {
+			recipients = append(recipients, byUserID[userID]...)
 		}
-		sort.Strings(u.Permissions)
+		for _, u := range recipients {
+			resolved := group
+			resolved.Permissions = slices.Clone(group.Permissions)
+			u.Groups = append(u.Groups, resolved)
+			u.Permissions = append(u.Permissions, group.Permissions...)
+		}
+	}
+	for u := range subjects {
+		slices.Sort(u.Permissions)
+		u.Permissions = slices.Compact(u.Permissions)
 	}
 	return nil
 }

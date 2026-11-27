@@ -33,6 +33,74 @@ func TestIdentityGroupValidation(t *testing.T) {
 	}
 }
 
+func TestIdentityLookupsReadOnlyApplicableGroups(t *testing.T) {
+	runner, conn, db := newPostgresMigrationTest(t)
+	if err := runner.Up(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.ExecContext(t.Context(), `
+		INSERT INTO p_user (id, username, email, phone, is_operator) VALUES
+			(1, 'member', 'member@example.test', '1111111111', false),
+			(2, 'operator', '', '', true),
+			(3, 'unverified', '', '', false);
+		INSERT INTO p_identity_group (key, name) VALUES ('empty', 'No grants');
+		INSERT INTO p_user_identity_group (user_id, group_id)
+		SELECT 1, id FROM p_identity_group WHERE key IN ('guest', 'reviewer', 'empty');
+		INSERT INTO p_user_identity_group (user_id, group_id)
+		SELECT 3, id FROM p_identity_group WHERE key = 'admin';
+		INSERT INTO p_identity_group_permission (group_id, permission)
+		SELECT id, 'legacy.unknown' FROM p_identity_group WHERE key = 'reviewer';
+	`); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, test := range []struct {
+		name         string
+		id           int64
+		groups       []string
+		granted      string
+		denied       string
+		rowsPerQuery []int64
+	}{
+		{"authenticated", 1, []string{"member", "reviewer", "empty"}, authz.ContentReview, authz.UserManage, []int64{1, 3}},
+		{"unverified", 3, []string{"guest", "admin"}, authz.UserManage, authz.PublishUnreviewed, []int64{1, 2}},
+		{"visitor", 0, []string{"guest"}, authz.PostView, authz.PostCreate, []int64{1}},
+		{"operator", 2, nil, authz.UserManage, "legacy.unknown", []int64{1}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var rowsPerQuery []int64
+			trace := queryTrace{Interface: db.Logger, trace: func(_ string, rows int64) {
+				rowsPerQuery = append(rowsPerQuery, rows)
+			}}
+			tracedDB := db.Session(&gorm.Session{Logger: trace})
+			var user *ms.User
+			var err error
+			if test.id == 0 {
+				user = &ms.User{Status: ms.UserStatusNormal}
+				err = (&identitySrv{db: tracedDB}).LoadUserIdentities(user)
+			} else {
+				user, err = (&userManageSrv{db: tracedDB}).GetUserByID(test.id)
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			var keys []string
+			for _, group := range user.Groups {
+				keys = append(keys, group.Key)
+				if group.Permissions == nil || slices.Contains(group.Permissions, "legacy.unknown") {
+					t.Errorf("group %q has invalid permissions %v", group.Key, group.Permissions)
+				}
+			}
+			if !slices.Equal(keys, test.groups) || !user.HasPermission(test.granted) || user.HasPermission(test.denied) {
+				t.Errorf("groups %v and permissions %v, want groups %v, allow %q and deny %q", keys, user.PermissionList(), test.groups, test.granted, test.denied)
+			}
+			if !slices.Equal(rowsPerQuery, test.rowsPerQuery) {
+				t.Errorf("rows from %d queries %v, want %v", len(rowsPerQuery), rowsPerQuery, test.rowsPerQuery)
+			}
+		})
+	}
+}
+
 func TestIdentityPolicyTransactions(t *testing.T) {
 	dsn := os.Getenv("TEST_POSTGRES_DSN")
 	if dsn == "" {
