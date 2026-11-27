@@ -140,7 +140,7 @@
                     :model-value="prepareMdRender(md.content)"
                     :theme="editorTheme"
                     no-mermaid
-                    no-katex
+                    no-html
                 />
             </div>
 

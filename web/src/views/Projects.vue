@@ -77,7 +77,6 @@
             :placeholder="t('project.introPlaceholder')"
             :toolbars-exclude="markdownToolbarsExclude"
             no-mermaid
-            no-katex
             no-html
           />
         </n-form-item>
