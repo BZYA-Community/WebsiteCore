@@ -38,8 +38,8 @@ type TweetService interface {
 // TweetManageService 推文管理服务，包括创建/删除/更新推文
 type TweetManageService interface {
 	DeletePost(post *ms.Post) ([]string, error)
-	LockPost(post *ms.Post) error
-	StickPost(post *ms.Post) error
+	LockPost(post *ms.Post) (int, error)
+	StickPost(post *ms.Post) (int, error)
 	HighlightPost(userId, postId int64) (int, error)
 	CreatePostStar(postID, userID int64) (*ms.PostStar, error)
 	DeletePostStar(p *ms.PostStar) error

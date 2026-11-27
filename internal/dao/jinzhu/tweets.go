@@ -298,18 +298,47 @@ func (s *tweetManageSrv) deleteCommentByPostId(db *gorm.DB, postId int64) ([]str
 	return mediaContents, nil
 }
 
-func (s *tweetManageSrv) LockPost(post *ms.Post) error {
-	post.IsLock = 1 - post.IsLock
-	return post.Update(s.db, "is_lock")
+type postFlag struct {
+	column string
+	status func(*ms.Post) int
 }
 
-func (s *tweetManageSrv) StickPost(post *ms.Post) error {
-	post.IsTop = 1 - post.IsTop
-	if err := post.Update(s.db, "is_top"); err != nil {
-		return err
+func (s *tweetManageSrv) LockPost(post *ms.Post) (int, error) {
+	return s.togglePostFlag(post, postFlag{
+		column: "is_lock",
+		status: func(post *ms.Post) int { return post.IsLock },
+	})
+}
+
+func (s *tweetManageSrv) StickPost(post *ms.Post) (int, error) {
+	status, err := s.togglePostFlag(post, postFlag{
+		column: "is_top",
+		status: func(post *ms.Post) int { return post.IsTop },
+	})
+	if err != nil {
+		return 0, err
 	}
 	s.cacheIndex.SendAction(core.IdxActStickPost, post)
-	return nil
+	return status, nil
+}
+
+func (s *tweetManageSrv) togglePostFlag(post *ms.Post, flag postFlag) (int, error) {
+	if post == nil || post.Model == nil || post.ID <= 0 {
+		return 0, gorm.ErrInvalidData
+	}
+	column := clause.Column{Name: flag.column}
+	// GORM uses the model's primary key and scans the returned flag into post.
+	result := s.db.Model(post).
+		Clauses(clause.Returning{Columns: []clause.Column{column}}).
+		Where("is_del = 0").
+		UpdateColumn(flag.column, gorm.Expr("1 - ?", column))
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return 0, gorm.ErrRecordNotFound
+	}
+	return flag.status(post), nil
 }
 
 func (s *tweetManageSrv) HighlightPost(userId int64, postId int64) (res int, err error) {
