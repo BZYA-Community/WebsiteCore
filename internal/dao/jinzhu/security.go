@@ -178,8 +178,11 @@ func (s *securitySrv) VerifyContactCode(ctx context.Context, userID int64, mode,
 		if err != nil {
 			return err
 		}
-		if !record.Delivered || record.Used || record.ExpiresOn <= time.Now().Unix() || record.Attempts >= conf.AccountVerifySetting.MaxAttempts {
+		if !record.Delivered || record.Used || record.ExpiresOn <= time.Now().Unix() {
 			return core.ErrContactCode
+		}
+		if record.Attempts >= conf.AccountVerifySetting.MaxAttempts {
+			return core.ErrContactMaxAttempts
 		}
 		record.Attempts++
 		matches := record.Mode == mode && record.Address == address &&
