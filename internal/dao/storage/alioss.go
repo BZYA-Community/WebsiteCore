@@ -137,7 +137,16 @@ func (s *aliossServant) IsObjectExist(objectKey string) (bool, error) {
 }
 
 func (s *aliossServant) SignURL(objectKey string, expiredInSec int64) (string, error) {
-	return s.bucket.SignURL(objectKey, oss.HTTPGet, expiredInSec)
+	signedURL, err := s.bucket.SignURL(objectKey, oss.HTTPGet, expiredInSec)
+	if err != nil {
+		return "", err
+	}
+	// OSS签名只覆盖方法/路径/参数，不含协议；Endpoint未写scheme时SDK默认http，
+	// https站点上浏览器会按混合内容拦截，故强制https与GetOssDomain的AliOSS口径一致
+	if strings.HasPrefix(signedURL, "http://") {
+		signedURL = "https://" + signedURL[len("http://"):]
+	}
+	return signedURL, nil
 }
 
 func (s *aliossServant) ObjectURL(objetKey string) string {
