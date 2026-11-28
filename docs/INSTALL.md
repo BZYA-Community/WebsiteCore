@@ -13,7 +13,7 @@ This guide covers the recommended ways to run Starisle in development, evaluatio
 
 ### For source-based development
 
-- Go `1.24+`
+- Go `1.26.6+` (see [`go.mod`](../go.mod))
 - Node.js `20.19+` or `22.12+`
 - Yarn `1.x`
 - Docker with Compose (for the local PostgreSQL / Redis / Meilisearch stack)
@@ -23,7 +23,6 @@ This guide covers the recommended ways to run Starisle in development, evaluatio
 - `config.yaml.sample` - canonical configuration template (overrides over embedded defaults)
 - `docker-compose.dev.yml` - local PostgreSQL / Redis / Meilisearch dev stack
 - `scripts/migration/postgres/` - versioned migration SQL
-- `scripts/paopao-postgres.sql` - PostgreSQL bootstrap schema
 
 <a id="run-from-source"></a>
 
@@ -44,7 +43,7 @@ This guide covers the recommended ways to run Starisle in development, evaluatio
    openssl rand -hex 24   # put the output into JWT.Secret
    ```
 
-3. Create the database schema from the embedded migrations:
+3. Initialize the empty PostgreSQL database with the embedded migrations:
 
    ```sh
    make migrate
